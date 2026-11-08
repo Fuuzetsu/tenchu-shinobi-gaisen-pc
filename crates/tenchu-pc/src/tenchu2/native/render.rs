@@ -441,6 +441,26 @@ impl Models {
                 },
             );
         }
+        for ribbon in &frame.effects.ribbons {
+            let depth = (ribbon.depth * 16) as f32;
+            let points = ribbon.corners.map(|p| {
+                [
+                    f32::from(p[0]),
+                    f32::from(p[1]),
+                    render_effects::depth(depth),
+                ]
+            });
+            output.surfaces.push(Surface {
+                depth,
+                blend: 2,
+                vertices: render_effects::quad(
+                    points,
+                    ribbon.colors.map(|c| c.map(|v| f32::from(v) / 255.0)),
+                    None,
+                    2,
+                ),
+            });
+        }
         for quad in &frame.effects.quads {
             let image = assets.sprites.effects[usize::from(quad.image)];
             let mut transform = Matrix {

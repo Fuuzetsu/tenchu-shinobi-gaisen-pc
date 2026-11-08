@@ -233,8 +233,25 @@ impl<E: Events> Driver<'_, E> {
                 random: self.random,
             },
             |actor, context, cue| {
-                if let CombatCue::Clash { opponent, .. } = cue {
-                    c.others.get_mut(opponent)?.actor.motion.loops = -5;
+                match cue {
+                    CombatCue::Trail { slot, part } => {
+                        return c.effects.start_ribbon(
+                            crate::tenchu2::effects::ribbon::Source::Weapon {
+                                actor: c.index,
+                                slot,
+                                part,
+                            },
+                        );
+                    }
+                    CombatCue::EndTrail(slot) => {
+                        c.effects.end_weapon_ribbon(c.index, slot);
+                        return Ok(());
+                    }
+                    CombatCue::Clash { opponent, position } => {
+                        c.others.get_mut(opponent)?.actor.motion.loops = -5;
+                        c.effects.flash(position, false)?;
+                    }
+                    _ => {}
                 }
                 Events::emit(
                     c.events,

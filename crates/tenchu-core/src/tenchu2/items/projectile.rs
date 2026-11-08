@@ -84,6 +84,7 @@ impl Projectile {
     pub fn advance(
         &mut self,
         model: ModelId,
+        view: &Matrix,
         context: &mut Context<'_>,
         mut emit: impl FnMut(Event) -> Result<()>,
     ) -> Result<bool> {
@@ -117,6 +118,16 @@ impl Projectile {
         }
         if self.flight.speed != 0 {
             self.flight.speed = self.flight.speed.wrapping_sub(1);
+        }
+        if self.flight.speed != 0 && self.trail {
+            let sample = crate::tenchu2::effects::ribbon::Sample::projectile(
+                view,
+                self.flight.position,
+                self.flight.velocity,
+                if self.kind == Kind::Shuriken { 5 } else { 6 },
+            );
+            self.trail = sample.is_some();
+            emit(Event::Ribbon { model, sample })?;
         }
         if self.flight.speed == 0 && before != 0 {
             emit(Event::Impact {

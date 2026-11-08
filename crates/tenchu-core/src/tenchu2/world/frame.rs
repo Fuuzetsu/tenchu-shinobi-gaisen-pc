@@ -41,6 +41,7 @@ impl World {
         );
         self.update_camera(assets, false)?;
         self.update_actors(controllers, assets, events)?;
+        self.sample_weapon_ribbons(assets)?;
         let scenery = self.update_environment(assets, events)?;
         let reticle = self.update_items(assets, events)?;
         let effects = self.update_effects()?;

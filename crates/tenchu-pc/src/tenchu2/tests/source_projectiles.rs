@@ -73,6 +73,10 @@ fn native_thrown_blades_match_original_motion_and_contacts() {
         let alive = projectile
             .advance(
                 model,
+                &Matrix {
+                    translation: Position::new(-origin[0], -origin[1], 6400 - origin[2]),
+                    ..Default::default()
+                },
                 &mut Context {
                     map,
                     cursor: &mut Cursor::default(),
@@ -82,6 +86,9 @@ fn native_thrown_blades_match_original_motion_and_contacts() {
                     player: 0,
                 },
                 |event| {
+                    if matches!(event, Event::Ribbon { .. }) {
+                        return Ok(());
+                    }
                     cues.push(match event {
                         Event::Splash(position) => json!(["splash", position.to_array()]),
                         Event::Sound { position, id } => json!(["sound", position.to_array(), id]),

@@ -12,7 +12,7 @@ use crate::{
         actor::{State as ActorState, Velocity},
         ai::status::{Alert, AlertCause},
         collision::{BODY, WEAPON},
-        effects::Effects,
+        effects::{Effects, ribbon::Source},
         items::{Context, Event as ItemEvent, State, grapple, projectile::Phase},
     },
 };
@@ -77,9 +77,13 @@ impl World {
                 }
                 State::Projectile(projectile) => {
                     let pickup = projectile.phase == Phase::Resting;
-                    let alive = projectile.advance(model, &mut context, |event| {
-                        sink.emit(event, &mut self.random)
-                    })?;
+                    let alive =
+                        projectile.advance(model, &self.camera.view, &mut context, |event| {
+                            sink.emit(event, &mut self.random)
+                        })?;
+                    if !alive || !projectile.trail {
+                        sink.effects.sample_ribbon(Source::Projectile(model), None);
+                    }
                     (alive, pickup)
                 }
                 State::Arrow(arrow) => (
@@ -296,6 +300,10 @@ impl<'a> ItemEffects<'a> {
             ItemEvent::Fuse(position) => {
                 self.effects
                     .fuse(position, &self.assets.effect_rules, random)?
+            }
+            ItemEvent::Ribbon { model, sample } => {
+                self.effects
+                    .sample_ribbon(Source::Projectile(model), sample);
             }
             ItemEvent::Splash(position) => {
                 self.effects.ripple(position, 30)?;

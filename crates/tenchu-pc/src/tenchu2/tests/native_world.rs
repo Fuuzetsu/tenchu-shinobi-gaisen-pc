@@ -396,20 +396,11 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                     60..=69 => tenchu_core::tenchu2::input::JUMP,
                     _ => 0,
                 };
-                world.update_camera(&assets, false).unwrap();
                 world
-                    .update_actors([buttons, 0], &mut assets, &mut events)
+                    .step([buttons, 0], &mut assets, &mut events)
                     .unwrap_or_else(|error| {
                         panic!("sequence {} tick {tick}: {error}", layout.sequence)
                     });
-                world
-                    .update_environment(&assets, &mut events)
-                    .unwrap_or_else(|error| {
-                        panic!("sequence {} tick {tick}: {error}", layout.sequence)
-                    });
-                world.update_items(&assets, &mut events).unwrap();
-                world.update_effects().unwrap();
-                world.finish_tick(&assets, 6).unwrap();
             }
             eprintln!(
                 "JP hero {hero} sequence {}: 180 continuous actor ticks",
@@ -555,6 +546,7 @@ fn native_shuriken_hits_and_returns_to_inventory() {
     let health = world.actors[guard].actor.health;
     let mut launched = false;
     let mut hit = false;
+    let mut ribbon = false;
     for _ in 0..100 {
         for i in [0, guard] {
             world.move_actor(i, &assets, &mut events).unwrap();
@@ -569,7 +561,7 @@ fn native_shuriken_hits_and_returns_to_inventory() {
             let target = projectile
                 .flight
                 .position
-                .wrapping_add(projectile.flight.velocity.map(|v| (v * 1500) >> 12));
+                .wrapping_add(projectile.flight.velocity.map(|v| (v * 4000) >> 12));
             let actor = &mut world.actors[guard].actor;
             actor.position.x = target.x;
             actor.position.z = target.z;
@@ -578,7 +570,7 @@ fn native_shuriken_hits_and_returns_to_inventory() {
             launched = true;
         }
         world.update_items(&assets, &mut events).unwrap();
-        world.update_effects().unwrap();
+        ribbon |= !world.update_effects().unwrap().ribbons.is_empty();
         world.finish_tick(&assets, 6).unwrap();
         hit |= world.actors[guard].actor.health < health;
     }
@@ -590,6 +582,7 @@ fn native_shuriken_hits_and_returns_to_inventory() {
     );
     assert_eq!(world.actors[0].actor.inventory.counts[4], 2);
     assert!(world.items.entries.is_empty());
+    assert!(ribbon, "throw has no native projectile trail");
     // A missed throw becomes a physical pickup rather than disappearing on the floor.
     world.actors[guard].actor.flags |= 8;
     let origin = Position::new(4000, -20, 4000);
@@ -665,6 +658,49 @@ fn native_shuriken_hits_and_returns_to_inventory() {
         postcard::to_allocvec(&world).unwrap(),
         postcard::to_allocvec(&restored).unwrap()
     );
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; actual melee controls emit, snapshot and retire native weapon trails"]
+fn native_weapon_trails_follow_attacks_and_snapshot_continuation() {
+    use tenchu_core::tenchu2::effects::ribbon::Source;
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.flags |= 8;
+    for &joint in &world.instances[guard].rig.joints {
+        world.collision.remove(joint);
+    }
+    let (_, mut restored_assets, _) = fixture();
+    let mut restored: Option<World> = None;
+    let mut drawn = false;
+    for tick in 0..160 {
+        let buttons = if matches!(tick, 0 | 35 | 70) {
+            ATTACK
+        } else {
+            0
+        };
+        let frame = world
+            .step([buttons, 0], &mut assets, &mut Recorded::default())
+            .unwrap();
+        if let Some(copy) = &mut restored {
+            let repeated = copy
+                .step([buttons, 0], &mut restored_assets, &mut Recorded::default())
+                .unwrap();
+            assert_eq!(frame.effects.ribbons, repeated.effects.ribbons);
+        }
+        if !frame.effects.ribbons.is_empty() {
+            drawn = true;
+            if restored.is_none() {
+                restored =
+                    Some(postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap());
+            }
+        }
+    }
+    assert!(drawn, "ordinary melee controls emitted no weapon trail");
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored.unwrap()).unwrap()
+    );
+    assert!(!world.effects.entries.iter().any(|effect| matches!(effect, Effect::Ribbon(r) if matches!(r.source, Source::Weapon { actor: 0, .. }))));
 }
 
 #[test]

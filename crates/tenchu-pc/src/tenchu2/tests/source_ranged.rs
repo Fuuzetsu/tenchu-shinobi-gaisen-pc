@@ -162,6 +162,7 @@ fn native_ranged_weapons_match_original_flight_embedding_and_damage_windows() {
                     cues.push(json!(["smoke", position.to_array(), kind]))
                 }
                 Event::Fuse(_) => panic!("Unexpected fuse"),
+                Event::Ribbon { .. } => panic!("Unexpected ribbon"),
             }
             Ok(())
         };

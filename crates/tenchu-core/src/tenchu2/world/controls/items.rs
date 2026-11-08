@@ -476,6 +476,14 @@ impl<E: Events> Context<'_, E> {
                 self.scene,
                 self.collision,
             )?;
+            let model = self
+                .items
+                .entries
+                .last()
+                .ok_or("Missing newly thrown Tenchu 2 blade")?
+                .model;
+            self.effects
+                .start_ribbon(crate::tenchu2::effects::ribbon::Source::Projectile(model))?;
         }
         if kind == Kind::Kunai {
             self.emit(actor, Event::Voice(33), random)?;

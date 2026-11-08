@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore native JP weapon swings, shuriken/kunai trails and weapon-clash flashes
+  in the internal preview. Trails fade on impact or attack interruption and
+  survive restoring an in-flight snapshot.
+
 - Connect poisoned rice in the internal JP preview: original throws, guard luring,
   eating/poison reactions and owner recovery. Distracted guards can still spot
   the player, and resume their original patrol when interrupted.

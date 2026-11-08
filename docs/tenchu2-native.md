@@ -32,7 +32,7 @@ file for rendering; the separate `tenchu2-hd.tar.zst` pack is discovered normall
 
 This preview uses JP actors, controls, AI, collision, water interaction, camera,
 scenery, grapple, shuriken/kunai, caltrops, bows, fire arrows, firearms, grenades, mines,
-smoke bombs, poisoned rice with guard luring, and particles.
+smoke bombs, poisoned rice with guard luring, weapon/projectile trails and particles.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the

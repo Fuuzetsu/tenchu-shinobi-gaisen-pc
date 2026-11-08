@@ -2328,3 +2328,19 @@ alert/recognition interruption and snapshot continuation. Rice's 16-tick scan
 phase retains stable source pool slots and a replayable pool-address phase.
 The native preview starts that phase at zero; recovering the original heap
 phase during complete mission initialization remains a full-frame parity task.
+
+Native JP weapon/projectile ribbons use `8003c848`, `8003c888` and `8003c90c`:
+the 16-sample ring, 15-sample capacity, interval-based retirement, narrowing and
+per-vertex colors follow the original instructions. They share the 62-entry
+effect pool with particles and retain priority zero. Weapon sampling follows
+`8001c8f0` and `8002f0b4`; shuriken/kunai sampling follows `80053770` / `80053f6c`.
+Weapon clashes now call the `8003eb88` flash at the original attack callback.
+The native driver samples once per logic tick, independent of display refresh.
+An item discarded outside the map retires its ribbon rather than leaking the
+original orphaned effect entry.
+
+`TENCHU2_RIBBON_ORACLE` compares 1,200 original-executable sample/update sequences,
+including ring wraparound, fading, narrowing, colors and removal. Drawing is
+captured at the primitive submission boundary, not compared as pixels. Existing
+blade-flight fixtures isolate projection; connected-world checks additionally
+exercise actual melee/throw controls, rendered trail output and snapshots.

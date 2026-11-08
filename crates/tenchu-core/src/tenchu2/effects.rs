@@ -9,6 +9,7 @@ use tenchu_assets::tenchu2::collision::Collision;
 
 pub mod blood;
 pub mod points;
+pub mod ribbon;
 mod spawn;
 pub mod sprites;
 pub mod surface;
@@ -21,11 +22,13 @@ pub enum Effect {
     Blood(blood::Blood),
     Pool(blood::Pool),
     Ripple(water::Ripple),
+    Ribbon(ribbon::Ribbon),
 }
 
 impl Effect {
     fn priority(&self) -> u8 {
         match self {
+            Self::Ribbon(_) => 0,
             Self::Sprites(_) => 6,
             Self::Points(_) => 5,
             Self::Blood(_) => 8,
@@ -46,6 +49,7 @@ pub struct Frame {
     pub sprites: Vec<sprites::Drawing>,
     pub points: Vec<points::Drawing>,
     pub quads: Vec<surface::Quad>,
+    pub ribbons: Vec<ribbon::Drawing>,
     pub blood_sounds: Vec<Position>,
 }
 
@@ -74,6 +78,7 @@ impl Effects {
         let mut index = 0;
         while index < self.entries.len() {
             let alive = match &mut self.entries[index] {
+                Effect::Ribbon(ribbon) => ribbon.update(&mut frame.ribbons),
                 Effect::Sprites(sprites) => sprites.update(scene, view, &mut frame.sprites)?,
                 Effect::Points(points) => points.update(scene, view, &mut frame.points)?,
                 Effect::Blood(blood) => blood.update(scene, view, terrain, cursor, &mut frame)?,

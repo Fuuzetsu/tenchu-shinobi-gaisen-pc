@@ -71,6 +71,10 @@ pub enum Event {
         kind: u8,
     },
     Fuse(Position),
+    Ribbon {
+        model: ModelId,
+        sample: Option<super::effects::ribbon::Sample>,
+    },
 }
 
 pub struct Context<'a> {
