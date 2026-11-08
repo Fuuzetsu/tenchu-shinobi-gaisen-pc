@@ -47,7 +47,7 @@ pub struct Terrain<'a> {
 }
 
 impl Terrain<'_> {
-    fn sample(&mut self, position: Position, width: i16) -> Result<u16> {
+    pub(crate) fn sample(&mut self, position: Position, width: i16) -> Result<u16> {
         self.scratch.material = 0;
         self.scratch.blocked = 0;
         self.scratch.sample(

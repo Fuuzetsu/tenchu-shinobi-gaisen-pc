@@ -7,6 +7,7 @@ mod source_control;
 mod source_entry;
 mod source_idle;
 mod source_input;
+mod source_jump;
 mod source_math;
 mod source_motion;
 mod source_physics;

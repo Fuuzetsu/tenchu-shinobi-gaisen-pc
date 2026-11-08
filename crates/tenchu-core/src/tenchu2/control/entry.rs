@@ -15,6 +15,7 @@ use tenchu_assets::tenchu2::Edition;
 pub struct JumpEffects {
     pub voices: Vec<u8>,
     pub splash: bool,
+    pub wall_jump: bool,
 }
 
 impl Actor {

@@ -2,6 +2,7 @@ use super::actor::{Actor, State, Velocity};
 use crate::{math::Math, random::Random};
 
 mod entry;
+mod jump;
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

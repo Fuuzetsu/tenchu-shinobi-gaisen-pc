@@ -1639,3 +1639,12 @@ clips. Motion selection, input consumption and velocity run original code;
 root publication, candidate lookup and audio are isolated, and the stealth
 path stops before victim/world mutation. The full attack timeline, damage and
 campaign integration remain separate work.
+
+The airborne controller follows EU `8002771c` / JP `800280cc`, preserving
+animation-driven vertical speed, air steering, wall kicks, ceiling cancellation,
+steep-slope stopping and somersault landing orientation. Actual terrain/probe
+instructions match 13,800 updates per edition across all 23 maps
+(`TENCHU2_JUMP_ORACLE`), including scratch/cache state. Motion changes and attack
+entry are supplied at their independently checked boundaries; audio/rumble calls
+are recorded. PAL acceleration, steering limits, rebound speed and voice differ
+from JP and are kept separate.

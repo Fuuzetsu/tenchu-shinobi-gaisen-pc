@@ -13,11 +13,11 @@ use tenchu_core::{
     },
 };
 
-fn vector<T: serde::de::DeserializeOwned>(value: &Value) -> Vector3<T> {
+pub(super) fn vector<T: serde::de::DeserializeOwned>(value: &Value) -> Vector3<T> {
     Vector3::from(serde_json::from_value::<[T; 3]>(value.clone()).unwrap())
 }
 
-fn probe(value: &Value) -> Probe {
+pub(super) fn probe(value: &Value) -> Probe {
     let [floor, height, material, blocked, lower, higher]: [i32; 6] =
         serde_json::from_value(value.clone()).unwrap();
     Probe {
@@ -30,7 +30,7 @@ fn probe(value: &Value) -> Probe {
     }
 }
 
-fn probe_values(probe: &Probe) -> [i32; 6] {
+pub(super) fn probe_values(probe: &Probe) -> [i32; 6] {
     [
         probe.floor.unwrap_or(i32::MIN),
         probe.height,
