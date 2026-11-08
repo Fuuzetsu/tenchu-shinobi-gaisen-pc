@@ -10,7 +10,7 @@ use tenchu_core::{
         actor::State,
         ai::{
             Decision, Probe, SteeringInput,
-            combat::{Blade, Context, ItemChoices, Ranged},
+            combat::{Context, Dog, ItemChoices, Melee, Ranged},
             sight::{Sight, Visibility},
         },
         inventory::Item,
@@ -40,6 +40,24 @@ fn native_blade_fighters_match_source() {
     verify("TENCHU2_BLADE_ORACLE");
 }
 
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_HEAVY_ORACLE from original heavy-weapon decisions"]
+fn native_heavy_weapon_fighters_match_source() {
+    verify("TENCHU2_HEAVY_ORACLE");
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_UNARMED_ORACLE from original unarmed decisions"]
+fn native_unarmed_fighters_match_source() {
+    verify("TENCHU2_UNARMED_ORACLE");
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_DOG_ORACLE from original dog decisions"]
+fn native_dog_combat_matches_source() {
+    verify("TENCHU2_DOG_ORACLE");
+}
+
 fn verify(variable: &str) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
@@ -53,7 +71,12 @@ fn verify(variable: &str) {
     for (id, row) in cases::<Value>(variable).enumerate() {
         let int = |key: &str| row[key].as_i64().unwrap() as i32;
         let boolean = |key: &str| row[key].as_bool().unwrap();
-        let mode = row["mode"].as_str().unwrap_or("blade");
+        let mode = row["mode"].as_str().unwrap_or(match variable {
+            "TENCHU2_HEAVY_ORACLE" => "heavy",
+            "TENCHU2_UNARMED_ORACLE" => "unarmed",
+            "TENCHU2_DOG_ORACLE" => "dog",
+            _ => "blade",
+        });
         let mut actor = template.clone();
         actor.kind = int("kind") as i16;
         actor.state = State::from_action((int("state") as i16) << 8).unwrap();
@@ -70,8 +93,8 @@ fn verify(variable: &str) {
         let mut target = template.clone();
         target.state = State::from_action((int("target_state") as i16) << 8).unwrap();
         target.flags = int("target_flags") as u32;
-        let mut blade = Blade::default();
-        if mode == "blade" {
+        let mut melee = Melee::default();
+        if matches!(mode, "blade" | "heavy" | "unarmed" | "dog") {
             actor.motion.action = int("action") as i16;
             actor.position = vector(&row["position"]);
             actor.target = Some(1);
@@ -79,12 +102,15 @@ fn verify(variable: &str) {
             actor.pad.time = int("padtime") as i16;
             actor.pad.history = serde_json::from_value(row["history"].clone()).unwrap();
             target.position = vector(&row["target_position"]);
-            blade = Blade {
+            melee = Melee {
                 attack_delay: int("delay") as u8,
                 engaged: boolean("engaged"),
                 offset: vector(&row["offset"]),
             };
         }
+        let mut dog = Dog {
+            waiting: row["waiting"].as_u64().unwrap_or(0) as u8,
+        };
         let mut ranged = Ranged {
             attack_delay: int("delay") as u8,
             thrown_item: row["used"].as_bool().unwrap_or(false),
@@ -150,7 +176,19 @@ fn verify(variable: &str) {
             }
             "blade" => {
                 counts[3] += 1;
-                blade.update(&mut context).unwrap()
+                melee.blade(&mut context).unwrap()
+            }
+            "heavy" => {
+                counts[3] += 1;
+                melee.heavy(&mut context).unwrap()
+            }
+            "unarmed" => {
+                counts[3] += 1;
+                melee.unarmed(&mut context).unwrap()
+            }
+            "dog" => {
+                counts[3] += 1;
+                dog.update(&context).unwrap()
             }
             _ => panic!("Unknown combat routine"),
         };
@@ -158,9 +196,9 @@ fn verify(variable: &str) {
         let actual = json!({
             "held": result.held,
             "selected": actor.inventory.selected.map(u8::from),
-            "delay": if mode == "blade" {blade.attack_delay} else {ranged.attack_delay},
+            "delay": if mode != "archer" && mode != "items" && mode != "combo" {melee.attack_delay} else {ranged.attack_delay},
             "used": ranged.thrown_item,
-            "engaged": blade.engaged, "offset": blade.offset.to_array(),
+            "engaged": if mode == "dog" {dog.waiting != 0} else {melee.engaged}, "waiting": dog.waiting, "offset": melee.offset.to_array(),
             "facing": facing, "actions": result.action.into_iter().collect::<Vec<_>>(),
             "pad": [actor.pad.held, actor.pad.previous, actor.pad.time as u16],
             "history": actor.pad.history,
@@ -178,12 +216,15 @@ fn verify(variable: &str) {
         items += usize::from(result.held == tenchu_core::tenchu2::input::ITEM);
         attacks += usize::from(result.held & tenchu_core::tenchu2::input::ATTACK != 0);
     }
-    if variable == "TENCHU2_BLADE_ORACLE" {
+    if variable != "TENCHU2_COMBAT_ORACLE" {
         assert!(counts[3] > 30000);
     } else {
         assert!(counts[..3].iter().all(|&n| n > 10000));
     }
-    assert!(items > 500 && attacks > 500);
+    assert!(attacks > 500);
+    if variable != "TENCHU2_DOG_ORACLE" {
+        assert!(items > 100);
+    }
     eprintln!(
         "{} combat decisions: {items} items, {attacks} attacks",
         counts.iter().sum::<usize>()

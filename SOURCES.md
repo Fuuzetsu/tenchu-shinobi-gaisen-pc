@@ -1842,3 +1842,14 @@ execute original instructions; taunt selection is recorded at the previously
 verified motion-controller boundary. JP's different counterattack condition is
 preserved. Ranged/combo/item regression checks still pass for both editions.
 Native world dispatch and the remaining AI programs are not connected yet.
+
+Heavy-weapon and unarmed decisions follow EU `800366f4` / `80035af4` and JP
+`80037538` / `8003694c`; dogs use `80037484` / `800382e8`. Each program matches
+40,000 original-code decisions per edition (`TENCHU2_HEAVY_ORACLE`,
+`TENCHU2_UNARMED_ORACLE`, `TENCHU2_DOG_ORACLE`). Heavy fighters produce 3,423/3,158
+attack inputs and 643/685 item selections; unarmed fighters produce 5,534/5,415
+attacks and 444/459 items; dogs produce 2,451 attacks in each edition. Short-range
+spacing, counterattacks, boss-specific moves, command-pad changes and wrapped
+counters retain source order. Shared melee helpers also pass the existing blade
+comparisons. Motion-change requests remain recorded boundaries; enclosing AI and
+native-world integration still need implementation.

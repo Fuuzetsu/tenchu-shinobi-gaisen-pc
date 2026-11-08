@@ -17,7 +17,20 @@ use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::{Edition, combat::Rules};
 
 mod blade;
-pub use blade::Blade;
+mod heavy;
+mod unarmed;
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct Melee {
+    pub attack_delay: u8,
+    pub engaged: bool,
+    pub offset: Position,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct Dog {
+    pub waiting: u8,
+}
 
 pub struct Context<'a> {
     pub actor: &'a mut Actor,
@@ -243,6 +256,108 @@ impl Context<'_> {
         self.facing = 0;
         self.actor.rotation.y = self.actor.rotation.y.wrapping_add(self.sight.angle);
         self.sight.angle = 0;
+    }
+
+    fn turn_around(&self) -> u16 {
+        if self.sight.angle > 0 {
+            input::RIGHT
+        } else {
+            input::LEFT
+        }
+    }
+
+    fn defend(&mut self, held: u16) -> Result<u16> {
+        if self.target.state == State::Attack {
+            self.guard(held)
+        } else if self.player_held & input::DOWN != 0 && self.random.next15() & 3 == 0 {
+            self.choose_item(ItemChoices::DEFENSIVE)
+        } else {
+            Ok(held)
+        }
+    }
+
+    fn between_decisions(&mut self, held: u16, reach: i32, dodge: bool) -> Result<u16> {
+        if self.sight.distance >= reach {
+            return Ok(held);
+        }
+        let bearing = i32::from(self.sight.player_angle).abs();
+        if self.target.state == State::Attack && bearing < 512 {
+            return self.guard(held);
+        }
+        if self.facing >= 200 {
+            return Ok(if dodge && self.random.next15() & 31 == 0 {
+                self.command(0x910)
+            } else {
+                held
+            });
+        }
+        let hesitate = if self.resources.registry.edition == Edition::Europe {
+            bearing <= 512 && self.target.state != State::Hurt
+        } else {
+            self.difficulty != 0 || bearing <= 512
+        };
+        if hesitate && self.random.next15() & 3 != 0 {
+            return Ok(held);
+        }
+        Ok(self.attack())
+    }
+
+    fn close_combat(&mut self, attack_delay: u8, cone: i32, held: u16) -> Result<u16> {
+        let bearing = i32::from(self.sight.player_angle).abs();
+        if self.facing < cone {
+            if (usize::from(attack_delay) > self.difficulty * 10
+                || (self.difficulty < 2 && bearing > 512))
+                && self.likely()?
+            {
+                return Ok(self.attack());
+            }
+            return self.defend(held);
+        }
+        if self.facing < 512 {
+            return self.defend(held);
+        }
+        if self.facing >= 1280 {
+            return Ok(if bearing < 512 {
+                input::UP
+            } else {
+                self.turn_around()
+            });
+        }
+        if self.target.state == State::Attack && bearing < 512 {
+            return self.guard(held);
+        }
+        if usize::from(attack_delay) <= self.difficulty * 10 || !self.likely()? {
+            return Ok(held);
+        }
+        Ok(if self.random.next15() & 3 == 0 {
+            input::ATTACK | input::UP | input::DOWN
+        } else {
+            held | input::ATTACK
+        })
+    }
+
+    fn maneuver(&mut self, decision: &mut Decision, mut held: u16) -> Result<u16> {
+        if i32::from(self.sight.player_angle).abs() < 200 && self.random.next15() & 3 == 0 {
+            decision.action = Some(0x70d);
+        } else if self.random.next15() & 1 == 0 {
+            if self.random.next15() & 1 == 0 {
+                let item = if self.actor.inventory.counts[1] != 0 && self.low_health() {
+                    Some(1)
+                } else {
+                    [4, 6, 10, 8]
+                        .into_iter()
+                        .find(|&i| self.actor.inventory.counts[i] != 0)
+                };
+                if let Some(item) = item {
+                    held = self.select_item(item as u8)?;
+                }
+            } else {
+                held = self.command(0x910);
+            }
+        } else if self.steering.ahead.is_some_and(|p| p.height < 3000) {
+            held = self.command(0x111);
+        }
+        Ok(held)
     }
 
     fn probability(&self) -> Result<i32> {

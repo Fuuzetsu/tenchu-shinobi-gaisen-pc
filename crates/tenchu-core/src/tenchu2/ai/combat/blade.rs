@@ -1,27 +1,17 @@
-use super::{Context, ItemChoices};
+use super::{Context, ItemChoices, Melee};
 use crate::{
     Result,
     math::Position,
     tenchu2::{actor::State, ai::Decision, input},
 };
-use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::Edition;
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct Blade {
-    pub attack_delay: u8,
-    pub engaged: bool,
-    pub offset: Position,
-}
-
-impl Blade {
-    pub fn update(&mut self, context: &mut Context<'_>) -> Result<Decision> {
+impl Melee {
+    pub fn blade(&mut self, context: &mut Context<'_>) -> Result<Decision> {
         let mut decision = Decision::default();
-        decision.held = self.input(context, &mut decision)?;
+        decision.held = self.blade_input(context, &mut decision)?;
         Ok(decision)
     }
 
-    fn input(&mut self, c: &mut Context<'_>, decision: &mut Decision) -> Result<u16> {
+    fn blade_input(&mut self, c: &mut Context<'_>, decision: &mut Decision) -> Result<u16> {
         if c.steering.forced || c.actor.state == State::Item {
             return Ok(0);
         }
@@ -67,7 +57,7 @@ impl Blade {
         }
         let mut held = c.turn();
         if c.actor.motion.frame % 10 != 0 {
-            return self.between_decisions(c);
+            return c.between_decisions(c.actor.pad.held & !input::ITEM, 2000, false);
         }
         if c.sight.distance > 5000 {
             if c.actor.inventory.counts[1] != 0 && c.low_health() {
@@ -91,39 +81,6 @@ impl Blade {
         }
     }
 
-    fn between_decisions(&self, c: &mut Context<'_>) -> Result<u16> {
-        let held = c.actor.pad.held & !input::ITEM;
-        if c.sight.distance >= 2000 {
-            return Ok(held);
-        }
-        let bearing = i32::from(c.sight.player_angle).abs();
-        if c.target.state == State::Attack && bearing < 512 {
-            return c.guard(held);
-        }
-        if c.facing >= 200 {
-            return Ok(held);
-        }
-        let hesitate = if c.resources.registry.edition == Edition::Europe {
-            bearing <= 512 && c.target.state != State::Hurt
-        } else {
-            c.difficulty != 0 || bearing <= 512
-        };
-        if hesitate && c.random.next15() & 3 != 0 {
-            return Ok(held);
-        }
-        Ok(c.attack())
-    }
-
-    fn defend(c: &mut Context<'_>, held: u16) -> Result<u16> {
-        if c.target.state == State::Attack {
-            c.guard(held)
-        } else if c.player_held & input::DOWN != 0 && c.random.next15() & 3 == 0 {
-            c.choose_item(ItemChoices::DEFENSIVE)
-        } else {
-            Ok(held)
-        }
-    }
-
     fn close(&self, c: &mut Context<'_>, decision: &mut Decision, held: u16) -> Result<u16> {
         let bearing = i32::from(c.sight.player_angle).abs();
         if c.facing < 200 {
@@ -133,10 +90,10 @@ impl Blade {
             {
                 return Ok(c.attack());
             }
-            return Self::defend(c, held);
+            return c.defend(held);
         }
         if c.facing < 512 {
-            return Self::defend(c, held);
+            return c.defend(held);
         }
         if c.facing >= 1280 {
             if c.actor.kind == 0xee || (c.actor.kind == 0xe2 && c.sight.distance < 1000) {
@@ -145,7 +102,7 @@ impl Blade {
             return Ok(if bearing < 512 {
                 input::UP
             } else {
-                Self::turn_around(c)
+                c.turn_around()
             });
         }
         if c.low_health() && c.likely()? {
@@ -180,7 +137,7 @@ impl Blade {
             }
         }
         if c.facing >= 512 {
-            return Ok(Self::turn_around(c));
+            return Ok(c.turn_around());
         }
         if c.low_health() && c.likely()? {
             held = c.choose_item(ItemChoices::BOTH)?;
@@ -226,34 +183,6 @@ impl Blade {
             }
             return Ok(held);
         }
-        if i32::from(c.sight.player_angle).abs() < 200 && c.random.next15() & 3 == 0 {
-            decision.action = Some(0x70d);
-        } else if c.random.next15() & 1 == 0 {
-            if c.random.next15() & 1 == 0 {
-                let item = if c.actor.inventory.counts[1] != 0 && c.low_health() {
-                    Some(1)
-                } else {
-                    [4, 6, 10, 8]
-                        .into_iter()
-                        .find(|&i| c.actor.inventory.counts[i] != 0)
-                };
-                if let Some(item) = item {
-                    held = c.select_item(item as u8)?;
-                }
-            } else {
-                held = c.command(0x910);
-            }
-        } else if c.steering.ahead.is_some_and(|p| p.height < 3000) {
-            held = c.command(0x111);
-        }
-        Ok(held)
-    }
-
-    fn turn_around(c: &Context<'_>) -> u16 {
-        if c.sight.angle > 0 {
-            input::RIGHT
-        } else {
-            input::LEFT
-        }
+        c.maneuver(decision, held)
     }
 }
