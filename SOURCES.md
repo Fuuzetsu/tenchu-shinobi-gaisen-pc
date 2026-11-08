@@ -1443,3 +1443,29 @@ the source endpoint-minus-rest delta (including intentional turning strikes),
 then resets the pose to the destination stance. Legacy moveset exports recover
 the same resting angle from the first attack's initial hip key. Disc-backed
 checks cover all twelve attacks, both player skeletons and both disc editions.
+
+### Native Tenchu 2 actor and motion catalogues (2026-11-08)
+
+`tenchu-assets::tenchu2::{registry,motions}` reads each verified edition's
+DATAMNG and all three heroes' gameplay MOT bundles from the user's disc.
+Actor identity remains per kind: 130 definitions share 78 model names, with
+separate weapon and motion registrations. These readers do not imply that
+Tenchu 2 actor controllers or campaign progression have been ported.
+
+Source routines inspected from the exact EU/JP GAME.EXE binaries listed above:
+EU `8001a484` / JP `8001a534` relocate MOT tracks and install common motions;
+EU `8001a588`, `8001a774` / JP `8001a638`, `8001a824` resolve character-local
+registrations before common registrations and negate the initial blend duration.
+EU `8001b4fc` / JP `8001b5ac` construct actors from the 24-byte definitions.
+The reader preserves signed 16-bit motion speeds and every source joint, without
+forcing them into Gaisen's signed-byte speeds or fifteen-part skeleton. Only
+model-picker previews use the existing Gaisen bone mapping.
+
+Independent private MIPS execution checked 3,063 EU and 3,025 JP motion selections,
+including local overrides, common fallbacks and missing actions. The comparison
+hook is `TENCHU2_MOTION_ORACLE`; traces and source data stay outside Git. All 72
+campaign motion bundles per edition were decoded and duplicate clip IDs checked
+for identical tracks. EU supplies 1,208 distinct clips and JP 1,191; JP's campaign
+bundles omit nineteen horse/hawk/crow clips still named in its actor registry.
+Those missing resources must not be silently relabelled as Gaisen motions or
+replaced by another edition when native T2 behavior is requested.

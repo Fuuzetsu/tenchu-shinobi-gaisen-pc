@@ -619,3 +619,106 @@ fn imported_character_models_animate_with_isolated_textures() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; audits source actor kinds and all 72 gameplay motion bundles"]
+fn source_actor_registries_and_full_motion_tracks() {
+    use tenchu_assets::tenchu2::{Edition, motions, registry::Registry};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let registry = Registry::load(&disc).unwrap();
+    assert_eq!(registry.actors.len(), 130);
+    assert_eq!(
+        registry
+            .actors
+            .iter()
+            .map(|a| a.model.as_str())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        78
+    );
+    let sword = registry.actor(20).unwrap();
+    let spear = registry.actor(21).unwrap();
+    assert_eq!(sword.model, spear.model);
+    assert_ne!(sword.weapon, spear.weapon);
+    assert_ne!(sword.motions, spear.motions);
+    let expected = if registry.edition == Edition::Japan {
+        1349
+    } else {
+        40
+    };
+    assert_eq!(registry.clip(0, 0xa00), Some(expected));
+    let mut clips = BTreeMap::new();
+    for hero in 0..3 {
+        for map in 0..24 {
+            for (id, clip) in motions::for_map(&disc, hero, map).unwrap() {
+                if let Some(previous) = clips.insert(id, clip.clone()) {
+                    assert_eq!(previous, clip, "{hero}/{map}: inconsistent clip {id}");
+                }
+                assert!(!clip.root.is_empty());
+                assert!(clip.bones.iter().all(|track| !track.is_empty()));
+            }
+        }
+    }
+    assert_eq!(
+        clips.len(),
+        if registry.edition == Edition::Japan {
+            1191
+        } else {
+            1208
+        }
+    );
+    assert_eq!(clips[&1304].forward_speed, 231);
+    assert_eq!(clips[&139].forward_speed, -185);
+    assert_eq!(clips.values().map(|clip| clip.bones.len()).max(), Some(20));
+    let missing: std::collections::BTreeSet<_> = registry
+        .actors
+        .iter()
+        .flat_map(|a| &a.motions)
+        .filter_map(|entry| (!clips.contains_key(&entry.clip)).then_some(entry.clip))
+        .collect();
+    // Japan's campaign CABs omit the horse and hawk/crow moves still listed in DATAMNG.
+    let expected: std::collections::BTreeSet<_> = if registry.edition == Edition::Japan {
+        [776, 777, 778].into_iter().chain(1190..=1205).collect()
+    } else {
+        Default::default()
+    };
+    assert_eq!(missing, expected);
+    eprintln!(
+        "{:?}: {} kinds, {} source clips; missing from campaign bundles: {missing:?}",
+        registry.edition,
+        registry.actors.len(),
+        clips.len()
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_MOTION_ORACLE from the selected edition's MIPS routine"]
+fn motion_registration_matches_source_selection() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let registry = tenchu_assets::tenchu2::registry::Registry::load(&disc).unwrap();
+    let data = std::fs::read_to_string(std::env::var_os("TENCHU2_MOTION_ORACLE").unwrap()).unwrap();
+    let mut checked = 0;
+    for line in data.lines() {
+        let fields: Vec<i16> = line
+            .split_whitespace()
+            .map(|v| v.parse().unwrap())
+            .collect();
+        assert_eq!(fields.len(), 3);
+        let [kind, action, expected] = fields[..] else {
+            unreachable!()
+        };
+        assert_eq!(
+            registry.clip(kind, action).unwrap_or(-1),
+            expected,
+            "kind {kind}, action {action:#x}"
+        );
+        checked += 1;
+    }
+    assert!(checked >= 3000);
+    eprintln!(
+        "{:?}: {checked} MIPS motion selections match",
+        registry.edition
+    );
+}
