@@ -28,6 +28,8 @@ mod film;
 pub(crate) mod presentation;
 mod render;
 #[cfg(not(target_arch = "wasm32"))]
+mod results;
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod save;
 mod story;
 #[cfg(test)]
@@ -223,7 +225,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Original equipment/results artwork and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Original equipment artwork and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }

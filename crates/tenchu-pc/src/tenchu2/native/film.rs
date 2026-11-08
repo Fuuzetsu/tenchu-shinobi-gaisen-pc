@@ -43,7 +43,7 @@ impl Introduction {
 }
 
 pub struct Movie {
-    pub frame: Option<tenchu_assets::movie::Frame>,
+    pub frame: Option<Arc<tenchu_assets::movie::Frame>>,
     pub audio: Option<Arc<Clip>>,
     pub finished: bool,
     pub quit: bool,
@@ -68,7 +68,9 @@ impl Movie {
         };
         if let Some(descriptor) = descriptor {
             let mut stream = tenchu_assets::movie::Stream::open(disc, &descriptor.audio.path)?;
-            movie.frame = Some(stream.next(disc)?.ok_or("Empty Japanese Tenchu 2 movie")?);
+            movie.frame = Some(Arc::new(
+                stream.next(disc)?.ok_or("Empty Japanese Tenchu 2 movie")?,
+            ));
             movie.audio = Some(Arc::new(Clip::load(disc, &descriptor.audio)?));
             movie.stream = Some(stream);
             movie.last_frame = descriptor.last_frame;
@@ -89,7 +91,7 @@ impl Movie {
                 .next(disc)?
                 .ok_or("Japanese Tenchu 2 movie ended before its final frame")?;
             self.finished = frame.number >= self.last_frame - 3;
-            self.frame = Some(frame);
+            self.frame = Some(Arc::new(frame));
         }
         Ok(())
     }

@@ -180,9 +180,12 @@ impl Application {
         }
         if let Some(view) = &mut self.view {
             if view.generation != self.session.generation {
-                view.renderer.reset_vram(self.session.vram());
-                view.drawing =
-                    ContentDrawing::new(&self.session.content, &self.graphics, &mut view.renderer)?;
+                view.drawing.replace(
+                    &self.session.content,
+                    self.session.vram(),
+                    &self.graphics,
+                    &mut view.renderer,
+                )?;
                 view.generation = self.session.generation;
                 if let Some(audio) = &self.audio {
                     self.session.content.start_audio(audio);
@@ -302,7 +305,7 @@ impl ApplicationHandler for Application {
                             }
                             KeyCode::Enter => {
                                 self.session.action = match self.session.content {
-                                    Content::Results => Some(Action::Continue),
+                                    Content::Results(_) => Some(Action::Continue),
                                     Content::Failed | Content::Complete => Some(Action::Retry),
                                     _ => None,
                                 }

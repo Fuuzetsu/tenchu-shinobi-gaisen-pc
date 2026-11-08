@@ -23,6 +23,9 @@ The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
 The JP game uses Triangle for items and Circle for guarding (E and `/` with
 default keyboard bindings); Z/C cycle inventory. These follow Tenchu 2's controls.
+At results, Circle continues, Start retries, and Cross leaves the mission. The
+original score/rank artwork and dimmed scene accompany mouse/touch buttons;
+Enter also continues. Results use the disc's menu sound bank.
 
 For development, the standalone preview is also available:
 
@@ -73,6 +76,6 @@ deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the
 port's visual enhancements. The original HUD now shows health/enemy bars, Ki,
 breath, the aiming reticle, item selection and pickup notices. Timed 3D story
-effects and original equipment/results artwork remain integration work.
+effects and original equipment artwork remain integration work.
 Component comparisons and snapshot continuation do not establish full campaign
 parity. EU assets remain supported without an EU-native AI runtime.

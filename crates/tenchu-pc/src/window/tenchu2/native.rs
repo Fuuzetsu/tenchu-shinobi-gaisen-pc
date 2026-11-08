@@ -148,15 +148,17 @@ impl Application {
                     return Ok(());
                 }
             }
-            native.drawing = None;
-            view.renderer.reset_vram(native.playback.vram());
             #[cfg(not(target_os = "android"))]
             view.renderer.configure(&self.settings.graphics);
-            native.drawing = Some(ContentDrawing::new(
-                &native.playback.content,
-                &self.settings.graphics,
-                &mut view.renderer,
-            )?);
+            native
+                .drawing
+                .get_or_insert(ContentDrawing::Empty)
+                .replace(
+                    &native.playback.content,
+                    native.playback.vram(),
+                    &self.settings.graphics,
+                    &mut view.renderer,
+                )?;
             native.generation = Some(native.playback.generation);
             native.graphics.clone_from(&self.settings.graphics);
             self.last_frame = Instant::now();
@@ -382,7 +384,7 @@ impl Application {
                         KeyCode::Enter => {
                             let native = self.native_tenchu2.as_mut().unwrap();
                             native.playback.action = match native.playback.content {
-                                Content::Results => Some(NativeAction::Continue),
+                                Content::Results(_) => Some(NativeAction::Continue),
                                 Content::Failed | Content::Complete => Some(NativeAction::Retry),
                                 _ => None,
                             };

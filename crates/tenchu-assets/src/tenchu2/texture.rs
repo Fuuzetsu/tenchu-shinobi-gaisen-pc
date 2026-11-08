@@ -6,9 +6,13 @@ use crate::{
 
 pub(super) fn image(data: &[u8]) -> Result<crate::frontend::Image> {
     let mut image = crate::frontend::Image::parse(data)?;
-    let count = if u32_le(data, 4)? & 1 != 0 { 256 } else { 16 };
+    enable_image_blending(&mut image);
+    Ok(image)
+}
+
+pub(super) fn enable_image_blending(image: &mut crate::frontend::Image) {
     if image.palette_color(0).is_some()
-        && !(0..count)
+        && !(0..256)
             .filter_map(|i| image.palette_color(i))
             .any(|v| v & 0x8000 != 0 && v & 0x7fff != 0)
     {
@@ -18,7 +22,6 @@ pub(super) fn image(data: &[u8]) -> Result<crate::frontend::Image> {
             }
         }
     }
-    Ok(image)
 }
 
 pub(super) fn upload(vram: &mut Vram, data: &[u8]) -> Result<Image> {

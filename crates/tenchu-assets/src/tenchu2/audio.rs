@@ -6,6 +6,10 @@ pub struct Audio {
     pub interval: i16,
 }
 
+pub fn menu(disc: &Disc<impl ReadAt>) -> Result<Bank> {
+    Bank::parse(&Volume::open(disc)?.read(r"o:\cdimage\menu\sound", "menu.vab")?)
+}
+
 pub fn interval(disc: &Disc<impl ReadAt>, map: usize) -> Result<i16> {
     if map >= 24 {
         return Err("Invalid Tenchu 2 ambience map".into());

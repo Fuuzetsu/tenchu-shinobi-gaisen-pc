@@ -14,6 +14,7 @@ pub(crate) struct Drawing {
     models: models::Models,
     scene: SceneDrawing,
     pub texts: Vec<fonts::Text>,
+    view: Matrix,
 }
 
 impl Drawing {
@@ -24,6 +25,7 @@ impl Drawing {
             models,
             scene: SceneDrawing::new(geometry, renderer),
             texts,
+            view: story.state.view,
         })
     }
 
@@ -31,16 +33,12 @@ impl Drawing {
         let (geometry, texts) = self.models.geometry(story, renderer)?;
         self.scene.update(geometry, renderer);
         self.texts = texts;
+        self.view = story.state.view;
         Ok(())
     }
 
-    pub fn draw(
-        &self,
-        view: Matrix,
-        target: &wgpu::TextureView,
-        renderer: &mut Renderer,
-    ) -> Result<()> {
-        self.scene.draw(view, target, renderer)
+    pub fn draw(&self, target: &wgpu::TextureView, renderer: &mut Renderer) -> Result<()> {
+        self.scene.draw(self.view, target, renderer)
     }
 }
 

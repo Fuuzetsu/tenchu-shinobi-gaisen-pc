@@ -55,7 +55,7 @@ fn native_results_survive_restarting_the_campaign() {
     playback.run.progress.tatsumaru_unlocked = true;
     reach_exit(&mut playback);
     next(&mut playback);
-    assert!(matches!(playback.content, Content::Results));
+    assert!(matches!(playback.content, Content::Results(_)));
     let expected = serde_json::to_value(&playback.run.progress).unwrap();
     let saved = std::fs::read(&path).unwrap();
     for _ in 0..90 {
@@ -88,7 +88,7 @@ fn native_playback_advances_through_results_into_the_next_mission() {
     let mut playback = start(134);
     reach_exit(&mut playback);
     next(&mut playback);
-    assert!(matches!(playback.content, Content::Results));
+    assert!(matches!(playback.content, Content::Results(_)));
     assert_eq!(playback.run.sequence, 135);
     assert_eq!(playback.run.results.as_ref().unwrap().record.score, 400);
     let stock = playback.run.progress.stock.clone();
@@ -101,6 +101,7 @@ fn native_playback_advances_through_results_into_the_next_mission() {
     );
     playback.action = Some(Action::Continue);
     playback.step(0).unwrap();
+    next(&mut playback);
     assert_eq!(playback.run.sequence, 136);
     assert!(matches!(playback.content, Content::Story { .. }));
     playback.step(JUMP).unwrap();
@@ -145,7 +146,7 @@ fn native_playback_follows_boss_success_and_failure_branches() {
     assert_eq!(playback.run.sequence, 12);
     next(&mut playback);
     assert_eq!(playback.run.sequence, 13);
-    assert!(matches!(playback.content, Content::Results));
+    assert!(matches!(playback.content, Content::Results(_)));
     assert_eq!(
         playback
             .run
@@ -159,6 +160,7 @@ fn native_playback_follows_boss_success_and_failure_branches() {
     );
     playback.action = Some(Action::Retry);
     playback.step(0).unwrap();
+    next(&mut playback);
     assert_eq!(playback.run.sequence, 9);
     assert_eq!(playback.run.summary.kills.killed, 0);
 
@@ -191,6 +193,7 @@ fn native_playback_advances_through_introductions_and_movies() {
     let mut playback = start(13);
     playback.action = Some(Action::Continue);
     playback.step(0).unwrap();
+    next(&mut playback);
     assert_eq!(playback.run.sequence, 15);
     let Content::Introduction(intro) = &playback.content else {
         panic!("not introduction")
@@ -226,10 +229,48 @@ fn native_playback_advances_through_introductions_and_movies() {
     assert_eq!(movie.frame.as_ref().unwrap().number, first + 1);
     next(&mut playback);
     assert_eq!(playback.run.sequence, 35);
-    assert!(matches!(playback.content, Content::Results));
+    assert!(matches!(playback.content, Content::Results(_)));
 
     let mut playback = start(34);
     playback.step(0x2000).unwrap();
     next(&mut playback);
     assert_eq!(playback.run.sequence, 35);
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; retail result buttons wait for release, play the menu cue and leave after sixty vblanks"]
+fn native_results_buttons_follow_the_printed_legend() {
+    for buttons in [0x2000, 8, 0x4000, 9] {
+        let mut playback = start(13);
+        playback.previous_buttons = buttons;
+        for _ in 0..3 {
+            assert!(playback.step(buttons).unwrap().sounds.is_empty());
+        }
+        playback.step(0).unwrap();
+        let update = playback.step(buttons).unwrap();
+        assert_eq!(
+            update.sounds,
+            [Sound {
+                id: 2,
+                slot: 0,
+                note: 36,
+                volume: [127; 2]
+            }]
+        );
+        let Content::Results(result) = &playback.content else {
+            unreachable!()
+        };
+        assert!(result.bank.programs[0].as_ref().unwrap().tones[2].sample > 0);
+        for _ in 0..29 {
+            let update = playback.step(buttons).unwrap();
+            assert!(!update.quit && update.sounds.is_empty());
+            assert_eq!(playback.run.sequence, 13);
+        }
+        let update = playback.step(buttons).unwrap();
+        match buttons {
+            0x2000 => assert_eq!(playback.run.sequence, 15),
+            8 => assert_eq!(playback.run.sequence, 9),
+            _ => assert!(update.quit),
+        }
+    }
 }

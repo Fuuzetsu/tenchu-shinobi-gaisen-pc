@@ -29,6 +29,7 @@ pub(super) use story::capture as capture_story;
 pub struct Drawing {
     models: Models,
     scene: SceneDrawing,
+    view: Matrix,
 }
 
 struct SceneDrawing {
@@ -49,6 +50,7 @@ impl Drawing {
         Ok(Self {
             models,
             scene: SceneDrawing::new(geometry, renderer),
+            view: session.world.camera.view,
         })
     }
 
@@ -58,16 +60,12 @@ impl Drawing {
             .geometry(&session.world, &session.assets, &session.frame)?;
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
+        self.view = session.world.camera.view;
         Ok(())
     }
 
-    pub fn draw(
-        &self,
-        view: Matrix,
-        target: &wgpu::TextureView,
-        renderer: &mut Renderer,
-    ) -> Result<()> {
-        self.scene.draw(view, target, renderer)
+    pub fn draw(&self, target: &wgpu::TextureView, renderer: &mut Renderer) -> Result<()> {
+        self.scene.draw(self.view, target, renderer)
     }
 }
 

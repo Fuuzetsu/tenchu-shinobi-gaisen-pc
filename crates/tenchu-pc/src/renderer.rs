@@ -411,6 +411,11 @@ impl Renderer {
         self.size
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn format(&self) -> wgpu::TextureFormat {
+        self.format
+    }
+
     #[cfg(any(not(target_os = "android"), test))]
     pub fn resize(&mut self, size: [u32; 2]) {
         self.configure_at(self.graphics.clone(), size);

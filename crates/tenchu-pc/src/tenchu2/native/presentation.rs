@@ -12,6 +12,7 @@ use tenchu_assets::Result;
 use tenchu_core::tenchu2::campaign::Run;
 
 mod film;
+mod results;
 
 impl Update {
     pub fn play_audio(&self, output: &Output) {
@@ -42,6 +43,7 @@ impl Content {
         output.send(Command::Clear);
         match self {
             Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
+            Self::Results(results) => output.send(Command::Bank(results.bank.clone())),
             Self::Story { audio, .. } => output.send(Command::Music(audio.clone(), false)),
             Self::Movie(movie) => output.send(Command::Music(movie.audio.clone(), false)),
             _ => output.send(Command::Music(None, false)),
@@ -57,46 +59,42 @@ impl Content {
         error: Option<&str>,
     ) -> Option<Action> {
         let mut action = None;
-        if matches!(self, Self::Results | Self::Failed | Self::Complete) {
-            egui::Window::new(match self {
-                Self::Results => "Mission complete",
-                Self::Failed => "Mission failed",
-                _ => "Campaign complete",
+        if let Self::Results(results) = self {
+            egui::Area::new("jp-results-actions".into())
+                .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -8.0])
+                .show(ctx, |ui| {
+                    egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
+                        if results.values.new_best {
+                            ui.label("New personal best");
+                        }
+                        if let Some(item) = results.values.unlocked_item {
+                            ui.label(format!("Unlocked item {item}"));
+                        }
+                        ui.add_enabled_ui(results.exit.is_none(), |ui| {
+                            ui.horizontal(|ui| {
+                                if ui.button("Continue · Enter").clicked() {
+                                    action = Some(Action::Continue);
+                                }
+                                if ui.button("Retry mission").clicked() {
+                                    action = Some(Action::Retry);
+                                }
+                                if ui.button("Leave mission").clicked() {
+                                    action = Some(Action::Quit);
+                                }
+                            });
+                        });
+                    });
+                });
+        } else if matches!(self, Self::Failed | Self::Complete) {
+            egui::Window::new(if matches!(self, Self::Failed) {
+                "Mission failed"
+            } else {
+                "Campaign complete"
             })
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
-                if let Self::Results = self
-                    && let Some(results) = &run.results
-                {
-                    ui.heading(format!(
-                        "Score {} · rank {} / 6",
-                        results.record.score, results.record.rank
-                    ));
-                    ui.label(format!(
-                        "Time {:.1}s",
-                        f64::from(results.record.time_tenths) / 10.0
-                    ));
-                    for (name, value) in [
-                        ("Stealth kills", results.summary.kills.stealth_kills),
-                        ("Combat kills", results.summary.kills.combat_kills),
-                        ("Detections", results.summary.detections),
-                        ("Innocents killed", results.summary.kills.innocents),
-                    ] {
-                        ui.label(format!("{name}: {value}"));
-                    }
-                    if results.new_best {
-                        ui.label("New personal best");
-                    }
-                    if let Some(item) = results.unlocked_item {
-                        ui.label(format!("Unlocked item {item}"));
-                    }
-                    ui.separator();
-                    if ui.button("Continue · Enter").clicked() {
-                        action = Some(Action::Continue);
-                    }
-                }
                 if ui.button("Retry mission").clicked() {
                     action = Some(Action::Retry);
                 }
@@ -161,7 +159,7 @@ impl Content {
                 });
         }
         egui::Window::new("Native JP integration").open(open).default_size([550.0, 480.0]).vscroll(true).show(ctx, |ui| {
-            ui.label("Original equipment/results artwork and some effects are still being connected.");
+            ui.label("Original equipment screens and some effects are still being connected.");
             ui.checkbox(paused, "Pause simulation");
             match self {
                 Self::Gameplay(session) => {
@@ -200,8 +198,9 @@ pub(crate) enum ContentDrawing {
     Introduction(Arc<crate::frontend::draw::Frame>),
     Movie {
         texture: Option<egui::TextureHandle>,
-        frame: Option<u32>,
+        frame: Option<Arc<tenchu_assets::movie::Frame>>,
     },
+    Results(results::Drawing),
     Empty,
 }
 
@@ -219,8 +218,30 @@ impl ContentDrawing {
                 texture: None,
                 frame: None,
             }),
+            Content::Results(results) => Ok(Self::Results(results::Drawing::new(results, None))),
             _ => Ok(Self::Empty),
         }
+    }
+
+    pub fn replace(
+        &mut self,
+        content: &Content,
+        vram: &tenchu_assets::texture::Vram,
+        graphics: &Graphics,
+        renderer: &mut Renderer,
+    ) -> Result<()> {
+        let backdrop = if matches!(content, Content::Results(_)) {
+            self.results_backdrop(renderer)?
+        } else {
+            None
+        };
+        renderer.reset_vram(vram);
+        *self = if let Content::Results(results) = content {
+            Self::Results(results::Drawing::new(results, backdrop))
+        } else {
+            Self::new(content, graphics, renderer)?
+        };
+        Ok(())
     }
 
     pub fn update(&mut self, content: &Content, renderer: &mut Renderer) -> Result<()> {
@@ -234,7 +255,8 @@ impl ContentDrawing {
                 Ok(())
             }
             (Self::Movie { .. }, Content::Movie(_)) => Ok(()),
-            (Self::Empty, Content::Results | Content::Failed | Content::Complete) => Ok(()),
+            (Self::Results(_), Content::Results(_))
+            | (Self::Empty, Content::Failed | Content::Complete) => Ok(()),
             _ => Err("Mismatched native JP scene renderer".into()),
         }
     }
@@ -246,13 +268,10 @@ impl ContentDrawing {
         renderer: &mut Renderer,
     ) -> Result<()> {
         match (self, content) {
-            (Self::Gameplay(drawing), Content::Gameplay(session)) => {
-                drawing.draw(session.world.camera.view, target, renderer)
-            }
-            (Self::Story(drawing), Content::Story { story, .. }) => {
-                drawing.draw(story.state.view, target, renderer)
-            }
-            (Self::Empty, Content::Results | Content::Failed | Content::Complete)
+            (Self::Gameplay(drawing), Content::Gameplay(_)) => drawing.draw(target, renderer),
+            (Self::Story(drawing), Content::Story { .. }) => drawing.draw(target, renderer),
+            (Self::Results(_), Content::Results(_))
+            | (Self::Empty, Content::Failed | Content::Complete)
             | (Self::Introduction(_), Content::Introduction(_))
             | (Self::Movie { .. }, Content::Movie(_)) => {
                 let mut encoder = renderer.device.create_command_encoder(&Default::default());
@@ -282,7 +301,7 @@ impl ContentDrawing {
             (Self::Story(drawing), _) => {
                 crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts)
             }
-            (Self::Introduction(frame), _) => {
+            (Self::Introduction(frame), _) | (Self::Results(results::Drawing { frame, .. }), _) => {
                 ctx.layer_painter(egui::LayerId::background()).add(
                     egui_wgpu::Callback::new_paint_callback(
                         film::rect(ctx),
@@ -292,7 +311,7 @@ impl ContentDrawing {
             }
             (Self::Movie { texture, frame }, Content::Movie(movie)) => {
                 if let Some(current) = &movie.frame {
-                    if *frame != Some(current.number) {
+                    if frame.as_ref().map(|f| f.number) != Some(current.number) {
                         let image =
                             egui::ColorImage::from_rgba_unmultiplied(current.size, &current.rgba);
                         if let Some(texture) = texture {
@@ -304,7 +323,7 @@ impl ContentDrawing {
                                 egui::TextureOptions::LINEAR,
                             ));
                         }
-                        *frame = Some(current.number);
+                        *frame = Some(current.clone());
                     }
                     if let Some(texture) = texture {
                         ctx.layer_painter(egui::LayerId::background()).image(

@@ -24,7 +24,7 @@ pub enum Content {
         story: Box<Story>,
         audio: Option<Arc<Clip>>,
     },
-    Results,
+    Results(Box<super::results::Results>),
     Failed,
     Complete,
 }
@@ -33,6 +33,7 @@ pub enum Content {
 pub enum Action {
     Continue,
     Retry,
+    Quit,
 }
 
 #[derive(Default)]
@@ -128,8 +129,8 @@ impl<S: ReadAt> Playback<S> {
                 }
             }
             Kind::Results => {
-                self.run.enter_results(&self.campaign)?;
-                Content::Results
+                let values = self.run.enter_results(&self.campaign)?.clone();
+                Content::Results(Box::new(super::results::Results::load(&self.disc, values)?))
             }
             Kind::Introduction => Content::Introduction(Box::new(super::film::Introduction::load(
                 &self.disc,
@@ -141,7 +142,7 @@ impl<S: ReadAt> Playback<S> {
             )?)),
         };
         self.generation += 1;
-        if matches!(self.content, Content::Results)
+        if matches!(self.content, Content::Results(_))
             && let Some(save) = &self.save
         {
             save.write(&self.run.progress)?;
@@ -165,7 +166,8 @@ impl<S: ReadAt> Playback<S> {
     }
 
     pub fn step(&mut self, buttons: u16) -> Result<Update> {
-        let pressed = buttons & !self.previous_buttons;
+        let previous = self.previous_buttons;
+        let pressed = buttons & !previous;
         self.previous_buttons = buttons;
         let action = self.action.take();
         let retry_on_confirm = matches!(self.content, Content::Failed | Content::Complete);
@@ -244,12 +246,46 @@ impl<S: ReadAt> Playback<S> {
                     None
                 }
             }
-            Content::Results
-                if matches!(action, Some(Action::Continue)) || pressed & 0x6000 != 0 =>
-            {
-                Some(self.run.advance(&self.campaign, false)?)
+            Content::Results(results) => {
+                if let Some((action, remaining)) = &mut results.exit {
+                    *remaining = remaining.saturating_sub(1);
+                    if *remaining != 0 {
+                        None
+                    } else {
+                        match action {
+                            Action::Continue => Some(self.run.advance(&self.campaign, false)?),
+                            Action::Retry => Some(self.run.retry(&self.campaign)?),
+                            Action::Quit => {
+                                update.quit = true;
+                                None
+                            }
+                        }
+                    }
+                } else {
+                    let selected = action.or_else(|| {
+                        if previous != 0 {
+                            return None;
+                        }
+                        match buttons {
+                            0x2000 => Some(Action::Continue),
+                            8 => Some(Action::Retry),
+                            0x4000 | 9 => Some(Action::Quit),
+                            _ => None,
+                        }
+                    });
+                    if let Some(action) = selected {
+                        results.exit = Some((action, 30));
+                        update.sounds.push(Sound {
+                            id: 2,
+                            slot: 0,
+                            note: 36,
+                            volume: [127; 2],
+                        });
+                    }
+                    None
+                }
             }
-            Content::Results | Content::Failed | Content::Complete
+            Content::Failed | Content::Complete
                 if matches!(action, Some(Action::Retry))
                     || (retry_on_confirm && pressed & 0x6000 != 0) =>
             {

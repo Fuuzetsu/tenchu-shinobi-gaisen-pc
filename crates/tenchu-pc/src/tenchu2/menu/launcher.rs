@@ -147,7 +147,7 @@ impl Menu {
                         }
                         if self.native() {
                             ui.label("Japanese gameplay, actors, voices and campaign progression");
-                            ui.small("The selected sequence determines the original player character. HUD and equipment presentation are still in development.");
+                            ui.small("The selected sequence determines the original player character. Equipment presentation is still in development.");
                         } else {
                             ui.label("Scenery sandbox · Gaisen gameplay and AI");
                             ui.small("Story events, cutscenes and mission objectives are not simulated here.");

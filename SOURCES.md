@@ -2674,3 +2674,20 @@ and the standalone developer preview. Filesystem access and atomic replacement
 remain in the platform layer; no host path enters the serialized core state.
 Tests cover corruption/version rejection, the on-disk round trip, actual native
 results through restart, and main-launcher isolation from Gaisen progress.
+
+JP results presentation follows `GAME.EXE` `8006343c` and `800643c0`: disc
+`result.tim`, `rsltnum.tim` and `rank.tim`, palette-15 adjustment followed by
+`80017600` blending normalization, source centering/8-pixel numeral spacing,
+signed score fields and seven rank rows. The backdrop uses the brightest RGB
+channel halved, as in the original framebuffer conversion; widescreen views are
+cropped to the results screen's 4:3 area. It is captured once at the transition,
+not read back each gameplay frame. Movie frames share their last decoded image.
+Controller confirmation follows the printed Circle/Start/Cross choices, waits
+for release, plays sound 2 from `menu/sound/menu.vab` (`80016834`), and retains
+the screen for sixty vblanks before advancing/retrying/leaving. Mouse/touch
+buttons and Enter are port additions. Exiting returns to the port's launcher;
+it does not reproduce a PlayStation executable reload or memory-card UI.
+Disc/GPU checks render all seven ranks, negative scores and a frozen scene,
+including rebuilding renderer resources while results are visible. Campaign
+checks exercise held inputs, each result exit and the confirmation delay, plus
+save/restart and story/movie/boss transitions. Review images remain private.

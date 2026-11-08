@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Show Japanese Tenchu 2 results with the disc's original score panel, numbers
+  and seven rank images over a dimmed final-scene backdrop. Restore the printed
+  Circle/Start/Cross actions, confirmation sound and delay; mouse and touch
+  buttons remain available.
+
 - Save native Japanese Tenchu 2 ranks, supply rewards and unlocks at results,
   and restore them on the next launch. JP progress uses its own portable save
   file; Gaisen campaign progress is unchanged.
@@ -47,7 +52,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   with health, inventory, RNG and score totals carried across areas. Calculate
   rewards at the results sequence, after intervening story scenes. The internal
   preview can continue between areas, enter boss encounters, show results and
-  retry after failure. The original equipment/results presentation remains in
+  retry after failure. The original equipment presentation remains in
   progress.
 
 - Connect native JP mission objectives and end transitions in the internal

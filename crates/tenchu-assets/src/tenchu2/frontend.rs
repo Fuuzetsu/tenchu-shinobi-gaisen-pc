@@ -11,6 +11,43 @@ pub struct Introduction {
     pub narration: Option<Narration>,
 }
 
+pub struct Results {
+    pub panel: Image,
+    pub numbers: Image,
+    pub ranks: Image,
+}
+
+impl Results {
+    pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
+        if Edition::detect(disc)? != Edition::Japan {
+            return Err("Native Tenchu 2 results require the Japanese disc".into());
+        }
+        let volume = Volume::open(disc)?;
+        let load = |name: &str, transparent: bool| -> Result<Image> {
+            let bytes = volume.read(r"o:\cdimage\game\image", name)?;
+            let mut image = Image::parse(&bytes)?;
+            if transparent {
+                let color = image.palette_color(15).ok_or("Missing results palette")?;
+                image.recolor(15, color | 0x8000);
+            }
+            super::texture::enable_image_blending(&mut image);
+            Ok(image)
+        };
+        let results = Self {
+            panel: load("result.tim", true)?,
+            numbers: load("rsltnum.tim", true)?,
+            ranks: load("rank.tim", false)?,
+        };
+        if results.numbers.size[0] != 12
+            || !results.numbers.size[1].is_multiple_of(12)
+            || !results.ranks.size[1].is_multiple_of(7)
+        {
+            return Err("Invalid Japanese results image sheets".into());
+        }
+        Ok(results)
+    }
+}
+
 pub struct Narration {
     pub background: Image,
     pub text: Image,
