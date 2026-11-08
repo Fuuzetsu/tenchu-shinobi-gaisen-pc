@@ -48,12 +48,14 @@ pub trait ControlDriver {
         request: &mut Request,
         input: &mut ControlInput,
         cue: ControlCue,
+        resources: &Resources,
     ) -> Result<()>;
     fn state(
         &mut self,
         actor: &mut Actor,
         request: &mut Request,
         input: &mut ControlInput,
+        resources: &mut Resources,
     ) -> Result<()>;
 }
 
@@ -62,7 +64,7 @@ impl Actor {
         &mut self,
         request: &mut Request,
         input: &mut ControlInput,
-        resources: &Resources,
+        resources: &mut Resources,
         driver: &mut impl ControlDriver,
     ) -> Result<()> {
         input.held = self.pad.held;
@@ -71,7 +73,7 @@ impl Actor {
             velocity: Velocity::Keep,
         };
         if self.flags & HIT != 0 {
-            driver.cue(self, request, input, ControlCue::Damage)?;
+            driver.cue(self, request, input, ControlCue::Damage, resources)?;
         } else if self.flags & FALLING != 0 {
             self.falling_control(request, input, resources, driver)?;
         } else if self.flags & IN_WATER != 0
@@ -98,11 +100,12 @@ impl Actor {
                     ControlCue::SelectItem {
                         previous: input.held & 0x100 == 0,
                     },
+                    resources,
                 )?;
-                driver.cue(self, request, input, ControlCue::ItemSound)?;
+                driver.cue(self, request, input, ControlCue::ItemSound, resources)?;
             }
         }
-        driver.state(self, request, input)?;
+        driver.state(self, request, input, resources)?;
         if request.action != self.motion.action || request.velocity != Velocity::Keep {
             driver.motion(self, request, resources)?;
         }
@@ -121,17 +124,17 @@ impl Actor {
             return Ok(());
         }
         if state == State::Crouched && self.motion.loops == 0 {
-            return driver.cue(self, request, input, ControlCue::Ledge);
+            return driver.cue(self, request, input, ControlCue::Ledge, resources);
         }
         if state == State::Jumping {
             return if request.action != 0x607 {
-                driver.cue(self, request, input, ControlCue::Ledge)
+                driver.cue(self, request, input, ControlCue::Ledge, resources)
             } else {
                 Ok(())
             };
         }
         if request.action == 0x702 {
-            return driver.cue(self, request, input, ControlCue::Ledge);
+            return driver.cue(self, request, input, ControlCue::Ledge, resources);
         }
         if matches!(request.action, 0x911 | 0x804 | 0xa21 | 0xa22) {
             return Ok(());
@@ -178,13 +181,13 @@ impl Actor {
                 .get(&self.motion.clip.ok_or("No Tenchu 2 drowning motion")?)
                 .ok_or("Missing Tenchu 2 drowning motion")?;
             self.motion.frame = clip.duration.wrapping_sub(1);
-            driver.cue(self, request, input, ControlCue::Splash(1))?;
+            driver.cue(self, request, input, ControlCue::Splash(1), resources)?;
             return Ok(true);
         }
         let mut restart = false;
         match input.water.depth {
             Some(Depth::Shallow) if self.state == State::Swimming => {
-                driver.cue(self, request, input, ControlCue::Recover)?;
+                driver.cue(self, request, input, ControlCue::Recover, resources)?;
                 self.position.y = input.water.bottom;
                 restart = true;
             }
@@ -195,7 +198,7 @@ impl Actor {
                     if request.action >= 0x530 {
                         self.rotation.x = 0;
                     }
-                    driver.cue(self, request, input, ControlCue::Recover)?;
+                    driver.cue(self, request, input, ControlCue::Recover, resources)?;
                     self.position.y = input.water.bottom;
                     restart = true;
                 }
@@ -215,7 +218,7 @@ impl Actor {
                         restart = true;
                     }
                     _ if self.state == State::Crouched => {
-                        driver.cue(self, request, input, ControlCue::Voice(26))?;
+                        driver.cue(self, request, input, ControlCue::Voice(26), resources)?;
                         request.action = 0x536;
                     }
                     _ => {
@@ -278,7 +281,13 @@ impl Actor {
             }
             if self.breath == 0 && input.tick % 3 == 0 {
                 let strength = self.max_health.wrapping_sub(self.health).wrapping_mul(2);
-                driver.cue(self, request, input, ControlCue::DrowningRumble(strength))?;
+                driver.cue(
+                    self,
+                    request,
+                    input,
+                    ControlCue::DrowningRumble(strength),
+                    resources,
+                )?;
                 self.health = self.health.wrapping_sub(1);
                 if self.health <= 0 {
                     self.health = 0;

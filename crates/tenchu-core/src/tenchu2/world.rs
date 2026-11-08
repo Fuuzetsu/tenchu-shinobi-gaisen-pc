@@ -3,7 +3,9 @@ use super::{
     ai::runtime::{Agent, System},
     collision::{BODY, Collision},
     inventory::Inventory,
+    physics::Water,
     rig::{Rig, WeaponMode},
+    terrain::{Cursor, Probe},
 };
 use crate::{
     Result,
@@ -16,7 +18,9 @@ use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::layout::Layout;
 
 mod assets;
+mod update;
 pub use assets::Assets;
+pub use update::Movement;
 
 pub struct Options {
     pub hero: usize,
@@ -30,6 +34,23 @@ pub struct Options {
 pub struct Instance {
     pub rig: Rig,
     pub voice: u8,
+    pub feet: [Foot; 2],
+    pub motion_changes: u16,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct Foot {
+    pub position: Position,
+    pub floor: Option<i32>,
+}
+
+impl Default for Foot {
+    fn default() -> Self {
+        Self {
+            position: Position::default(),
+            floor: Some(0),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -45,6 +66,13 @@ pub struct World {
     pub player: usize,
     pub difficulty: u8,
     pub tick: u32,
+    pub script: u16,
+    pub cursor: Cursor,
+    pub probe: Probe,
+    pub water: Water,
+    pub tracking: Option<usize>,
+    pub travel: i32,
+    pub effort: u16,
 }
 
 impl World {
@@ -65,13 +93,20 @@ impl World {
             instances: Vec::new(),
             scene: Scene::default(),
             collision: Collision::default(),
-            ai: System::new(options.sight_distance),
+            ai: System::new(options.sight_distance.wrapping_mul(16)),
             random: Random::new(options.seed),
             map: layout.map,
             sequence: layout.sequence as u16,
             player: 0,
             difficulty: options.difficulty,
             tick: 0,
+            script: 0,
+            cursor: Cursor::default(),
+            probe: Probe::default(),
+            water: Water::default(),
+            tracking: None,
+            travel: 0,
+            effort: 0,
         };
         world.create_actor(
             options.hero as i16,
@@ -220,7 +255,12 @@ impl World {
             .cast(options.hero, self.map)
             .and_then(|cast| cast.iter().position(|&id| id == kind))
             .map_or(4, |slot| slot as u8 + 5);
-        self.instances.push(Instance { rig, voice });
+        self.instances.push(Instance {
+            rig,
+            voice,
+            feet: [Foot::default(); 2],
+            motion_changes: 0,
+        });
         Ok(owner)
     }
 

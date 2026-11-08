@@ -146,6 +146,24 @@ impl Motion {
         Ok(self.frame)
     }
 
+    pub fn publish(
+        &self,
+        scene: &mut crate::scene::Scene,
+        joints: &[crate::scene::ModelId],
+        math: &crate::math::Math,
+    ) {
+        if let Some(&root) = joints.first() {
+            scene.set_translation(root, self.pose.translation[0]);
+        }
+        self.pose.publish(
+            scene,
+            joints,
+            math,
+            self.mask,
+            self.tracks.len().saturating_sub(1),
+        );
+    }
+
     fn update_pose(
         &mut self,
         clips: &BTreeMap<i16, Clip>,

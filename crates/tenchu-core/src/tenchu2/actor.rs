@@ -96,6 +96,7 @@ pub struct Actor {
     pub hit: Option<usize>,
     pub target: Option<usize>,
     pub motion: Motion,
+    pub motion_changes: u16,
     pub pad: Pad,
     pub attack: Attack,
     pub inventory: Inventory,
@@ -140,6 +141,7 @@ impl Actor {
             hit: None,
             target: None,
             motion,
+            motion_changes: 0,
             pad: Pad::default(),
             attack: Attack::default(),
             inventory: Inventory::default(),
@@ -175,6 +177,7 @@ impl Actor {
                 }
             }
             self.state = State::from_action(action)?;
+            self.motion_changes = self.motion_changes.wrapping_add(1);
         }
         self.update_velocity(velocity, resources)?;
         Ok(Some(Change { action, changed }))

@@ -1991,3 +1991,13 @@ results match 13,000 original-code calls over all 130 actor kinds
 (`TENCHU2_LOOT_ORACLE`). All 56 gameplay layouts create their source cast with
 native skeletons, body/weapon collision and serializable world state. These are
 initialization checks; continuous controller/effect/campaign integration remains.
+
+The world now joins terrain/body movement and AI to the shared actor, scene and
+collision state. Its post-controller update follows JP `8001cbb8`: travel/action
+effort, offscreen motion policy, visible flags, foot probes and head tracking.
+The post-controller behavior matches 10,000 source cases
+(`TENCHU2_ACTOR_TAIL_ORACLE`); movement, controls, pose evaluation and spatial
+queries are explicit fixture boundaries in this particular comparison. The
+existing 24,000 outer-control comparisons still pass after allowing state
+controllers to edit shared wall-hug motion keys. This does not yet establish
+complete native mission playback.

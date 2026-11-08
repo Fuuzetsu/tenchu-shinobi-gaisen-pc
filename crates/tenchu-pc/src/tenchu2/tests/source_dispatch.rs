@@ -39,6 +39,7 @@ impl ControlDriver for Driver {
         request: &mut Request,
         _: &mut ControlInput,
         cue: ControlCue,
+        _: &Resources,
     ) -> Result<()> {
         self.calls.push(match cue {
             ControlCue::Damage => {
@@ -66,6 +67,7 @@ impl ControlDriver for Driver {
         actor: &mut Actor,
         request: &mut Request,
         input: &mut ControlInput,
+        _: &mut Resources,
     ) -> Result<()> {
         self.calls.push(json!(["state", actor.state as u8]));
         if input.held & ATTACK != 0 {
@@ -79,7 +81,7 @@ impl ControlDriver for Driver {
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC and TENCHU2_DISPATCH_ORACLE from the outer controller"]
 fn native_control_dispatch_water_entry_and_breath_match_source() {
-    let resources = resources();
+    let mut resources = resources();
     let template = template(&resources);
     let mut transitions = 0;
     let mut drowning = 0;
@@ -133,7 +135,7 @@ fn native_control_dispatch_water_entry_and_breath_match_source() {
         };
         let mut driver = Driver::default();
         actor
-            .update_controls(&mut request, &mut input, &resources, &mut driver)
+            .update_controls(&mut request, &mut input, &mut resources, &mut driver)
             .unwrap();
         assert_eq!(
             json!({
