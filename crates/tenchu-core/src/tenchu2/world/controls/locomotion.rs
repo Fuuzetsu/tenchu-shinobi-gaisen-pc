@@ -35,7 +35,55 @@ impl<E: Events> Driver<'_, E> {
                     StandingCue::Splash(id) => c.emit(actor, Event::Splash(id), random)?,
                     StandingCue::Dust => c.emit(actor, Event::DustTrail, random)?,
                     StandingCue::Footstep { check_surface } => {
-                        c.emit(actor, Event::Footstep { check_surface }, random)?
+                        let kind = if check_surface {
+                            use crate::tenchu2::environment::{SurfaceActor, SurfaceContext};
+                            c.environment.surface(
+                                SurfaceActor {
+                                    index: c.index,
+                                    position: actor.position,
+                                    height: actor.height,
+                                    health: actor.health,
+                                    visible: actor.flags & 0x100000 != 0,
+                                    focused: c.index == c.controls.camera_actor,
+                                },
+                                &actor.terrain,
+                                c.hidden,
+                                &mut SurfaceContext {
+                                    map: self.terrain.map,
+                                    cursor: self.terrain.cursor,
+                                    math: &resources.math,
+                                    random,
+                                    events: c.events,
+                                },
+                            )?
+                        } else {
+                            -1
+                        };
+                        if kind == 18 {
+                            c.alert.raise(
+                                crate::tenchu2::ai::status::AlertCause::Combat,
+                                c.difficulty,
+                                c.rules,
+                            )?;
+                            c.alert.position = Some(actor.position);
+                            c.emit(
+                                actor,
+                                Event::SoundPosition {
+                                    id: 3,
+                                    position: actor.position,
+                                },
+                                random,
+                            )?;
+                        } else {
+                            c.emit(
+                                actor,
+                                Event::SoundVolume {
+                                    id: 0x12,
+                                    volume: 42,
+                                },
+                                random,
+                            )?;
+                        }
                     }
                     StandingCue::Jump => c.jump(actor, request, input.held, resources, random)?,
                     StandingCue::Attack => c.start_attack(actor, request, input.held, resources)?,

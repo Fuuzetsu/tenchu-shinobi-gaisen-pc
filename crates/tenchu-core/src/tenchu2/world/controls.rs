@@ -64,13 +64,14 @@ impl Default for Controls {
 pub enum Event {
     Voice(u8),
     Sound(u8),
+    SoundVolume {
+        id: u8,
+        volume: u8,
+    },
     ItemSound(ItemSound),
     Splash(u8),
     Dust,
     DustTrail,
-    Footstep {
-        check_surface: bool,
-    },
     Rumble {
         kind: u8,
         strength: i16,
@@ -131,13 +132,15 @@ pub enum Event {
 }
 
 pub struct EventSource<'a> {
+    pub listener: crate::tenchu2::audio::Listener,
+    pub voice: u8,
     pub index: usize,
     pub actor: &'a Actor,
     pub rig: &'a Rig,
     pub scene: &'a mut Scene,
 }
 
-pub trait Events {
+pub trait Events: crate::tenchu2::environment::Events {
     fn emit(&mut self, source: EventSource<'_>, event: Event, random: &mut Random) -> Result<()>;
 }
 
@@ -166,6 +169,8 @@ impl World {
         };
         let mut driver = Driver {
             context: Context {
+                environment: &mut self.environment,
+                view_distance: self.view_distance,
                 items: &mut self.items,
                 effects: &mut self.effects,
                 effect_rules: &assets.effect_rules,
@@ -218,6 +223,8 @@ impl World {
 }
 
 struct Context<'a, E> {
+    environment: &'a mut crate::tenchu2::environment::Environment,
+    view_distance: i32,
     items: &'a mut crate::tenchu2::items::Items,
     effects: &'a mut crate::tenchu2::effects::Effects,
     effect_rules: &'a tenchu_assets::tenchu2::effects::Rules,
@@ -253,6 +260,23 @@ struct Driver<'a, E> {
     random: &'a mut Random,
 }
 
+fn listener(
+    others: &Others<'_>,
+    camera_actor: usize,
+    actor: &Actor,
+    view_distance: i32,
+) -> Result<crate::tenchu2::audio::Listener> {
+    let actor = others
+        .get(camera_actor, actor)
+        .ok_or("Missing Tenchu 2 sound listener")?;
+    Ok(crate::tenchu2::audio::Listener {
+        actor: camera_actor,
+        position: actor.position,
+        yaw: actor.rotation.y,
+        distance: view_distance >> 4,
+    })
+}
+
 impl<E: Events> Context<'_, E> {
     fn emit(&mut self, actor: &Actor, event: Event, random: &mut Random) -> Result<()> {
         if let Event::HeldItem(model) = event {
@@ -262,8 +286,16 @@ impl<E: Events> Context<'_, E> {
         if self.particle(actor, event, random)? {
             return Ok(());
         }
-        self.events.emit(
+        Events::emit(
+            self.events,
             EventSource {
+                listener: listener(
+                    &self.others,
+                    self.controls.camera_actor,
+                    actor,
+                    self.view_distance,
+                )?,
+                voice: self.instances[self.index].voice,
                 index: self.index,
                 actor,
                 rig: &self.instances[self.index].rig,

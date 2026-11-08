@@ -82,6 +82,8 @@ impl<E: Events> Driver<'_, E> {
     ) -> Result<()> {
         let c = &mut self.context;
         if (0x920..=0x926).contains(&actor.motion.action) {
+            let sound_listener =
+                listener(&c.others, c.controls.camera_actor, actor, c.view_distance)?;
             let victim = &c
                 .others
                 .get_mut(actor.target.ok_or("Missing Tenchu 2 stealth victim")?)?
@@ -91,6 +93,7 @@ impl<E: Events> Driver<'_, E> {
                 .stealth
                 .as_ref()
                 .ok_or("Missing Tenchu 2 stealth session")?;
+            let voice = c.instances[c.index].voice;
             let rig = &mut c.instances[c.index].rig;
             return actor.update_stealth(
                 victim,
@@ -126,8 +129,11 @@ impl<E: Events> Driver<'_, E> {
                         _ => return Err("Unexpected Tenchu 2 stealth-update event".into()),
                     };
                     if let Some(event) = event {
-                        c.events.emit(
+                        Events::emit(
+                            c.events,
                             EventSource {
+                                listener: sound_listener,
+                                voice,
                                 index: c.index,
                                 actor,
                                 rig,
@@ -230,8 +236,16 @@ impl<E: Events> Driver<'_, E> {
                 if let CombatCue::Clash { opponent, .. } = cue {
                     c.others.get_mut(opponent)?.actor.motion.loops = -5;
                 }
-                c.events.emit(
+                Events::emit(
+                    c.events,
                     EventSource {
+                        listener: listener(
+                            &c.others,
+                            c.controls.camera_actor,
+                            actor,
+                            c.view_distance,
+                        )?,
+                        voice: c.instances[c.index].voice,
                         index: c.index,
                         actor,
                         rig: context.rig,

@@ -2,6 +2,8 @@ use crate::{session::Options, source::DiscSource};
 #[cfg(not(target_arch = "wasm32"))]
 mod discs;
 pub mod menu;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod native;
 pub(crate) mod voices;
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{

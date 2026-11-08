@@ -17,6 +17,7 @@ use tenchu_assets::{
 };
 
 pub struct Assets {
+    pub ambient_interval: i16,
     pub items: tenchu_assets::tenchu2::items::Items,
     pub sprites: tenchu_assets::tenchu2::effects::Sprites,
     pub effect_rules: tenchu_assets::tenchu2::effects::Rules,
@@ -86,6 +87,7 @@ impl Assets {
             }
         }
         Ok(Self {
+            ambient_interval: tenchu_assets::tenchu2::audio::interval(disc, map)?,
             items: tenchu_assets::tenchu2::items::Items::load(disc)?,
             sprites: tenchu_assets::tenchu2::effects::Sprites::load(disc)?,
             effect_rules: tenchu_assets::tenchu2::effects::Rules::load(disc)?,

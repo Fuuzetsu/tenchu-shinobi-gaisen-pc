@@ -287,11 +287,12 @@ impl World {
         );
     }
 
-    pub fn finish_tick(&mut self) -> Result<()> {
-        self.collision.compute(|model| self.scene.world(model))?;
+    pub fn finish_tick(&mut self, assets: &Assets, budget: u8) -> Result<()> {
         self.scene.finish_tick();
         self.environment.flame_frame = (self.tick & 3) as u8;
         self.tick = self.tick.wrapping_add(1);
+        self.update_activation(self.camera.eye, self.camera.look, budget, assets)?;
+        self.collision.compute(|model| self.scene.world(model))?;
         Ok(())
     }
 

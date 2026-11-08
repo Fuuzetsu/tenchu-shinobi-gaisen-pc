@@ -14,6 +14,11 @@ pub struct Items {
 }
 
 impl Items {
+    pub fn models(&self) -> impl Iterator<Item = (u8, &[Part])> {
+        self.models
+            .iter()
+            .map(|(&id, parts)| (id, parts.as_slice()))
+    }
     pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
         let volume = Volume::open(disc)?;
         let directory = r"o:\cdimage\game\item";

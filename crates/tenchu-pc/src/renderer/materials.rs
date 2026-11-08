@@ -328,40 +328,38 @@ impl Materials {
         }
     }
 
-    pub fn bind_models(&mut self, models: &mut crate::visuals::models::Models) {
-        models.bind(|material| {
-            if let Some(region) = material.region {
-                return self.register(region);
-            }
-            let id = if let Some(&id) = self.external.get(&material.id) {
-                id
-            } else {
-                let id = self.entries.len() as u32 + 1;
-                self.entries.push(Entry {
-                    region: None,
-                    blood_hd: false,
-                    shadow_caster: false,
-                    id: material.id.clone(),
-                    original: (*material.image).clone(),
-                    image: (*material.image).clone(),
-                    replaced: true,
-                    authored: false,
-                    scroll: None,
-                    scrolling: false,
-                    uv_tile: false,
-                    world_tile: None,
-                    dirty: true,
-                    mips: Vec::new(),
-                    detail: Vec::new(),
-                });
-                self.external.insert(material.id.clone(), id);
-                id
-            };
-            let entry = &mut self.entries[id as usize - 1];
-            entry.original = (*material.image).clone();
-            entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
+    pub fn bind(&mut self, material: &crate::visuals::models::Material) -> u32 {
+        if let Some(region) = material.region {
+            return self.register(region);
+        }
+        let id = if let Some(&id) = self.external.get(&material.id) {
             id
-        });
+        } else {
+            let id = self.entries.len() as u32 + 1;
+            self.entries.push(Entry {
+                region: None,
+                blood_hd: false,
+                shadow_caster: false,
+                id: material.id.clone(),
+                original: (*material.image).clone(),
+                image: (*material.image).clone(),
+                replaced: true,
+                authored: false,
+                scroll: None,
+                scrolling: false,
+                uv_tile: false,
+                world_tile: None,
+                dirty: true,
+                mips: Vec::new(),
+                detail: Vec::new(),
+            });
+            self.external.insert(material.id.clone(), id);
+            id
+        };
+        let entry = &mut self.entries[id as usize - 1];
+        entry.original = (*material.image).clone();
+        entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
+        id
     }
 
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {

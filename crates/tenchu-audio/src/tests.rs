@@ -29,6 +29,26 @@ fn bank(loop_start: Option<usize>) -> Arc<Bank> {
 }
 
 #[test]
+fn fixed_voice_replacement_keeps_independent_stereo_levels() {
+    for rate in [44100, 48000] {
+        let mut mixer = Mixer::new(rate);
+        mixer.set_bank(bank(Some(0)));
+        mixer.play_at(3, 0, [0, 127], 36);
+        let mut frames = [[0.0; 2]; 100];
+        mixer.render(&mut frames);
+        assert!(frames.iter().all(|v| v[0] == 0.0));
+        assert!(frames.iter().any(|v| v[1].abs() > 0.01));
+        mixer.play_at(3, 0, [127, 0], 36);
+        mixer.render(&mut frames);
+        assert!(frames.iter().all(|v| v[1] == 0.0));
+        assert!(frames.iter().any(|v| v[0].abs() > 0.01));
+        mixer.paused = true;
+        mixer.render(&mut frames);
+        assert!(frames.iter().all(|v| *v == [0.0; 2]));
+    }
+}
+
+#[test]
 fn stage_ambience_keeps_reserved_voices_and_follows_pause_and_effect_volume() {
     let mut source = bank(Some(0));
     let bank = Arc::get_mut(&mut source).unwrap();

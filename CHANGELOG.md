@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an internal `play-t2-jp` / `render-t2-jp` preview for the native Japanese
+  Tenchu 2 actor, terrain, camera and particle runtime, with its own cast voices
+  and stage ambience. Projectiles, story, the original HUD and campaign
+  progression remain unfinished; F6 and `play-t2` still use the Gaisen sandbox.
 - F1 now reports both Shinobi Gaisen and Tenchu 2 artwork pack paths, with the correct separate download name when either is missing.
 - Japanese Tenchu 2 imports now select each mission’s alternate scenery and prop layout where the original uses one.
 

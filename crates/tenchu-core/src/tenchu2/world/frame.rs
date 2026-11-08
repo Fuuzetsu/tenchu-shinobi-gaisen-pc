@@ -10,6 +10,14 @@ use crate::{
 #[derive(Default)]
 struct Voices(Vec<u8>);
 
+#[derive(Default)]
+pub struct Frame {
+    pub scenery: crate::tenchu2::environment::scenery::Frame,
+    pub effects: crate::tenchu2::effects::Frame,
+    pub reticle: Option<crate::tenchu2::items::aim::Reticle>,
+    pub ambience: Option<crate::tenchu2::audio::Sound>,
+}
+
 impl behavior::Events for Voices {
     fn voice(&mut self, _: &Actor, voice: u8) -> Result<()> {
         self.0.push(voice);
@@ -18,6 +26,43 @@ impl behavior::Events for Voices {
 }
 
 impl World {
+    pub fn step(
+        &mut self,
+        controllers: [u16; 2],
+        assets: &mut Assets,
+        events: &mut impl controls::Events,
+    ) -> Result<Frame> {
+        let ambience = self.audio.ambient(
+            self.map,
+            assets.ambient_interval,
+            self.tick,
+            &mut self.random,
+            &assets.resources.math,
+        );
+        self.update_camera(assets, false)?;
+        self.update_actors(controllers, assets, events)?;
+        let scenery = self.update_environment(assets, events)?;
+        let reticle = self.update_items(assets, events)?;
+        let effects = self.update_effects()?;
+        self.finish_tick(assets, 6)?;
+        Ok(Frame {
+            scenery,
+            effects,
+            reticle,
+            ambience,
+        })
+    }
+
+    pub fn listener(&self) -> crate::tenchu2::audio::Listener {
+        let actor = &self.actors[self.controls.camera_actor].actor;
+        crate::tenchu2::audio::Listener {
+            actor: self.controls.camera_actor,
+            position: actor.position,
+            yaw: actor.rotation.y,
+            distance: self.view_distance >> 4,
+        }
+    }
+
     pub fn update_items(
         &mut self,
         assets: &Assets,
@@ -81,7 +126,7 @@ impl World {
         &mut self,
         controllers: [u16; 2],
         assets: &mut Assets,
-        events: &mut (impl controls::Events + crate::tenchu2::environment::Events),
+        events: &mut impl controls::Events,
     ) -> Result<()> {
         let mut voices = Voices::default();
         for index in 0..self.actors.len() {
@@ -128,8 +173,11 @@ impl World {
         event: Event,
         events: &mut impl controls::Events,
     ) -> Result<()> {
-        events.emit(
+        controls::Events::emit(
+            events,
             EventSource {
+                listener: self.listener(),
+                voice: self.instances[index].voice,
                 index,
                 actor: &self.actors[index].actor,
                 rig: &self.instances[index].rig,

@@ -345,7 +345,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
         }
         world.actors.truncate(1);
         world.instances.truncate(1);
-        world.finish_tick().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
         let start = world.actors[0].actor.position;
         let mut events = Recorded::default();
         let step = |world: &mut World, assets: &mut Assets, events: &mut Recorded, held| {
@@ -358,7 +358,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
             world.animate_actor(0, assets).unwrap();
             world.update_items(assets, events).unwrap();
             world.update_effects().unwrap();
-            world.finish_tick().unwrap();
+            world.finish_tick(assets, 6).unwrap();
         };
         for &held in &inputs[..180] {
             step(&mut world, &mut assets, &mut events, held);

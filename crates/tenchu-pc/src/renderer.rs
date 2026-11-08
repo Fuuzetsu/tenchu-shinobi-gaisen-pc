@@ -427,7 +427,11 @@ impl Renderer {
     }
 
     pub fn bind_models(&mut self, models: &mut crate::visuals::models::Models) {
-        self.materials.bind_models(models);
+        models.bind(|material| self.materials.bind(material));
+    }
+
+    pub fn bind_meshes(&mut self, meshes: &mut crate::visuals::models::Meshes) {
+        meshes.bind(|material| self.materials.bind(material));
     }
 
     pub fn reset_vram(&mut self, vram: &Vram) {

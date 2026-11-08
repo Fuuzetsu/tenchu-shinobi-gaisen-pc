@@ -123,7 +123,8 @@ fn fixture() -> (World, Assets, usize) {
         }
         world.publish(i, &assets);
     }
-    world.finish_tick().unwrap();
+    world.update_camera(&assets, true).unwrap();
+    world.finish_tick(&assets, 6).unwrap();
     (world, assets, guard)
 }
 
@@ -170,7 +171,7 @@ fn native_world_grapple_pulls_the_player_and_survives_a_snapshot() {
         world.animate_actor(0, assets).unwrap();
         world.update_items(assets, &mut events).unwrap();
         world.update_effects().unwrap();
-        world.finish_tick().unwrap();
+        world.finish_tick(assets, 6).unwrap();
     };
     for tick in 0..120 {
         if tick == 5 {
@@ -226,7 +227,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .any(|e| matches!(e, Effect::Blood(_)));
         world.update_items(&assets, &mut events).unwrap();
         world.update_effects().unwrap();
-        world.finish_tick().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
     }
     assert!(matches!(
         world.actors[0].actor.state,
@@ -279,7 +280,7 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
         )
         .unwrap();
     target.flags |= 2;
-    world.finish_tick().unwrap();
+    world.finish_tick(&assets, 6).unwrap();
     let weapon = world
         .collision
         .slots()
@@ -327,7 +328,7 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
             .any(|e| matches!(e, Effect::Sprites(s) if matches!(s.motion, Motion::Healing)));
         world.update_items(&assets, &mut events).unwrap();
         world.update_effects().unwrap();
-        world.finish_tick().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
     }
     assert_eq!(
         world.actors[0].actor.health,
@@ -350,7 +351,7 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
     for _ in 0..9 {
         world.control_actor(0, &mut assets, &mut events).unwrap();
         world.animate_actor(0, &assets).unwrap();
-        world.finish_tick().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
     }
     assert_eq!(world.actors[0].actor.health, 0);
     assert_eq!(world.actors[0].actor.state, State::Dead);
@@ -402,10 +403,7 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                     });
                 world.update_items(&assets, &mut events).unwrap();
                 world.update_effects().unwrap();
-                world.finish_tick().unwrap();
-                world
-                    .update_activation(world.camera.eye, world.camera.look, 6, &assets)
-                    .unwrap();
+                world.finish_tick(&assets, 6).unwrap();
             }
             eprintln!(
                 "JP hero {hero} sequence {}: 180 continuous actor ticks",
@@ -480,11 +478,11 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
     slot.flags = BODY;
     slot.size = Vector3::new(100, 100, 100);
     slot.owner = Some(world.player);
-    world.finish_tick().unwrap();
+    world.finish_tick(&assets, 6).unwrap();
     let mut events = Recorded::default();
     for _ in 0..26 {
         world.update_environment(&assets, &mut events).unwrap();
-        world.finish_tick().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
     }
     assert_eq!(
         world.environment.objects[0].position,
@@ -512,7 +510,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
             .move_actor(world.player, &assets, &mut events)
             .unwrap();
         world.update_environment(&assets, &mut events).unwrap();
-        world.finish_tick().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
         if tick == 20 {
             snapshots.push(postcard::to_allocvec(&world).unwrap());
         }
@@ -527,7 +525,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
             .move_actor(restored.player, &assets, &mut events)
             .unwrap();
         restored.update_environment(&assets, &mut events).unwrap();
-        restored.finish_tick().unwrap();
+        restored.finish_tick(&assets, 6).unwrap();
     }
     assert_eq!(
         postcard::to_allocvec(&restored).unwrap(),

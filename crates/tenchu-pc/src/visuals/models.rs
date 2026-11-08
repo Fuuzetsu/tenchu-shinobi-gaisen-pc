@@ -346,7 +346,7 @@ impl Mesh {
 }
 
 #[derive(Default)]
-pub(super) struct Meshes {
+pub(crate) struct Meshes {
     meshes: BTreeMap<usize, Mesh>,
     materials: Vec<Material>,
     variants: BTreeMap<usize, super::vegetation::botanical::Shape>,

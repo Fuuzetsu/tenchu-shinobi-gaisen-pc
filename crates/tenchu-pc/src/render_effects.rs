@@ -171,13 +171,13 @@ pub fn text(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32; 
     }
 }
 
-struct Surface {
-    depth: f32,
-    blend: u8,
-    vertices: Vec<Vertex>,
+pub(crate) struct Surface {
+    pub depth: f32,
+    pub blend: u8,
+    pub vertices: Vec<Vertex>,
 }
 
-fn depth(z: f32) -> f32 {
+pub(crate) fn depth(z: f32) -> f32 {
     let near = 50.0;
     let far = 250_000.0;
     (far / (far - near) - near * far / ((far - near) * z.max(near))).clamp(0.0, 1.0)
@@ -798,7 +798,7 @@ pub(crate) fn retained_blood<'a>(
     surface_geometry(surfaces)
 }
 
-fn surface_geometry(mut surfaces: Vec<Surface>) -> Geometry {
+pub(crate) fn surface_geometry(mut surfaces: Vec<Surface>) -> Geometry {
     surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));
     let mut out = Geometry {
         vertices: Vec::new(),

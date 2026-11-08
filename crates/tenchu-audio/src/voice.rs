@@ -11,6 +11,14 @@ pub(super) struct Voice {
 }
 
 impl Voice {
+    pub fn stereo(bank: &Bank, id: i16, volume: [u8; 2], note: u8, rate: u32) -> Option<Self> {
+        let mut voice = Self::new(bank, id, 127, 64, note, rate, false)?;
+        for (gain, volume) in voice.volume.iter_mut().zip(volume) {
+            *gain *= f32::from(volume) / 127.0;
+        }
+        Some(voice)
+    }
+
     pub fn new(
         bank: &Bank,
         id: i16,

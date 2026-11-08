@@ -25,6 +25,7 @@ mod effects;
 mod frame;
 mod update;
 pub use assets::Assets;
+pub use frame::Frame;
 pub use update::Movement;
 
 pub struct Options {
@@ -68,6 +69,7 @@ pub struct Statistics {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct World {
+    pub audio: super::audio::Audio,
     pub items: super::items::Items,
     pub effects: super::effects::Effects,
     pub camera: super::camera::Camera,
@@ -115,6 +117,7 @@ impl World {
             .cast(options.hero, layout.map)
             .ok_or("Missing Tenchu 2 cast")?;
         let mut world = Self {
+            audio: super::audio::Audio::default(),
             items: super::items::Items::default(),
             effects: super::effects::Effects::default(),
             camera: super::camera::Camera::new(&assets.camera),

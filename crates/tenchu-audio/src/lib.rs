@@ -108,6 +108,17 @@ impl Mixer {
         self.play_note_inner(id, volume, pan, note, false);
     }
 
+    pub fn play_at(&mut self, slot: usize, id: i16, volume: [u8; 2], note: u8) {
+        if let Some(slot) = self.voices.get_mut(slot)
+            && let Some(voice) = self
+                .bank
+                .as_ref()
+                .and_then(|bank| Voice::stereo(bank, id, volume, note, self.rate))
+        {
+            *slot = Some(voice);
+        }
+    }
+
     fn play_note_inner(&mut self, id: i16, volume: u8, pan: u8, note: u8, during_pause: bool) {
         self.next_voice = (self.next_voice + 1) % self.voices.len();
         if let Some(voice) = self

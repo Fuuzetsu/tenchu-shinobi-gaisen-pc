@@ -2151,6 +2151,24 @@ has its separate source checks. These particle components still need the world
 event adapter and native renderer. Terrain-dependent blood/water, item effects
 and campaign integration remain unfinished.
 
+Native JP audio follows `80016834` (hero/area VAB selection), `8001ec68`,
+`8001ecb4`, `80016a14` (cast voice IDs, positional attenuation/panning, cooldowns
+and fixed voice slots) and `80066008` (ambient scheduling). The latter consumes
+the gameplay RNG even without an audio device. Private original-instruction
+checks compare 8,000 direct, positional and ambient cases including RNG and
+voice-slot state; the SPU key-on call is recorded rather than emulated. The
+comparison uses unity effects gain; user volume remains a mixer setting.
+Footstep surface triggers and quiet player steps follow `800238a4`, `80023f98`
+and `8005e1b8`. Samples come only from the supplied disc.
+
+The internal native preview orders camera, actors, scenery, items and particles
+according to `80064a34`, followed by the scene epoch, `8001e318` activation and
+`8002e9e8` collision update. It presents a copy of the scene's coordinate cache
+so rendering does not alter simulation queries. Three-hero frame/sound snapshot
+continuation and rendered captures exercise this adapter. The full original
+frame still includes HUD/story/procedural-stage paths that are not connected;
+this is not an assertion of whole-frame or campaign equivalence.
+
 Native JP water and blood use `8003cbc4`, `8003ce44`, `80040150`–`80042130`,
 `80044828`, `80044f98` and `8004518c`: weighted point bursts, impact sparks,
 splashes, delayed ripples, airborne blood, wall runoff, sloped stains, water

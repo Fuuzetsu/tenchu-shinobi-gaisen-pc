@@ -14,6 +14,9 @@ fn run() -> Result<()> {
         );
         return Ok(());
     }
+    if matches!(args[0].to_str(), Some("play-t2-jp" | "render-t2-jp")) {
+        return crate::tenchu2::native::command(&args);
+    }
     if matches!(
         args[0].to_str(),
         Some("inspect-t2" | "play-t2" | "render-t2")

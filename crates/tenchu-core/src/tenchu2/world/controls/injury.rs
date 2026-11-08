@@ -264,8 +264,16 @@ impl<E: Events> Context<'_, E> {
             .others
             .get(id, actor)
             .ok_or("Missing Tenchu 2 event actor")?;
-        self.events.emit(
+        Events::emit(
+            self.events,
             EventSource {
+                listener: listener(
+                    &self.others,
+                    self.controls.camera_actor,
+                    actor,
+                    self.view_distance,
+                )?,
+                voice: self.instances[id].voice,
                 index: id,
                 actor: other,
                 rig: &self.instances[id].rig,
@@ -358,6 +366,12 @@ impl<E: Events> Context<'_, E> {
                 }
                 DeathCue::Splash(id) => self.emit(actor, Event::Splash(id), random),
                 DeathCue::PlayerGrip(grip) => {
+                    let listener = listener(
+                        &self.others,
+                        self.controls.camera_actor,
+                        actor,
+                        self.view_distance,
+                    )?;
                     let player = if self.index == self.player {
                         actor
                     } else {
@@ -366,8 +380,11 @@ impl<E: Events> Context<'_, E> {
                     if let Some(sound) =
                         player.swap_attachments(&mut self.instances[self.player].rig, 0, 3, grip)?
                     {
-                        self.events.emit(
+                        Events::emit(
+                            self.events,
                             EventSource {
+                                listener,
+                                voice: self.instances[self.player].voice,
                                 index: self.player,
                                 actor: player,
                                 rig: &self.instances[self.player].rig,
