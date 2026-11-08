@@ -543,6 +543,33 @@ fn japanese_scene_variants_keep_all_object_records() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; loads every area's background, including JP's alternate story palettes"]
+fn all_area_background_resources_load() {
+    use tenchu_assets::tenchu2::{Edition, campaign::Campaign, level::Level, story::Script};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut skies = 0;
+    let mut landscapes = 0;
+    for area in Level::available(&disc).unwrap() {
+        let level = Level::load(&disc, area).unwrap_or_else(|e| panic!("area {area}: {e}"));
+        skies += level.background.sky.len();
+        landscapes += usize::from(level.background.landscape.is_some());
+    }
+    assert!(skies > 20 && landscapes > 5);
+    if Edition::detect(&disc).unwrap() == Edition::Japan {
+        let campaign = Campaign::load(&disc).unwrap();
+        for sequence in [16, 17, 26, 117, 186] {
+            let script = Script::load(&disc, campaign.sequences[sequence].resource).unwrap();
+            let area = script.area.unwrap();
+            let base = Level::load(&disc, area).unwrap();
+            let alternate = Level::japanese_scene(&disc, area, sequence, false).unwrap();
+            assert!(!alternate.background.sky.is_empty());
+            assert_ne!(base.vram.words, alternate.vram.words, "sequence {sequence}");
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; checks the alternate boss-arena collision resources"]
 fn japanese_boss_arenas_use_their_sequence_collision() {
     use tenchu_assets::tenchu2::level::Level;

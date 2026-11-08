@@ -69,6 +69,7 @@ fn project_vertex(v: Vertex) -> Fragment {
         out.position = camera.matrix * vec4(position, 1.0);
         out.depth = out.position.w;
         if (v.flags & XRAY) != 0u { out.position.z = 0.0; }
+        if (v.flags & SKY) != 0u { out.position.z = out.position.w * 0.99999994; }
     }
     out.world = position;
     out.color = v.color;
@@ -121,7 +122,7 @@ fn prepare_material(input: Fragment, front_facing: bool, translucent_pass: bool,
     }
     let du = dpdx(v.uv);
     let dv = dpdy(v.uv);
-    if (v.flags & SKY) != 0u { return empty; }
+    if (v.flags & (SKY | SCREEN)) == (SKY | SCREEN) { return empty; }
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     if depth_only {
         if (v.flags & (TEXTURED | TRANSLUCENT)) == 0u { return empty; }
@@ -206,7 +207,7 @@ fn prepare_material(input: Fragment, front_facing: bool, translucent_pass: bool,
 
 fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only: bool, precomputed_weather: bool, rain_enabled: bool, use_bounds: bool) -> vec4<f32> {
     let material = prepare_material(input, front_facing, translucent_pass, depth_only);
-    if (input.flags & SKY) != 0u { return sky_color(input.normal); }
+    if (input.flags & (SKY | SCREEN)) == (SKY | SCREEN) { return sky_color(input.normal); }
     if depth_only { return vec4(0.0); }
     var v = input;
     v.uv = material.uv;

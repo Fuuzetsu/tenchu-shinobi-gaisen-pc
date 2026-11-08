@@ -106,11 +106,16 @@ pub struct EffectMesh {
 pub struct SceneMeshes<'a> {
     pub terrain: &'a [&'a Mesh],
     pub actors: &'a [&'a Mesh],
+    pub backgrounds: &'a [EffectMesh],
 }
 
 impl<'a> SceneMeshes<'a> {
     pub fn new(terrain: &'a [&'a Mesh], actors: &'a [&'a Mesh]) -> Self {
-        Self { terrain, actors }
+        Self {
+            terrain,
+            actors,
+            backgrounds: &[],
+        }
     }
 }
 
@@ -916,6 +921,9 @@ impl Renderer {
             if !wet && let Some(sky) = &sky {
                 sky.bind(&mut pass);
                 pass.draw(0..sky.count, 0..1);
+            }
+            for background in meshes.backgrounds {
+                draw_effects(&mut pass, &self.pipelines.effects, background, None);
             }
             let mark = |pass: &mut wgpu::RenderPass<'_>, stage| {
                 if let Some(timer) = &self.timings {

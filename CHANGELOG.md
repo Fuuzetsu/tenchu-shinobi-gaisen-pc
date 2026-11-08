@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore Japanese Tenchu 2 sky layers and distant scenery in gameplay and
+  story scenes, including the alternate evening palettes. Correct overlapping
+  and wrapped texture palettes so these backgrounds load without corrupt colors.
+
 - Load the original alternate collision maps for three JP Tenchu 2 boss arenas,
   instead of using the surrounding stage's walls and floors.
 

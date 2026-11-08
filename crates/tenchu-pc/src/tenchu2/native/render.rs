@@ -19,6 +19,7 @@ use tenchu_core::{
     },
 };
 
+mod background;
 mod hud;
 mod story;
 #[cfg(test)]
@@ -33,6 +34,7 @@ pub struct Drawing {
 }
 
 struct SceneDrawing {
+    backgrounds: Vec<crate::renderer::EffectMesh>,
     terrain: crate::renderer::Mesh,
     actors: crate::renderer::Mesh,
     effects: crate::renderer::EffectMesh,
@@ -72,6 +74,11 @@ impl Drawing {
 impl SceneDrawing {
     fn new(geometry: Geometry, renderer: &mut Renderer) -> Self {
         Self {
+            backgrounds: geometry
+                .backgrounds
+                .into_iter()
+                .map(|g| renderer.upload_effects(g))
+                .collect(),
             terrain: renderer.upload(&geometry.terrain),
             actors: renderer.upload(&geometry.actors),
             effects: renderer.upload_effects(geometry.effects),
@@ -79,6 +86,9 @@ impl SceneDrawing {
     }
 
     fn update(&mut self, mut geometry: Geometry, renderer: &mut Renderer) {
+        for (mesh, geometry) in self.backgrounds.iter_mut().zip(geometry.backgrounds) {
+            renderer.update_effects(mesh, geometry);
+        }
         renderer.update_mesh(&mut self.terrain, &mut geometry.terrain);
         renderer.update_mesh(&mut self.actors, &mut geometry.actors);
         renderer.update_effects(&mut self.effects, geometry.effects);
@@ -100,7 +110,11 @@ impl SceneDrawing {
         renderer.draw_lit(
             target,
             camera,
-            crate::renderer::SceneMeshes::new(&[&self.terrain], &[&self.actors]),
+            crate::renderer::SceneMeshes {
+                terrain: &[&self.terrain],
+                actors: &[&self.actors],
+                backgrounds: &self.backgrounds,
+            },
             Some(&self.effects),
             &[],
             &[],
@@ -175,6 +189,7 @@ pub struct Models {
 }
 
 pub struct Geometry {
+    pub backgrounds: Vec<render_effects::Geometry>,
     pub terrain: Vec<Vertex>,
     pub actors: Vec<Vertex>,
     pub effects: render_effects::Geometry,
@@ -228,6 +243,7 @@ impl Models {
         renderer: &mut Renderer,
     ) -> Result<Self> {
         let mut scenery = sources(&format!("map{}/terrain", world.map), &assets.level.map);
+        scenery.extend(background::sources(&assets.level));
         scenery.extend(sources(
             &format!("map{}/props", world.map),
             &assets.level.objects,
@@ -602,6 +618,13 @@ impl Models {
             }
         }
         Ok(Geometry {
+            backgrounds: background::geometry(
+                &assets.level.background,
+                &self.scenery,
+                world.camera.view,
+                math,
+                world.tick,
+            ),
             terrain: output.terrain,
             actors: output.actors,
             effects: render_effects::surface_geometry(output.surfaces),

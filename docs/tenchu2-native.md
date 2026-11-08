@@ -77,5 +77,7 @@ for voices and ambience. Its minimal renderer does not yet expose all of the
 port's visual enhancements. The original HUD now shows health/enemy bars, Ki,
 breath, the aiming reticle, item selection and pickup notices. Timed 3D story
 effects and original equipment artwork remain integration work.
+The native renderer also loads the original sky layers and distant scenery,
+including the story sequences' alternate evening palettes.
 Component comparisons and snapshot continuation do not establish full campaign
 parity. EU assets remain supported without an EU-native AI runtime.

@@ -2696,3 +2696,24 @@ JP collision selection follows `GAME.EXE` `8002d86c`: sequences 179 and 216 use
 `map2.mcd`, and 245 uses `map3.mcd`, independently of the scenery variant and
 hidden-item flag. Disc checks verify both flag values load the arena's 166, 340
 and 159 collision records rather than the surrounding map's thousands of nodes.
+
+Native JP backgrounds follow the stage flags, `80047fbc` texture selection,
+`800482f4` model setup and `8004c764` drawing: camera-relative BG2/BG1 skies,
+map-specific yaw, the BG1 vertical offset and half-rate drift, followed by the
+world-positioned BGW distant landscape. BGW vertices use the 1024 scale from
+`800188b8`; the name does not identify a water mesh. Drift is presentation time
+at nominal logic cadence, not an attempt to reproduce PS1 rendering stalls.
+The shared GPU renderer places these layers behind the playable scene. No
+background images are stored in the source tree.
+
+T2 `80017600` uploads image pixels before the CLUT, then normalizes palettes
+without an explicit mixed STP mask. The distinction matters for overlapping
+background palettes (map0), palettes crossing the VRAM edge (maps3/12), and a
+map2 sky TIM whose final block size understates its rectangle. The loader keeps
+actual buffer bounds checks and follows the rectangle extent used by
+`GsGetTimInfo`/`LoadImage`. Original colors remain available to HD identities.
+The model primitive blend bit follows page bits0x60 (`80018e6c`); bit0x8000
+selects a drawing path and does not itself make a face semitransparent.
+Parser regressions cover these cases. Disc checks load all JP/EU base-area
+backgrounds and five JP evening variants; GPU captures check background coverage
+and foreground depth, and the original/HD water-scroll regression still passes.

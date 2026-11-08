@@ -104,7 +104,7 @@ fn parse(data: &[u8]) -> Result<Mesh> {
                 palette: u16_le(row, 0)?,
             }),
             double_sided: false,
-            translucent: u16_le(row, 2)? & 0x8060 != 0,
+            translucent: u16_le(row, 2)? & 0x60 != 0,
         };
         for i in 0..corners {
             let offset = u16_le(row, 20 + i * 2)?;

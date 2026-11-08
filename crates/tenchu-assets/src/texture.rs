@@ -191,22 +191,20 @@ impl Vram {
         for i in 0..if flags & 8 != 0 { 2 } else { 1 } {
             let size = u32_le(data, at)? as usize;
             let block = slice(data, at, size)?;
-            let x = usize::from(u16_le(block, 4)?);
-            let y = usize::from(u16_le(block, 6)?);
+            let x = usize::from(u16_le(block, 4)?) & 1023;
+            let y = usize::from(u16_le(block, 6)?) & 511;
             let w = usize::from(u16_le(block, 8)?);
             let h = usize::from(u16_le(block, 10)?);
-            if x + w > 1024 || y + h > 512 {
-                return Err("TIM block outside VRAM".into());
+            if w > 1024 || h > 512 {
+                return Err("TIM block exceeds VRAM dimensions".into());
             }
-            let pixels = slice(block, 12, w * h * 2)?;
+            // LoadImage uses the rectangle; some retail TIMs underreport their final block size.
+            let pixels = slice(data, at + 12, w * h * 2)?;
             for row in 0..h {
-                if !self.authored_colors.is_empty() {
-                    let start = (y + row) * 1024 + x;
-                    self.authored_colors
-                        .retain(|&address, _| !(start..start + w).contains(&address));
-                }
                 for col in 0..w {
-                    self.words[(y + row) * 1024 + x + col] = u16_le(pixels, (row * w + col) * 2)?;
+                    let address = ((y + row) & 511) * 1024 + ((x + col) & 1023);
+                    self.authored_colors.remove(&address);
+                    self.words[address] = u16_le(pixels, (row * w + col) * 2)?;
                 }
             }
             if i == 0 && flags & 8 != 0 {
@@ -283,8 +281,34 @@ mod tests {
         assert_eq!(image.word_rect(), [368, 255, 1, 1]);
         assert_eq!(vram.words[480 * 1024 + 32], 0x8421);
         assert_eq!(vram.words[255 * 1024 + 368], 0x0201);
+        let image_at = 8 + u32_le(&data, 8).unwrap() as usize;
+        data[image_at..image_at + 4].copy_from_slice(&12u32.to_le_bytes());
+        assert_eq!(vram.upload_tim(&data).unwrap(), image);
+        assert_eq!(vram.words[255 * 1024 + 368], 0x0201);
         data.pop();
         assert!(vram.upload_tim(&data).is_err());
+    }
+
+    #[test]
+    fn tim_uploads_wrap_at_both_vram_edges() {
+        let mut data = Vec::new();
+        for value in [0x10u32, 2, 28] {
+            data.extend(value.to_le_bytes());
+        }
+        for value in [1022u16, 511, 4, 2] {
+            data.extend(value.to_le_bytes());
+        }
+        for value in 1u16..=8 {
+            data.extend(value.to_le_bytes());
+        }
+        let mut vram = Vram::default();
+        vram.authored_colors.insert(0, 99);
+        vram.upload_tim(&data).unwrap();
+        assert_eq!(&vram.words[511 * 1024 + 1022..512 * 1024], &[1, 2]);
+        assert_eq!(&vram.words[511 * 1024..511 * 1024 + 2], &[3, 4]);
+        assert_eq!(&vram.words[1022..1024], &[5, 6]);
+        assert_eq!(&vram.words[..2], &[7, 8]);
+        assert!(vram.authored_colors.is_empty());
     }
 
     #[test]

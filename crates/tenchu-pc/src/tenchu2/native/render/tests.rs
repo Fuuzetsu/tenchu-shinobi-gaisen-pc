@@ -1,6 +1,76 @@
 use super::*;
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; verifies sky/background resources and foreground depth"]
+fn native_backgrounds_stay_behind_the_scene() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        ..Default::default()
+    };
+    for sequence in [1, 9] {
+        let mut session = super::super::Session::load(&disc, sequence, 1).unwrap();
+        for _ in 0..30 {
+            session.step(0).unwrap();
+        }
+        let mut images = Vec::new();
+        for mode in ["scene", "background", "combined"] {
+            let path = output.join(format!("jp-background-{sequence}-{mode}.png"));
+            capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+                let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
+                let mut geometry =
+                    models.geometry(&session.world, &session.assets, &session.frame)?;
+                assert_eq!(geometry.backgrounds.len(), 3);
+                if mode == "scene" {
+                    geometry.backgrounds.clear();
+                }
+                if mode == "background" {
+                    geometry.terrain.clear();
+                    geometry.actors.clear();
+                    geometry.effects.vertices.clear();
+                    geometry.effects.batches.clear();
+                }
+                Ok((
+                    SceneDrawing::new(geometry, renderer),
+                    session.world.camera.view,
+                    Vec::new(),
+                ))
+            })
+            .unwrap();
+            images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+        }
+        let [r, g, b] = graphics.post.fog_color().map(|v| (v * 255.0).round() as u8);
+        let clear = [r, g, b, 255];
+        let mut filled = 0;
+        let mut foreground = 0;
+        for (before, after) in images[0]
+            .rgba
+            .chunks_exact(4)
+            .zip(images[2].rgba.chunks_exact(4))
+        {
+            if before == clear && before != after {
+                filled += 1;
+            }
+            if before != clear && before == after {
+                foreground += 1;
+            }
+        }
+        assert!(
+            filled > 5000,
+            "sequence {sequence}: background did not fill the horizon"
+        );
+        assert!(
+            foreground > 50000,
+            "sequence {sequence}: background covered the foreground"
+        );
+    }
+}
+
+#[test]
 #[ignore = "requires Japan TENCHU2_DISC, TENCHU2_ASSET_PACK, TENCHU_MODEL_REVIEW and a GPU; original and replacement water scroll through a complete cycle"]
 fn native_water_animation_survives_texture_replacement() {
     let disc =

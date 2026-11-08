@@ -39,6 +39,7 @@ impl Models {
         let level = &story.level;
         let resources = &story.resources;
         let mut terrain_sources = sources(&format!("map{}/terrain", level.id), &level.map);
+        terrain_sources.extend(super::super::background::sources(level));
         terrain_sources.extend(sources(&format!("map{}/props", level.id), &level.objects));
         let mut terrain = build(&level.vram, terrain_sources, graphics)?;
         renderer.bind_meshes(&mut terrain);
@@ -216,6 +217,13 @@ impl Models {
         );
         Ok((
             Geometry {
+                backgrounds: super::super::background::geometry(
+                    &level.background,
+                    &self.terrain,
+                    story.state.view,
+                    math,
+                    story.state.frame.max(0) as u32,
+                ),
                 terrain: output.terrain,
                 actors: output.actors,
                 effects: render_effects::surface_geometry(output.surfaces),

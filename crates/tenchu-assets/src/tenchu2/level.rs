@@ -1,6 +1,7 @@
 use super::{model, volume::Volume};
 use crate::{ReadAt, Result, disc::Disc, model::Part, texture::Vram, u32_le};
 
+pub mod background;
 pub mod grid;
 pub mod objects;
 use objects::{Objects, Variant};
@@ -16,21 +17,26 @@ pub struct Level {
     pub scene: Objects,
     pub vram: Vram,
     pub collision: super::collision::Collision,
+    pub background: background::Background,
 }
 
 impl Level {
     pub fn draw_distance(disc: &Disc<impl ReadAt>, id: usize) -> Result<i32> {
+        Self::parameters(disc, id).map(|(distance, _)| distance)
+    }
+
+    fn parameters(disc: &Disc<impl ReadAt>, id: usize) -> Result<(i32, u32)> {
         if id >= 24 {
             return Err("Tenchu 2 map index must be 0–23".into());
         }
         let (edition, bytes) = super::executable(disc)?;
         let executable = crate::executable::Executable::new(&bytes)?;
-        let bytes = executable.bytes(edition.addresses().stages + id as u32 * 20, 4)?;
+        let bytes = executable.bytes(edition.addresses().stages + id as u32 * 20, 8)?;
         let distance = u32_le(bytes, 0)? as i32;
         if !(1..=32767).contains(&distance) {
             return Err("Invalid Tenchu 2 draw distance".into());
         }
-        Ok(distance)
+        Ok((distance, u32_le(bytes, 4)?))
     }
 
     pub fn available(disc: &Disc<impl ReadAt>) -> Result<Vec<usize>> {
@@ -45,7 +51,7 @@ impl Level {
     }
 
     pub fn load(disc: &Disc<impl ReadAt>, id: usize) -> Result<Self> {
-        Self::load_variant(disc, id, Variant::Base, "map.mcd")
+        Self::load_variant(disc, id, Variant::Base, None)
     }
 
     pub fn japanese_sequence(
@@ -65,16 +71,11 @@ impl Level {
         if super::Edition::detect(disc)? != super::Edition::Japan {
             return Err("Japanese Tenchu 2 scene selection requires the Japanese disc".into());
         }
-        let collision = match sequence {
-            179 | 216 => "map2.mcd",
-            245 => "map3.mcd",
-            _ => "map.mcd",
-        };
         Self::load_variant(
             disc,
             map,
             Variant::japanese(map, sequence, hidden),
-            collision,
+            Some(sequence),
         )
     }
 
@@ -82,11 +83,9 @@ impl Level {
         disc: &Disc<impl ReadAt>,
         id: usize,
         variant: Variant,
-        collision: &str,
+        sequence: Option<usize>,
     ) -> Result<Self> {
-        if id >= 24 {
-            return Err("Tenchu 2 map index must be 0–23".into());
-        }
+        let (_, flags) = Self::parameters(disc, id)?;
         let volume = Volume::open(disc)?;
         let directory = directory(id);
         let read = |name: &str| volume.read(&directory, name);
@@ -116,14 +115,8 @@ impl Level {
             return Err("Tenchu 2 map has no geometry".into());
         }
         let mut vram = Vram::default();
-        let textures = read("mapTEX.arc")?;
-        let count = u32_le(&textures, 0)? as usize;
-        if count > 4096 {
-            return Err("Excessive Tenchu 2 texture count".into());
-        }
-        for i in 0..count {
-            vram.upload_tim(crate::model::arc_entry(&textures, i)?)?;
-        }
+        upload_textures(&read("mapTEX.arc")?, &mut vram)?;
+        let background = background::Background::load(&volume, id, sequence, flags, &mut vram)?;
         initialize_water(id, &mut vram)?;
         let (layout, archive) = variant.files();
         let archive = read(archive)?;
@@ -166,6 +159,11 @@ impl Level {
             }
         }
         model::resolve_transparency(stumps.values_mut(), &vram);
+        let collision = match sequence {
+            Some(179 | 216) => "map2.mcd",
+            Some(245) => "map3.mcd",
+            _ => "map.mcd",
+        };
         Ok(Self {
             id,
             grid,
@@ -176,8 +174,20 @@ impl Level {
             scene,
             vram,
             collision: super::collision::Collision::parse(&read(collision)?)?,
+            background,
         })
     }
+}
+
+fn upload_textures(archive: &[u8], vram: &mut Vram) -> Result<()> {
+    let count = u32_le(archive, 0)? as usize;
+    if count > 4096 {
+        return Err("Excessive Tenchu 2 texture count".into());
+    }
+    for i in 0..count {
+        super::texture::upload(vram, crate::model::arc_entry(archive, i)?)?;
+    }
+    Ok(())
 }
 
 fn directory(id: usize) -> String {
