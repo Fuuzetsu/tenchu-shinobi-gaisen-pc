@@ -6,9 +6,9 @@ use crate::{Result, math::Math};
 mod tests;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub(super) struct Smooth {
-    shift: i16,
-    acceleration: i16,
+pub(crate) struct Smooth {
+    pub shift: i16,
+    pub acceleration: i16,
     speed: i16,
     before: [i16; 3],
 }
@@ -25,7 +25,7 @@ impl From<[i16; 6]> for Smooth {
 }
 
 impl Smooth {
-    pub(super) fn state(&self) -> [i16; 6] {
+    pub fn state(&self) -> [i16; 6] {
         [
             self.shift,
             self.acceleration,
@@ -37,8 +37,17 @@ impl Smooth {
     }
 
     pub fn delta(&mut self, from: Position, to: Position, math: &Math) -> Result<Position> {
+        self.delta_with_length(from, to, |v| math.vector_distance(v))
+    }
+
+    pub fn delta_with_length(
+        &mut self,
+        from: Position,
+        to: Position,
+        distance: impl Fn(Position) -> i32,
+    ) -> Result<Position> {
         let delta = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
-        let length = math.vector_distance(delta.into());
+        let length = distance(delta.into());
         if length == 0 {
             return Ok(Position::ZERO);
         }
@@ -47,9 +56,8 @@ impl Smooth {
         let mut theta = (0..3).fold(0i32, |sum, i| {
             sum.wrapping_add(i32::from(narrow[i]) * i32::from(self.before[i]))
         });
-        let mut lengths = math
-            .vector_distance(narrow.map(i32::from).into())
-            .wrapping_mul(math.vector_distance(self.before.map(i32::from).into()));
+        let mut lengths = distance(narrow.map(i32::from).into())
+            .wrapping_mul(distance(self.before.map(i32::from).into()));
         if theta >= i32::MAX >> 12 {
             theta /= 4096;
             lengths /= 4096;

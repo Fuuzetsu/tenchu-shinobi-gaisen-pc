@@ -71,7 +71,7 @@ impl World {
                     },
                 )?;
                 if kind == 19 && focused && actor.health < 1 {
-                    self.controls.camera = 19;
+                    self.camera.mode = 19;
                 }
                 Ok(kind)
             },

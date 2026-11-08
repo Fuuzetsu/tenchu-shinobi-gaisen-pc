@@ -348,6 +348,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
         let start = world.actors[0].actor.position;
         let mut events = Recorded::default();
         let step = |world: &mut World, assets: &mut Assets, events: &mut Recorded, held| {
+            world.update_camera(assets, false).unwrap();
             world.move_actor(0, assets, events).unwrap();
             world.actors[0].actor.pad.update(held);
             world

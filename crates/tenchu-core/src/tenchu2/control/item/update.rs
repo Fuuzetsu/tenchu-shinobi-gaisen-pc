@@ -17,7 +17,7 @@ pub struct ItemControlInput {
     pub camera_actor: bool,
     pub camera: i16,
     pub previous_camera: i16,
-    pub camera_pitch: i16,
+    pub camera_yaw: i16,
     pub aim: Position,
     pub target_position: Option<Position>,
     pub grapple: GrappleStatus,
@@ -208,7 +208,7 @@ impl Actor {
                             input.aim.z,
                             self.rotation.y,
                         )?);
-                        input.camera_pitch = 0;
+                        input.camera_yaw = 0;
                         input.aim
                     } else {
                         self.forward_direction(&resources.math)

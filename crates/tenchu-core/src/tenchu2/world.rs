@@ -19,6 +19,7 @@ use tenchu_assets::tenchu2::layout::Layout;
 
 mod activation;
 mod assets;
+mod camera;
 mod frame;
 pub use frame::ActorEvents;
 pub mod controls;
@@ -67,6 +68,7 @@ pub struct Statistics {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct World {
+    pub camera: super::camera::Camera,
     pub terrain: tenchu_assets::tenchu2::collision::Collision,
     pub environment: super::environment::Environment,
     pub hidden_scene: bool,
@@ -111,6 +113,7 @@ impl World {
             .cast(options.hero, layout.map)
             .ok_or("Missing Tenchu 2 cast")?;
         let mut world = Self {
+            camera: super::camera::Camera::new(&assets.camera),
             terrain: assets.level.collision.clone(),
             environment: super::environment::Environment::default(),
             hidden_scene: false,
@@ -210,6 +213,7 @@ impl World {
             &assets.resources.math,
             &mut world.random,
         )?;
+        world.update_camera(assets, true)?;
         world.initialize_activation(assets)?;
         Ok(world)
     }

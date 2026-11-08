@@ -37,7 +37,7 @@ impl World {
             self.terrain_options.avoid_water = false;
             if let Some(death) = movement.death {
                 if index == self.player && death == FallDeath::LongFall {
-                    self.controls.camera = 0x13;
+                    self.camera.mode = 0x13;
                 }
                 controls::credit(
                     &mut self.statistics,

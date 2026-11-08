@@ -24,7 +24,6 @@ mod locomotion;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Controls {
-    pub camera: i16,
     pub camera_actor: usize,
     pub previous_camera: i16,
     pub ledge_check: i16,
@@ -39,13 +38,11 @@ pub struct Controls {
     pub drain_uses: u8,
     pub death_music: bool,
     pub aim: Position,
-    pub camera_pitch: i16,
 }
 
 impl Default for Controls {
     fn default() -> Self {
         Self {
-            camera: 0,
             camera_actor: 0,
             previous_camera: 0,
             ledge_check: 0,
@@ -60,7 +57,6 @@ impl Default for Controls {
             drain_uses: 0,
             death_music: true,
             aim: Position::default(),
-            camera_pitch: 0,
         }
     }
 }
@@ -159,7 +155,7 @@ impl World {
             held: agent.actor.pad.held,
             player: index == self.player,
             camera_actor: index == self.controls.camera_actor,
-            camera: self.controls.camera,
+            camera: self.camera.mode,
             script: self.script,
             tick: self.tick as i32,
             water: self.water.clone(),
@@ -183,6 +179,7 @@ impl World {
                 scene: &mut self.scene,
                 collision: &mut self.collision,
                 controls: &mut self.controls,
+                camera: &mut self.camera,
                 detections: &mut self.ai.detections,
                 tracking: &mut self.tracking,
                 spline: &assets.spline,
@@ -209,7 +206,7 @@ impl World {
             &mut driver,
         )?;
         self.terrain_options = driver.terrain.options;
-        driver.context.controls.camera = input.camera;
+        driver.context.camera.mode = input.camera;
         driver.context.sync_contacts(&agent.actor);
         Ok(())
     }
@@ -228,6 +225,7 @@ struct Context<'a, E> {
     scene: &'a mut Scene,
     collision: &'a mut Collision,
     controls: &'a mut Controls,
+    camera: &'a mut crate::tenchu2::camera::Camera,
     detections: &'a mut u8,
     tracking: &'a mut Option<usize>,
     spline: &'a [[i16; 4]; 33],

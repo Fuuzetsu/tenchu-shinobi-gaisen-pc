@@ -15,7 +15,7 @@ impl<E: Events> Driver<'_, E> {
             camera_actor: input.camera_actor,
             camera: input.camera,
             previous_camera: c.controls.previous_camera,
-            camera_pitch: c.controls.camera_pitch,
+            camera_yaw: c.camera.direction[1],
             aim: c.controls.aim,
             target_position: actor
                 .target
@@ -65,7 +65,7 @@ impl<E: Events> Driver<'_, E> {
         )?;
         input.camera = item.camera;
         c.controls.previous_camera = item.previous_camera;
-        c.controls.camera_pitch = item.camera_pitch;
+        c.camera.direction[1] = item.camera_yaw;
         c.controls.aim = item.aim;
         c.controls.story_triggered = item.story_triggered;
         Ok(())

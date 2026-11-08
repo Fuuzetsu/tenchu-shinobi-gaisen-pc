@@ -17,6 +17,7 @@ use tenchu_assets::{
 };
 
 pub struct Assets {
+    pub camera: tenchu_assets::tenchu2::camera::Tables,
     pub hero: usize,
     pub sequence: usize,
     pub draw_distance: i32,
@@ -82,6 +83,7 @@ impl Assets {
             }
         }
         Ok(Self {
+            camera: tenchu_assets::tenchu2::camera::Tables::load(disc)?,
             hero,
             sequence: layout.sequence,
             draw_distance: Level::draw_distance(disc, map)?,

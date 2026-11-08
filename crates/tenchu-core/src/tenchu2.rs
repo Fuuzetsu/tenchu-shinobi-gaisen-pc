@@ -1,5 +1,6 @@
 pub mod actor;
 pub mod ai;
+pub mod camera;
 pub mod collision;
 pub mod control;
 pub mod environment;

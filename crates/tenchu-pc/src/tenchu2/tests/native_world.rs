@@ -310,20 +310,15 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                     60..=69 => tenchu_core::tenchu2::input::JUMP,
                     _ => 0,
                 };
+                world.update_camera(&assets, false).unwrap();
                 world
                     .update_actors([buttons, 0], &mut assets, &mut events)
                     .unwrap_or_else(|error| {
                         panic!("sequence {} tick {tick}: {error}", layout.sequence)
                     });
                 world.finish_tick().unwrap();
-                let eye = world.actors[world.player].actor.position;
                 world
-                    .update_activation(
-                        eye,
-                        eye.wrapping_add(Position::new(0, 0, -1000)),
-                        6,
-                        &assets,
-                    )
+                    .update_activation(world.camera.eye, world.camera.look, 6, &assets)
                     .unwrap();
             }
             eprintln!(

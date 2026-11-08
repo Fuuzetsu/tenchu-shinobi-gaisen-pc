@@ -2080,3 +2080,20 @@ continuous actor updates; movement, body response, actor-tail and player-control
 regressions pass, with strict Clippy/fmt and wasm core compilation. View-driven
 object activation/rendering, the special falling prop, concrete effects/items,
 camera and campaign integration remain unfinished.
+
+Native JP camera state and terrain queries follow `8005e858`–`80061a1c`:
+follow/aim/swim/wall/stealth/death modes, source pose tables, ceiling and wall
+avoidance, smoothing history, snapshot state and underwater audio selection.
+Tables are read from the user's JP executable. The camera shares the existing
+scalar smoothing and view-matrix arithmetic where the algorithms agree; its
+vector-length scaling retains T2's different threshold and signed shifts. The
+item controller's reset field is camera yaw (`8008ebce`), not pitch.
+
+Private original-instruction checks pass 5,520 camera updates on all 23 maps,
+including terrain state and RNG (`TENCHU2_CAMERA_ORACLE`), and 2,000 complete SDK
+view matrices including roll (`TENCHU2_CAMERA_VIEW_ORACLE`). SDK setup initializes
+both identity matrices; no game resources are committed. All 56 campaign casts
+run with the camera and activation together, and the three-hero control check
+includes exact saved-camera continuation. Concrete visibility, object rendering,
+effects/items and campaign presentation remain integration work; this is not a
+claim that native JP missions are playable yet.

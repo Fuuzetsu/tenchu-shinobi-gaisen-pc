@@ -1,6 +1,6 @@
 use crate::actor::State as ActorState;
 use crate::math::Position;
-mod smoothing;
+pub(crate) mod smoothing;
 #[cfg(test)]
 mod tests;
 
@@ -185,47 +185,7 @@ impl Camera {
     pub fn set_view(&mut self, position: Position, reference: Position, math: &Math) -> Result<()> {
         self.position = position;
         self.reference = reference;
-        let mut maximum = 0;
-        for value in position.into_iter().chain(reference) {
-            maximum = maximum.max(
-                value
-                    .checked_abs()
-                    .ok_or("Camera coordinate magnitude overflow")?,
-            );
-        }
-        let shift = (32 - (maximum as u32).leading_zeros()).saturating_sub(15);
-        let delta =
-            std::array::from_fn(|i| (reference[i] >> shift).wrapping_sub(position[i] >> shift));
-        let length = math.length(delta.into());
-        self.view = Matrix::default();
-        if length == 0 {
-            return Ok(());
-        }
-        let horizontal = math.length(Position::new(delta[0], 0, delta[2]));
-        let sin = delta[1].wrapping_shl(12) / length;
-        let cos = horizontal.wrapping_shl(12) / length;
-        let pitch = Matrix {
-            rotation: [
-                [4096, 0, 0],
-                [0, cos as i16, sin.wrapping_neg() as i16],
-                [0, sin as i16, cos as i16],
-            ],
-            ..Matrix::default()
-        };
-        self.view = self.view.compose(&pitch);
-        if horizontal != 0 {
-            let sin = (delta[0].wrapping_shl(12) / horizontal).wrapping_neg();
-            let cos = delta[2].wrapping_shl(12) / horizontal;
-            self.view = self.view.compose(&Matrix {
-                rotation: [
-                    [cos as i16, 0, sin as i16],
-                    [0, 4096, 0],
-                    [sin.wrapping_neg() as i16, 0, cos as i16],
-                ],
-                ..Matrix::default()
-            });
-        }
-        self.view.translation = self.view.apply_large(position.map(i32::wrapping_neg));
+        self.view = view_matrix(position, reference, 0, math)?;
         Ok(())
     }
 
@@ -560,4 +520,61 @@ impl Camera {
         self.update_view(env.math)?;
         Ok(())
     }
+}
+
+pub(crate) fn view_matrix(
+    position: Position,
+    reference: Position,
+    roll: i32,
+    math: &Math,
+) -> Result<Matrix> {
+    let mut maximum = 0;
+    for value in position.into_iter().chain(reference) {
+        maximum = maximum.max(
+            value
+                .checked_abs()
+                .ok_or("Camera coordinate magnitude overflow")?,
+        );
+    }
+    let shift = (32 - (maximum as u32).leading_zeros()).saturating_sub(15);
+    let delta = std::array::from_fn(|i| (reference[i] >> shift).wrapping_sub(position[i] >> shift));
+    let length = math.length(delta.into());
+    let [sin, cos] = math.pair((roll.wrapping_neg() / 360) as i16);
+    let mut view = Matrix {
+        rotation: [
+            [cos as i16, -sin as i16, 0],
+            [sin as i16, cos as i16, 0],
+            [0, 0, 4096],
+        ],
+        ..Matrix::default()
+    };
+    if length == 0 {
+        return Ok(view);
+    }
+    let horizontal = math.length(Position::new(delta[0], 0, delta[2]));
+    let sin = delta[1].wrapping_shl(12) / length;
+    let cos = horizontal.wrapping_shl(12) / length;
+    let pitch = Matrix {
+        rotation: [
+            [4096, 0, 0],
+            [0, cos as i16, sin.wrapping_neg() as i16],
+            [0, sin as i16, cos as i16],
+        ],
+        ..Matrix::default()
+    };
+    view = view.compose(&pitch);
+    if horizontal != 0 {
+        let sin = (delta[0].wrapping_shl(12) / horizontal).wrapping_neg();
+        let cos = delta[2].wrapping_shl(12) / horizontal;
+        view = view.compose(&Matrix {
+            rotation: [
+                [cos as i16, 0, sin as i16],
+                [0, 4096, 0],
+                [sin.wrapping_neg() as i16, 0, cos as i16],
+            ],
+            ..Matrix::default()
+        });
+    }
+    view.translation = view.apply_large(position.map(i32::wrapping_neg));
+    Ok(view)
 }
