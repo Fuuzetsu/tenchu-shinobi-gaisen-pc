@@ -153,6 +153,33 @@ impl Effects {
         self.insert(Effect::Sprites(effect))
     }
 
+    pub fn dispersing_smoke(
+        &mut self,
+        position: Position,
+        velocity: Position,
+        kind: u8,
+        random: &mut Random,
+    ) -> Result<()> {
+        let mut effect = Sprites::new(if kind == 3 { 25 } else { 22 }, position, 8, 64);
+        effect.motion = Motion::Dispersing;
+        effect.velocity = velocity.map(|v| v as i16);
+        effect.size = [[512; 2], [4608; 2]];
+        effect.color = match kind {
+            0 => [64, 48, 48],
+            1 => [48, 64, 48],
+            _ => [64; 3],
+        };
+        effect.color_step = [-1; 3].into();
+        for (i, particle) in effect.particles.iter_mut().enumerate() {
+            particle.age = -(i as i16) * 4;
+            particle.offset = Vector3::from_fn(|_| (random.next15() & 255) as i16 - 127);
+        }
+        if kind == 3 {
+            effect.particles.truncate(1);
+        }
+        self.insert(Effect::Sprites(effect))
+    }
+
     pub fn smoke(
         &mut self,
         position: Position,

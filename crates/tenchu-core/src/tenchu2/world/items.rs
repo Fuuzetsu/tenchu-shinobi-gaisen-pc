@@ -27,7 +27,7 @@ impl World {
         &mut self,
         assets: &Assets,
         events: &mut impl Events,
-        quads: &mut Vec<Quad>,
+        frame: &mut crate::tenchu2::items::Frame,
     ) -> Result<()> {
         let view = self.view();
         let mut index = 0;
@@ -49,7 +49,43 @@ impl World {
                 collision: &mut self.collision,
                 player: self.player,
             };
+            let mut resurrection_voice = None;
             let (mut alive, pickup) = match &mut entry.state {
+                State::Resurrection(resurrection) => {
+                    let owner = resurrection.owner;
+                    let update = resurrection.advance(
+                        &mut self.actors[owner].actor,
+                        &mut self.items.return_point,
+                        self.controls.transition_ready,
+                        context.math,
+                        &mut self.random,
+                    );
+                    context.scene.update(model, resurrection.transform);
+                    if let Some(fade) = update.fade {
+                        frame.fade = Some(fade);
+                    }
+                    if let Some(position) = update.smoke {
+                        sink.effects.dispersing_smoke(
+                            position,
+                            Position::new(0, -8, 0),
+                            2,
+                            &mut self.random,
+                        )?;
+                    }
+                    if let Some(position) = update.voice {
+                        resurrection_voice = resurrection.attacker.map(|actor| (actor, position));
+                    }
+                    if update.returned {
+                        self.environment.background_only = false;
+                        self.camera.snap = true;
+                        self.camera.mode = 0;
+                        self.instances[owner].translucent = false;
+                    }
+                    if !update.alive {
+                        self.script = 0;
+                    }
+                    (update.alive, false)
+                }
                 State::Marker(marker) => (marker.advance(model, &mut context)?, false),
                 State::Teleport(teleport) => {
                     let target = teleport.target.map(|i| {
@@ -113,7 +149,7 @@ impl World {
                                 depth: i32::from(a.1 >> 4),
                             }),
                         );
-                        quads.push(Quad {
+                        frame.quads.push(Quad {
                             image: Image::Effect(0),
                             position,
                             parent: None,
@@ -227,6 +263,25 @@ impl World {
             let blasts = sink.blasts;
             for (position, id) in sink.sounds {
                 self.emit(self.player, Event::SoundPosition { position, id }, events)?;
+            }
+            if let Some((actor, position)) = resurrection_voice {
+                let listener = crate::tenchu2::audio::Listener {
+                    position,
+                    ..self.listener()
+                };
+                Events::emit(
+                    events,
+                    super::controls::EventSource {
+                        listener,
+                        voice: self.instances[actor].voice,
+                        index: actor,
+                        actor: &self.actors[actor].actor,
+                        rig: &self.instances[actor].rig,
+                        scene: &mut self.scene,
+                    },
+                    Event::Voice(9),
+                    &mut self.random,
+                )?;
             }
             if alive && matches!(self.items.entries[index].state, State::Rice(_)) {
                 alive = self.update_rice(index, assets, events)?;

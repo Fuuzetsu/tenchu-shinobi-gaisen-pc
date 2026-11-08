@@ -362,6 +362,7 @@ impl Models {
                 State::Smoke(s) => (10, s.transform, [0; 3]),
                 State::SleepBomb(bomb) => (18, bomb.transform, [0; 3]),
                 State::Rice(r) => (11, r.transform, [0; 3]),
+                State::Resurrection(r) => (20, r.transform, [0; 3]),
                 State::Marker(marker) => (
                     32 + marker.color,
                     Matrix {
@@ -519,6 +520,17 @@ impl Models {
                 vertex.flags |= render_mesh::FOG | render_mesh::UNLIT;
             }
             output.surface(vertices, blend);
+        }
+        if let Some(fade) = frame.fade {
+            output.screen_sprite(
+                [0.0, 0.0, 64.0],
+                [320.0, 240.0],
+                [1.0; 2],
+                0,
+                [f32::from(fade) / 255.0; 3],
+                None,
+                2,
+            );
         }
         Ok(Geometry {
             terrain: output.terrain,

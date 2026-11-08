@@ -26,6 +26,7 @@ pub enum Motion {
     Linear,
     Dust(Vec<i16>),
     Smoke,
+    Dispersing,
     Embers,
     Healing,
     SleepGas,
@@ -142,6 +143,13 @@ impl Sprites {
             let mut depth_offset = self.depth_offset;
             match &self.motion {
                 Motion::Linear => {}
+                Motion::Dispersing => {
+                    offset = offset.map(|v| (v * age) >> 2);
+                    let fade = (i32::from(self.color_step.x) * age) >> 1;
+                    color = self
+                        .color
+                        .map(|v| (i32::from(v) + fade).clamp(0, 255) as u8);
+                }
                 Motion::SleepGas => {
                     offset.x = (offset.x * age) >> 2;
                     offset.z = (offset.z * age) >> 2;
@@ -215,11 +223,16 @@ impl Sprites {
                 rotations[image] = if matches!(self.motion, Motion::Dust(_) | Motion::Healing) {
                     0
                 } else {
-                    ((i32::from(if matches!(self.motion, Motion::Smoke | Motion::Embers) {
-                        self.gravity
-                    } else {
-                        self.spin
-                    }) * age)
+                    ((i32::from(
+                        if matches!(
+                            self.motion,
+                            Motion::Smoke | Motion::Embers | Motion::Dispersing
+                        ) {
+                            self.gravity
+                        } else {
+                            self.spin
+                        },
+                    ) * age)
                         % 360)
                         * 4096
                 };
@@ -243,9 +256,11 @@ impl Sprites {
                 }
             }
         }
-        if linear {
+        if linear || matches!(self.motion, Motion::Dispersing) {
             self.position = self.position.wrapping_add(self.velocity.map(i32::from));
-            self.velocity.y = self.velocity.y.wrapping_add(self.gravity);
+            if linear {
+                self.velocity.y = self.velocity.y.wrapping_add(self.gravity);
+            }
         }
         Ok(self.lifetime < 0 || self.particles.last().is_some_and(|p| p.age < self.lifetime))
     }

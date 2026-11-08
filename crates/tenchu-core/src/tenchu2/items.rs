@@ -12,6 +12,7 @@ pub mod marker;
 pub mod mine;
 pub mod powder;
 pub mod projectile;
+pub mod resurrection;
 pub mod rice;
 pub mod sleep_bomb;
 pub mod smoke;
@@ -31,6 +32,7 @@ pub struct Items {
     pub held: Option<u8>,
     pub entries: Vec<Entry>,
     pub markers: [Option<ModelId>; 5],
+    pub return_point: resurrection::ReturnPoint,
     free_models: Vec<(ModelId, i32, u8)>,
     /// Low four word-address bits of the original item pool, for recorded replays.
     pub pool_phase: u8,
@@ -63,11 +65,13 @@ pub enum State {
     FireBlast(fire::Blast),
     Teleport(teleport::Teleport),
     Marker(marker::Marker),
+    Resurrection(resurrection::Resurrection),
 }
 
 #[derive(Default)]
 pub struct Frame {
     pub reticle: Option<aim::Reticle>,
+    pub fade: Option<u8>,
     pub quads: Vec<super::effects::surface::Quad>,
 }
 
@@ -149,6 +153,7 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::Resurrection(resurrection) => scene.update(model, resurrection.transform),
             State::Marker(marker) => {
                 scene.update(
                     model,
@@ -269,6 +274,7 @@ impl Items {
         collision.remove(entry.model);
         let floor = match entry.state {
             State::Marker(marker) => marker.floor.unwrap_or(entry.unused_floor),
+            State::Resurrection(resurrection) => resurrection.floor,
             State::Projectile(projectile) => projectile.flight.floor,
             State::Arrow(arrow) => arrow.flight.floor,
             State::Grenade(grenade) => grenade.flight.floor,

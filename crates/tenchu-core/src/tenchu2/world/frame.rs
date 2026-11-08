@@ -15,6 +15,7 @@ pub struct Frame {
     pub scenery: crate::tenchu2::environment::scenery::Frame,
     pub effects: crate::tenchu2::effects::Frame,
     pub reticle: Option<crate::tenchu2::items::aim::Reticle>,
+    pub fade: Option<u8>,
     pub ambience: Option<crate::tenchu2::audio::Sound>,
 }
 
@@ -52,6 +53,7 @@ impl World {
             scenery,
             effects,
             reticle: items.reticle,
+            fade: items.fade,
             ambience,
         })
     }
@@ -74,7 +76,7 @@ impl World {
         use crate::tenchu2::items::aim::Input;
         let math = &assets.resources.math;
         let mut frame = crate::tenchu2::items::Frame::default();
-        self.advance_items(assets, events, &mut frame.quads)?;
+        self.advance_items(assets, events, &mut frame)?;
         let root = self
             .scene
             .world(self.instances[self.player].rig.joints[0])?

@@ -115,6 +115,7 @@ impl<E: Events> Driver<'_, E> {
             hit_disabled: false,
             attacker,
         };
+        let mut resurrect = false;
         actor.apply_damage(
             request,
             &mut damage,
@@ -190,18 +191,76 @@ impl<E: Events> Driver<'_, E> {
                     Ok(())
                 }
                 DamageCue::Heal => c.emit(actor, Event::Heal, random),
-                DamageCue::Resurrection => c.emit(
-                    actor,
-                    Event::Resurrection {
-                        attacker: damage.attacker.as_ref().map(|a| a.actor),
-                    },
-                    random,
-                ),
+                DamageCue::Resurrection => {
+                    resurrect = true;
+                    Ok(())
+                }
                 DamageCue::ShowHealth => c.emit(actor, Event::ShowHealth, random),
                 DamageCue::DeathMusic => c.emit(actor, Event::DeathMusic, random),
                 DamageCue::Blood { joint, angle } => c.blood(actor, joint, Some(angle), random),
             },
         )?;
+        if resurrect {
+            use crate::tenchu2::items::{self, resurrection};
+            let markers = c
+                .items
+                .markers
+                .iter()
+                .flatten()
+                .map(|&model| c.scene.models[model].local.translation);
+            let position = resurrection::destination(actor.position, c.home, markers);
+            let mut context = items::Context {
+                map: self.terrain.map,
+                cursor: self.terrain.cursor,
+                math: &resources.math,
+                scene: c.scene,
+                collision: c.collision,
+                player: c.player,
+            };
+            let resurrection = resurrection::Resurrection::new(
+                c.index,
+                damage.attacker.as_ref().map(|a| a.actor),
+                actor,
+                &mut context,
+                self.random,
+            )?;
+            let log = resurrection.transform.translation;
+            c.items.insert(
+                items::State::Resurrection(resurrection),
+                c.scene,
+                c.collision,
+            )?;
+            actor.health = actor.health.max(actor.max_health);
+            actor.flags &= !0xf00;
+            c.items.return_point.position = position;
+            actor.position = position;
+            actor.previous = position;
+            c.environment.background_only = true;
+            c.instances[c.index].translucent = true;
+            c.emit(
+                actor,
+                Event::SoundPosition {
+                    position: log,
+                    id: 52,
+                },
+                self.random,
+            )?;
+            damage.camera = 22;
+            *c.script = 3;
+            input.script = 3;
+            if c.index == c.player {
+                actor.change_motion(0, Velocity::Motion, resources)?;
+                *request = Request {
+                    action: 0,
+                    velocity: Velocity::Keep,
+                };
+            } else {
+                c.others
+                    .get_mut(c.player)?
+                    .actor
+                    .change_motion(0, Velocity::Motion, resources)?;
+            }
+        }
         if damage.hit_disabled {
             c.collision
                 .slot_mut(hit_index)

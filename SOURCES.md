@@ -2426,3 +2426,19 @@ and 427 rejected placements (`TENCHU2_MARKER_ORACLE`); a connected use/restore
 check covers other-actor contacts, afflicted-owner contacts and retrieval.
 `80051bb0` queues a pickup notice; it does not unlock campaign equipment. Native
 projectile, poisoned-rice and marker pickups now emit that notice accordingly.
+
+Native JP resurrection follows `8005a21c` / `8005a5f0`: unsigned horizontal
+return-point ranking, home fallback, healing/affliction clearing, the substitute
+log's fall and roll, half-health floor, shared counters, control suppression and
+camera return. The renderer uses the uniform additive-white pattern from
+`8003ba58` / `8003bf20`. Attacker voice 9 follows `8005d5ec` / `8005d638` with
+the log as its positional reference; this is audio, not an AI command. Smoke
+follows `80046630` / `800467d0`, including all 24 constructor RNG calls for the
+single-particle variant. `TENCHU2_RESURRECTION_ORACLE` covers 1,000 original
+instruction sequences with terrain, marker ties, phase boundaries and blocked
+return transitions. The 600 mixed sprite oracle sequences include dispersing
+smoke. A connected fatal-hit check exercises both return destinations, inventory,
+health, effects, fade, snapshot continuation and resumed movement. The standalone
+preview has no scene loader; `Controls::transition_ready` remains true there.
+Campaign loading and XA streaming must supply the original readiness condition
+when connected (boss objectives bypass that wait).

@@ -1768,3 +1768,155 @@ fn native_marker_pickup_preserves_owner_and_return_point_rules() {
     );
     assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; fatal hit, resurrection marker/home, log, fade, loading hold and snapshot continuation"]
+fn native_world_resurrection_returns_control_after_the_camera_transition() {
+    use tenchu_core::{math::Matrix, tenchu2::items::State as ItemState};
+    for marker in [false, true] {
+        let (mut world, mut assets, guard) = fixture();
+        let home = Position::new(12000, 0, 6000);
+        let destination = if marker {
+            Position::new(-9000, 0, 4000)
+        } else {
+            home
+        };
+        world.actors[0].behavior.home = home;
+        if marker {
+            world.items.markers[0] = Some(world.scene.add(
+                None,
+                Matrix {
+                    translation: destination,
+                    ..Default::default()
+                },
+            ));
+        }
+        let enemy = &mut world.actors[guard].actor;
+        enemy
+            .set_weapon(
+                &mut world.instances[guard].rig,
+                guard,
+                &mut world.collision,
+                &assets.resources,
+                WeaponMode::Draw,
+            )
+            .unwrap();
+        enemy
+            .change_motion(0x900, Velocity::Motion, &assets.resources)
+            .unwrap();
+        enemy.attack.index = assets
+            .resources
+            .weapons
+            .attacks
+            .iter()
+            .position(|a| Some(a.clip) == enemy.motion.clip);
+        assert!(enemy.attack.index.is_some());
+        world.finish_tick(&assets, 6).unwrap();
+        let weapon = world
+            .collision
+            .slots()
+            .iter()
+            .position(|s| s.owner == Some(guard) && s.flags & 0x4000 != 0)
+            .unwrap();
+        let player = &mut world.actors[0].actor;
+        player.health = 1;
+        player.flags |= HIT | 0x100;
+        player.hit = Some(weapon);
+        player.inventory.resurrections = 1;
+        let mut events = Recorded::default();
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        let player = &world.actors[0].actor;
+        assert_eq!(player.inventory.resurrections, 0);
+        assert_eq!(player.health, player.max_health);
+        assert_eq!(player.flags & 0xf00, 0);
+        assert_eq!(player.position, destination);
+        assert_eq!(player.previous, destination);
+        assert_eq!(world.script, 3);
+        assert_eq!(world.camera.mode, 22);
+        assert!(world.environment.background_only);
+        assert!(world.instances[0].translucent);
+        assert!(
+            events
+                .0
+                .iter()
+                .any(|e| matches!(e, Event::SoundPosition { id: 52, .. }))
+        );
+        assert!(!events.0.contains(&Event::DeathMusic));
+        assert!(
+            world
+                .items
+                .entries
+                .iter()
+                .any(|e| matches!(e.state, ItemState::Resurrection(_)))
+        );
+        world.actors[guard].actor.position = Position::new(20000, 0, -20000);
+        world.actors[guard]
+            .actor
+            .change_motion(0, Velocity::Stop, &assets.resources)
+            .unwrap();
+        world.publish(guard, &assets);
+        world.actors[0].actor.flags &= !HIT;
+        world.controls.transition_ready = false;
+        let mut smoke = false;
+        let mut full_fade = false;
+        for tick in 0..125 {
+            let frame = world.step([0; 2], &mut assets, &mut events).unwrap();
+            smoke |=
+                world.effects.entries.iter().any(
+                    |e| matches!(e, Effect::Sprites(s) if matches!(s.motion, Motion::Dispersing)),
+                );
+            full_fade |= frame.fade == Some(255);
+            assert_eq!(world.script, 3, "ended while loading at {tick}");
+        }
+        assert!(smoke && full_fade);
+        assert!(!world.environment.background_only);
+        assert!(!world.instances[0].translucent);
+        assert_eq!(world.camera.mode, 0);
+        assert_eq!(world.actors[0].actor.position, destination);
+        world.controls.transition_ready = true;
+        let mut restored: World =
+            postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap();
+        let mut other_events = Recorded::default();
+        events.0.clear();
+        let mut fading = Vec::new();
+        for _ in 0..60 {
+            let frame = world.step([0; 2], &mut assets, &mut events).unwrap();
+            let other = restored
+                .step([0; 2], &mut assets, &mut other_events)
+                .unwrap();
+            assert_eq!(frame.fade, other.fade);
+            if let Some(fade) = frame.fade {
+                fading.push(fade);
+            }
+        }
+        assert!(fading.windows(2).all(|a| a[1] <= a[0]));
+        assert_eq!(fading.last(), Some(&0));
+        assert_eq!(world.script, 0);
+        assert!(
+            !world
+                .items
+                .entries
+                .iter()
+                .any(|e| matches!(e.state, ItemState::Resurrection(_)))
+        );
+        assert_eq!(
+            postcard::to_allocvec(&world).unwrap(),
+            postcard::to_allocvec(&restored).unwrap()
+        );
+        assert_eq!(events.0, other_events.0);
+        let before = world.actors[0].actor.position;
+        for _ in 0..20 {
+            world
+                .step(
+                    [tenchu_core::tenchu2::input::UP, 0],
+                    &mut assets,
+                    &mut events,
+                )
+                .unwrap();
+        }
+        assert_ne!(
+            world.actors[0].actor.position, before,
+            "controls did not return"
+        );
+    }
+}

@@ -62,6 +62,14 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
                     hidden,
                     &mut random,
                 ),
+                "dispersing" => effects.dispersing_smoke(
+                    position(),
+                    Position::from(
+                        serde_json::from_value::<[i32; 3]>(command["velocity"].clone()).unwrap(),
+                    ),
+                    kind(),
+                    &mut random,
+                ),
                 "smoke" => effects.smoke(position(), kind(), hidden, &math, &mut random),
                 "sleep_gas" => {
                     effects.sleep_gas(position(), command["phase"].as_i64().unwrap() as i16, &math)

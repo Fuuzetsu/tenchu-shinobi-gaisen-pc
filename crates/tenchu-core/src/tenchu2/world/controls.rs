@@ -38,6 +38,7 @@ pub struct Controls {
     pub drain_attack: bool,
     pub drain_uses: u8,
     pub death_music: bool,
+    pub transition_ready: bool,
 }
 
 impl Default for Controls {
@@ -56,6 +57,7 @@ impl Default for Controls {
             drain_attack: false,
             drain_uses: 0,
             death_music: true,
+            transition_ready: true,
         }
     }
 }
@@ -112,9 +114,6 @@ pub enum Event {
     },
     Burn,
     Heal,
-    Resurrection {
-        attacker: Option<usize>,
-    },
     DeathMusic,
     UseItem {
         item: Item,
@@ -183,6 +182,7 @@ impl World {
                 map: self.map,
                 sequence: self.sequence,
                 difficulty: self.difficulty,
+                home: agent.behavior.home,
                 enabled: agent.behavior.programs.idle != crate::tenchu2::ai::Program::Disabled,
                 others: Others { before, after },
                 instances: &mut self.instances,
@@ -238,6 +238,7 @@ struct Context<'a, E> {
     sequence: u16,
     difficulty: u8,
     enabled: bool,
+    home: Position,
     others: Others<'a>,
     instances: &'a mut [Instance],
     scene: &'a mut Scene,

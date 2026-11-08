@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect resurrection leaves in the internal JP preview: lethal-hit recovery,
+  return to coloured-rice markers or the starting point, substitute log and smoke,
+  and the original camera/white-fade transition.
+
 - Connect coloured-rice markers in the internal JP preview, including their five
   colours, terrain placement, owner-only retrieval and return-point slots.
 

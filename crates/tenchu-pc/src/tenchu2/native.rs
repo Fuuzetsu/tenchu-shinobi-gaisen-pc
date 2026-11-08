@@ -236,8 +236,8 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                     let count: u8 = count
                         .parse()
                         .map_err(|e: std::num::ParseIntError| e.to_string())?;
-                    if item >= 20 {
-                        return Err("Native JP inventory item must be 0–19".into());
+                    if item > 20 {
+                        return Err("Native JP inventory item must be 0–20".into());
                     }
                     loadout.push((item, count));
                 }
@@ -253,10 +253,12 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let disc = crate::source::open_disc(args[1].as_ref())?;
     let mut session = Session::load(&disc, sequence, seed)?;
     for (item, count) in loadout {
-        session.world.actors[session.world.player]
-            .actor
-            .inventory
-            .counts[item] = count;
+        let inventory = &mut session.world.actors[session.world.player].actor.inventory;
+        if item == 20 {
+            inventory.resurrections = count;
+        } else {
+            inventory.counts[item] = count;
+        }
     }
     let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
         crate::settings::Store::new()?.load()?
