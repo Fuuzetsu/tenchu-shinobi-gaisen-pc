@@ -33,6 +33,7 @@ impl Drawing {
         renderer: &mut Renderer,
     ) -> Result<Self> {
         let models = Models::new(&session.assets, &session.world, graphics, renderer)?;
+        renderer.visual_time = session.world.tick as f32 / 30.0;
         let geometry = models.geometry(&session.world, &session.assets, &session.frame)?;
         Ok(Self {
             models,
@@ -195,9 +196,7 @@ impl Models {
                 sources(&format!("actors/{name}"), &model.parts),
                 graphics,
             )?;
-            if model.parts.len() == 15 {
-                meshes.skin(&model.parts);
-            }
+            meshes.skin(&model.parts);
             renderer.bind_meshes(&mut meshes);
             bodies.insert(name.clone(), meshes);
         }
@@ -299,9 +298,7 @@ impl Models {
                 .iter()
                 .map(|&joint| scene.world(joint))
                 .collect::<Result<Vec<_>>>()?;
-            if body.parts.len() == 15 {
-                meshes.pose_skin(&matrices, None);
-            }
+            meshes.pose_skin(&matrices, None);
             for (part, &matrix) in body.parts.iter().zip(&matrices) {
                 output.model(meshes, part, matrix, false);
             }
@@ -590,5 +587,74 @@ impl Builder {
             blend: 0,
             vertices: render_effects::quad(points, [[0.3, 0.26, 0.2]; 4], None, 0),
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU2_DISC; exercises original joint counts across every native character and costume"]
+    fn native_character_geometry_keeps_all_source_joints() {
+        use tenchu_assets::tenchu2::characters;
+        use tenchu_core::{math::Math, motion::Pose, scene::Scene};
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let math = Math {
+            tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
+        };
+        let mut extended = 0;
+        for entry in characters::load(&disc, None).unwrap() {
+            let model = characters::rig(&disc, &entry.name).unwrap();
+            let mut meshes = build(
+                &model.vram,
+                sources(&format!("actors/{}", entry.name), &model.parts),
+                &Graphics::default(),
+            )
+            .unwrap();
+            meshes.skin(&model.parts);
+            extended += usize::from(model.parts.len() > 15);
+            let mut scene = Scene::default();
+            let root = scene.add(None, Matrix::default());
+            let joints = Pose::new(&model.parts)
+                .unwrap()
+                .bind(&mut scene, root, &math);
+            let mut matrices = joints
+                .into_iter()
+                .map(|joint| scene.world(joint).unwrap())
+                .collect::<Vec<_>>();
+            for pass in 0..2 {
+                if pass == 1 {
+                    for (i, matrix) in matrices.iter_mut().enumerate() {
+                        matrix.rotation = math.rotate_yxz([0, i as i16 * 128, 0]);
+                    }
+                }
+                meshes.pose_skin(&matrices, None);
+                let mut count = 0;
+                for (part, &matrix) in model.parts.iter().zip(&matrices) {
+                    assert!(
+                        meshes.visit(&part.geometry, matrix, true, 0, None, |triangle| {
+                            for vertex in triangle {
+                                assert!(
+                                    vertex.position.iter().all(|v| v.is_finite()),
+                                    "{}",
+                                    entry.name
+                                );
+                                assert!(
+                                    vertex.normal.iter().all(|v| v.is_finite()),
+                                    "{}",
+                                    entry.name
+                                );
+                                count += 1;
+                            }
+                        })
+                    );
+                }
+                assert!(count > 0, "{}", entry.name);
+            }
+        }
+        assert!(extended > 0, "did not exercise JP's extended rigs");
+        eprintln!("{extended} native bodies with more than fifteen joints");
     }
 }

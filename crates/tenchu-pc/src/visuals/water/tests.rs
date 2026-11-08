@@ -21,6 +21,7 @@ fn waterfall_curves_keep_boundary_uvs_and_respect_geometry_budget() {
         })
         .collect();
     let materials = vec![Material {
+        animation: None,
         id: "fall".into(),
         region: None,
         image: std::sync::Arc::new(super::super::pixels::Image {

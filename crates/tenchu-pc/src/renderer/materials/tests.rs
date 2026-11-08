@@ -25,7 +25,7 @@ fn original_hd_blood_materials_are_isolated_and_cached() {
     assert_ne!(regular, refined);
     renderer
         .materials
-        .flush(&renderer.device, &renderer.queue)
+        .flush(&renderer.device, &renderer.queue, 0.0)
         .unwrap();
     let pixels = renderer.materials.entries[refined as usize - 1]
         .image
@@ -38,7 +38,7 @@ fn original_hd_blood_materials_are_isolated_and_cached() {
         assert!(
             !renderer
                 .materials
-                .flush(&renderer.device, &renderer.queue)
+                .flush(&renderer.device, &renderer.queue, 0.0)
                 .unwrap()
         );
         assert_eq!(
@@ -160,7 +160,9 @@ fn late_materials_preserve_existing_gpu_pixels_and_coordinates() {
             let bindings = materials.bindings.clone();
             let capacity = materials.atlas.data.capacity();
             let id = materials.register(region);
-            materials.flush(&renderer.device, &renderer.queue).unwrap();
+            materials
+                .flush(&renderer.device, &renderer.queue, 0.0)
+                .unwrap();
             if id > 1 {
                 for (old, new) in previous.iter().zip(&materials.atlas.materials) {
                     assert_eq!(
@@ -229,7 +231,7 @@ fn late_materials_preserve_existing_gpu_pixels_and_coordinates() {
         renderer.materials.update(&animated);
         renderer
             .materials
-            .flush(&renderer.device, &renderer.queue)
+            .flush(&renderer.device, &renderer.queue, 0.0)
             .unwrap();
         assert_eq!(
             bindings, renderer.materials.bindings,

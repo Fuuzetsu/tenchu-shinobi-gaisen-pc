@@ -775,3 +775,5 @@ mod source_camera;
 mod source_visibility;
 
 mod source_scenery;
+
+mod source_textures;

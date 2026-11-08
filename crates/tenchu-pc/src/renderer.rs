@@ -636,7 +636,10 @@ impl Renderer {
         lights: &[crate::lighting::Light],
         casters: &[&Mesh],
     ) -> Result<()> {
-        if self.materials.flush(&self.device, &self.queue)? {
+        if self
+            .materials
+            .flush(&self.device, &self.queue, self.visual_time)?
+        {
             self.shadows.invalidate();
         }
         let mut camera = matrix.to_cols_array().to_vec();

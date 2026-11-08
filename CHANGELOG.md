@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Animate imported Tenchu 2 water and waterfalls at their original map-specific
+  speeds, including HD replacements. Native JP rendering also supports the full
+  joint counts of costumes that exceed Gaisen's 15-joint character layout.
 - Add an internal `play-t2-jp` / `render-t2-jp` preview for the native Japanese
   Tenchu 2 actor, terrain, camera and particle runtime, with its own cast voices
   and stage ambience. Projectiles, story, the original HUD and campaign

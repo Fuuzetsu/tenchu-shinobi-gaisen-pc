@@ -2215,3 +2215,18 @@ final rope pixels are not compared. A connected-world check exercises launching,
 pulling and releasing across a saved-state round trip, and all three heroes pass
 the movement/combat snapshot continuation. Other projectiles, native presentation
 and campaign integration remain unfinished.
+
+Imported water scrolling follows JP `8003ab60`, `8003c320` and `8003c418`
+(EU setup `80039a2c` uses the same map speeds). Terrain textures already contain
+the visible water; the omitted VRAM copies are its animation scratch images.
+Presentation retains the initial image instead of displaying two uninitialized
+startup copies, then uses the source's wrapped texture offsets. A private
+original-instruction fixture checks 1,128 copy positions across six maps, and
+the same checks pass with EU assets. GPU checks exercise both original and
+replacement images, shared static artwork and backward seeking. Native swimming
+also enters the swimming controller on Area 0's actual deep-water collision;
+this is not a complete interactive water-gameplay comparison.
+
+Native character rendering now uses every source joint, including the 23 JP
+bodies/costumes with more than 15 joints. A disc-driven check builds and poses
+every catalog rig; Gaisen's blended-joint seam regression still passes.

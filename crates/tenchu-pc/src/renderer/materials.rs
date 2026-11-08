@@ -41,6 +41,8 @@ struct Entry {
     replaced: bool,
     authored: bool,
     scroll: Option<[u16; 2]>,
+    animation: Option<tenchu_assets::texture::TextureScroll>,
+    phase: [f32; 2],
     scrolling: bool,
     uv_tile: bool,
     world_tile: Option<[f32; 2]>,
@@ -51,6 +53,9 @@ struct Entry {
 
 impl Entry {
     fn source(&self) -> [f32; 4] {
+        if self.animation.is_some() {
+            return [-self.phase[0], -self.phase[1], 1.0, 1.0];
+        }
         let mut source = self
             .region
             .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
@@ -92,7 +97,7 @@ impl Entry {
     }
 
     fn repeating(&self) -> bool {
-        self.scrolling || self.uv_tile || self.world_tile.is_some()
+        self.scrolling || self.animation.is_some() || self.uv_tile || self.world_tile.is_some()
     }
 
     fn flags(&self, layers: usize) -> u32 {
@@ -176,7 +181,7 @@ pub struct Materials {
     raw_shadow_pages: BTreeSet<Region>,
     shadows_dirty: bool,
     regions: BTreeMap<(Region, bool), u32>,
-    external: BTreeMap<String, u32>,
+    external: BTreeMap<(String, Option<tenchu_assets::texture::TextureScroll>), u32>,
     lookups: BTreeMap<(u16, u16, [u16; 4], bool), u32>,
     atlas: Atlas,
     repack: bool,
@@ -276,6 +281,7 @@ impl Materials {
         self.vram.words.clone_from(&vram.words);
         self.vram.images.clone_from(&vram.images);
         self.vram.scrolling.clone_from(&vram.scrolling);
+        self.vram.animations.clone_from(&vram.animations);
         self.vram.revision = vram.revision;
     }
 
@@ -332,7 +338,8 @@ impl Materials {
         if let Some(region) = material.region {
             return self.register(region);
         }
-        let id = if let Some(&id) = self.external.get(&material.id) {
+        let key = (material.id.clone(), material.animation);
+        let id = if let Some(&id) = self.external.get(&key) {
             id
         } else {
             let id = self.entries.len() as u32 + 1;
@@ -346,6 +353,8 @@ impl Materials {
                 replaced: true,
                 authored: false,
                 scroll: None,
+                animation: material.animation,
+                phase: [0.0; 2],
                 scrolling: false,
                 uv_tile: false,
                 world_tile: None,
@@ -353,11 +362,12 @@ impl Materials {
                 mips: Vec::new(),
                 detail: Vec::new(),
             });
-            self.external.insert(material.id.clone(), id);
+            self.external.insert(key, id);
             id
         };
         let entry = &mut self.entries[id as usize - 1];
         entry.original = (*material.image).clone();
+        entry.animation = material.animation;
         entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
         id
     }
@@ -451,6 +461,8 @@ impl Materials {
             replaced: false,
             authored: false,
             scroll: region.scroll_offset(&self.vram),
+            animation: None,
+            phase: [0.0; 2],
             scrolling: false,
             uv_tile: false,
             world_tile: None,
@@ -465,11 +477,17 @@ impl Materials {
     }
 
     /// Returns whether cached shadow coverage may have changed.
-    pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<bool> {
+    pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, time: f32) -> Result<bool> {
         if self.entries.len() + 1 > data::Data::limit(device) {
             return Err("Material metadata exceeds the GPU size limit".into());
         }
         for entry in &mut self.entries {
+            if let Some(animation) = entry.animation {
+                let offset = animation.offset((time * 30.0).round() as u32);
+                entry.phase = std::array::from_fn(|axis| {
+                    f32::from(offset[axis]) / f32::from(animation.image.size[axis])
+                });
+            }
             if !entry.dirty {
                 continue;
             }

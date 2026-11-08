@@ -227,6 +227,7 @@ mod tests {
         let materials: Vec<_> = ["a", "b"]
             .into_iter()
             .map(|id| Material {
+                animation: None,
                 id: id.into(),
                 region: None,
                 image: std::sync::Arc::new(super::super::pixels::Image {

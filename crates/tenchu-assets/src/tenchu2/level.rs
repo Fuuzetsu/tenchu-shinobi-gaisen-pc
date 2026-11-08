@@ -104,6 +104,7 @@ impl Level {
         for i in 0..count {
             vram.upload_tim(crate::model::arc_entry(&textures, i)?)?;
         }
+        initialize_water(id, &mut vram)?;
         let (layout, archive) = variant.files();
         let archive = read(archive)?;
         let count = u32_le(&archive, 0)? as usize;
@@ -161,4 +162,30 @@ impl Level {
 
 fn directory(id: usize) -> String {
     format!(r"o:\cdimage\game\stage\map{id}")
+}
+
+fn initialize_water(id: usize, vram: &mut Vram) -> Result<()> {
+    let speeds = match id {
+        0 | 17 => [-4, -8],
+        9 | 19 => [-4, -12],
+        16 => [-4, -4],
+        18 => [-1, -3],
+        _ => return Ok(()),
+    };
+    for (layer, speed) in speeds.into_iter().enumerate() {
+        let rect = [384, layer as u16 * 64, 16, 64];
+        let image = vram
+            .images
+            .iter()
+            .copied()
+            .find(|image| image.word_rect() == rect)
+            .ok_or("Missing Tenchu 2 scrolling water texture")?;
+        vram.copy_rect(rect, [960 + layer as u16 * 16, 256])?;
+        vram.animations.push(crate::texture::TextureScroll {
+            image,
+            velocity: [0, speed],
+            delay: 5,
+        });
+    }
+    Ok(())
 }

@@ -126,6 +126,7 @@ mod tests {
             ]),
         };
         let materials = [Material {
+            animation: None,
             id: "skin".into(),
             region: Some(Region {
                 page: 0,
@@ -173,6 +174,7 @@ mod tests {
         let materials: Vec<_> = ["screen", "robe"]
             .into_iter()
             .map(|id| Material {
+                animation: None,
                 id: id.into(),
                 region: Some(Region {
                     page: 0,

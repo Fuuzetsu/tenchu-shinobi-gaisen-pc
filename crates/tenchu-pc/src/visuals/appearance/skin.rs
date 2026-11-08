@@ -1,7 +1,7 @@
 use crate::{render_mesh::Vertex, visuals::models::rotation};
 use glam::{Affine3A, Mat3, Vec3};
 use serde::{Deserialize, Serialize};
-use std::cell::Cell;
+use std::cell::{Cell, Ref, RefCell};
 use tenchu_assets::{Result, model};
 use tenchu_core::math::Matrix;
 
@@ -51,36 +51,38 @@ impl Transform {
 }
 
 pub struct Pose {
-    pub roots: [Vec3; 15],
+    pub roots: Vec<Vec3>,
     parents: Vec<Option<usize>>,
-    detached: Cell<u16>,
+    detached: Cell<u64>,
     // Refreshed before each body, shadow or gallery traversal; never simulation state.
-    transforms: Cell<[Transform; 15]>,
+    transforms: RefCell<Vec<Transform>>,
 }
 
 impl Pose {
     pub fn new(parts: &[model::Part]) -> Self {
-        let roots = std::array::from_fn(|i| {
-            let mut root = Vec3::from(parts[i].position.map(f32::from));
-            let mut parent = parts[i].parent;
-            while parent >= 0 {
-                let part = &parts[parent as usize];
-                root += Vec3::from(part.position.map(f32::from));
-                parent = part.parent;
-            }
-            root
-        });
+        let roots = (0..parts.len())
+            .map(|i| {
+                let mut root = Vec3::from(parts[i].position.map(f32::from));
+                let mut parent = parts[i].parent;
+                while parent >= 0 {
+                    let part = &parts[parent as usize];
+                    root += Vec3::from(part.position.map(f32::from));
+                    parent = part.parent;
+                }
+                root
+            })
+            .collect();
         Self {
             roots,
             parents: super::parents(parts),
             detached: Cell::new(0),
-            transforms: Cell::new([Transform::IDENTITY; 15]),
+            transforms: RefCell::new(vec![Transform::IDENTITY; parts.len()]),
         }
     }
 
     pub fn set(&self, matrices: &[Matrix], severed: Option<(usize, Matrix)>) {
         let detached = severed.map_or(0, |(cut, _)| {
-            (0..15).fold(0, |mask, joint| {
+            (0..self.roots.len()).fold(0, |mask, joint| {
                 let mut ancestor = Some(joint);
                 while let Some(index) = ancestor {
                     if index == cut {
@@ -100,25 +102,25 @@ impl Pose {
         };
         let attached =
             severed.map(|(joint, matrix)| affine(matrix) * affine(matrices[joint]).inverse());
-        self.transforms.set(std::array::from_fn(|i| {
+        for (i, transform) in self.transforms.borrow_mut().iter_mut().enumerate() {
             let mut matrix = affine(matrices[i]);
             if detached & (1 << i) != 0 {
                 matrix = attached.unwrap() * matrix;
             }
             let rotation = Mat3::from(matrix.matrix3);
             let position = Vec3::from(matrix.translation);
-            Transform {
+            *transform = Transform {
                 point: Affine3A::from_mat3_translation(
                     rotation,
                     position - rotation * self.roots[i],
                 ),
                 normal: rotation.inverse().transpose(),
-            }
-        }));
+            };
+        }
     }
 
-    pub fn transforms(&self) -> [Transform; 15] {
-        self.transforms.get()
+    pub fn transforms(&self) -> Ref<'_, [Transform]> {
+        Ref::map(self.transforms.borrow(), |transforms| transforms.as_slice())
     }
 
     pub fn detached(&self, joint: usize) -> bool {
@@ -126,7 +128,7 @@ impl Pose {
     }
 }
 
-pub fn vertex(vertex: &mut Vertex, weights: Influence, root: Vec3, pose: &[Transform; 15]) {
+pub fn vertex(vertex: &mut Vertex, weights: Influence, root: Vec3, pose: &[Transform]) {
     let bind = Vec3::from(vertex.position) + root;
     let normal = Vec3::from(vertex.normal);
     let mut position = Vec3::ZERO;

@@ -42,12 +42,32 @@ pub struct ScrollingImage {
     pub offset: [u16; 2],
 }
 
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+pub struct TextureScroll {
+    pub image: Image,
+    pub velocity: [i16; 2],
+    pub delay: u32,
+}
+
+impl TextureScroll {
+    pub fn offset(self, tick: u32) -> [u16; 2] {
+        std::array::from_fn(|axis| {
+            (i64::from(tick.saturating_sub(self.delay)) * i64::from(self.velocity[axis]))
+                .rem_euclid(i64::from(self.image.size[axis])) as u16
+        })
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Vram {
     pub words: Vec<u16>,
     pub revision: u64,
     pub images: Vec<Image>,
     pub scrolling: Vec<ScrollingImage>,
+    #[serde(default)]
+    pub animations: Vec<TextureScroll>,
 }
 
 impl Default for Vram {
@@ -57,6 +77,7 @@ impl Default for Vram {
             revision: 0,
             images: Vec::new(),
             scrolling: Vec::new(),
+            animations: Vec::new(),
         }
     }
 }
@@ -71,11 +92,13 @@ impl Vram {
             revision,
             images,
             scrolling,
+            animations,
         } = self;
         out.words(words)?;
         out.value(revision)?;
         out.shared(images)?;
-        out.value(scrolling)
+        out.value(scrolling)?;
+        out.shared(animations)
     }
 
     pub fn texel(&self, page: u16, palette: u16, uv: [u16; 2]) -> u16 {

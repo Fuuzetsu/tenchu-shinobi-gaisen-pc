@@ -355,3 +355,112 @@ fn static_replacement_tiles_repeat_without_skipping_border_texels() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires a graphics adapter; imported texture motion wraps and seeks without moving identical static artwork"]
+fn imported_texture_scroll_preserves_static_materials_and_rewinds() {
+    use crate::visuals::models::Material;
+    use tenchu_assets::texture::{Image as SourceImage, TextureScroll};
+    let (mut renderer, target) = fixture(&Vram::default());
+    let animation = TextureScroll {
+        image: SourceImage {
+            page: 256,
+            palette: 0,
+            uv: [0; 2],
+            size: [64; 2],
+        },
+        velocity: [0, -4],
+        delay: 5,
+    };
+    let camera = game_camera(Matrix::default(), 1.0);
+    for size in [64, 256] {
+        let image = Arc::new(Image {
+            size: [size; 2],
+            rgba: (0..size)
+                .flat_map(|y| {
+                    (0..size).flat_map(move |x| {
+                        [(x * 255 / size) as u8, (y * 255 / size) as u8, 128, 255]
+                    })
+                })
+                .collect(),
+        });
+        let material = Material {
+            id: format!("foreign-water-{size}"),
+            region: None,
+            image,
+            animation: Some(animation),
+        };
+        let animated = renderer.materials.bind(&material);
+        let stationary = renderer.materials.bind(&Material {
+            animation: None,
+            ..material
+        });
+        assert_ne!(animated, stationary);
+        let vertices: Vec<_> = [(-1.0, animated), (1.0, stationary)]
+            .into_iter()
+            .flat_map(|(side, material)| {
+                rectangle(
+                    1000,
+                    128,
+                    Some(Texture {
+                        page: 256,
+                        palette: 0,
+                    }),
+                    false,
+                    false,
+                    false,
+                )
+                .into_iter()
+                .map(move |mut v| {
+                    v.uv = [
+                        (v.position[0] + 600.0) / 1200.0 - 0.5,
+                        (v.position[1] + 600.0) / 1200.0 - 0.5,
+                    ];
+                    v.position[0] = v.position[0] * 0.5 + side * 300.0;
+                    v.material = material;
+                    v
+                })
+            })
+            .collect();
+        let mesh = renderer.upload(&vertices);
+        let draw = |renderer: &mut Renderer, tick| {
+            renderer.visual_time = tick as f32 / 30.0;
+            renderer
+                .draw(
+                    &target.create_view(&Default::default()),
+                    camera,
+                    &[&mesh],
+                    None,
+                )
+                .unwrap();
+            read_pixels(renderer, &target)
+        };
+        let initial = draw(&mut renderer, 5);
+        let moved = draw(&mut renderer, 13);
+        assert_ne!(
+            initial, moved,
+            "size {size}: imported water remained static"
+        );
+        let width = target.width() as usize;
+        for (a, b) in initial
+            .chunks_exact(width * 4)
+            .zip(moved.chunks_exact(width * 4))
+        {
+            assert_eq!(
+                &a[width * 2..],
+                &b[width * 2..],
+                "same artwork on static surface moved"
+            );
+        }
+        assert_eq!(
+            initial,
+            draw(&mut renderer, 21),
+            "water did not wrap after one period"
+        );
+        assert_eq!(
+            initial,
+            draw(&mut renderer, 5),
+            "water did not seek backwards"
+        );
+    }
+}

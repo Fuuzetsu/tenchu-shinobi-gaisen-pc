@@ -16,6 +16,7 @@ pub struct Material {
     pub id: String,
     pub region: Option<catalog::Region>,
     pub image: Arc<Image>,
+    pub animation: Option<tenchu_assets::texture::TextureScroll>,
 }
 
 #[derive(Default)]
@@ -475,6 +476,7 @@ impl Meshes {
                                 id: id.clone(),
                                 region,
                                 image: pack.images[id].clone(),
+                                animation: None,
                             });
                             out.materials.len() as u32
                         })
@@ -522,7 +524,7 @@ impl Meshes {
                 for geometry in source.geometry {
                     if jointed
                         && (geometry.joints.len() != geometry.vertices.len()
-                            || geometry.joints.iter().any(|&j| j >= 15))
+                            || geometry.joints.iter().any(|&j| j >= 64))
                     {
                         return Err(format!("{}: invalid vertex joints", source.id));
                     }
@@ -562,6 +564,17 @@ impl Meshes {
                                                 u32::from(region.rect[3]),
                                             ],
                                             rgba: region.pixels(vram),
+                                        }),
+                                        animation: vram.animations.iter().copied().find(|scroll| {
+                                            region.page & !0x60 == scroll.image.page & !0x60
+                                                && region.palette == scroll.image.palette
+                                                && region.rect
+                                                    == [
+                                                        u16::from(scroll.image.uv[0]),
+                                                        u16::from(scroll.image.uv[1]),
+                                                        scroll.image.size[0],
+                                                        scroll.image.size[1],
+                                                    ]
                                         }),
                                     });
                                     out.materials.len() as u32
