@@ -2712,7 +2712,7 @@ background palettes (map0), palettes crossing the VRAM edge (maps3/12), and a
 map2 sky TIM whose final block size understates its rectangle. The loader keeps
 actual buffer bounds checks and follows the rectangle extent used by
 `GsGetTimInfo`/`LoadImage`. Original colors remain available to HD identities.
-The model primitive blend bit follows page bits0x60 (`80018e6c`); bit0x8000
+Default actor primitives follow page blend bits0x60 (`80018e6c`); bit0x8000
 selects a drawing path and does not itself make a face semitransparent.
 Parser regressions cover these cases. Disc checks load all JP/EU base-area
 backgrounds and five JP evening variants; GPU captures check background coverage
@@ -2728,3 +2728,12 @@ runtime table for a regression checking all 5,750 character corners in that
 scene. The capture also confirms shallow pond entry and foot splashes. A native
 controller-only walk enters the same pond with water flags and ripples; this
 is an interaction check, not a claim of a synchronized full replay.
+
+Scenery uses different primitive rules in `80018e6c`: terrain modes2/3 and
+prop modes1/3 (`8004c764`, `8004fb80`, `80050db8`) draw opaque materials.
+Mode2's distant subtractive fog mask is a rendering technique, not material
+transparency; the port uses its own fog. Background modes4/5 blend triangles
+according to page0x60, but draw quads opaque. Decoding preserves those choices
+and black texture cutouts, independently of STP palette normalization. A GPU
+regression removes the particle pass from sequence119 and verifies that the
+night terrain remains visible; source and HD scrolling water are also checked.

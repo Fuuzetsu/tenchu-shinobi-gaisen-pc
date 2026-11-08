@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix transparent or glowing Tenchu 2 terrain and props by honoring their
+  original opaque drawing modes, including night stages and HD replacements.
+
 - Use Tenchu 2's stage-specific shading colors for scenery, characters and
   equipment, restoring the original warm interiors and blue night lighting.
 

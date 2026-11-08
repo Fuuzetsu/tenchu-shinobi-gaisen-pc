@@ -28,7 +28,7 @@ impl Background {
                 parent: -1,
                 child: -1,
                 position: [0; 3],
-                geometry: vec![model::scenery(&read(name)?)?],
+                geometry: vec![model::background(&read(name)?)?],
             })
         };
         let mut background = Self::default();

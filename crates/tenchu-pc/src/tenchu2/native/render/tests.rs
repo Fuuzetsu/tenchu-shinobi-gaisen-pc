@@ -1,6 +1,53 @@
 use super::*;
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; checks opaque night scenery independently of particles"]
+fn native_night_scenery_does_not_depend_on_the_effect_pass() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        ..Default::default()
+    };
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..90 {
+        session.step(0).unwrap();
+    }
+    let mut images = Vec::new();
+    for effects in [true, false] {
+        let path = output.join(format!("jp-night-effects-{effects}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
+            let mut geometry = models.geometry(&session.world, &session.assets, &session.frame)?;
+            if !effects {
+                geometry.effects.vertices.clear();
+                geometry.effects.batches.clear();
+            }
+            Ok((
+                SceneDrawing::new(geometry, renderer),
+                session.world.camera.view,
+                Vec::new(),
+            ))
+        })
+        .unwrap();
+        images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+    }
+    let unchanged = images[0]
+        .rgba
+        .chunks_exact(4)
+        .zip(images[1].rgba.chunks_exact(4))
+        .filter(|(a, b)| a == b)
+        .count();
+    assert!(
+        unchanged * 100 > images[0].rgba.len() / 4 * 95,
+        "removing particles also removed opaque scenery"
+    );
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; verifies sky/background resources and foreground depth"]
 fn native_backgrounds_stay_behind_the_scene() {
     let disc =

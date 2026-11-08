@@ -130,7 +130,11 @@ fn parse(data: &[u8]) -> Result<Mesh> {
 }
 
 pub(super) fn scenery(data: &[u8]) -> Result<Geometry> {
-    scenery_mesh(parse(data)?)
+    scenery_mesh(parse(data)?, false)
+}
+
+pub(super) fn background(data: &[u8]) -> Result<Geometry> {
+    scenery_mesh(parse(data)?, true)
 }
 
 pub(super) fn stump(data: &[u8]) -> Result<Geometry> {
@@ -159,12 +163,17 @@ pub(super) fn stump(data: &[u8]) -> Result<Geometry> {
             vertex[1] = -1000;
         }
     }
-    scenery_mesh(mesh)
+    scenery_mesh(mesh, false)
 }
 
-fn scenery_mesh(mesh: Mesh) -> Result<Geometry> {
+fn scenery_mesh(mut mesh: Mesh, background: bool) -> Result<Geometry> {
     if mesh.parents != [-1] {
         return Err("Tenchu 2 scenery must have one root part".into());
+    }
+    // World/prop draw modes ignore page blending; sky modes blend only triangles.
+    // The original's two-pass distance fog is not material transparency.
+    for face in &mut mesh.faces {
+        face.translucent &= background && face.corners.len() == 3;
     }
     let vertices = mesh
         .vertices
@@ -308,7 +317,22 @@ mod tests {
         word(78, 8);
         word(80, 16);
         word(82, u16::MAX);
-        let geometry = scenery(&data).unwrap();
+        for page in [0u16, 0x20, 0x40, 0x60, 0x8000, 0x8060] {
+            data[58..60].copy_from_slice(&page.to_le_bytes());
+            assert!(!scenery(&data).unwrap().faces[0].translucent);
+            assert_eq!(
+                background(&data).unwrap().faces[0].translucent,
+                page & 0x60 != 0
+            );
+            assert_eq!(parse(&data).unwrap().faces[0].translucent, page & 0x60 != 0);
+            data[82..84].copy_from_slice(&0u16.to_le_bytes());
+            assert!(!scenery(&data).unwrap().faces[0].translucent);
+            assert!(!background(&data).unwrap().faces[0].translucent);
+            assert_eq!(parse(&data).unwrap().faces[0].translucent, page & 0x60 != 0);
+            data[82..84].copy_from_slice(&u16::MAX.to_le_bytes());
+        }
+        data[58..60].copy_from_slice(&0x20u16.to_le_bytes());
+        let geometry = background(&data).unwrap();
         let mut part = crate::model::Part {
             parent: -1,
             child: -1,
