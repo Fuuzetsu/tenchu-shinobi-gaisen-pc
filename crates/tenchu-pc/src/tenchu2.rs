@@ -85,7 +85,15 @@ impl Sandbox {
                         .collect(),
                 ),
             )?,
-            level: Level::load(disc, map)?,
+            level: match &layout {
+                Some(layout)
+                    if tenchu_assets::tenchu2::Edition::detect(disc)?
+                        == tenchu_assets::tenchu2::Edition::Japan =>
+                {
+                    Level::japanese_sequence(disc, layout, false)?
+                }
+                _ => Level::load(disc, map)?,
+            },
             layout,
             guard,
             source_models: true,
@@ -114,8 +122,11 @@ impl Sandbox {
         let mut objects = self.level.objects.clone();
         let mut tilted = BTreeMap::new();
         mission.placements.clear();
-        for source in &self.level.placements {
-            let mut part = source.part;
+        for source in &self.level.scene.statics {
+            let tenchu_assets::tenchu2::level::objects::StaticKind::Model(mut part) = source.kind
+            else {
+                continue;
+            };
             let pitch = source.rotation[0];
             if pitch != 0 {
                 part = *tilted.entry((part, pitch)).or_insert_with(|| {
@@ -342,8 +353,8 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
             println!(
                 "map {id}: {} terrain chunks, {} static props, {} unported effects",
                 level.map.len(),
-                level.placements.len(),
-                level.omitted_effects
+                level.scene.static_model_count(),
+                level.scene.unrendered_count()
             );
         }
         for layout in Layout::available(&disc)? {
@@ -420,8 +431,8 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     eprintln!(
         "Tenchu 2 map {map}: {} terrain chunks, {} static props; {} procedural effects not imported",
         sandbox.level.map.len(),
-        sandbox.level.placements.len(),
-        sandbox.level.omitted_effects
+        sandbox.level.scene.static_model_count(),
+        sandbox.level.scene.unrendered_count()
     );
     let assets = crate::startup::open(args[1].as_ref())?;
     if render {

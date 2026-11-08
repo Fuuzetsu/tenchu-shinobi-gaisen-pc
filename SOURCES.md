@@ -2050,3 +2050,14 @@ between movement and AI. Effects and visibility are explicit caller boundaries;
 AI voices are delivered before controls. A disc-backed integration check runs all
 56 campaign casts for 180 updates each with movement, attacks and jumps. This
 checks the joined actor logic, not complete items, camera, effects or campaigns.
+
+JP scene resource selection follows `8004ce78`: sequence/hidden-scene variants
+choose the matching OSD and object archive, while retaining the base terrain and
+texture archive. The OSD reader retains model bounds, static/procedural placements,
+interactive objects and trigger records. Disc checks cover 41 distinct JP scene
+variants (2,692 interactive objects, 413 triggers, 623 static effects), with all
+56 campaign casts still passing continuous actor updates. The imported Gaisen
+collision adapter passes 57,500 original-code floor queries across all 23 EU maps,
+including 20,949 blocked queries. Its obsolete nearest-surface-only test was
+removed because that expectation ignored ordered blockers and masked holes.
+Native object behavior and campaign rendering remain to be connected.

@@ -94,7 +94,7 @@ impl Assets {
                     tables: math_tables(disc)?,
                 },
             },
-            level: Level::load(disc, map)?,
+            level: Level::japanese_sequence(disc, layout, false)?,
             models,
             weapons: weapon_models,
             weapon_vram: weapons::textures(disc)?,

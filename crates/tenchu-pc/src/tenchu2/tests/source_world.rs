@@ -470,3 +470,55 @@ fn native_activation_matches_source_actor_order_and_camera_boundaries() {
     }
     assert_eq!(count, 1000);
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; checks alternate scenery, interactive objects and trap links"]
+fn japanese_scene_variants_keep_all_object_records() {
+    use tenchu_assets::tenchu2::level::{
+        Level,
+        objects::{StaticKind, Variant},
+    };
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut visited = std::collections::BTreeSet::new();
+    let mut dynamic = 0;
+    let mut effects = 0;
+    let mut triggers = 0;
+    for layout in Layout::available(&disc).unwrap() {
+        for hidden in [false, true] {
+            let key = (
+                layout.map,
+                format!(
+                    "{:?}",
+                    Variant::japanese(layout.map, layout.sequence, hidden)
+                ),
+            );
+            if !visited.insert(key) {
+                continue;
+            }
+            let level = Level::japanese_sequence(&disc, &layout, hidden)
+                .unwrap_or_else(|e| panic!("sequence {} hidden {hidden}: {e}", layout.sequence));
+            let scene = &level.scene;
+            assert_eq!(scene.bounds.len(), level.objects.len());
+            dynamic += scene.dynamic.len();
+            effects += scene
+                .statics
+                .iter()
+                .filter(|p| matches!(p.kind, StaticKind::Effect(_)))
+                .count();
+            triggers += scene.triggers.len();
+            for object in &scene.dynamic {
+                assert!(!level.objects[object.model].geometry.is_empty());
+                if let Some(trigger) = object.trigger {
+                    assert!(matches!(scene.triggers[trigger].kind, 0..=5));
+                }
+            }
+        }
+    }
+    assert!(visited.len() > 35);
+    assert!(dynamic > 1500 && triggers > 200 && effects > 100);
+    eprintln!(
+        "{} JP scenery variants: {dynamic} interactive objects, {triggers} triggers, {effects} static effects",
+        visited.len()
+    );
+}

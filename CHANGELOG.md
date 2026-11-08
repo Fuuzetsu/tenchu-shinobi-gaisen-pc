@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Japanese Tenchu 2 imports now select each mission’s alternate scenery and prop layout where the original uses one.
+
 ## 0.21.0 — 2026-11-07
 
 - Fix stretched severed arms on imported Tenchu 2 characters. Detached parts

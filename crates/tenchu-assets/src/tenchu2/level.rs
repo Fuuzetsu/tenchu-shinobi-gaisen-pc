@@ -1,24 +1,17 @@
 use super::{model, volume::Volume};
-use crate::{
-    ReadAt, Result, disc::Disc, model::Part, short3, slice, texture::Vram, u16_le, u32_le,
-};
+use crate::{ReadAt, Result, disc::Disc, model::Part, short3, slice, texture::Vram, u32_le};
+
+pub mod objects;
+use objects::{Objects, Variant};
 
 #[derive(Clone)]
 pub struct Level {
     pub id: usize,
     pub map: Vec<Part>,
     pub objects: Vec<Part>,
-    pub placements: Vec<Object>,
+    pub scene: Objects,
     pub vram: Vram,
     pub collision: super::collision::Collision,
-    pub omitted_effects: usize,
-}
-
-#[derive(Clone)]
-pub struct Object {
-    pub part: usize,
-    pub position: [i32; 3],
-    pub rotation: [i16; 3],
 }
 
 impl Level {
@@ -48,6 +41,25 @@ impl Level {
     }
 
     pub fn load(disc: &Disc<impl ReadAt>, id: usize) -> Result<Self> {
+        Self::load_variant(disc, id, Variant::Base)
+    }
+
+    pub fn japanese_sequence(
+        disc: &Disc<impl ReadAt>,
+        layout: &super::layout::Layout,
+        hidden: bool,
+    ) -> Result<Self> {
+        if super::Edition::detect(disc)? != super::Edition::Japan {
+            return Err("Japanese Tenchu 2 scene selection requires the Japanese disc".into());
+        }
+        Self::load_variant(
+            disc,
+            layout.map,
+            Variant::japanese(layout.map, layout.sequence, hidden),
+        )
+    }
+
+    fn load_variant(disc: &Disc<impl ReadAt>, id: usize, variant: Variant) -> Result<Self> {
         if id >= 24 {
             return Err("Tenchu 2 map index must be 0–23".into());
         }
@@ -102,7 +114,8 @@ impl Level {
         for i in 0..count {
             vram.upload_tim(crate::model::arc_entry(&textures, i)?)?;
         }
-        let archive = read("mapOBJ.arc")?;
+        let (layout, archive) = variant.files();
+        let archive = read(archive)?;
         let count = u32_le(&archive, 0)? as usize;
         if count > 1024 {
             return Err("Excessive Tenchu 2 object count".into());
@@ -117,37 +130,14 @@ impl Level {
             });
         }
         model::resolve_transparency(map.iter_mut().chain(&mut objects), &vram);
-        let osd = read("map.osd")?;
-        if usize::from(u16_le(&osd, 6)?) != objects.len() {
-            return Err("Tenchu 2 object table mismatch".into());
-        }
-        let count = usize::from(u16_le(&osd, 0)?);
-        let mut placements = Vec::new();
-        let mut omitted_effects = usize::from(u16_le(&osd, 2)?) + usize::from(u16_le(&osd, 4)?);
-        for row in slice(&osd, 12 + objects.len() * 12, count * 12)?.chunks_exact(12) {
-            // Type zero invokes procedural effects, not an entry in mapOBJ.arc.
-            if u16_le(row, 8)? == 0 {
-                omitted_effects += 1;
-                continue;
-            }
-            let part = usize::from(u16_le(row, 10)?);
-            if part >= objects.len() {
-                return Err("Tenchu 2 placement references a missing object".into());
-            }
-            placements.push(Object {
-                part,
-                position: short3(row, 0)?.map(|v| i32::from(v) * 10),
-                rotation: [i16::from(row[7]) * 16, i16::from(row[6]) * 16, 0],
-            });
-        }
+        let scene = Objects::parse(&read(layout)?, variant, objects.len())?;
         Ok(Self {
             id,
             map,
             objects,
-            placements,
+            scene,
             vram,
             collision: super::collision::Collision::parse(&read("map.mcd")?)?,
-            omitted_effects,
         })
     }
 }
