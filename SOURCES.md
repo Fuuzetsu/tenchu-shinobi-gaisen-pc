@@ -2061,3 +2061,22 @@ collision adapter passes 57,500 original-code floor queries across all 23 EU map
 including 20,949 blocked queries. Its obsolete nearest-surface-only test was
 removed because that expectation ignored ordered blockers and masked holes.
 Native object behavior and campaign rendering remain to be connected.
+
+Native JP object state follows `8004ce78` / `8004dea0`; contacts and trigger
+updates follow `8004e124`, `8005e1b8`, and `8005d78c`. This includes sliding/paired
+doors, breakable scenery, hazard contacts, collapsing platforms, rolling rocks
+and projectile trap cooldowns. Surface activation now runs during the actor's
+movement pass. Mutable terrain lives in serialized world state rather than shared
+assets; scenery initialization consumes the source static-effect phase RNG after
+actor inventories. Shared object alerts update the native AI state.
+
+Private JP executable comparisons pass 10,000 surface/trigger cases and 6,000
+contact cases (`TENCHU2_OBJECTS_ORACLE`, `TENCHU2_OBJECT_CONTACTS_ORACLE`). They
+record projectile, explosion, pickup, debris, audio and vibration creation as
+explicit boundaries; they do not prove those effects are implemented. The world
+check exercises opening a sliding door, destroying a collapsing floor and exact
+snapshot continuation midway through the collapse. All 56 casts still complete
+continuous actor updates; movement, body response, actor-tail and player-control
+regressions pass, with strict Clippy/fmt and wasm core compilation. View-driven
+object activation/rendering, the special falling prop, concrete effects/items,
+camera and campaign integration remain unfinished.

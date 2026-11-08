@@ -765,3 +765,5 @@ fn motion_registration_matches_source_selection() {
         registry.edition
     );
 }
+
+mod source_objects;

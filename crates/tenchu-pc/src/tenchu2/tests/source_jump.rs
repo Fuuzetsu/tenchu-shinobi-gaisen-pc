@@ -63,7 +63,7 @@ fn native_air_control_wall_jumps_and_landings_match_source() {
         let mut cursor = Cursor::default();
         let mut water = Water::default();
         let mut terrain = Terrain {
-            map: map.as_ref().unwrap(),
+            map: map.as_mut().unwrap(),
             rules: &rules,
             cursor: &mut cursor,
             scratch: &mut scratch,

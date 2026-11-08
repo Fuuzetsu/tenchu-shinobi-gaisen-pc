@@ -44,7 +44,7 @@ fn native_body_response_preserves_knockback_and_contact_order() {
         },
     };
     let rules = Rules::load(&disc).unwrap();
-    let map = Map {
+    let mut map = Map {
         origin: [-10000; 2],
         dimensions: [1; 2],
         cell_size: 20000,
@@ -99,7 +99,7 @@ fn native_body_response_preserves_knockback_and_contact_order() {
         actor
             .move_on_terrain(
                 &mut Terrain {
-                    map: &map,
+                    map: &mut map,
                     rules: &rules,
                     cursor: &mut Cursor::default(),
                     scratch: &mut Probe::default(),
@@ -109,7 +109,7 @@ fn native_body_response_preserves_knockback_and_contact_order() {
                 &resources,
                 false,
                 |actor| Ok(actor.position),
-                |_| panic!("No surface effect on the flat contact-test terrain"),
+                |_, _| panic!("No surface effect on the flat contact-test terrain"),
             )
             .unwrap();
         let mut random = Random::new(row["seed"].as_u64().unwrap() as u32);

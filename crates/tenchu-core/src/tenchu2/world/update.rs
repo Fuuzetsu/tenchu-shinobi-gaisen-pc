@@ -7,7 +7,7 @@ use crate::{
         ai::{behavior::Events, direction, runtime},
         collision::{DISABLED, WEAPON},
         physics::{ContactActor, FallDeath, Terrain},
-        terrain::{self, Options, Probe, Query},
+        terrain::{self, Options, Query},
     },
 };
 
@@ -21,7 +21,7 @@ impl World {
         &mut self,
         index: usize,
         assets: &Assets,
-        surface_effect: impl FnMut(&Probe) -> i16,
+        events: &mut impl crate::tenchu2::environment::Events,
     ) -> Result<Movement> {
         let (before, tail) = self.actors.split_at_mut(index);
         let (agent, after) = tail.split_first_mut().ok_or("Missing Tenchu 2 actor")?;
@@ -33,7 +33,7 @@ impl World {
             && actor.motion.action != 0x606
             && actor.terrain.material & 0xf00 == 0;
         let mut terrain = Terrain {
-            map: &assets.level.collision,
+            map: &mut self.terrain,
             rules: &assets.terrain_rules,
             cursor: &mut self.cursor,
             scratch: &mut self.probe,
@@ -48,7 +48,33 @@ impl World {
             &assets.resources,
             index == self.player,
             |actor| rig.root_position(actor, &mut self.scene),
-            surface_effect,
+            |actor, terrain| {
+                use crate::tenchu2::environment::{SurfaceActor, SurfaceContext};
+                let focused = index == self.controls.camera_actor;
+                let kind = self.environment.surface(
+                    SurfaceActor {
+                        index,
+                        position: actor.position,
+                        height: actor.height,
+                        health: actor.health,
+                        visible: actor.flags & 0x100000 != 0,
+                        focused,
+                    },
+                    &actor.terrain,
+                    self.hidden_scene,
+                    &mut SurfaceContext {
+                        map: terrain.map,
+                        cursor: terrain.cursor,
+                        math: &assets.resources.math,
+                        random: &mut self.random,
+                        events,
+                    },
+                )?;
+                if kind == 19 && focused && actor.health < 1 {
+                    self.controls.camera = 19;
+                }
+                Ok(kind)
+            },
         )?;
         self.terrain_options = terrain.options;
         let voices = actor.resolve_contacts(
@@ -93,7 +119,7 @@ impl World {
                 controllers,
                 resources: &assets.resources,
                 rules: &assets.combat_rules,
-                terrain: &assets.level.collision,
+                terrain: &self.terrain,
                 cursor: &mut self.cursor,
                 collision: &self.collision,
                 random: &mut self.random,
@@ -180,12 +206,7 @@ impl World {
             }
             *foot = Foot {
                 position,
-                floor: terrain::level(
-                    &assets.level.collision,
-                    &mut self.cursor,
-                    position,
-                    Query::Surface,
-                )?,
+                floor: terrain::level(&self.terrain, &mut self.cursor, position, Query::Surface)?,
             };
         }
         self.turn_head(index, assets)

@@ -2,6 +2,7 @@ pub mod actor;
 pub mod ai;
 pub mod collision;
 pub mod control;
+pub mod environment;
 pub mod input;
 pub mod inventory;
 pub mod motion;

@@ -24,7 +24,17 @@ use tenchu_core::{
 };
 
 #[derive(Default)]
-struct Recorded(Vec<Event>);
+struct Recorded(Vec<Event>, Vec<tenchu_core::tenchu2::environment::Event>);
+impl tenchu_core::tenchu2::environment::Events for Recorded {
+    fn emit(
+        &mut self,
+        event: tenchu_core::tenchu2::environment::Event,
+        _: &mut Random,
+    ) -> Result<()> {
+        self.1.push(event);
+        Ok(())
+    }
+}
 impl Events for Recorded {
     fn emit(&mut self, _: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {
         self.0.push(event);
@@ -138,7 +148,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
     );
     for _ in 0..240 {
         for i in [0, guard] {
-            world.move_actor(i, &assets, |_| 0).unwrap();
+            world.move_actor(i, &assets, &mut events).unwrap();
             world.actors[i].actor.pad.update(0);
             world
                 .control_actor(i, &mut assets, &mut events)
@@ -262,9 +272,6 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
 }
 
 impl tenchu_core::tenchu2::world::ActorEvents for Recorded {
-    fn surface(&mut self, _: usize, _: &tenchu_core::tenchu2::terrain::Probe) -> i16 {
-        -1
-    }
     fn visible(&mut self, _: EventSource<'_>) -> Result<bool> {
         Ok(true)
     }
@@ -327,4 +334,118 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
         }
     }
     assert_eq!(checked, 56);
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; exercises door contact, floor destruction and restored mutable terrain"]
+fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
+    use tenchu_assets::tenchu2::level::objects::Bounds;
+    use tenchu_core::{
+        math::Matrix,
+        tenchu2::{
+            collision::BODY,
+            environment::{Environment, Object, Trigger},
+        },
+    };
+    let (mut world, mut assets, _) = fixture();
+    let coordinate = world.scene.add(None, Matrix::default());
+    world.environment = Environment {
+        objects: vec![Object {
+            coordinate,
+            position: Position::default(),
+            yaw: 0,
+            roll: 0,
+            model: Some(0),
+            kind: 0,
+            link: 0,
+            clock: 0,
+            actor: None,
+        }],
+        triggers: vec![Trigger {
+            position: Position::default(),
+            angle: 0,
+            kind: 0,
+            target: 0,
+            clock: 0,
+        }],
+        ..Environment::default()
+    };
+    assets.level.scene.bounds = vec![Bounds {
+        offset: [0; 3],
+        top: -1000,
+        half_width: 500,
+        half_depth: 200,
+    }];
+    world
+        .environment
+        .enable_collision(
+            0,
+            &assets.level.scene.bounds,
+            &mut world.collision,
+            &assets.resources.math,
+        )
+        .unwrap();
+    let body = world.scene.add(None, Matrix::default());
+    let slot = world.collision.insert(body).unwrap();
+    slot.flags = BODY;
+    slot.size = Vector3::new(100, 100, 100);
+    slot.owner = Some(world.player);
+    world.finish_tick().unwrap();
+    let mut events = Recorded::default();
+    for _ in 0..26 {
+        world
+            .update_environment(&assets, |_| true, &mut events)
+            .unwrap();
+        world.finish_tick().unwrap();
+    }
+    assert_eq!(
+        world.environment.objects[0].position,
+        Position::new(-1040, 0, 0)
+    );
+    assert_eq!(world.environment.triggers[0].clock, 0);
+    assert!(world.collision.index(coordinate).is_none());
+
+    let object = &mut world.environment.objects[0];
+    object.position = Position::default();
+    object.kind = 7;
+    object.link = 0;
+    object.clock = 0;
+    object.actor = None;
+    world.environment.triggers[0].kind = 7;
+    world.terrain.cells[0].nodes[0].attributes = 0x400;
+    let player = &mut world.actors[world.player].actor;
+    player.position = Position::default();
+    player.previous = Position::default();
+    player.velocity = Vector3::default();
+    let mut snapshots = Vec::new();
+    for tick in 0..100 {
+        world
+            .move_actor(world.player, &assets, &mut events)
+            .unwrap();
+        world
+            .update_environment(&assets, |_| false, &mut events)
+            .unwrap();
+        world.finish_tick().unwrap();
+        if tick == 20 {
+            snapshots.push(postcard::to_allocvec(&world).unwrap());
+        }
+    }
+    assert!(world.environment.objects[0].model.is_none());
+    let node = &world.terrain.cells[0].nodes[0];
+    assert_eq!((node.y, node.attributes, node.division), (0, 0x4401, 0));
+    assert_eq!(assets.level.collision.cells[0].nodes[0].attributes, 0);
+    let mut restored: World = postcard::from_bytes(&snapshots[0]).unwrap();
+    for _ in 21..100 {
+        restored
+            .move_actor(restored.player, &assets, &mut events)
+            .unwrap();
+        restored
+            .update_environment(&assets, |_| false, &mut events)
+            .unwrap();
+        restored.finish_tick().unwrap();
+    }
+    assert_eq!(
+        postcard::to_allocvec(&restored).unwrap(),
+        postcard::to_allocvec(&world).unwrap()
+    );
 }

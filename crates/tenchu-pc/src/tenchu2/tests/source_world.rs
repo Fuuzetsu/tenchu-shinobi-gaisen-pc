@@ -21,7 +21,7 @@ fn native_actor_visibility_feet_head_tracking_and_effort_match_source() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let layout = Layout::available(&disc).unwrap().remove(0);
-    let mut assets = Assets::load(&disc, 0, &layout).unwrap();
+    let assets = Assets::load(&disc, 0, &layout).unwrap();
     let mut template = World::new(
         &layout,
         Options {
@@ -36,7 +36,7 @@ fn native_actor_visibility_feet_head_tracking_and_effort_match_source() {
     assert!(template.actors.len() >= 2);
     template.actors.truncate(2);
     template.instances.truncate(2);
-    assets.level.collision = Collision {
+    template.terrain = Collision {
         origin: [-3000, -3000],
         dimensions: [1, 1],
         cell_size: 6000,
@@ -265,7 +265,20 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
         },
     };
     #[derive(Default)]
-    struct Recorded(Vec<(usize, i16, i16, Event)>);
+    struct Recorded(
+        Vec<(usize, i16, i16, Event)>,
+        Vec<tenchu_core::tenchu2::environment::Event>,
+    );
+    impl tenchu_core::tenchu2::environment::Events for Recorded {
+        fn emit(
+            &mut self,
+            event: tenchu_core::tenchu2::environment::Event,
+            _: &mut Random,
+        ) -> Result<()> {
+            self.1.push(event);
+            Ok(())
+        }
+    }
     impl Events for Recorded {
         fn grapple(&self) -> Result<(tenchu_core::tenchu2::control::GrappleStatus, Position)> {
             Err("This input sequence does not use the grappling hook".into())
@@ -335,7 +348,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
         let start = world.actors[0].actor.position;
         let mut events = Recorded::default();
         let step = |world: &mut World, assets: &mut Assets, events: &mut Recorded, held| {
-            world.move_actor(0, assets, |_| 0).unwrap();
+            world.move_actor(0, assets, events).unwrap();
             world.actors[0].actor.pad.update(held);
             world
                 .control_actor(0, assets, events)
@@ -353,6 +366,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
         let mut resumed_assets = Assets::load(&disc, hero, layout).unwrap();
         let mut resumed_events = Recorded::default();
         events.0.clear();
+        events.1.clear();
         for &held in &inputs[180..] {
             step(&mut world, &mut assets, &mut events, held);
             step(&mut resumed, &mut resumed_assets, &mut resumed_events, held);
@@ -363,6 +377,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
             serde_json::to_value(&resumed).unwrap()
         );
         assert_eq!(events.0, resumed_events.0);
+        assert_eq!(events.1, resumed_events.1);
         assert!(world.actors[0].actor.weapon_drawn());
         assert!(
             events

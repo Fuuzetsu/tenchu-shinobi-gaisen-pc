@@ -107,7 +107,7 @@ fn native_weapon_transitions_falls_landings_and_taunts_match_source() {
         let mut scratch = Probe::default();
         let mut water = Water::default();
         let mut terrain = Terrain {
-            map: map.as_ref().unwrap(),
+            map: map.as_mut().unwrap(),
             rules: &rules,
             cursor: &mut cursor,
             scratch: &mut scratch,

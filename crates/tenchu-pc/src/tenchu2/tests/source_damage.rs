@@ -139,7 +139,7 @@ fn native_weapon_projectile_damage_and_resurrection_match_source() {
             bottom: 0,
         };
         let mut terrain = Terrain {
-            map: map.as_ref().unwrap(),
+            map: map.as_mut().unwrap(),
             rules: &rules,
             cursor: &mut cursor,
             scratch: &mut scratch,

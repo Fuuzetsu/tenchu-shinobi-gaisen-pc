@@ -35,7 +35,7 @@ pub struct Water {
 }
 
 pub struct Terrain<'a> {
-    pub map: &'a Collision,
+    pub map: &'a mut Collision,
     pub rules: &'a Rules,
     pub cursor: &'a mut Cursor,
     pub scratch: &'a mut Probe,
@@ -72,7 +72,7 @@ impl Actor {
         resources: &Resources,
         is_player: bool,
         mut root_position: impl FnMut(&Actor) -> Result<Position>,
-        mut surface_effect: impl FnMut(&Probe) -> i16,
+        mut surface_effect: impl FnMut(&Actor, &mut Terrain<'_>) -> Result<i16>,
     ) -> Result<Option<FallDeath>> {
         let at_head = |mut point: Position, height: i16| {
             point.y = point.y.wrapping_sub(i32::from(height));
@@ -109,7 +109,7 @@ impl Actor {
         {
             Some(FallDeath::LongFall)
         } else if self.terrain.material & 0xf00 == 0x400
-            && surface_effect(&self.terrain) == 0x13
+            && surface_effect(self, terrain)? == 0x13
             && self.terrain.height < 20000
             && self.health != 0
         {

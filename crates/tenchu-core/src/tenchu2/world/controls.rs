@@ -193,7 +193,7 @@ impl World {
                 events,
             },
             terrain: Terrain {
-                map: &assets.level.collision,
+                map: &mut self.terrain,
                 rules: &assets.terrain_rules,
                 cursor: &mut self.cursor,
                 scratch: &mut self.probe,

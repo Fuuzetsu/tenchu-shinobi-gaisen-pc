@@ -101,7 +101,7 @@ fn native_wall_alignment_movement_peeking_and_item_throws_match_source() {
         let mut scratch = probe(&row["scratch"]);
         let mut water = Water::default();
         let mut terrain = Terrain {
-            map: map.as_ref().unwrap(),
+            map: map.as_mut().unwrap(),
             rules: &rules,
             cursor: &mut cursor,
             scratch: &mut scratch,

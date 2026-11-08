@@ -4,11 +4,10 @@ use super::{
 };
 use crate::{
     Result,
-    tenchu2::{actor::Actor, ai::behavior, physics::FallDeath, terrain::Probe},
+    tenchu2::{actor::Actor, ai::behavior, physics::FallDeath},
 };
 
-pub trait ActorEvents: controls::Events {
-    fn surface(&mut self, actor: usize, probe: &Probe) -> i16;
+pub trait ActorEvents: controls::Events + crate::tenchu2::environment::Events {
     fn visible(&mut self, source: EventSource<'_>) -> Result<bool>;
 }
 
@@ -34,7 +33,7 @@ impl World {
             if self.actors[index].actor.flags & 8 != 0 {
                 continue;
             }
-            let movement = self.move_actor(index, assets, |probe| events.surface(index, probe))?;
+            let movement = self.move_actor(index, assets, events)?;
             self.terrain_options.avoid_water = false;
             if let Some(death) = movement.death {
                 if index == self.player && death == FallDeath::LongFall {
@@ -94,5 +93,64 @@ impl World {
             event,
             &mut self.random,
         )
+    }
+}
+
+impl World {
+    pub fn update_environment(
+        &mut self,
+        assets: &Assets,
+        enabled: impl FnMut(usize) -> bool,
+        events: &mut impl crate::tenchu2::environment::Events,
+    ) -> Result<()> {
+        use crate::tenchu2::ai::status::{Alert, AlertCause};
+        use crate::tenchu2::environment::{Context, Event};
+        struct Sink<'a, E> {
+            alert: &'a mut Alert,
+            difficulty: u8,
+            rules: &'a tenchu_assets::tenchu2::combat::Rules,
+            events: &'a mut E,
+        }
+        impl<E: crate::tenchu2::environment::Events> crate::tenchu2::environment::Events for Sink<'_, E> {
+            fn emit(&mut self, event: Event, random: &mut crate::random::Random) -> Result<()> {
+                if let Event::Alert { position, kind } = event {
+                    let cause = match kind {
+                        1 => AlertCause::Suspicion,
+                        2 => AlertCause::Corpse,
+                        _ => AlertCause::Combat,
+                    };
+                    self.alert.raise(cause, self.difficulty, self.rules)?;
+                    self.alert.position = Some(position);
+                    Ok(())
+                } else {
+                    self.events.emit(event, random)
+                }
+            }
+        }
+        if self.environment.background_only {
+            return Ok(());
+        }
+        let mut sink = Sink {
+            alert: &mut self.ai.global.perception.alert,
+            difficulty: self.difficulty,
+            rules: &assets.combat_rules,
+            events,
+        };
+        let mut context = Context {
+            map: &mut self.terrain,
+            cursor: &mut self.cursor,
+            collision: &mut self.collision,
+            scene: &mut self.scene,
+            math: &assets.resources.math,
+            random: &mut self.random,
+            events: &mut sink,
+        };
+        self.environment.update_contacts(
+            &assets.level.scene.bounds,
+            (self.player, self.actors[self.player].actor.position),
+            enabled,
+            &mut context,
+        )?;
+        self.environment.update_triggers(&mut context)
     }
 }

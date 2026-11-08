@@ -112,7 +112,7 @@ fn native_swimming_diving_shore_climbing_and_grapple_inputs_match_source() {
             bottom: int("bottom"),
         };
         let mut terrain = Terrain {
-            map: map.as_ref().unwrap(),
+            map: map.as_mut().unwrap(),
             rules: &rules,
             cursor: &mut cursor,
             scratch: &mut scratch,

@@ -120,7 +120,7 @@ fn native_death_carrying_and_stealth_events_match_source() {
             bottom: 0,
         };
         let mut terrain = Terrain {
-            map: map.as_ref().unwrap(),
+            map: map.as_mut().unwrap(),
             rules: &rules,
             cursor: &mut cursor,
             scratch: &mut scratch,

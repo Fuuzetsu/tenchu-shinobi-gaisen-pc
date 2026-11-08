@@ -98,7 +98,7 @@ fn native_terrain_movement_matches_japanese_source() {
         let death = actor
             .move_on_terrain(
                 &mut Terrain {
-                    map: map.as_ref().unwrap(),
+                    map: map.as_mut().unwrap(),
                     rules: &rules,
                     cursor: &mut cursor,
                     scratch: &mut scratch,
@@ -114,9 +114,9 @@ fn native_terrain_movement_matches_japanese_source() {
                     roots += 1;
                     Ok(actor.position.wrapping_add(root_offset))
                 },
-                |_| {
+                |_, _| {
                     effects += 1;
-                    int("effect") as i16
+                    Ok(int("effect") as i16)
                 },
             )
             .unwrap();

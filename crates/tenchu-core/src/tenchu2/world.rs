@@ -67,6 +67,9 @@ pub struct Statistics {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct World {
+    pub terrain: tenchu_assets::tenchu2::collision::Collision,
+    pub environment: super::environment::Environment,
+    pub hidden_scene: bool,
     pub actors: Vec<Agent>,
     pub instances: Vec<Instance>,
     pub scene: Scene,
@@ -108,6 +111,9 @@ impl World {
             .cast(options.hero, layout.map)
             .ok_or("Missing Tenchu 2 cast")?;
         let mut world = Self {
+            terrain: assets.level.collision.clone(),
+            environment: super::environment::Environment::default(),
+            hidden_scene: false,
             actors: Vec::new(),
             instances: Vec::new(),
             scene: Scene::default(),
@@ -198,6 +204,12 @@ impl World {
             actor.inventory = Inventory::for_actor(actor.kind, &assets.loot, &mut world.random);
             world.publish(index, assets);
         }
+        world.environment = super::environment::Environment::new(
+            &assets.level.scene,
+            &mut world.scene,
+            &assets.resources.math,
+            &mut world.random,
+        )?;
         world.initialize_activation(assets)?;
         Ok(world)
     }

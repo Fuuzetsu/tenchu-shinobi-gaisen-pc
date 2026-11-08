@@ -109,7 +109,7 @@ fn native_crouching_looting_carrying_and_wall_entry_match_source() {
             ..Water::default()
         };
         let mut terrain = Terrain {
-            map: map.as_ref().unwrap(),
+            map: map.as_mut().unwrap(),
             rules: &rules,
             cursor: &mut cursor,
             scratch: &mut scratch,

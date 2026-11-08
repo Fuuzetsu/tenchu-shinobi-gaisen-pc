@@ -27,7 +27,7 @@ impl Rules {
     }
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Collision {
     pub origin: [i16; 2],
     pub dimensions: [usize; 2],
@@ -35,7 +35,7 @@ pub struct Collision {
     pub cells: Vec<Cell>,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Cell {
     pub minimum: i16,
     pub maximum: i16,
