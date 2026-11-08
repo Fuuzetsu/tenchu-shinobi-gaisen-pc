@@ -3,7 +3,9 @@ use crate::{math::Math, random::Random};
 
 mod entry;
 mod jump;
+mod sequence;
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
+pub use sequence::{AttackCue, Projectile};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Request {

@@ -1648,3 +1648,13 @@ instructions match 13,800 updates per edition across all 23 maps
 entry are supplied at their independently checked boundaries; audio/rumble calls
 are recorded. PAL acceleration, steering limits, rebound speed and voice differ
 from JP and are kept separate.
+
+Per-clip attack sequences follow the action switches in EU `80029924` / JP
+`8002a450`: directional combos, attachment grips, bow/gun/ice attack cues,
+landing attacks, backward turns and recoil damping. Source instruction blocks
+match 30,867 EU and 30,744 JP steps over all 281/280 registered attack/clip
+pairs (`TENCHU2_SEQUENCE_ORACLE`), with PAL attack windows converted as above.
+The oracle captures ordered calls and attachment visibility while supplying
+projectile creation, sound, dust/splash, steering and death-dispatch boundaries.
+Projectile simulation, contact resolution and the enclosing attack controller
+are not established by this timing check.
