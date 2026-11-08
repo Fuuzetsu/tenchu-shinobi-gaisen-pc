@@ -1,7 +1,7 @@
 use super::direction;
 use crate::{
     Result,
-    math::{Math, Position, Vector3},
+    math::{Math, Position},
     tenchu2::{actor::State, terrain},
 };
 use serde::{Deserialize, Serialize};
@@ -181,29 +181,10 @@ impl Sight {
         } else {
             target.height >> 1
         };
-        let mut step = Vector3::new(
-            delta.x as i16,
-            (target.position.y as i16)
-                .wrapping_sub(target_height)
-                .wrapping_sub(eye.y as i16),
-            delta.z as i16,
-        );
-        let mut count = 1i16;
-        while step.into_iter().any(|v| i32::from(v).abs() > 100) {
-            step = step.map(|v| v >> 1);
-            count *= 2;
-        }
+        let mut delta = target.position.wrapping_sub(eye);
+        delta.y = delta.y.wrapping_sub(i32::from(target_height));
         cursor.current = None;
-        if terrain::passage(
-            world.terrain,
-            cursor,
-            eye,
-            step,
-            count,
-            world.edition,
-            world.math,
-        )?
-        .is_some()
+        if terrain::segment(world.terrain, cursor, eye, delta, world.edition, world.math)?.is_some()
         {
             return Ok(Visibility::Hidden);
         }

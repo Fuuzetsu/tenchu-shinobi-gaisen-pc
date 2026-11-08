@@ -8,7 +8,7 @@ use crate::{
         ai::direction,
         input::DOWN,
         physics::Terrain,
-        terrain::passage,
+        terrain::segment,
     },
 };
 use tenchu_assets::tenchu2::Edition;
@@ -271,23 +271,13 @@ impl Damage<'_, '_> {
             .attacker
             .as_ref()
             .ok_or("Tenchu 2 weapon has no owner")?;
-        let mut step = attacker
-            .position
-            .wrapping_sub(self.actor.position)
-            .map(|v| v as i16);
-        let mut count = 1i16;
-        while step.into_iter().any(|v| i32::from(v).abs() > 100) {
-            step = step.map(|v| v >> 1);
-            count *= 2;
-        }
         let mut start = self.actor.position;
         start.y = start.y.wrapping_sub(i32::from(self.actor.height / 2));
-        if passage(
+        if segment(
             self.terrain.map,
             self.terrain.cursor,
             start,
-            step,
-            count,
+            attacker.position.wrapping_sub(self.actor.position),
             self.resources.registry.edition,
             &self.resources.math,
         )?

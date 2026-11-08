@@ -145,6 +145,23 @@ fn contains(node: &Node, x: i32, y: i16, z: i32) -> bool {
         && z < z2
 }
 
+pub fn segment(
+    map: &Collision,
+    cursor: &mut Cursor,
+    position: Position,
+    delta: Position,
+    edition: Edition,
+    math: &Math,
+) -> Result<Option<Position>> {
+    let mut step = delta.map(|v| v as i16);
+    let mut count = 1i16;
+    while step.into_iter().any(|v| i32::from(v).abs() > 100) {
+        step = step.map(|v| v >> 1);
+        count *= 2;
+    }
+    passage(map, cursor, position, step, count, edition, math)
+}
+
 pub fn passage(
     map: &Collision,
     cursor: &mut Cursor,

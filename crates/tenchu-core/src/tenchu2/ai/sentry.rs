@@ -2,7 +2,7 @@ use crate::{Result, random::Random, tenchu2::input};
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::Edition;
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Sentry {
     #[default]
     Begin,

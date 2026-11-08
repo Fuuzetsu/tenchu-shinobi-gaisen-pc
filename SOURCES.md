@@ -1812,3 +1812,14 @@ starts and 12,600 attacker updates per edition (`TENCHU2_STEALTH_ORACLE`,
 7,187/7,177 completions. Selection, normal recovery and velocity execute source
 instructions; published roots, weapons, contacts, audio, score and screen tint
 remain controlled boundaries. These controllers still need native-world wiring.
+
+Sleeping guards follow EU `8003241c` / JP `80033168`; corpse perception follows
+`80032648` / `80033394`. Original execution matches 26,000 EU / 25,400 JP sleep
+updates (`TENCHU2_SLEEP_ORACLE`), including 2,617/2,555 sleeping and 3,770/3,664
+waking results. Selection, velocity and sentry RNG execute original instructions.
+Corpse scans match 32,200 cases per edition across all 23 maps
+(`TENCHU2_CORPSE_ORACLE`), including 289/268 discoveries and terrain-cache state.
+Discovery returns the witness; alert/audio, observer-state reset and corpse marking
+belong to the unfinished world dispatcher. Shared short-vector ray stepping also
+passes both editions' existing sight and damage comparisons. These checks do not
+yet demonstrate a playable native T2 mission.
