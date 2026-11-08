@@ -8,6 +8,7 @@ pub const DOWN: u16 = ps1::DOWN.swap_bytes();
 pub const LEFT: u16 = ps1::LEFT.swap_bytes();
 pub const ATTACK: u16 = ps1::SQUARE.swap_bytes();
 pub const JUMP: u16 = ps1::CROSS.swap_bytes();
+pub const GUARD: u16 = ps1::CIRCLE.swap_bytes();
 pub const ITEM: u16 = ps1::TRIANGLE.swap_bytes();
 pub const CROUCH: u16 = ps1::R1.swap_bytes();
 

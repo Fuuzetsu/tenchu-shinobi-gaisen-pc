@@ -1677,3 +1677,14 @@ This oracle bypasses the independently checked per-clip sequence switch, supplie
 target/root queries, and records audio/effect calls; selection, motion changes,
 collision iteration and RNG execute original instructions. Paired stealth kills,
 damage, projectile simulation and world orchestration remain separate work.
+
+Standing/ready movement follows EU `80023198`, `80023750` / JP `800238a4`,
+`80023f98`. Shared movement retains the distinctions between drawn and sheathed
+walking, guard/dodge input, carry-state turns, character-specific sheathing,
+footsteps and command consumption. JP-only random footsteps and hidden-stage
+triggers remain edition-specific. Original execution matches 40,000 updates per
+edition over all 130 definitions (`TENCHU2_STANDING_ORACLE`). The oracle supplies
+ledge/attack/jump/item dispatch and audio/effects, while status, commands, turning,
+velocity and recovery execute original code; nested jump dispatch deliberately
+changes motion state to check subsequent control flow. Native terrain entry,
+loot/carry targeting and world event integration remain separate boundaries.

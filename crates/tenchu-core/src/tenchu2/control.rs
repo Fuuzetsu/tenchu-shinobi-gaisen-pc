@@ -5,9 +5,11 @@ mod attack;
 mod entry;
 mod jump;
 mod sequence;
+mod standing;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
 pub use sequence::{AttackCue, Projectile};
+pub use standing::{StandingCue, StandingInput};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Request {
