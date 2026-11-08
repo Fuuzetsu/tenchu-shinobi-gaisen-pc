@@ -56,6 +56,24 @@ pub enum Unavailable {
 }
 
 impl Inventory {
+    pub fn from_amounts(amounts: [u8; 21]) -> Self {
+        Self {
+            counts: std::array::from_fn(|i| amounts[i]),
+            resurrections: amounts[20],
+            ..Self::default()
+        }
+    }
+
+    pub fn amounts(&self) -> [u8; 21] {
+        std::array::from_fn(|i| {
+            if i == 20 {
+                self.resurrections
+            } else {
+                self.counts[i]
+            }
+        })
+    }
+
     pub fn for_actor(
         kind: i16,
         loot: &tenchu_assets::tenchu2::loot::Loot,

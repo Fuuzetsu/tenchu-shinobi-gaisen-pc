@@ -103,8 +103,6 @@ pub struct World {
     pub controls: controls::Controls,
     pub statistics: Statistics,
     pub mission: super::mission::Mission,
-    pub progress: super::progress::Progress,
-    pub results: Option<super::progress::Results>,
 }
 
 impl World {
@@ -163,8 +161,6 @@ impl World {
                 sequence.next.map(|id| assets.campaign.sequences[id].kind),
                 0,
             )?,
-            progress: super::progress::Progress::default(),
-            results: None,
         };
         world.create_actor(
             options.hero as i16,
@@ -174,8 +170,8 @@ impl World {
             assets,
         )?;
         world.actors[0].actor.inventory = options.inventory.clone();
-        world.controls.unlocked_items =
-            std::array::from_fn(|i| world.progress.stock[options.hero].items[i].is_some());
+        let stock = super::progress::Stock::default();
+        world.controls.unlocked_items = std::array::from_fn(|i| stock.items[i].is_some());
         for entry in layout
             .actors
             .iter()

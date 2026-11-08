@@ -47,6 +47,32 @@ pub struct Reward {
 }
 
 impl Campaign {
+    pub fn mission(&self, hero: usize, sequence: usize) -> Option<usize> {
+        for (mission, &start) in self.starts.get(hero)?.iter().enumerate() {
+            let Some(start) = start else { continue };
+            let mut pending = vec![start];
+            let mut visited = vec![false; self.sequences.len()];
+            while let Some(index) = pending.pop() {
+                if index == sequence {
+                    return Some(mission);
+                }
+                let row = self.sequences.get(index)?;
+                if visited[index] || row.kind == Kind::Results {
+                    continue;
+                }
+                visited[index] = true;
+                pending.extend(row.next);
+                pending.extend(row.failure);
+            }
+        }
+        None
+    }
+
+    pub fn first_gameplay(&self, hero: usize, mission: usize) -> Option<usize> {
+        let start = (*self.starts.get(hero)?.get(mission)?)?;
+        (start..self.sequences.len()).find(|&i| matches!(self.sequences[i].kind, Kind::Gameplay(_)))
+    }
+
     pub fn result_mission(&self, hero: usize, result: usize) -> Option<usize> {
         for (mission, &start) in self.starts.get(hero)?.iter().enumerate() {
             let Some(mut index) = start else { continue };

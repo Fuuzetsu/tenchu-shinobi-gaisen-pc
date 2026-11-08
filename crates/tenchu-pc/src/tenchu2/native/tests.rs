@@ -260,10 +260,18 @@ fn native_mission_exit_stops_input_and_survives_restoring_mid_fade() {
 #[test]
 #[ignore = "requires TENCHU2_DISC; completes a JP exit that directly enters results"]
 fn native_results_follow_the_mission_and_preserve_campaign_rewards() {
-    use tenchu_assets::tenchu2::campaign::Objective;
+    use tenchu_assets::tenchu2::campaign::{Campaign, Objective};
+    use tenchu_core::tenchu2::{
+        campaign::{Destination, Run},
+        mission::Phase,
+    };
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let mut session = Session::load(&disc, 134, 1).unwrap();
+    let campaign = Campaign::load(&disc).unwrap();
+    let mut run = Run::new(&campaign, 1, 134, 2, 1).unwrap();
+    assert!(run.prepare_area(&campaign).unwrap());
+    run.carry.inventory[0] = 255;
+    let mut session = Session::for_run(&disc, &run).unwrap();
     let Objective::Reach { region, .. } = session.world.mission.objective else {
         panic!("not an exit mission")
     };
@@ -275,23 +283,122 @@ fn native_results_follow_the_mission_and_preserve_campaign_rewards() {
     session.world.update_camera(&session.assets, true).unwrap();
     for _ in 0..160 {
         session.step(0).unwrap();
-        if session.world.results.is_some() {
+        if matches!(session.world.mission.phase, Phase::Finished { .. }) {
             break;
         }
     }
-    let result = session
-        .world
-        .results
-        .as_ref()
-        .expect("exit did not enter results");
+    assert_eq!(
+        run.finish_area(&session.world, &campaign).unwrap(),
+        Destination::Sequence(135)
+    );
+    let result = run.enter_results(&campaign).unwrap().clone();
     assert_eq!(result.record.score, 400);
     assert_eq!(result.record.rank, 4);
     assert!(result.new_best);
     let mission = session.assets.campaign.result_mission(1, 135).unwrap();
-    assert_eq!(session.world.progress.records[1][mission], result.record);
-    assert_eq!(session.world.progress.stock[1].items[4], Some(11));
-    let before = serde_json::to_value(&session.world).unwrap();
-    session.world = serde_json::from_value(before.clone()).unwrap();
-    session.step(ATTACK).unwrap();
-    assert_eq!(serde_json::to_value(&session.world).unwrap(), before);
+    assert_eq!(run.progress.records[1][mission], result.record);
+    assert_eq!(run.progress.stock[1].items[4], Some(11));
+    let before = serde_json::to_value(&run).unwrap();
+    run = serde_json::from_value(before.clone()).unwrap();
+    run.enter_results(&campaign).unwrap();
+    assert_eq!(serde_json::to_value(&run).unwrap(), before);
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; carries actual world state through a story into its boss area, results and retry"]
+fn native_campaign_carries_state_through_story_and_boss() {
+    use tenchu_assets::tenchu2::campaign::Campaign;
+    use tenchu_core::tenchu2::{
+        campaign::Destination,
+        mission::{Outcome, Phase},
+        world::Statistics,
+    };
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let campaign = Campaign::load(&disc).unwrap();
+    let mut run = Run::new(&campaign, 0, 9, 2, 17).unwrap();
+    assert!(run.prepare_area(&campaign).unwrap());
+    run.carry.inventory[0] = 255;
+    let mut session = Session::for_run(&disc, &run).unwrap();
+    session.world.statistics = Statistics {
+        killed: 6,
+        stealth_kills: 5,
+        combat_kills: 1,
+        innocents: 0,
+    };
+    session.world.effort = 1234;
+    session.world.ai.detections = 3;
+    let actor = &mut session.world.actors[0].actor;
+    actor.health = 61;
+    actor.flags |= 0x140;
+    actor.breath = 58;
+    actor.inventory.counts[4] = 7;
+    actor.inventory.resurrections = 2;
+    session.world.mission.phase = Phase::Finished {
+        outcome: Outcome::Arrived,
+        finished_at: 3061,
+    };
+    assert_eq!(
+        run.finish_area(&session.world, &campaign).unwrap(),
+        Destination::Sequence(10)
+    );
+    let counts = run.summary.population;
+    let mut story = super::story::Story::load(&disc, 10, 4, run.random.seed).unwrap();
+    story.state.random = run.random;
+    for _ in 0..120 {
+        story.step(true).unwrap();
+    }
+    run.random = story.state.random;
+    assert_eq!(
+        run.advance(&campaign, false).unwrap(),
+        Destination::Sequence(11)
+    );
+    assert!(
+        !run.prepare_area(&campaign).unwrap(),
+        "boss entry lost the loadout"
+    );
+    run = serde_json::from_value(serde_json::to_value(run).unwrap()).unwrap();
+    let mut boss = Session::for_run(&disc, &run).unwrap();
+    let actor = &boss.world.actors[0].actor;
+    assert_eq!(actor.health, 61);
+    assert_eq!(actor.breath, 58);
+    assert!(actor.weapon_drawn());
+    assert_eq!(actor.flags & 0x100, 0x100);
+    assert_eq!(actor.inventory.amounts(), run.carry.inventory);
+    assert_eq!(boss.world.statistics.stealth_kills, 5);
+    assert_eq!(boss.world.ai.detections, 3);
+    assert_eq!(boss.world.effort, 1234);
+    assert_eq!(boss.world.mission.population.guards, counts.guards);
+    assert_eq!(boss.world.mission.population.bosses, counts.bosses + 1);
+    assert!(boss.world.random.calls > run.random.calls);
+    boss.world.statistics.combat_kills += 1;
+    boss.world.statistics.killed += 1;
+    boss.world.actors[0].actor.inventory.counts[4] = 6;
+    boss.world.mission.phase = Phase::Finished {
+        outcome: Outcome::TargetsDefeated,
+        finished_at: 119,
+    };
+    assert_eq!(
+        run.finish_area(&boss.world, &campaign).unwrap(),
+        Destination::Sequence(12)
+    );
+    assert_eq!(
+        run.advance(&campaign, false).unwrap(),
+        Destination::Sequence(13)
+    );
+    let result = run.enter_results(&campaign).unwrap();
+    assert_eq!(result.summary.time_tenths, 1059);
+    assert_eq!(result.summary.kills.stealth_kills, 5);
+    assert_eq!(result.summary.kills.combat_kills, 2);
+    assert_eq!(result.record.score, 420);
+    assert_eq!(run.progress.stock[0].items[4], Some(17));
+    let snapshot = serde_json::to_value(&run).unwrap();
+    run.enter_results(&campaign).unwrap();
+    assert_eq!(serde_json::to_value(&run).unwrap(), snapshot);
+    assert_eq!(run.retry(&campaign).unwrap(), Destination::Sequence(9));
+    assert!(run.prepare_area(&campaign).unwrap());
+    assert_eq!(run.carry.health, 0);
+    assert_eq!(run.summary.kills.killed, 0);
+    assert_eq!(run.summary.time_tenths, 0);
+    assert_eq!(run.progress.stock[0].items[4], Some(17));
 }

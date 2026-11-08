@@ -10,9 +10,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   `play-t2-jp` preview. Pause/resume also pauses dialogue. Timed 3D effects and
   campaign transitions remain in progress.
 
-- Add native JP scoring, mission records, supply rewards and unlock rules.
-  The internal preview shows these for areas that lead directly to results;
-  story transitions and the original results presentation remain in progress.
+- Add native JP campaign scoring, records, supply rewards and unlock rules,
+  with health, inventory, RNG and score totals carried across areas. Calculate
+  rewards at the results sequence, after intervening story scenes. Live campaign
+  handoffs and the original results presentation remain in progress.
 
 - Connect native JP mission objectives and end transitions in the internal
   preview, including unseen objectives, boss targets, input lock and fade timing.

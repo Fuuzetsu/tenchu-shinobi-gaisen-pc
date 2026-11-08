@@ -2538,3 +2538,14 @@ and 4. An ordinary live event-4 session displayed the cast and Japanese dialogue
 captured audio became silent while paused and resumed afterward. This does not
 establish full story parity: timed 3D effects, distortion, weather and campaign
 handoffs remain unfinished, and the normal launcher still uses the Gaisen sandbox.
+
+Native JP campaign carry-over and navigation follow `GAME.EXE` functions
+`80062310` (dispatch, story skip, failure and retry), `800646bc` (area-entry
+resets), `80064a34` (health, weapon/poison state, inventory, breath and elapsed-time
+transfer) and `8006343c` (results). Local instruction checks cover 483 routes,
+336 area entries and 600 exits, including signed time arithmetic and byte
+narrowing. Area-entry graphics/CD helpers are stubbed; the 16-byte summary reset
+is executed at the original call site. A disc-backed native test carries state
+through Rikimaru's first mission, event 4, its boss area, results and retry; it
+also checks snapshot continuation and prevents duplicate rewards. This verifies
+the state handoff, not a completed ordinary campaign or the equipment screen.

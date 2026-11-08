@@ -14,6 +14,7 @@ mod source_bait;
 mod source_behavior;
 mod source_body;
 mod source_caltrops;
+mod source_campaign;
 mod source_combat;
 mod source_control;
 mod source_crouch;

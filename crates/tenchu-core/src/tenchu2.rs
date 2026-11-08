@@ -2,6 +2,7 @@ pub mod actor;
 pub mod ai;
 pub mod audio;
 pub mod camera;
+pub mod campaign;
 pub mod collision;
 pub mod control;
 pub mod effects;

@@ -9,6 +9,7 @@ use tenchu_core::{
     random::Random,
     tenchu2::{
         audio::{Listener, Sound},
+        campaign::Run,
         control::CombatCue,
         environment,
         inventory::Inventory,
@@ -36,28 +37,41 @@ pub struct Session {
 
 impl Session {
     pub fn load(disc: &Disc<impl ReadAt>, sequence: usize, seed: u32) -> Result<Self> {
-        let layout = Layout::available(disc)?
-            .into_iter()
-            .find(|l| l.sequence == sequence)
-            .ok_or("No Japanese Tenchu 2 layout with that sequence")?;
         let hero = if sequence >= 185 {
             2
         } else {
             usize::from(sequence >= 101)
         };
-        let assets = Assets::load(disc, hero, &layout)?;
-        let mut inventory = Inventory::default();
-        inventory.counts[0] = 255;
-        let world = World::new(
-            &layout,
+        let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(disc)?;
+        let mut run = Run::new(&campaign, hero, sequence, 2, seed)?;
+        run.prepare_area(&campaign)?;
+        run.carry.inventory[0] = 255;
+        Self::for_run(disc, &run)
+    }
+
+    pub fn for_run(disc: &Disc<impl ReadAt>, run: &Run) -> Result<Self> {
+        let mut session = Self::with_options(
+            disc,
+            run.sequence,
             Options {
-                hero,
-                difficulty: 2,
-                seed,
-                inventory,
+                hero: run.hero,
+                difficulty: run.difficulty,
+                seed: run.random.seed,
+                inventory: Inventory::from_amounts(run.carry.inventory),
             },
-            &assets,
         )?;
+        run.restore_area(&mut session.world, &session.assets, true)?;
+        Ok(session)
+    }
+
+    fn with_options(disc: &Disc<impl ReadAt>, sequence: usize, options: Options) -> Result<Self> {
+        let layout = Layout::available(disc)?
+            .into_iter()
+            .find(|l| l.sequence == sequence)
+            .ok_or("No Japanese Tenchu 2 layout with that sequence")?;
+        let hero = options.hero;
+        let assets = Assets::load(disc, hero, &layout)?;
+        let world = World::new(&layout, options, &assets)?;
         let bank = Arc::new(Audio::load(disc, hero, layout.map)?.bank);
         Ok(Self {
             world,

@@ -52,32 +52,59 @@ impl Content {
         error: Option<&str>,
     ) {
         if matches!(self, Self::Gameplay(_)) || *open || *paused || error.is_some() {
-            egui::Area::new("native-status".into()).fixed_pos(egui::pos2(12.0, 12.0)).show(ctx, |ui| {
-                egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
-                    match self {
-                        Self::Gameplay(session) => {
-                            let player = &session.world.actors[session.world.player].actor;
-                            ui.label(format!("JP native preview · area {} · sequence {} · tick {}", session.world.map, session.world.sequence, session.world.tick));
-                            ui.label(format!("Health {} / {} · {:?} · Ki {:?}", player.health, player.max_health, player.state, session.world.ai.global.radar));
-                            if let Some(item) = player.inventory.selected { ui.label(format!("Item {} × {}", item.index(), player.inventory.count(item))); }
-                            if let tenchu_core::tenchu2::mission::Phase::Finished { outcome, .. } = session.world.mission.phase {
-                                ui.label(format!("Mission ended: {outcome:?}."));
-                                if let Some(results) = &session.world.results {
-                                    ui.label(format!("Score {} · rank {} / 6 · time {:.1}s", results.record.score, results.record.rank, results.record.time_tenths as f64 / 10.0));
-                                    ui.label(format!("Stealth kills {} · combat kills {} · detections {} · innocents {}", results.summary.kills.stealth_kills, results.summary.kills.combat_kills, results.summary.detections, results.summary.kills.innocents));
-                                    if let Some(item) = results.unlocked_item { ui.label(format!("Unlocked item {item}")); }
-                                } else { ui.label("The next story screen is not connected yet."); }
+            egui::Area::new("native-status".into())
+                .fixed_pos(egui::pos2(12.0, 12.0))
+                .show(ctx, |ui| {
+                    egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
+                        match self {
+                            Self::Gameplay(session) => {
+                                let player = &session.world.actors[session.world.player].actor;
+                                ui.label(format!(
+                                    "JP native preview · area {} · sequence {} · tick {}",
+                                    session.world.map, session.world.sequence, session.world.tick
+                                ));
+                                ui.label(format!(
+                                    "Health {} / {} · {:?} · Ki {:?}",
+                                    player.health,
+                                    player.max_health,
+                                    player.state,
+                                    session.world.ai.global.radar
+                                ));
+                                if let Some(item) = player.inventory.selected {
+                                    ui.label(format!(
+                                        "Item {} × {}",
+                                        item.index(),
+                                        player.inventory.count(item)
+                                    ));
+                                }
+                                if let tenchu_core::tenchu2::mission::Phase::Finished {
+                                    outcome,
+                                    ..
+                                } = session.world.mission.phase
+                                {
+                                    ui.label(format!("Mission ended: {outcome:?}."));
+                                    ui.label("The next story screen is not connected yet.");
+                                }
+                            }
+                            Self::Story { story, .. } => {
+                                ui.label(format!(
+                                    "JP event {} · sequence {} · frame {} / {}",
+                                    story.event,
+                                    story.sequence,
+                                    story.state.frame,
+                                    story.resources.script.duration
+                                ));
                             }
                         }
-                        Self::Story { story, .. } => {
-                            ui.label(format!("JP event {} · sequence {} · frame {} / {}", story.event, story.sequence, story.state.frame, story.resources.script.duration));
+                        ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
+                        if *paused {
+                            ui.label("PAUSED");
                         }
-                    }
-                    ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
-                    if *paused { ui.label("PAUSED"); }
-                    if let Some(error) = error { ui.colored_label(egui::Color32::LIGHT_RED, error); }
+                        if let Some(error) = error {
+                            ui.colored_label(egui::Color32::LIGHT_RED, error);
+                        }
+                    });
                 });
-            });
         }
         egui::Window::new("Native JP integration").open(open).default_size([550.0, 480.0]).vscroll(true).show(ctx, |ui| {
             ui.label("The original HUD, campaign transitions and some effects are still being connected.");
