@@ -50,9 +50,11 @@ impl World {
                 .selected
                 .is_some_and(|i| actor.inventory.count(i) != 0);
             if available {
-                actor.inventory.select(false);
+                self.controls
+                    .select_item(&mut actor.inventory, false, owner == self.player);
             }
-            actor.inventory.select(available);
+            self.controls
+                .select_item(&mut actor.inventory, available, owner == self.player);
             picked_up += 1;
         }
         for _ in 0..picked_up {

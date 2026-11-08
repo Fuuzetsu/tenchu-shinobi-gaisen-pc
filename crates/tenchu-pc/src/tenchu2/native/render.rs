@@ -19,6 +19,7 @@ use tenchu_core::{
     },
 };
 
+mod hud;
 mod story;
 pub(super) use story::Drawing as StoryDrawing;
 pub(super) use story::capture as capture_story;
@@ -570,6 +571,7 @@ impl Models {
             }
             output.surface(vertices, blend);
         }
+        hud::append(&mut output, &assets.sprites, &world.controls.hud.frame);
         if let Some(fade) = frame.fade {
             output.screen_sprite(
                 [0.0, 0.0, 64.0],
@@ -580,6 +582,9 @@ impl Models {
                 None,
                 2,
             );
+            for vertex in &mut output.surfaces.last_mut().unwrap().vertices {
+                vertex.flags |= render_mesh::SCREEN_WIDE;
+            }
         }
         if let Some(fade) = frame.transition_fade {
             output.screen_sprite(
@@ -591,6 +596,9 @@ impl Models {
                 None,
                 3,
             );
+            for vertex in &mut output.surfaces.last_mut().unwrap().vertices {
+                vertex.flags |= render_mesh::UI | render_mesh::SCREEN_WIDE;
+            }
         }
         Ok(Geometry {
             terrain: output.terrain,

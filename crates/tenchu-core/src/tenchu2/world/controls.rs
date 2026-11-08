@@ -39,6 +39,8 @@ pub struct Controls {
     pub drain_uses: u8,
     pub death_music: bool,
     pub transition_ready: bool,
+    #[serde(default)]
+    pub hud: crate::tenchu2::hud::Hud,
 }
 
 impl Default for Controls {
@@ -58,6 +60,30 @@ impl Default for Controls {
             drain_uses: 0,
             death_music: true,
             transition_ready: true,
+            hud: Default::default(),
+        }
+    }
+}
+
+impl Controls {
+    pub(super) fn observe(&mut self, index: usize, actor: &Actor, event: Event) {
+        match event {
+            Event::ShowHealth => self.hud.show_health(index, actor.kind),
+            Event::Pickup(item) => self.hud.pickup(item),
+            _ => {}
+        }
+    }
+
+    pub(super) fn select_item(
+        &mut self,
+        inventory: &mut crate::tenchu2::inventory::Inventory,
+        previous: bool,
+        player: bool,
+    ) {
+        if player {
+            self.hud.select(inventory, previous);
+        } else {
+            inventory.select(previous);
         }
     }
 }
@@ -280,6 +306,7 @@ fn listener(
 
 impl<E: Events> Context<'_, E> {
     fn emit(&mut self, actor: &Actor, event: Event, random: &mut Random) -> Result<()> {
+        self.controls.observe(self.index, actor, event);
         if let Event::HeldItem(model) = event {
             self.items.held = model;
             return Ok(());
@@ -448,7 +475,8 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
                 c.emit(actor, Event::Rumble { kind: 1, strength }, self.random)
             }
             ControlCue::SelectItem { previous } => {
-                actor.inventory.select(previous);
+                c.controls
+                    .select_item(&mut actor.inventory, previous, c.index == c.player);
                 Ok(())
             }
             ControlCue::ItemSound => c.emit(actor, Event::Sound(5), self.random),

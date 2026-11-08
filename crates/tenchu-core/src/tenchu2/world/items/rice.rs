@@ -112,9 +112,11 @@ impl World {
                     .selected
                     .is_some_and(|i| actor.inventory.count(i) != 0);
                 if available {
-                    actor.inventory.select(false);
+                    self.controls
+                        .select_item(&mut actor.inventory, false, taker == self.player);
                 }
-                actor.inventory.select(available);
+                self.controls
+                    .select_item(&mut actor.inventory, available, taker == self.player);
                 recovered.push(taker);
             } else {
                 actor.flags |= if self.map == 12 { 0x200 } else { 0x100 };

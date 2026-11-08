@@ -2591,3 +2591,24 @@ walking, visible/shallow water and launcher/settings transitions were checked
 through the main window; deep swimming remains covered by the source-map session
 check. Original HUD/equipment/results presentation, some story effects, modern
 lighting and persistent JP progress remain separate integration work.
+
+Native JP HUD state and submissions follow `GAME.EXE` `80061ad0`, `80061bd8`,
+`800620dc`, `80062264`, `800515b0`, `8005176c`, `800517c8`, `800518cc`,
+`80051bb0` and `80051c4c`. `80052084` and `8003a44c` identify the item/effect
+archive images; `80043154` supplies sprite pivots, scales and blend attributes.
+These cover player/enemy health, poison/low-health colours, breath, Ki, the
+five-item carousel and four pickup notices. Inventory quantities are unsigned
+loads in the executable, despite the decompiler's `char` expression. Enemy-bar
+requests do not refresh an existing timer; boss bars persist. HUD updates share
+the source item phase, survive snapshots and do not depend on display cadence.
+
+`source_hud` compares 4,260 synthetic updates against the original instructions,
+including the ready/unready aiming-reticle branches at `80052f68`/`80052f8c`
+and `8004311c`. Only sprite/rectangle submission calls are intercepted; the
+original number, selection, registration, queue and update routines execute.
+Assertions include submission order, image, position, colour, crop width,
+scale/rotation, timers, inventory selection and snapshot continuation. Test
+inputs/outputs remain private. Native sprites use the source VRAM and palette
+masks, with complete mission fades after the HUD and post-processing. Ordinary
+item selection, aiming, shuriken release/retrieval and Ki display were inspected
+in the native window. This does not establish complete campaign parity.

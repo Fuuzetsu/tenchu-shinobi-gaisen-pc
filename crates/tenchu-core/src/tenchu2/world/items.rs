@@ -396,9 +396,11 @@ impl World {
                 .selected
                 .is_some_and(|i| actor.inventory.count(i) != 0);
             if available {
-                actor.inventory.select(false);
+                self.controls
+                    .select_item(&mut actor.inventory, false, taker == self.player);
             }
-            actor.inventory.select(available);
+            self.controls
+                .select_item(&mut actor.inventory, available, taker == self.player);
             if taker == self.player {
                 self.emit(taker, Event::Pickup(item), events)?;
                 self.emit(taker, Event::SoundPosition { position, id: 7 }, events)?;

@@ -16,6 +16,8 @@ Saved controller/keyboard bindings and Android touch controls apply. F1 opens
 the currently supported JP settings, F3 pauses, F4 advances one logic tick, and
 F6 returns to the quick launcher. JP play does not write Gaisen campaign saves.
 Graphics changes in this F1 menu are shared with the main game.
+The JP game uses Triangle for items and Circle for guarding (E and `/` with
+default keyboard bindings); Z/C cycle inventory. These follow Tenchu 2's controls.
 
 For development, the standalone preview is also available:
 
@@ -31,7 +33,7 @@ tick, and Escape closes the preview. This mode does not write campaign saves
 or change saved graphics settings.
 
 Add `--loadout 4:20` for twenty shuriken. The normal item-selection and item-use
-bindings apply; the preview overlay shows the selected item ID and quantity.
+bindings apply; the original item carousel shows the selected item and quantity.
 Use `--loadout 4:20,5:5,6:10,7:5,8:10,9:10,10:5,11:5,12:5,13:5,14:5,16:5,17:5,18:5,20:1` to add caltrops (5), grenades (6), mines (7), poison darts (8), fire
 arrows (9), smoke bombs (10), poisoned rice (11), coloured rice (12), invisibility (13), confusion powder (14), teleport (16), fire breath (17) sleeping bombs (18) and one passive resurrection leaf (20). Other inventory entries accept comma-separated
 `ID:COUNT` pairs, but their effects are still being connected.
@@ -59,7 +61,8 @@ movies, story camera/actors/faces and dialogue load from the user's disc.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the
-port's visual enhancements. Timed 3D story effects, original HUD, equipment,
+port's visual enhancements. The original HUD now shows health/enemy bars, Ki,
+breath, the aiming reticle, item selection and pickup notices. Timed 3D story effects, equipment,
 results artwork and persistent JP campaign saves remain integration work.
 Component comparisons and snapshot continuation do not establish full campaign
 parity. EU assets remain supported without an EU-native AI runtime.

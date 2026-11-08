@@ -175,7 +175,7 @@ impl Application {
                 .open(&mut native.open).default_size([440.0, 400.0]).vscroll(true)
                 .show(ctx, |ui| {
                     ui.label("Japanese gameplay, voices, swimming and campaign progression");
-                    ui.small("Original HUD and equipment screens, modern lighting and some effects are still being connected.");
+                    ui.small("Original equipment screens, modern lighting and some effects are still being connected.");
                     ui.checkbox(&mut self.paused, "Pause");
                     ui.checkbox(&mut self.settings.pause_in_menu, "Pause while this menu is open");
                     ui.checkbox(&mut self.settings.pause_on_defocus, "Pause when unfocused");

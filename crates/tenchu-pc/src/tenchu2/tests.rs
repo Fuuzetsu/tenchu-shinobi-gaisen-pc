@@ -25,6 +25,7 @@ mod source_dispatch;
 mod source_effects;
 mod source_entry;
 mod source_explosives;
+mod source_hud;
 mod source_hurt;
 mod source_idle;
 mod source_input;

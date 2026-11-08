@@ -55,6 +55,19 @@ impl World {
         } else {
             Default::default()
         };
+        if self.mission.items_running() {
+            let player = &self.actors[self.player].actor;
+            self.controls.hud.step(
+                player.into(),
+                player.breath,
+                &player.inventory,
+                self.ai.global.radar,
+                |index| self.actors.get(index).map(|a| (&a.actor).into()),
+            )?;
+            self.controls.hud.aim(items.reticle);
+        } else {
+            self.controls.hud.frame.clear();
+        }
         let mut effects = self.update_effects(assets)?;
         items.quads.append(&mut effects.quads);
         effects.quads = items.quads;
@@ -170,6 +183,8 @@ impl World {
         event: Event,
         events: &mut impl controls::Events,
     ) -> Result<()> {
+        self.controls
+            .observe(index, &self.actors[index].actor, event);
         controls::Events::emit(
             events,
             EventSource {

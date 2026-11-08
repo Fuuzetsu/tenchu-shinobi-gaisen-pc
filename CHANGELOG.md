@@ -10,8 +10,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   Reuse the main window, saved controls and Android touch overlay, with F1 for
   supported settings and F6 to return. Gaisen saves stay separate. The Gaisen
   scenery sandbox remains an explicit JP option and the default for EU imports.
-  Original JP HUD/equipment artwork, some effects and modern lighting remain
+  Original JP equipment artwork, some effects and modern lighting remain
   integration work.
+
+- Draw the Japanese Tenchu 2 health bars, Ki meter, underwater breath gauge,
+  aiming reticle, item carousel and pickup notices using the user's disc artwork.
+  Enemy bars, low-health/poison colours, selection and notice timing follow the
+  JP routines. Integration diagnostics now stay hidden until requested.
 
 - Connect the Japanese campaign's chapter titles, narrated introductions and
   movies in the internal preview, using artwork, XA audio and streamed STR video

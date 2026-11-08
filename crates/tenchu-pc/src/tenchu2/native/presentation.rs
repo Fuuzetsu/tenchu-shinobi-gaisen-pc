@@ -103,7 +103,7 @@ impl Content {
                 ui.label("Esc: leave preview");
             });
         }
-        if matches!(self, Self::Gameplay(_)) || *open || *paused || error.is_some() {
+        if *open || *paused || error.is_some() {
             egui::Area::new("native-status".into())
                 .fixed_pos(egui::pos2(12.0, 12.0))
                 .show(ctx, |ui| {
@@ -161,7 +161,7 @@ impl Content {
                 });
         }
         egui::Window::new("Native JP integration").open(open).default_size([550.0, 480.0]).vscroll(true).show(ctx, |ui| {
-            ui.label("The original HUD, equipment/results artwork and some effects are still being connected.");
+            ui.label("Original equipment/results artwork and some effects are still being connected.");
             ui.checkbox(paused, "Pause simulation");
             match self {
                 Self::Gameplay(session) => {

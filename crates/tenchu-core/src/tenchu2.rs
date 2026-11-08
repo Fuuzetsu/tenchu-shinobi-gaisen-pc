@@ -7,6 +7,7 @@ pub mod collision;
 pub mod control;
 pub mod effects;
 pub mod environment;
+pub mod hud;
 pub mod input;
 pub mod introduction;
 pub mod inventory;

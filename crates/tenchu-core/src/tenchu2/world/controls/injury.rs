@@ -323,6 +323,7 @@ impl<E: Events> Context<'_, E> {
             .others
             .get(id, actor)
             .ok_or("Missing Tenchu 2 event actor")?;
+        self.controls.observe(id, other, event);
         Events::emit(
             self.events,
             EventSource {

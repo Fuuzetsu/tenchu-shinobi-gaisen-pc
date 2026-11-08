@@ -1679,6 +1679,7 @@ fn native_teleport_moves_behind_its_target_after_the_delay() {
 fn native_marker_pickup_preserves_owner_and_return_point_rules() {
     use tenchu_core::tenchu2::items::State as ItemState;
     let (mut world, mut assets, guard) = fixture();
+    world.controls.unlocked_items[12] = false;
     world.actors[guard].actor.position = Position::new(-10000, 0, -10000);
     world.publish(guard, &assets);
     world.actors[0].actor.inventory.counts[12] = 2;

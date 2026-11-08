@@ -178,6 +178,7 @@ impl Events for Output<'_> {
             Event::SoundPosition { id, position } => (id, Some(position)),
             Event::SoundAt { id, positional } => (id, if positional { position } else { None }),
             Event::ShowHealth
+            | Event::Pickup(_)
             | Event::StealthTint
             | Event::Rumble { .. }
             | Event::Combat(CombatCue::Rumble { .. })
