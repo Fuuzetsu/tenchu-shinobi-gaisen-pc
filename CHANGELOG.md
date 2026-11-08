@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect native JP caltrops: four-piece scattering, wall-cover throws, landing
+  sounds and armed traps that can hurt guards or their owner. Available in the
+  internal JP preview.
+
 - Connect native JP grenades, mines and smoke bombs, including throws from cover,
   grenade bounces/duds and pickups, blast damage and smoke blindness. Restore
   positional explosion sounds for native fire arrows and explosives. Correct

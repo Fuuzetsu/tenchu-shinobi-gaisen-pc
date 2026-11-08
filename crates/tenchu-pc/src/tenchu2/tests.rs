@@ -12,6 +12,7 @@ mod source_audio;
 mod source_awareness;
 mod source_behavior;
 mod source_body;
+mod source_caltrops;
 mod source_combat;
 mod source_control;
 mod source_crouch;

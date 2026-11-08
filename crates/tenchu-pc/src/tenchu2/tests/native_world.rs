@@ -1009,3 +1009,67 @@ fn native_grenade_dud_can_be_retrieved_after_a_snapshot() {
         postcard::to_allocvec(&restored).unwrap()
     );
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; real item controls scatter four caltrops that can injure guards and their owner after landing"]
+fn native_caltrops_arm_on_landing_and_hit_both_sides() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.position.z = -8000;
+    world.publish(guard, &assets);
+    world.finish_tick(&assets, 6).unwrap();
+    world.actors[0].actor.inventory.counts[5] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(5).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut maximum = 0;
+    for _ in 0..120 {
+        world.actors[0].actor.pad.update(0);
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        world.animate_actor(0, &assets).unwrap();
+        maximum = maximum.max(world.items.entries.len());
+        world.update_items(&assets, &mut events).unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+    }
+    assert_eq!(maximum, 4);
+    assert_eq!(world.actors[0].actor.inventory.counts[5], 1);
+    assert!(
+        events
+            .0
+            .iter()
+            .any(|e| matches!(e, Event::SoundPosition { id: 53, .. }))
+    );
+    let remaining = world.items.entries.len();
+    assert!(remaining >= 2);
+    for who in [guard, 0] {
+        let position = world
+            .items
+            .entries
+            .iter()
+            .find_map(|entry| {
+                if let ItemState::Caltrop(c) = &entry.state {
+                    assert!(c.settled && c.owner.is_none());
+                    Some(c.flight.position)
+                } else {
+                    None
+                }
+            })
+            .unwrap();
+        let health = world.actors[who].actor.health;
+        world.actors[who].actor.position = position;
+        world.actors[who].actor.previous = position;
+        world.publish(who, &assets);
+        world.finish_tick(&assets, 6).unwrap();
+        world.move_actor(who, &assets, &mut events).unwrap();
+        world.actors[who].actor.pad.update(0);
+        world.control_actor(who, &mut assets, &mut events).unwrap();
+        assert!(
+            world.actors[who].actor.health < health,
+            "caltrop did not injure actor {who}"
+        );
+        world.update_items(&assets, &mut events).unwrap();
+    }
+    assert!(world.items.entries.len() <= remaining - 2);
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}

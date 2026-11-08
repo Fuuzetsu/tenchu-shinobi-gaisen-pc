@@ -16,7 +16,7 @@ or change saved graphics settings.
 
 Add `--loadout 4:20` for twenty shuriken. The normal item-selection and item-use
 bindings apply; the preview overlay shows the selected item ID and quantity.
-Use `--loadout 4:20,6:10,7:5,9:10,10:5` to add grenades (6), mines (7), fire
+Use `--loadout 4:20,5:5,6:10,7:5,9:10,10:5` to add caltrops (5), grenades (6), mines (7), fire
 arrows (9) and smoke bombs (10). Other inventory entries accept comma-separated
 `ID:COUNT` pairs, but their effects are still being connected.
 
@@ -31,7 +31,7 @@ Tenchu 2 pad mask for the requested ticks. `TENCHU_SETTINGS` selects a settings
 file for rendering; the separate `tenchu2-hd.tar.zst` pack is discovered normally.
 
 This preview uses JP actors, controls, AI, collision, water interaction, camera,
-scenery, grapple, shuriken/kunai, bows, fire arrows, firearms, grenades, mines,
+scenery, grapple, shuriken/kunai, caltrops, bows, fire arrows, firearms, grenades, mines,
 smoke bombs and particles.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc

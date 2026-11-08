@@ -102,6 +102,12 @@ impl World {
                     })?,
                     false,
                 ),
+                State::Caltrop(caltrop) => (
+                    caltrop.advance(model, &mut context, |event| {
+                        sink.emit(event, &mut self.random)
+                    })?,
+                    false,
+                ),
                 State::Gunshot(shot) => (
                     shot.advance(model, &mut context, |event| {
                         sink.emit(event, &mut self.random)

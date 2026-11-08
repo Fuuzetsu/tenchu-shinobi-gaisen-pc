@@ -163,6 +163,21 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            5 => {
+                let hand = self.item_origin(if actor.motion.action == 0x310 { 5 } else { 11 })?;
+                for caltrop in items::caltrop::Caltrop::scatter(
+                    self.index,
+                    hand,
+                    actor,
+                    self.camera.look.wrapping_sub(self.camera.eye),
+                    &self.math,
+                    random,
+                ) {
+                    self.items
+                        .insert(State::Caltrop(caltrop), self.scene, self.collision)?;
+                }
+                return Ok(());
+            }
             6 | 10 if item.index() == 6 || wall => {
                 let (origin, direction) = if wall {
                     let origin =

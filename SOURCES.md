@@ -2300,3 +2300,11 @@ now translates each representation separately. Native effect and item texture
 loading also follows `80017600`'s palette normalization: when no nonblack entry
 has an explicit STP bit, every nonzero entry gets that bit. Mixed palettes and
 transparent black are preserved.
+
+Native JP caltrops use `80055084` / `800553d0`. The four scatter directions,
+wall-cover hand/origin rules, RNG speeds, landing sound 53, owner clearing and
+body/contact flags follow those routines. `TENCHU2_CALTROP_ORACLE` checks 1,000
+original-executable scatters and terrain/contact updates. A connected-world test
+uses the actual item animation/inventory, waits for landing, then steps both a
+guard and the player onto separate traps. Contact lists are controlled in the
+source fixture; this is not a whole-mission comparison.

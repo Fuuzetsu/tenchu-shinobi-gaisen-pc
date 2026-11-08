@@ -1,5 +1,6 @@
 pub mod aim;
 pub mod arrow;
+pub mod caltrop;
 pub mod flight;
 pub mod grapple;
 pub mod grenade;
@@ -40,6 +41,7 @@ pub enum State {
     Grenade(grenade::Grenade),
     Mine(mine::Mine),
     Smoke(smoke::Smoke),
+    Caltrop(caltrop::Caltrop),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -126,6 +128,17 @@ impl Items {
                 );
                 shot.register(model, collision)?;
             }
+            State::Caltrop(caltrop) => {
+                caltrop.flight.floor = floor;
+                scene.update(
+                    model,
+                    Matrix {
+                        translation: caltrop.flight.position,
+                        ..Default::default()
+                    },
+                );
+                caltrop.register(model, collision)?;
+            }
             State::Grenade(grenade) => {
                 grenade.flight.floor = floor;
                 scene.update(model, grenade.transform);
@@ -161,6 +174,7 @@ impl Items {
             State::Grenade(grenade) => grenade.flight.floor,
             State::Mine(mine) => mine.floor,
             State::Smoke(smoke) => smoke.flight.floor,
+            State::Caltrop(caltrop) => caltrop.flight.floor,
             State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor));
