@@ -1538,3 +1538,12 @@ Native math reads each edition's PsyQ tables: 75,549 original-instruction
 trigonometry, angle and square-root cases per edition match the shared scalar
 math implementation (`TENCHU2_MATH_ORACLE`). The actor control foundation remains
 separate from the still-incomplete native AI, collision update and campaign loop.
+
+Native sentry turning and route following follow EU `80031ed4`, `800316a4`
+/ JP `80032b54`, `800322ac`. Route construction follows EU `800388a4`, including
+the return-to-home waypoint. JP pauses these behaviors during action `707` and
+can randomly request it while waiting or patrolling; EU omits those RNG calls.
+Source execution matches 320,000 sentry updates and 100,000 patrol updates per
+edition (`TENCHU2_SENTRY_ORACLE`, `TENCHU2_PATROL_ORACLE`), including obstacle
+responses, terrain probes, route timers and RNG state. Only the motion-request
+helper is stubbed in these checks; actor transition semantics are checked above.

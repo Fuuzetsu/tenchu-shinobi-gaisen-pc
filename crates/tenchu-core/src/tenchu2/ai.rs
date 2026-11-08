@@ -1,3 +1,8 @@
+mod patrol;
+pub use patrol::{Decision, ForcedInput, Patrol, PatrolInput, Probe, direction};
+mod sentry;
+pub use sentry::{Sentry, SentryInput};
+
 use crate::{Result, random::Random};
 use serde::{Deserialize, Serialize};
 
