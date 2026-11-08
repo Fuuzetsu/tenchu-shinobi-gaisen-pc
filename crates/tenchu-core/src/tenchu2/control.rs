@@ -3,6 +3,7 @@ use crate::{math::Math, random::Random};
 
 mod attack;
 mod crouch;
+mod damage;
 mod death;
 mod entry;
 mod hurt;
@@ -16,6 +17,7 @@ mod swimming;
 mod wall;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
 pub use crouch::{CrouchCue, CrouchInput};
+pub use damage::{DamageAttacker, DamageCue, DamageInput, DamageTarget, Hit};
 pub use death::{DeathCue, DeathInput, DeathPlayer, StealthPlayback};
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
 pub use hurt::{HurtCue, HurtInput};

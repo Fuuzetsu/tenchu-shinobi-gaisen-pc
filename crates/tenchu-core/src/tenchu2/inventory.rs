@@ -35,7 +35,7 @@ pub struct Inventory {
     pub counts: [u8; 20],
     pub selected: Option<Item>,
     pub active: Item,
-    pub searched: bool,
+    pub resurrections: u8,
 }
 
 impl Default for Inventory {
@@ -44,7 +44,7 @@ impl Default for Inventory {
             counts: [0; 20],
             selected: Some(Item::GRAPPLE),
             active: Item::GRAPPLE,
-            searched: false,
+            resurrections: 0,
         }
     }
 }

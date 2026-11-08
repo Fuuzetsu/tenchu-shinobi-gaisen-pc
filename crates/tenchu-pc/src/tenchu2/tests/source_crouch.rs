@@ -88,7 +88,7 @@ fn native_crouching_looting_carrying_and_wall_entry_match_source() {
         body.terrain = probe(&row["target_probe"]);
         body.position = vector(&row["target_position"]);
         body.inventory.counts = std::array::from_fn(|i| row["loot"][i].as_u64().unwrap() as u8);
-        body.inventory.searched = boolean("searched");
+        body.inventory.resurrections = if boolean("searched") { u8::MAX } else { 0 };
         let carry_body = body.clone();
         let mut scene = Scene::default();
         let rig = Rig::bind(&body, &mut scene, &resources.math);
@@ -205,12 +205,12 @@ fn native_crouching_looting_carrying_and_wall_entry_match_source() {
             "action":request.action,"mode": match request.velocity { Velocity::Stop => -1, Velocity::Keep => 0, Velocity::Motion => 1 },
             "input":held,"position":actor.position.to_array(),"velocity":actor.velocity.to_array(),
             "yaw":actor.rotation.y,"root_yaw":actor.motion.pose.rotation[0][1],"mask":actor.motion.mask,"history":actor.pad.history,
-            "inventory":actor.inventory.counts,"loot":body.inventory.counts,"searched":body.inventory.searched,"carried":carried,
+            "inventory":actor.inventory.counts,"loot":body.inventory.counts,"searched":body.inventory.resurrections != 0,"carried":carried,
             "scratch":probe_values(terrain.scratch),"current":surface(terrain.cursor.current),"last":surface(terrain.cursor.last),
             "material":terrain.cursor.material,"index":terrain.cursor.index,"wall_result":wall_result,"calls":calls
         });
         assert_eq!(actual, row["expected"], "case {id}: {}", row["op"]);
-        searched += usize::from(body.inventory.searched && !boolean("searched"));
+        searched += usize::from(body.inventory.resurrections != 0 && !boolean("searched"));
         carried_count += usize::from(carried);
         wall_count += usize::from(wall_result || request.action == 0x300);
     }

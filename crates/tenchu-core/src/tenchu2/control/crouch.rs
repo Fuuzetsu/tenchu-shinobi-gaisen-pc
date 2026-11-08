@@ -54,7 +54,7 @@ impl Actor {
                     && let Some(body) = input.body.as_deref_mut().filter(|body| {
                         body.health == 0
                             && body.motion.loops == i16::MIN
-                            && !body.inventory.searched
+                            && body.inventory.resurrections == 0
                     })
                 {
                     let delta = body.position.wrapping_sub(self.position);
@@ -84,7 +84,8 @@ impl Actor {
                                 self.inventory.counts[item].wrapping_add(*count);
                             *count = 0;
                         }
-                        body.inventory.searched = true;
+                        // Retail reuses the passive resurrection slot as the corpse-search marker.
+                        body.inventory.resurrections = u8::MAX;
                         cue(
                             self,
                             request,

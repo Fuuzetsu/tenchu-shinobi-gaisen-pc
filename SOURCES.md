@@ -1786,3 +1786,17 @@ and RNG execute; joint positions, collision mutations, floor alignment, particle
 and audio are recorded boundaries. Dropping, water movement, corpse dimensions,
 weapon events and interrupted kills retain source ordering. Paired-stealth setup,
 actual effects and native-world integration remain unfinished.
+
+Hit resolution follows EU `8001feac` / JP `800202bc`, including the original
+terrain ray, parry selection, armor/skill adjustments, contact disabling,
+projectile afflictions, resurrection and death transitions. Each edition matches
+41,400 original-code updates over all 23 maps (`TENCHU2_DAMAGE_ORACLE`): 232/292
+parries, 5,710/5,636 lethal hits and 2,305/2,311 resurrection dispatches. JP keeps
+its distinct guarding odds, knockback, projectile immunity, burning reset and
+map-19 inventory reward. Selection, terrain, direction, velocity and RNG execute
+original instructions. Published roots, contact displacement, motion advancement,
+weapon/effect/audio operations and score dispatch are controlled boundaries.
+The passive resurrection count at actor offset `0x164` also becomes the searched
+marker on corpses; the earlier boolean representation is now a byte. Both
+20,700-case corpse-search regressions still pass. Actual effect/projectile and
+world integration remain separate work.
