@@ -12,6 +12,20 @@ use crate::{
 use tenchu_assets::tenchu2::effects::Rules;
 
 impl Effects {
+    pub fn fuse(&mut self, position: Position, rules: &Rules, random: &mut Random) -> Result<()> {
+        let controls = std::array::from_fn(|i| {
+            Vector3::new(
+                if i & 1 == 0 { 10 } else { -10 },
+                -40 - (random.next15() % 20) as i16,
+                if i < 2 { 10 } else { -10 },
+            )
+        });
+        let mut points = Points::burst(position, controls, 2, rules);
+        points.color = [128, 128, 96];
+        points.blend = 1;
+        self.insert(Effect::Points(points))
+    }
+
     pub fn impact(
         &mut self,
         position: Position,

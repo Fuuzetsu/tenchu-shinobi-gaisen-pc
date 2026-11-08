@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect native JP grenades, mines and smoke bombs, including throws from cover,
+  grenade bounces/duds and pickups, blast damage and smoke blindness. Restore
+  positional explosion sounds for native fire arrows and explosives. Correct
+  native sprite blending and palette transparency so smoke, flames and sparks
+  no longer draw opaque rectangles. These changes apply to the
+  internal JP preview.
+
 - Connect native JP bows, fire arrows and firearms, including arrow attachment,
   deflection, explosions and the player's fire-arrow item. Fix mission setup
   leaving native guards' perception disabled and ranged combat failing when a

@@ -2269,3 +2269,34 @@ all-zero terminator; `80035740` still reads its zero combo timing rather than
 failing. Both loaded editions' terminators have been inspected. The 36,000 JP
 combat decision comparison now includes that terminator, and the 29,400 attack
 controller and attack-sequence regressions pass.
+
+
+Native JP grenades follow `80055a8c` / `80055d90`, mines `800560b0` / `800562b0`,
+and smoke bombs `80057444` / `80057870`. Throws from cover retain the sequential
+camera-direction adjustments and hand origins; terrain probes, bounce damping,
+wet duds, smoke expansion and explosion collision windows are original logic.
+The shared pickup callbacks `8005baa0` / `8005bdec` also recover grenade duds;
+explosions can ignite them again. Fuse sparks use `80041f58`, and positional
+explosion sound 51 follows `8003ec74`. Particle creation runs at the item call
+site so its RNG consumption precedes the grenade's detonation roll.
+
+`TENCHU2_EXPLOSIVE_ORACLE` compares 2,937 original constructors/updates across JP
+maps, with 63 source null-terrain dereferences excluded. Projection, contact
+lists and non-fuse effect calls are controlled boundaries. The 600 mixed
+particle sequences now include actual fuse allocation, particle geometry,
+RNG, expiry and pool replacement. Connected-world checks cover player inventory
+use, blast damage, smoke blindness and recovering a quenched grenade across a
+snapshot. Mines/smoke store yaw in an unused source root-angle field; their draw
+routine uses the separate, zeroed item angles. No game assets or captures are
+included in these implementations or tests.
+
+Native effect blending follows the sprite attributes initialized by `8003a44c`
+through `80043154` / `8004324c` / `800433c4`, not the TIM page's default blend
+bits. The original initializer has been executed with controlled archive/image
+inputs to inspect all 26 GsSPRITE records; smoke uses additive blending and
+explosion smoke subtractive blending. Scenery supplies a raw ABR value, while
+point effects use `80043518` / `8004368c`'s enable bit plus ABR. The renderer
+now translates each representation separately. Native effect and item texture
+loading also follows `80017600`'s palette normalization: when no nonblack entry
+has an explicit STP bit, every nonzero entry gets that bit. Mixed palettes and
+transparent black are preserved.

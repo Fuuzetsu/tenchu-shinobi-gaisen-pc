@@ -71,7 +71,7 @@ impl<E: Events> Driver<'_, E> {
                         };
                         c.fire_arrow(actor, direction, distance, &mut self.terrain, random)
                     } else {
-                        c.emit(actor, Event::UseItem { item, direction }, random)
+                        c.use_item(actor, item, direction, &mut self.terrain, random)
                     }
                 }
                 ItemCue::Medicine(effect) => c.emit(actor, Event::Medicine(effect), random),
@@ -150,6 +150,94 @@ impl<E: Events> Driver<'_, E> {
 }
 
 impl<E: Events> Context<'_, E> {
+    pub(super) fn use_item(
+        &mut self,
+        actor: &mut Actor,
+        item: Item,
+        direction: Option<Position>,
+        terrain: &mut Terrain<'_>,
+        random: &mut Random,
+    ) -> Result<()> {
+        use crate::tenchu2::items::{
+            self, State, flight::Flight, grenade::Grenade, mine::Mine, smoke::Smoke,
+        };
+        let wall = matches!(actor.motion.action, 0x310 | 0x311);
+        let state = match item.index() {
+            6 | 10 if item.index() == 6 || wall => {
+                let (origin, direction) = if wall {
+                    let origin =
+                        self.item_origin(if actor.motion.action == 0x310 { 5 } else { 11 })?;
+                    items::wall_throw(
+                        origin,
+                        actor.position,
+                        self.camera.look.wrapping_sub(self.camera.eye),
+                        actor.motion.action,
+                    )
+                } else {
+                    (
+                        self.item_origin(11)?,
+                        direction.ok_or("Missing Tenchu 2 grenade direction")?,
+                    )
+                };
+                let flight = Flight::thrown(
+                    origin,
+                    actor.position,
+                    direction,
+                    if wall { 150 } else { 300 },
+                    terrain.map,
+                    terrain.cursor,
+                    &self.math,
+                )?;
+                if item.index() == 6 {
+                    State::Grenade(Grenade::launch(self.index, flight))
+                } else {
+                    State::Smoke(Smoke::thrown(self.index, flight))
+                }
+            }
+            7 => {
+                let origin = self.item_origin(11)?;
+                let mut failed = None;
+                let mine = Mine::place(
+                    self.index,
+                    actor.rotation.y,
+                    origin,
+                    terrain.map,
+                    terrain.cursor,
+                    &self.math,
+                    |cue| {
+                        failed = Some(cue);
+                        Ok(())
+                    },
+                )?;
+                let Some(mine) = mine else {
+                    actor.inventory.counts[7] = actor.inventory.counts[7].wrapping_add(1);
+                    if let Some(items::Event::Sound { position, id }) = failed {
+                        self.emit(actor, Event::SoundPosition { position, id }, random)?;
+                    }
+                    return Ok(());
+                };
+                State::Mine(mine)
+            }
+            10 => {
+                let origin = self.item_origin(1)?;
+                let Some(smoke) = Smoke::place(
+                    self.index,
+                    actor.rotation.y,
+                    origin,
+                    terrain.map,
+                    terrain.cursor,
+                    &self.math,
+                )?
+                else {
+                    return Ok(());
+                };
+                State::Smoke(smoke)
+            }
+            _ => return self.emit(actor, Event::UseItem { item, direction }, random),
+        };
+        self.items.insert(state, self.scene, self.collision)
+    }
+
     pub(super) fn fire(
         &mut self,
         actor: &Actor,

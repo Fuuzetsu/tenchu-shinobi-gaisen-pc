@@ -2,8 +2,11 @@ pub mod aim;
 pub mod arrow;
 pub mod flight;
 pub mod grapple;
+pub mod grenade;
 pub mod gun;
+pub mod mine;
 pub mod projectile;
+pub mod smoke;
 
 use crate::{
     Result,
@@ -34,6 +37,9 @@ pub enum State {
     Projectile(projectile::Projectile),
     Arrow(arrow::Arrow),
     Gunshot(gun::Gunshot),
+    Grenade(grenade::Grenade),
+    Mine(mine::Mine),
+    Smoke(smoke::Smoke),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -50,9 +56,14 @@ pub enum Event {
     Alert(Position),
     Explosion {
         position: Position,
+        kind: u8,
         contact: bool,
     },
-    Smoke(Position),
+    Smoke {
+        position: Position,
+        kind: u8,
+    },
+    Fuse(Position),
 }
 
 pub struct Context<'a> {
@@ -115,6 +126,22 @@ impl Items {
                 );
                 shot.register(model, collision)?;
             }
+            State::Grenade(grenade) => {
+                grenade.flight.floor = floor;
+                scene.update(model, grenade.transform);
+                grenade.register(model, collision)?;
+            }
+            State::Mine(mine) => {
+                scene.update(model, mine.transform);
+                mine.register(model, collision)?;
+            }
+            State::Smoke(smoke) => {
+                if smoke.age == 0 {
+                    smoke.flight.floor = floor;
+                }
+                scene.update(model, smoke.transform);
+                smoke.register(model, collision)?;
+            }
             State::Grapple(_) => {}
         }
         self.entries.push(Entry {
@@ -131,10 +158,32 @@ impl Items {
         let floor = match entry.state {
             State::Projectile(projectile) => projectile.flight.floor,
             State::Arrow(arrow) => arrow.flight.floor,
+            State::Grenade(grenade) => grenade.flight.floor,
+            State::Mine(mine) => mine.floor,
+            State::Smoke(smoke) => smoke.flight.floor,
             State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor));
     }
+}
+
+pub fn wall_throw(
+    mut origin: Position,
+    actor: Position,
+    mut direction: Position,
+    action: i16,
+) -> (Position, Position) {
+    direction.y = 0;
+    if action == 0x310 {
+        direction.x = direction.x.wrapping_sub(direction.z >> 2);
+        direction.z = direction.z.wrapping_add(direction.x >> 2);
+    } else {
+        direction.x = direction.x.wrapping_add(direction.z >> 2);
+        direction.z = direction.z.wrapping_sub(direction.x >> 2);
+    }
+    origin.x = origin.x.wrapping_add(origin.x.wrapping_sub(actor.x));
+    origin.z = origin.z.wrapping_add(origin.z.wrapping_sub(actor.z));
+    (origin, direction)
 }
 
 fn facing(direction: Position, vertical: i32, math: &Math) -> [[i16; 3]; 3] {

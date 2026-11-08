@@ -146,15 +146,22 @@ fn native_ranged_weapons_match_original_flight_embedding_and_damage_windows() {
                     cues.push(json!(["sound", position.to_array(), id]))
                 }
                 Event::Alert(p) => cues.push(json!(["alert", p.to_array(), 1])),
-                Event::Explosion { position, contact } => {
-                    cues.push(json!(["explode", position.to_array(), 1]));
+                Event::Explosion {
+                    position,
+                    contact,
+                    kind,
+                } => {
+                    cues.push(json!(["explode", position.to_array(), kind]));
                     cues.push(json!([
                         "alert",
                         position.to_array(),
                         if contact { 2 } else { 3 }
                     ]));
                 }
-                Event::Smoke(p) => cues.push(json!(["smoke", p.to_array(), 3])),
+                Event::Smoke { position, kind } => {
+                    cues.push(json!(["smoke", position.to_array(), kind]))
+                }
+                Event::Fuse(_) => panic!("Unexpected fuse"),
             }
             Ok(())
         };

@@ -29,7 +29,7 @@ impl Items {
         }
         let mut vram = Vram::default();
         let images = (0..count)
-            .map(|i| vram.upload_tim(arc_entry(&data, i)?))
+            .map(|i| super::texture::upload(&mut vram, arc_entry(&data, i)?))
             .collect::<Result<_>>()?;
         let models = [
             (0, "kagihead"),

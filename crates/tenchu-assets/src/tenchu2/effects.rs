@@ -24,7 +24,7 @@ impl Sprites {
                 return Err("Excessive Tenchu 2 effect texture count".into());
             }
             (0..count)
-                .map(|i| vram.upload_tim(arc_entry(&bytes, i)?))
+                .map(|i| super::texture::upload(&mut vram, arc_entry(&bytes, i)?))
                 .collect::<Result<Vec<_>>>()
         };
         let effects = load(r"o:\cdimage\game\effect", "effect.arc")?;

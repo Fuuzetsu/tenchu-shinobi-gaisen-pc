@@ -342,6 +342,9 @@ impl Models {
             use tenchu_core::tenchu2::items::{State, arrow::Phase};
             let (model, transform, rotation) = match &entry.state {
                 State::Projectile(p) => (p.model(), p.transform, p.rotation),
+                State::Grenade(g) if g.visible => (6, g.transform, [0; 3]),
+                State::Mine(m) => (7, m.transform, [0; 3]),
+                State::Smoke(s) => (10, s.transform, [0; 3]),
                 State::Arrow(arrow) => {
                     if arrow.flame {
                         let image =
@@ -393,12 +396,12 @@ impl Models {
                 sprite.rotation,
                 [f32::from(sprite.color) / 128.0; 3],
                 Some(sprite.image),
-                sprite.blend,
+                sprite.blend + 1,
             );
         }
         for sprite in &frame.effects.sprites {
             let image = assets.sprites.effects[usize::from(sprite.image)];
-            let blend = blend(sprite.blend, image);
+            let blend = blend(sprite.blend, sprite.image);
             let projected = output.project(sprite.position);
             if projected[2] <= 0.0 {
                 continue;
@@ -422,7 +425,11 @@ impl Models {
                 0,
                 point.color.map(|v| f32::from(v) / 255.0),
                 None,
-                point.blend,
+                if point.blend & 4 != 0 {
+                    (point.blend & 3) + 1
+                } else {
+                    0
+                },
             );
         }
         for quad in &frame.effects.quads {
@@ -440,7 +447,7 @@ impl Models {
                     .map(|v| v as f32)
                     .to_array()
             });
-            let blend = blend(quad.blend, image);
+            let blend = blend(quad.blend, quad.image);
             let mut vertices = render_effects::quad(
                 points,
                 [quad.color.map(|v| f32::from(v) / 128.0); 4],
@@ -461,9 +468,15 @@ impl Models {
     }
 }
 
-fn blend(blend: Blend, image: Image) -> u8 {
+fn blend(blend: Blend, image: u8) -> u8 {
     match blend {
-        Blend::Texture => ((image.page >> 5) & 3) as u8 + 1,
+        // 8003a44c configures GsSPRITE attributes separately from the TIM page.
+        Blend::Texture => match image {
+            1 | 5 | 11 | 18 | 27 | 31 => 0,
+            24 | 25 | 28 => 3,
+            30 => 1,
+            _ => 2,
+        },
         Blend::Opaque => 0,
         Blend::Add => 2,
         Blend::SubtractMask => 3,

@@ -70,6 +70,7 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
                 ),
                 "flash" => effects.flash(position(), kind() != 0),
                 "explosion" => effects.explosion(position(), kind(), &math, &mut random),
+                "fuse" => effects.fuse(position(), &rules, &mut random),
                 "heal" => effects.heal(&rig, kind(), &rules, &mut random),
                 _ => panic!("Unknown particle command"),
             }

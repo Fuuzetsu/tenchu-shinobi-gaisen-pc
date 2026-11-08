@@ -196,6 +196,7 @@ impl<E: Events> Driver<'_, E> {
             allowed: c.controls.wall_allowed,
             camera: input.camera,
         };
+        let mut thrown = None;
         actor.update_wall(
             request,
             &mut wall,
@@ -207,13 +208,14 @@ impl<E: Events> Driver<'_, E> {
                     WallCue::Recover => c.recover(actor, request, held)?,
                     WallCue::Voice(id) => c.emit(actor, Event::Voice(id), self.random)?,
                     WallCue::Sound(sound) => c.emit(actor, Event::ItemSound(sound), self.random)?,
-                    WallCue::Throw { item, direction } => {
-                        c.emit(actor, Event::ThrowItem { item, direction }, self.random)?
-                    }
+                    WallCue::Throw { item, direction } => thrown = Some((item, direction)),
                 }
                 Ok(())
             },
         )?;
+        if let Some((item, direction)) = thrown {
+            c.use_item(actor, item, Some(direction), &mut self.terrain, self.random)?;
+        }
         input.held = wall.held;
         input.camera = wall.camera;
         Ok(())

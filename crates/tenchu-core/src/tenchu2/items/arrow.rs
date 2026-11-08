@@ -297,7 +297,10 @@ impl Arrow {
         self.publish(model, context);
         self.flame = true;
         if tick & 3 == 0 {
-            emit(Event::Smoke(self.flight.position))?;
+            emit(Event::Smoke {
+                position: self.flight.position,
+                kind: 3,
+            })?;
         }
         for hit in contacts {
             if context
@@ -327,6 +330,7 @@ impl Arrow {
             self.phase = Phase::Exploding(1);
         }
         emit(Event::Explosion {
+            kind: 1,
             position: self.flight.position,
             contact,
         })

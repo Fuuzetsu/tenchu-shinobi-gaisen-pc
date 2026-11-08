@@ -834,5 +834,178 @@ fn native_player_fire_arrow_uses_inventory_and_burns_a_guard() {
         world.actors[guard].actor.health < before,
         "fire arrow caused no damage"
     );
+    assert!(
+        events
+            .0
+            .iter()
+            .any(|e| matches!(e, Event::SoundPosition { id: 51, .. }))
+    );
     assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; connected grenade/mine damage, smoke affliction and inventory use"]
+fn native_explosives_damage_and_smoke_blinds_through_item_controls() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    for item in [6, 7, 10] {
+        let (mut world, mut assets, guard) = fixture();
+        world.actors[guard].actor.position.z = -1800;
+        world.actors[guard].actor.previous = world.actors[guard].actor.position;
+        world.publish(guard, &assets);
+        world.finish_tick(&assets, 6).unwrap();
+        world.actors[0].actor.inventory.counts[item] = 2;
+        world.actors[0].actor.inventory.selected = Some(Item::try_from(item as u8).unwrap());
+        world.actors[0].actor.pad.update(ITEM);
+        let mut events = Recorded::default();
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        let health = world.actors[guard].actor.health;
+        let mut created = false;
+        let mut blinded = false;
+        for _ in 0..180 {
+            for i in [0, guard] {
+                world.move_actor(i, &assets, &mut events).unwrap();
+                world.actors[i].actor.pad.update(0);
+                world.control_actor(i, &mut assets, &mut events).unwrap();
+                world.animate_actor(i, &assets).unwrap();
+            }
+            world.update_items(&assets, &mut events).unwrap();
+            if item == 7
+                && !created
+                && let Some(position) = world.items.entries.iter().find_map(|entry| {
+                    if let ItemState::Mine(mine) = &entry.state {
+                        Some(mine.transform.translation)
+                    } else {
+                        None
+                    }
+                })
+            {
+                world.actors[guard].actor.position = position;
+                world.actors[guard].actor.previous = position;
+                world.publish(guard, &assets);
+            }
+            created |= world.items.entries.iter().any(|entry| {
+                matches!(
+                    (item, &entry.state),
+                    (6, ItemState::Grenade(_))
+                        | (7, ItemState::Mine(_))
+                        | (10, ItemState::Smoke(_))
+                )
+            });
+            blinded |= world.actors[guard].actor.flags & 0x200 != 0;
+            world.update_effects().unwrap();
+            world.finish_tick(&assets, 6).unwrap();
+        }
+        assert!(created, "item {item} never appeared");
+        assert_eq!(
+            world.actors[0].actor.inventory.counts[item], 1,
+            "item {item} count"
+        );
+        let sound = if item == 10 { 52 } else { 51 };
+        assert!(
+            events
+                .0
+                .iter()
+                .any(|event| matches!(event, Event::SoundPosition { id, .. } if *id == sound)),
+            "item {item} did not play sound {sound}"
+        );
+        if item == 10 {
+            assert!(blinded, "smoke failed to blind the guard");
+        } else {
+            assert!(
+                world.actors[guard].actor.health < health,
+                "item {item} caused no damage"
+            );
+        }
+        assert!(
+            !events
+                .0
+                .iter()
+                .any(|event| matches!(event, Event::UseItem { .. }))
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; water quenches grenades into recoverable items, surviving snapshot restore"]
+fn native_grenade_dud_can_be_retrieved_after_a_snapshot() {
+    use tenchu_core::tenchu2::items::{
+        State as ItemState, flight::Flight, grenade::Grenade, projectile::Phase,
+    };
+    let (mut world, assets, guard) = fixture();
+    world.actors[guard].actor.flags |= 8;
+    for &joint in &world.instances[guard].rig.joints {
+        world.collision.remove(joint);
+    }
+    let grenade = Grenade::launch(
+        0,
+        Flight {
+            position: Position::new(4000, -100, 0),
+            gravity: 16,
+            submerged: true,
+            ..Default::default()
+        },
+    );
+    world
+        .items
+        .insert(
+            ItemState::Grenade(grenade),
+            &mut world.scene,
+            &mut world.collision,
+        )
+        .unwrap();
+    let mut events = Recorded::default();
+    for _ in 0..10 {
+        world.update_items(&assets, &mut events).unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+    }
+    assert!(
+        matches!(world.items.entries[0].state, ItemState::Grenade(ref g) if g.phase == Phase::Resting)
+    );
+    assert!(
+        !events
+            .0
+            .iter()
+            .any(|e| matches!(e, Event::SoundPosition { id: 51, .. }))
+    );
+    let mut triggered = world.clone();
+    let blast = triggered.scene.add(
+        None,
+        tenchu_core::math::Matrix {
+            translation: Position::new(4000, 0, 0),
+            ..Default::default()
+        },
+    );
+    let slot = triggered.collision.insert(blast).unwrap();
+    slot.flags = 0x5106;
+    slot.size = Vector3::new(1000, 1000, 1000);
+    triggered.finish_tick(&assets, 6).unwrap();
+    triggered.update_items(&assets, &mut events).unwrap();
+    assert!(matches!(triggered.items.entries[0].state,
+        ItemState::Grenade(ref g) if g.phase == Phase::Flying && g.age == 256));
+    assert!(
+        events
+            .0
+            .iter()
+            .any(|e| matches!(e, Event::SoundPosition { id: 51, .. }))
+    );
+    for _ in 0..4 {
+        triggered.update_items(&assets, &mut events).unwrap();
+        triggered.finish_tick(&assets, 6).unwrap();
+    }
+    assert!(triggered.items.entries.is_empty());
+
+    let mut restored: World =
+        postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap();
+    for world in [&mut world, &mut restored] {
+        world.actors[0].actor.position = Position::new(4000, 0, 0);
+        world.publish(0, &assets);
+        world.finish_tick(&assets, 6).unwrap();
+        world.update_items(&assets, &mut events).unwrap();
+        assert!(world.items.entries.is_empty());
+        assert_eq!(world.actors[0].actor.inventory.counts[6], 1);
+    }
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored).unwrap()
+    );
 }

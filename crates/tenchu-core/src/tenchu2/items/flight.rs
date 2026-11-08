@@ -30,6 +30,75 @@ pub enum Contact {
 }
 
 impl Flight {
+    pub fn settle(
+        &mut self,
+        falling: bool,
+        model: crate::scene::ModelId,
+        transform: &mut crate::math::Matrix,
+        context: &mut super::Context<'_>,
+    ) -> Result<bool> {
+        let mut next = falling;
+        if !falling {
+            let probe = self.position.wrapping_sub(Position::new(0, 300, 0));
+            if let Some(floor) =
+                terrain::level(context.map, context.cursor, probe, Query::Uncached)?
+            {
+                self.floor = floor;
+                next = floor != self.position.y;
+            }
+        }
+        transform.translation = self.position;
+        context.scene.update(model, *transform);
+        if falling {
+            let blocked = context.collision.contacts(model).any(|hit| {
+                context
+                    .collision
+                    .slot(hit.index)
+                    .is_some_and(|slot| slot.flags & crate::tenchu2::collision::BODY == 0)
+            });
+            if blocked {
+                next = false;
+            } else {
+                self.position.y = self.position.y.wrapping_add(180);
+                if self.floor < self.position.y {
+                    self.position.y = self.floor;
+                    next = false;
+                }
+            }
+        }
+        Ok(next)
+    }
+
+    pub fn thrown(
+        mut origin: Position,
+        fallback: Position,
+        direction: Position,
+        speed: i32,
+        map: &Collision,
+        cursor: &mut Cursor,
+        math: &Math,
+    ) -> Result<Self> {
+        let normal = math.normalize_vector(direction);
+        if terrain::level(map, cursor, origin, Query::Surface)?.is_none() {
+            origin = fallback;
+        }
+        Ok(Self {
+            position: origin,
+            velocity: normal.map(|v| v.wrapping_mul(speed) >> 12),
+            speed,
+            gravity: 16,
+            ..Default::default()
+        })
+    }
+
+    pub fn bounce(&mut self) {
+        self.speed >>= 1;
+        self.gravity = 16;
+        self.velocity.x >>= 1;
+        self.velocity.y = (self.velocity.y >> 1).wrapping_neg();
+        self.velocity.z >>= 1;
+    }
+
     pub fn advance(
         &mut self,
         motion: Motion,

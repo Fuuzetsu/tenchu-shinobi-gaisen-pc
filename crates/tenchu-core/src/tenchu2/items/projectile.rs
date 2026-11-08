@@ -6,10 +6,7 @@ use crate::{
     Result,
     math::{Math, Matrix, Position, Vector3},
     scene::ModelId,
-    tenchu2::{
-        collision::{BODY, Collision, WEAPON},
-        terrain::{self, Query},
-    },
+    tenchu2::collision::{BODY, Collision, WEAPON},
 };
 use serde::{Deserialize, Serialize};
 
@@ -225,37 +222,16 @@ impl Projectile {
     }
 
     fn settled(&mut self, model: ModelId, context: &mut Context<'_>) -> Result<bool> {
-        let phase = self.phase;
-        if phase == Phase::Resting {
-            let probe = self.flight.position.wrapping_sub(Position::new(0, 300, 0));
-            if let Some(floor) =
-                terrain::level(context.map, context.cursor, probe, Query::Uncached)?
-            {
-                self.flight.floor = floor;
-                if floor != self.flight.position.y {
-                    self.phase = Phase::Falling;
-                }
-            }
-        }
-        self.transform.translation = self.flight.position;
-        context.scene.update(model, self.transform);
-        if phase == Phase::Falling {
-            let blocked = context.collision.contacts(model).any(|hit| {
-                context
-                    .collision
-                    .slot(hit.index)
-                    .is_some_and(|slot| slot.flags & BODY == 0)
-            });
-            if blocked {
-                self.phase = Phase::Resting;
-            } else {
-                self.flight.position.y = self.flight.position.y.wrapping_add(180);
-                if self.flight.floor < self.flight.position.y {
-                    self.flight.position.y = self.flight.floor;
-                    self.phase = Phase::Resting;
-                }
-            }
-        }
+        self.phase = if self.flight.settle(
+            self.phase == Phase::Falling,
+            model,
+            &mut self.transform,
+            context,
+        )? {
+            Phase::Falling
+        } else {
+            Phase::Resting
+        };
         Ok(true)
     }
 }
