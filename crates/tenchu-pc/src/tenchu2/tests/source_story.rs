@@ -107,6 +107,7 @@ fn native_story_models_load_from_their_event_bundles() {
     let mut weapons = 0;
     let mut captions = 0;
     let mut voices = 0;
+    let mut characters = std::collections::BTreeSet::new();
     for event in events {
         let resources =
             Resources::load(&disc, event).unwrap_or_else(|e| panic!("event {event}: {e}"));
@@ -135,17 +136,12 @@ fn native_story_models_load_from_their_event_bundles() {
             );
             voices += 1;
         }
-        captions += resources
-            .script
-            .commands
-            .iter()
-            .filter(|command| {
-                matches!(
-                    command.command,
-                    tenchu_assets::tenchu2::story::Command::Caption { .. }
-                )
-            })
-            .count();
+        for command in &resources.script.commands {
+            if let tenchu_assets::tenchu2::story::Command::Caption { text, .. } = &command.command {
+                captions += 1;
+                characters.extend(text.chars().filter(|c| !c.is_control()));
+            }
+        }
         for picture in resources.portraits.iter().chain(&resources.pictures) {
             assert_eq!(
                 picture.rgba.len(),
@@ -162,6 +158,20 @@ fn native_story_models_load_from_their_event_bundles() {
     assert!(weapons > 100);
     assert!(captions > 1000);
     assert!(voices > 100);
+    let context = egui::Context::default();
+    crate::fonts::install(&context);
+    let _ = context.run(Default::default(), |context| {
+        context.fonts(|fonts| {
+            for character in &characters {
+                if *character != '?' {
+                    assert!(
+                        fonts.has_glyph(&crate::fonts::id(14.0), *character),
+                        "Missing JP story character {character:?}"
+                    );
+                }
+            }
+        });
+    });
     eprintln!(
         "{models} native JP story model placements, {weapons} weapon attachments, {captions} captions and {voices} playable XA cues loaded"
     );
@@ -225,4 +235,54 @@ fn native_story_tracks_match_original_event_animations() {
     }
     assert!(checked > 3000);
     eprintln!("{checked} original JP event animation states; all 142 campaign events parsed");
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_OVERLAYS_ORACLE; original command/overlay timing"]
+fn native_story_presentation_matches_original_timers_and_draw_skips() {
+    use tenchu_core::tenchu2::story::Presentation;
+    #[derive(Deserialize)]
+    struct Case {
+        event: u16,
+        states: Vec<serde_json::Value>,
+    }
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut checked = 0;
+    for case in super::source_control::cases::<Case>("TENCHU2_STORY_OVERLAYS_ORACLE") {
+        let script = Script::load(&disc, case.event).unwrap();
+        let mut presentation = Presentation::default();
+        for expected in case.states {
+            let mut expected = expected.as_object().unwrap().clone();
+            let frame = expected.remove("frame").unwrap().as_i64().unwrap() as i16;
+            let draw = expected.remove("draw").unwrap().as_bool().unwrap();
+            let output = presentation.update(&script, frame, draw);
+            let actual = serde_json::json!({
+                "fade": presentation.fade,
+                "tint": presentation.tint,
+                "warp": presentation.warp,
+                "portraits": presentation.portraits,
+                "picture": presentation.picture,
+                "remaining": presentation.caption.map_or(0, |c| c.remaining),
+                "caption_shown": output.caption.is_some(),
+                "picture_shown": output.picture,
+                "camera_roll": presentation.camera_roll,
+                "weather": presentation.weather,
+                "overlays": output.overlays,
+            });
+            assert_eq!(
+                actual,
+                serde_json::Value::Object(expected),
+                "event {} frame {frame}",
+                case.event
+            );
+            if frame % 37 == 0 {
+                presentation =
+                    serde_json::from_value(serde_json::to_value(&presentation).unwrap()).unwrap();
+            }
+            checked += 1;
+        }
+    }
+    assert!(checked > 10_000);
+    eprintln!("{checked} original JP command/overlay updates, including draw skips");
 }

@@ -99,14 +99,16 @@ pub(super) fn parse(data: &[u8]) -> Result<Vec<TimedCommand>> {
                 subtract: false,
             },
             28 => Command::ClearTint,
-            30 | 31 => Command::Tint {
-                rgb: [
-                    heading as u8,
-                    i16_le(row, 20)? as u8,
-                    i16_le(row, 24)? as u8,
-                ],
-                subtract: id == 31,
-            },
+            30 | 31 => {
+                let color = (i32::from(heading) << 16)
+                    | (i32::from(i16_le(row, 20)?) << 8)
+                    | i32::from(i16_le(row, 24)?);
+                let [r, g, b, _] = color.to_le_bytes();
+                Command::Tint {
+                    rgb: [r, g, b],
+                    subtract: id == 31,
+                }
+            }
             35 | 36 => Command::Weather(id == 36),
             37 => {
                 let start = caption;

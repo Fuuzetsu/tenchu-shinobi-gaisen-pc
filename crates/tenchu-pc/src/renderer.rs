@@ -434,6 +434,10 @@ impl Renderer {
         meshes.bind(|material| self.materials.bind(material));
     }
 
+    pub fn bind_material(&mut self, material: &crate::visuals::models::Material) -> u32 {
+        self.materials.bind(material)
+    }
+
     pub fn reset_vram(&mut self, vram: &Vram) {
         self.decals.clear();
         self.decal_sources.clear();

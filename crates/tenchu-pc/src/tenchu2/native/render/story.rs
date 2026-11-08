@@ -7,15 +7,17 @@ use tenchu_assets::{
     tenchu2::{
         level::{Level, objects::StaticKind},
         math_tables, motions,
-        story::{Command, Resources},
+        story::Resources,
     },
 };
 use tenchu_core::{
     math::{Math, Matrix},
     motion::Pose,
     random::Random,
-    tenchu2::story::{Faces, Motion, TextureChange},
+    tenchu2::story::{Faces, Motion, Presentation, PresentationFrame, TextureChange},
 };
+
+mod overlay;
 
 pub(in crate::tenchu2::native) fn capture(
     disc: &Disc<impl ReadAt>,
@@ -36,22 +38,14 @@ pub(in crate::tenchu2::native) fn capture(
     let mut actors: Vec<_> = resources.script.actors.iter().map(Motion::new).collect();
     let mut faces = Faces::new(&resources);
     let mut random = Random::new(seed);
-    let mut roll = 0;
+    let mut presentation = Presentation::default();
+    let mut overlay = PresentationFrame::default();
     let mut view = Matrix::default();
     let frame = tick.min(resources.script.duration as u32 - 1) as i16;
     for frame in 0..=frame {
         camera.update(&resources.script.camera, frame, &basis)?;
-        view = camera.camera_view(roll, &math)?;
-        for command in resources
-            .script
-            .commands
-            .iter()
-            .filter(|c| c.frame == frame)
-        {
-            if let Command::CameraRoll(value) = command.command {
-                roll = i32::from(value);
-            }
-        }
+        view = camera.camera_view(i32::from(presentation.camera_roll), &math)?;
+        overlay = presentation.update(&resources.script, frame, true);
         for change in faces.update(&resources.script.expressions, frame, true, &mut random) {
             if let TextureChange::Patch { model, index } = change {
                 resources.faces[&model][usize::from(index)]
@@ -166,15 +160,16 @@ pub(in crate::tenchu2::native) fn capture(
                 )?;
             }
         }
+        let texts = overlay::append(&mut output, &resources, &overlay, renderer, event);
         let geometry = Geometry {
             terrain: output.terrain,
             actors: output.actors,
             effects: render_effects::surface_geometry(output.surfaces),
         };
-        Ok((SceneDrawing::new(geometry, renderer), view))
+        Ok((SceneDrawing::new(geometry, renderer), view, texts))
     })?;
     eprintln!(
-        "Native JP event {event}, sequence {sequence}, frame {frame}: {} actor tracks. Motion/texture inspection only; timed effects, dialogue, fades and sound are not presented by this capture.",
+        "Native JP event {event}, sequence {sequence}, frame {frame}: {} actor tracks. Scene/overlay inspection only; timed 3D effects, distortion and sound are not presented by this capture.",
         actors.len()
     );
     Ok(())

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add JP cutscene camera/cast inspection, original name cards and pictures,
+  Japanese captions and fade timing to the internal preview. Live story playback
+  and campaign transitions remain in progress.
+
 - Add native JP scoring, mission records, supply rewards and unlock rules.
   The internal preview shows these for areas that lead directly to results;
   story transitions and the original results presentation remain in progress.

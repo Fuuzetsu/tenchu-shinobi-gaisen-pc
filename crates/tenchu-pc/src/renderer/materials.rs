@@ -153,7 +153,7 @@ impl Entry {
             |image| (**image).clone(),
         );
         let replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
-        let authored = replacement.is_some();
+        let authored = self.region.is_none() || replacement.is_some();
         let scrolling = replacement.is_some() && self.scroll.is_some();
         let surface = replacement.and_then(|_| surfaces.get(&self.id));
         let world_tile = surface.and_then(|s| s.world_tile);

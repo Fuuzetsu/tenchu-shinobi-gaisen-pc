@@ -4,6 +4,8 @@ use tenchu_assets::tenchu2::story::{Animation, Key};
 
 mod faces;
 pub use faces::{Face, Faces, TextureChange};
+mod presentation;
+pub use presentation::{Overlay, Presentation, PresentationFrame};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Motion {

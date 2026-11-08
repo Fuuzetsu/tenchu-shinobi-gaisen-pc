@@ -2514,5 +2514,15 @@ The internal `render-t2-jp` tool can inspect event camera, cast, expressions and
 weapons. Root translation replaces the first joint's bind offset, as in
 `800d3554`; camera construction follows `800d2c7c`. Private scene captures were
 visually checked for the training introduction and event 4. This capture does
-not yet present timed effects, dialogue, fades or sound, and is not a complete
-cutscene player or campaign integration.
+not yet constitute a complete cutscene player or campaign integration.
+
+JP story presentation timers follow `800d12cc`, `800d42b4`, `800d4c20` and
+`800d52b4`: fade/tint order, portrait holds, picture transitions, caption timing,
+camera roll and weather switches. `TENCHU2_STORY_OVERLAYS_ORACLE` compares 15,508
+original-instruction updates from six events, including draw skips and snapshot
+continuation. GPU calls and particle constructors are intercepted; the picture
+countdown from the outer loop is modeled separately. Event inspection now draws
+the original picture/name-card assets, letterboxing and Japanese captions. All
+1,339 captions are covered by the bundled outline font. A GPU regression checks
+standalone picture materials and background dimming with and without HD artwork.
+Timed 3D effects, distortion, sound and ordinary campaign playback remain pending.

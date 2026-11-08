@@ -203,3 +203,95 @@ fn world_and_hud_sprite_replacements_preserve_blend_classes() {
         graphics.upscale = 1;
     }
 }
+
+#[test]
+#[ignore = "requires a graphics adapter; imported UI pictures use their own pixels with or without an HD pack"]
+fn detached_ui_images_render_without_a_shared_vram_copy() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let material = renderer.bind_material(&crate::visuals::models::Material {
+        id: "imported-story-picture".into(),
+        region: None,
+        image: Arc::new(Image {
+            size: [64, 1],
+            rgba: [[0, 255, 0, 255], [0, 0, 255, 128], [0; 4], [255, 0, 0, 255]]
+                .into_iter()
+                .flat_map(|color| std::iter::repeat_n(color, 16).flatten())
+                .collect(),
+        }),
+        animation: None,
+    });
+    let mut vertices = render_effects::quad(
+        [
+            [-120.0, -120.0, 0.0],
+            [120.0, -120.0, 0.0],
+            [-120.0, 120.0, 0.0],
+            [120.0, 120.0, 0.0],
+        ],
+        [[1.0; 3]; 4],
+        None,
+        0,
+    );
+    for vertex in &mut vertices {
+        vertex.flags |= render_mesh::TEXTURED | render_mesh::UI;
+        vertex.material = material;
+        vertex.uv = [vertex.position[0] / 240.0, vertex.position[1] / 240.0];
+        vertex.position[2] = 0.000032;
+    }
+    let mut dim = render_effects::quad(
+        [
+            [-120.0, -120.0, 0.000048],
+            [120.0, -120.0, 0.000048],
+            [-120.0, 120.0, 0.000048],
+            [120.0, 120.0, 0.000048],
+        ],
+        [[1.0; 3]; 4],
+        None,
+        3,
+    );
+    for vertex in &mut dim {
+        vertex.flags |= render_mesh::UI;
+    }
+    dim.extend(vertices);
+    let effects = renderer.upload_effects(render_effects::Geometry {
+        batches: vec![
+            render_effects::Batch {
+                blend: 3,
+                range: 0..6,
+            },
+            render_effects::Batch {
+                blend: 0,
+                range: 6..12,
+            },
+        ],
+        vertices: dim,
+    });
+    let mut graphics = crate::settings::Graphics::default();
+    for asset_pack in [false, true] {
+        graphics.asset_pack = asset_pack;
+        for filtering in [0, 2] {
+            graphics.set_filtering(filtering);
+            renderer.configure(&graphics);
+            renderer
+                .draw(
+                    &target.create_view(&Default::default()),
+                    game_camera(Matrix::default(), 1.0),
+                    &[],
+                    Some(&effects),
+                )
+                .unwrap();
+            let pixels = read_pixels(&renderer, &target);
+            for (x, rgb) in [
+                (8, [0, 255, 0]),
+                (24, [0, 0, 255]),
+                (40, [0, 0, 0]),
+                (56, [255, 0, 0]),
+            ] {
+                assert_eq!(
+                    &pixels[32 * 256 + x * 4..32 * 256 + x * 4 + 3],
+                    &rgb,
+                    "imported UI at {x}, pack {asset_pack}, filter {filtering}"
+                );
+            }
+        }
+    }
+}

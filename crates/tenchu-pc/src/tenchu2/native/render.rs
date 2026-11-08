@@ -113,7 +113,7 @@ pub fn capture(
 ) -> Result<()> {
     capture_frame(&session.assets.sprites.vram, graphics, path, |renderer| {
         let drawing = Drawing::new(session, graphics, renderer)?;
-        Ok((drawing.scene, session.world.camera.view))
+        Ok((drawing.scene, session.world.camera.view, Vec::new()))
     })?;
     eprintln!(
         "Native JP tick {}: position {:?}; {} actors; radar {:?}; pending {:?}",
@@ -130,7 +130,7 @@ fn capture_frame(
     vram: &Vram,
     graphics: &Graphics,
     path: &std::path::Path,
-    build: impl FnOnce(&mut Renderer) -> Result<(SceneDrawing, Matrix)>,
+    build: impl FnOnce(&mut Renderer) -> Result<(SceneDrawing, Matrix, Vec<crate::fonts::Text>)>,
 ) -> Result<()> {
     let instance = wgpu::Instance::new(&Default::default());
     let adapter = pollster::block_on(instance.request_adapter(&Default::default()))
@@ -138,7 +138,7 @@ fn capture_frame(
     let format = wgpu::TextureFormat::Rgba8Unorm;
     let mut renderer = pollster::block_on(Renderer::new(&adapter, format, [1280, 720], vram))?;
     renderer.configure(graphics);
-    let (drawing, view) = build(&mut renderer)?;
+    let (drawing, view, texts) = build(&mut renderer)?;
     let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Native JP capture"),
         size: wgpu::Extent3d {
@@ -158,6 +158,9 @@ fn capture_frame(
         &texture.create_view(&Default::default()),
         &mut renderer,
     )?;
+    if !texts.is_empty() {
+        crate::fonts::capture(&renderer, &texture, &texts);
+    }
     crate::capture::read_texture(&renderer, &texture, path)
 }
 
