@@ -1952,3 +1952,13 @@ pad history and RNG; it checks every actor and the shared alert/radar after each
 round. Controller sampling, motion changes and voices remain explicit boundaries;
 movement/postures are controlled inputs. Native rendering, actor controllers,
 effects and campaign still need to be joined into a playable runtime.
+
+Native AI now follows the Japanese executable only, following the revised project
+scope. Regional AI branches have been removed, and native combat-rule loading
+requires the JP disc rather than mixing EU tables with JP behavior. The source
+addresses and dual-edition measurements above document the earlier research;
+they are not a commitment to support European gameplay. European maps, models,
+motions and other asset imports remain supported separately. After the change,
+JP comparisons still pass 48,000 complete actor-AI calls, 48,000 persistent
+behavior steps, sight checks and terrain queries across all 23 maps. Formatting,
+strict workspace Clippy and the portable wasm core build pass.

@@ -3,10 +3,7 @@ use crate::{
     Result,
     math::Position,
     random::Random,
-    tenchu2::{
-        actor::{Actor, Resources},
-        input,
-    },
+    tenchu2::{actor::Actor, input},
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +29,6 @@ impl Sleep {
         actor: &mut Actor,
         input: SleepInput,
         destination: &mut Position,
-        resources: &Resources,
         random: &mut Random,
         mut apply: impl FnMut(&mut Actor, i16) -> Result<()>,
     ) -> Result<SleepOutput> {
@@ -65,7 +61,6 @@ impl Sleep {
             });
         }
         let (held, action) = self.sentry.update(
-            resources.registry.edition,
             SentryInput {
                 action: actor.motion.action,
                 health: actor.health,

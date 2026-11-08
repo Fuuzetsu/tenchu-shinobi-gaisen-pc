@@ -47,7 +47,7 @@ fn native_terrain_and_sight_rays_match_source_in_every_map() {
     use tenchu_assets::tenchu2::{Edition, collision::Rules, level::Level, math_tables};
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let edition = Edition::detect(&disc).unwrap();
+    assert_eq!(Edition::detect(&disc).unwrap(), Edition::Japan);
     let math = Math {
         tables: math_tables(&disc).unwrap(),
     };
@@ -111,7 +111,6 @@ fn native_terrain_and_sight_rays_match_source_in_every_map() {
                         row.position.into(),
                         step.into(),
                         count,
-                        edition,
                         &math
                     )
                     .unwrap()

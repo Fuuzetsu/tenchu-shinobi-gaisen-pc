@@ -5,7 +5,6 @@ use super::{
 };
 use crate::{Result, math::Position, tenchu2::actor::State, tenchu2::input};
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::Edition;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Global {
@@ -108,9 +107,7 @@ pub fn update(
         let held = reactions.victory(c)?;
         return Ok(finish(c, global, held));
     }
-    let europe = c.resources.registry.edition == Edition::Europe;
-    let health_limit = if europe { 1 } else { 0 };
-    if c.actor.state != State::Dead && c.actor.health < health_limit {
+    if c.actor.state != State::Dead && c.actor.health < 0 {
         let held = if c.observed_flags & 0x10 != 0 {
             reactions.idle(c, global)?
         } else {
@@ -118,11 +115,7 @@ pub fn update(
         };
         return Ok(complete(c, held));
     }
-    let injured = if europe {
-        c.actor.state == State::Hurt || (c.actor.state == State::Dead && c.actor.health <= 0)
-    } else {
-        matches!(c.actor.state, State::Hurt | State::Dead) || c.actor.health == 0
-    };
+    let injured = matches!(c.actor.state, State::Hurt | State::Dead) || c.actor.health == 0;
     if injured {
         reactions.clear_forced();
         if !player {
@@ -174,9 +167,7 @@ pub fn update(
         }
         let mut held = 0;
         if !scene.has_suspicious_program {
-            if !europe {
-                reactions.sample_player_terrain(c)?;
-            }
+            reactions.sample_player_terrain(c)?;
             held = reactions.idle(c, global)?;
             if player {
                 global.player_held = held;

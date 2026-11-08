@@ -359,7 +359,6 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
             self.others.len(),
             |index| self.others.get(index, c.actor),
             &mut CorpseContext {
-                edition: c.resources.registry.edition,
                 player: self.scene.player,
                 difficulty: c.difficulty as u8,
                 distance: self.ranges.standing.notice,
@@ -406,7 +405,6 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
             },
             target.as_ref(),
             &mut sight::Context {
-                edition: c.resources.registry.edition,
                 tick: self.scene.tick,
                 player_position: self.player_body.position,
                 player_yaw: self.player_body.yaw,

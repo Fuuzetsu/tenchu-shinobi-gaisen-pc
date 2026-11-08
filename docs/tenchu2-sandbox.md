@@ -132,5 +132,10 @@ travel directions, both heroes starting on visible floors, movement/jumping,
 patrols and combat, save/rewind, and leaving/restarting without campaign changes.
 These checks do not establish Tenchu 2 emulator parity.
 
+Native Tenchu 2 gameplay is being developed against the Japanese version only.
+It is not yet connected to this sandbox. European stages, models and other
+resource imports remain supported; a separate European AI implementation is
+outside the scope of that work.
+
 See [source provenance](../SOURCES.md#experimental-tenchu-2-scenery-2026-11-07)
 for the locally examined executable and resource readers.

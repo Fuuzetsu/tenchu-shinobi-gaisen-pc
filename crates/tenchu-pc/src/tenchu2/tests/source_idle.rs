@@ -59,7 +59,7 @@ fn wandering_steering_and_forced_inputs_match_source() {
     use tenchu_assets::tenchu2::{Edition, math_tables};
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let edition = Edition::detect(&disc).unwrap();
+    assert_eq!(Edition::detect(&disc).unwrap(), Edition::Japan);
     let math = Math {
         tables: math_tables(&disc).unwrap(),
     };
@@ -92,7 +92,6 @@ fn wandering_steering_and_forced_inputs_match_source() {
                 let mut destination = Position::from(row.destination);
                 let result = state
                     .update(
-                        edition,
                         &WanderInput {
                             position: row.position.into(),
                             home: row.home.into(),
@@ -158,5 +157,5 @@ fn wandering_steering_and_forced_inputs_match_source() {
         actions += usize::from(choice.action.is_some());
     }
     assert!(counts.iter().all(|&n| n > 10000));
-    assert_eq!(actions > 0, edition == Edition::Japan);
+    assert!(actions > 0);
 }

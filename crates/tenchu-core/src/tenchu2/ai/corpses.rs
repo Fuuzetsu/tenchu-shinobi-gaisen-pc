@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{Edition, collision::Collision};
+use tenchu_assets::tenchu2::collision::Collision;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CorpseSearch {
@@ -16,7 +16,6 @@ pub struct CorpseSearch {
 }
 
 pub struct CorpseContext<'a> {
-    pub edition: Edition,
     pub player: usize,
     pub difficulty: u8,
     pub distance: i32,
@@ -51,12 +50,7 @@ impl CorpseSearch {
         }
         let delta = body.position.wrapping_sub(observer.position);
         let angle = direction(world.math, delta.x, delta.z, observer.rotation.y)?;
-        let cone = if world.edition == Edition::Europe {
-            800
-        } else {
-            700
-        };
-        if i32::from(angle).abs() >= cone {
+        if i32::from(angle).abs() >= 700 {
             return Ok(None);
         }
         let distance = if delta.x.wrapping_abs() < 32767 && delta.z.wrapping_abs() < 32767 {
@@ -75,7 +69,6 @@ impl CorpseSearch {
             world.cursor,
             eye,
             body.position.wrapping_sub(eye),
-            world.edition,
             world.math,
         )?
         .is_none()

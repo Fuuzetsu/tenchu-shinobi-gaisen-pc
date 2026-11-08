@@ -1,6 +1,5 @@
 use crate::{Result, random::Random, tenchu2::input};
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::Edition;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Sentry {
@@ -25,11 +24,10 @@ pub struct SentryInput {
 impl Sentry {
     pub fn update(
         &mut self,
-        edition: Edition,
         actor: SentryInput,
         random: &mut Random,
     ) -> Result<(u16, Option<i16>)> {
-        if edition == Edition::Japan && actor.action == 0x707 {
+        if actor.action == 0x707 {
             return Ok((0, None));
         }
         match *self {
@@ -68,10 +66,7 @@ impl Sentry {
                 } else {
                     Self::Waiting { remaining }
                 };
-                let action = (edition == Edition::Japan
-                    && remaining == 92
-                    && actor.health > 0
-                    && random.next15() & 31 == 0)
+                let action = (remaining == 92 && actor.health > 0 && random.next15() & 31 == 0)
                     .then_some(0x707);
                 Ok((0, action))
             }

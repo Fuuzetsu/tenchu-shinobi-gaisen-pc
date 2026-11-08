@@ -278,7 +278,6 @@ impl Damage<'_, '_> {
             self.terrain.cursor,
             start,
             attacker.position.wrapping_sub(self.actor.position),
-            self.resources.registry.edition,
             &self.resources.math,
         )?
         .is_some()

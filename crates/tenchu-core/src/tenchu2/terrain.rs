@@ -3,10 +3,7 @@ use crate::{
     math::{Math, Position, Vector3},
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::{
-    tenchu2::{Edition, collision::Collision},
-    terrain::Node,
-};
+use tenchu_assets::{tenchu2::collision::Collision, terrain::Node};
 
 mod probe;
 pub use probe::{Options, Probe};
@@ -150,7 +147,6 @@ pub fn segment(
     cursor: &mut Cursor,
     position: Position,
     delta: Position,
-    edition: Edition,
     math: &Math,
 ) -> Result<Option<Position>> {
     let mut step = delta.map(|v| v as i16);
@@ -159,7 +155,7 @@ pub fn segment(
         step = step.map(|v| v >> 1);
         count *= 2;
     }
-    passage(map, cursor, position, step, count, edition, math)
+    passage(map, cursor, position, step, count, math)
 }
 
 pub fn passage(
@@ -168,7 +164,6 @@ pub fn passage(
     mut position: Position,
     step: Vector3<i16>,
     count: i16,
-    edition: Edition,
     math: &Math,
 ) -> Result<Option<Position>> {
     let Some((step, mut count)) = ray_step(step, count, math) else {
@@ -178,7 +173,7 @@ pub fn passage(
         return Ok(Some(position));
     }
     let material = cursor.material;
-    let query = ray_query(step, edition);
+    let query = ray_query(step);
     loop {
         if level(map, cursor, position, query)?.is_none()
             || material_changed(material, cursor.material)
@@ -200,7 +195,6 @@ pub fn traverse(
     mut position: Position,
     step: Vector3<i16>,
     count: i16,
-    edition: Edition,
     math: &Math,
 ) -> Result<Option<Position>> {
     let Some((step, mut count)) = ray_step(step, count, math) else {
@@ -213,7 +207,7 @@ pub fn traverse(
         return Ok(Some(position));
     }
     let material = cursor.material;
-    let query = ray_query(step, edition);
+    let query = ray_query(step);
     loop {
         let height = level(map, cursor, position, query)?;
         if height.is_none() || material_changed(material, cursor.material) {
@@ -276,8 +270,8 @@ fn ray_step(step: Vector3<i16>, count: i16, math: &Math) -> Option<(Vector3<i16>
     ))
 }
 
-fn ray_query(step: Vector3<i16>, edition: Edition) -> Query {
-    if edition == Edition::Japan && i32::from(step.x).abs() < 128 && i32::from(step.z).abs() < 128 {
+fn ray_query(step: Vector3<i16>) -> Query {
+    if i32::from(step.x).abs() < 128 && i32::from(step.z).abs() < 128 {
         Query::Uncached
     } else {
         Query::Surface

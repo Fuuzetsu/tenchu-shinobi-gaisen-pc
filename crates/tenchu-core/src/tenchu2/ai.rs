@@ -1,3 +1,5 @@
+//! Japanese Tenchu 2 AI; the edition of imported stage or model artwork is independent.
+
 mod patrol;
 pub use patrol::{Patrol, PatrolInput};
 mod sentry;

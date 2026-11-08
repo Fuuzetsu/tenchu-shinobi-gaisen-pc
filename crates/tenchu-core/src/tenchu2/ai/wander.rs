@@ -6,7 +6,6 @@ use crate::{
     tenchu2::input,
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::Edition;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Wander {
@@ -32,14 +31,13 @@ pub struct WanderInput {
 impl Wander {
     pub fn update(
         &mut self,
-        edition: Edition,
         actor: &WanderInput,
         destination: &mut Position,
         math: &Math,
         random: &mut Random,
     ) -> Result<Decision> {
         let mut decision = Decision::default();
-        if actor.steering.forced || (edition == Edition::Japan && actor.action == 0x707) {
+        if actor.steering.forced || actor.action == 0x707 {
             return Ok(decision);
         }
         match *self {
@@ -98,11 +96,7 @@ impl Wander {
                         turning: turning.saturating_sub(1),
                     }
                 };
-                if edition == Edition::Japan
-                    && remaining == 62
-                    && actor.health > 0
-                    && random.next15() & 31 == 0
-                {
+                if remaining == 62 && actor.health > 0 && random.next15() & 31 == 0 {
                     decision.action = Some(0x707);
                 }
             }

@@ -6,7 +6,7 @@ use crate::{
     tenchu2::input,
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{Edition, layout};
+use tenchu_assets::tenchu2::layout;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 enum Turn {
@@ -79,7 +79,6 @@ impl Patrol {
 
     pub fn update(
         &mut self,
-        edition: Edition,
         actor: &PatrolInput,
         math: &Math,
         random: &mut Random,
@@ -88,14 +87,12 @@ impl Patrol {
         if self.route.is_empty() {
             return Ok(decision);
         }
-        if edition == Edition::Japan {
-            if actor.action == 0x707 {
-                return Ok(decision);
-            }
-            if random.next15() % 18000 == 0 && actor.health > 0 {
-                decision.action = Some(0x707);
-                return Ok(decision);
-            }
+        if actor.action == 0x707 {
+            return Ok(decision);
+        }
+        if random.next15() % 18000 == 0 && actor.health > 0 {
+            decision.action = Some(0x707);
+            return Ok(decision);
         }
         let point = self
             .route

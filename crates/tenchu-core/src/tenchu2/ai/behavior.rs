@@ -248,7 +248,6 @@ impl Behavior {
             }
             Active::Sentry(_, sentry) => {
                 let (held, action) = sentry.update(
-                    resources.registry.edition,
                     SentryInput {
                         action: c.actor.motion.action,
                         health: c.actor.health,
@@ -264,7 +263,6 @@ impl Behavior {
                 }
             }
             Active::Wander(wander) => wander.update(
-                resources.registry.edition,
                 &WanderInput {
                     position: c.actor.position,
                     home: self.home,
@@ -286,7 +284,6 @@ impl Behavior {
                         alert: global.alert.remaining,
                     },
                     &mut c.sight.destination,
-                    resources,
                     c.random,
                     &mut apply,
                 )?;
@@ -307,7 +304,6 @@ impl Behavior {
                         apply(c.actor, 0x701)?;
                     }
                     self.patrol.update(
-                        resources.registry.edition,
                         &PatrolInput {
                             position: c.actor.position,
                             yaw: c.actor.rotation.y,

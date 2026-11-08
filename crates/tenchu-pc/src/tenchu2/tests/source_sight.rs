@@ -42,12 +42,12 @@ struct Row {
 
 #[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_SIGHT_ORACLE from the original perception routine"]
-fn native_perception_and_edition_differences_match_source() {
+fn native_perception_matches_japanese_source() {
     use std::io::BufRead;
     use tenchu_assets::tenchu2::{Edition, level::Level, math_tables};
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let edition = Edition::detect(&disc).unwrap();
+    assert_eq!(Edition::detect(&disc).unwrap(), Edition::Japan);
     let math = Math {
         tables: math_tables(&disc).unwrap(),
     };
@@ -93,7 +93,6 @@ fn native_perception_and_edition_differences_match_source() {
             row.near
         };
         let mut context = Context {
-            edition,
             tick: row.tick,
             player_position: row.player.into(),
             player_yaw: row.player_yaw,

@@ -89,7 +89,6 @@ fn native_sleep_waking_and_idle_transitions_match_source() {
                     alert: int("alert") as i16,
                 },
                 &mut destination,
-                &resources,
                 &mut random,
                 |actor, action| {
                     actor
@@ -173,7 +172,6 @@ fn native_corpse_search_and_terrain_visibility_match_source() {
                 actors.len(),
                 |index| actors.get(index),
                 &mut CorpseContext {
-                    edition: resources.registry.edition,
                     player: 0,
                     difficulty: int("difficulty") as u8,
                     distance: int("distance"),

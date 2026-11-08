@@ -14,7 +14,7 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{Edition, combat::Rules};
+use tenchu_assets::tenchu2::combat::Rules;
 
 mod blade;
 mod heavy;
@@ -189,8 +189,7 @@ impl Context<'_> {
                 return self.select_item(8);
             }
         }
-        if self.resources.registry.edition == Edition::Japan
-            && chance(self.random)
+        if chance(self.random)
             && self.actor.inventory.counts[15] != 0
             && self.actor.health < self.actor.max_health / 2
         {
@@ -343,11 +342,7 @@ impl Context<'_> {
                 held
             });
         }
-        let hesitate = if self.resources.registry.edition == Edition::Europe {
-            bearing <= 512 && self.target()?.state != State::Hurt
-        } else {
-            self.difficulty != 0 || bearing <= 512
-        };
+        let hesitate = self.difficulty != 0 || bearing <= 512;
         if hesitate && self.random.next15() & 3 != 0 {
             return Ok(held);
         }
@@ -482,9 +477,7 @@ impl Ranged {
                     .actor(context.actor.kind)
                     .ok_or("Missing Tenchu 2 ranged actor")?
                     .weapon;
-                let mask = if context.resources.registry.edition == Edition::Japan
-                    && context.target()?.state == State::Swimming
-                {
+                let mask = if context.target()?.state == State::Swimming {
                     15
                 } else {
                     3

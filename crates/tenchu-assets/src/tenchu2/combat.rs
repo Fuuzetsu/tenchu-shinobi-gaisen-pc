@@ -1,4 +1,4 @@
-use super::executable;
+use super::{Edition, executable};
 use crate::{ReadAt, Result, disc::Disc, executable::Executable, i16_le, u32_le};
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +15,9 @@ pub struct Rules {
 impl Rules {
     pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
         let (edition, bytes) = executable(disc)?;
+        if edition != Edition::Japan {
+            return Err("Native Tenchu 2 AI requires the Japanese disc".into());
+        }
         let executable = Executable::new(&bytes)?;
         let addresses = edition.addresses();
         let table = executable.bytes(addresses.combat_rules, 40)?;

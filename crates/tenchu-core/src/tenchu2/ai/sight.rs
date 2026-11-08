@@ -5,7 +5,7 @@ use crate::{
     tenchu2::{actor::State, terrain},
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{Edition, collision::Collision};
+use tenchu_assets::tenchu2::collision::Collision;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Visibility {
@@ -79,7 +79,6 @@ pub struct Observer {
 }
 
 pub struct Context<'a> {
-    pub edition: Edition,
     pub tick: u32,
     pub player_position: Position,
     pub player_yaw: i16,
@@ -124,7 +123,7 @@ impl Sight {
             world.player_yaw,
         )?;
         if world.tick.wrapping_add(observer.slot as u32) & 31 != 0
-            || (world.edition == Edition::Japan && observer.body.state == State::Ledge)
+            || observer.body.state == State::Ledge
             || matches!(target.action, 0x804 | 0x400)
             || (target.action == 0x702 && delta.y > 0)
         {
@@ -134,7 +133,7 @@ impl Sight {
         if target.state == State::Ledge && delta.y >= 0 {
             return Ok(Visibility::Hidden);
         }
-        let archer = world.edition == Edition::Japan && observer.weapon >> 12 == 4;
+        let archer = observer.weapon >> 12 == 4;
         if !archer {
             let vertical_limit = self.distance.wrapping_mul(3) / 5;
             let height = delta.y.wrapping_abs();
@@ -151,12 +150,7 @@ impl Sight {
             return Ok(Visibility::Hidden);
         }
         let angle = i32::from(self.angle).abs();
-        let cone = if world.edition == Edition::Japan {
-            700
-        } else {
-            800
-        };
-        if angle >= cone || (crouched && angle >= cone / 2) {
+        if angle >= 700 || (crouched && angle >= 350) {
             return Ok(Visibility::Unnoticed);
         }
         if target.action == 0x536 && observer.body.state != State::Swimming {
@@ -177,11 +171,7 @@ impl Sight {
             return Ok(Visibility::Unnoticed);
         }
         let mut eye = from;
-        eye.y = eye.y.wrapping_sub(if world.edition == Edition::Japan {
-            i32::from(observer.body.height)
-        } else {
-            i32::from(observer.body.height) >> 1
-        });
+        eye.y = eye.y.wrapping_sub(i32::from(observer.body.height));
         let target_height = if target.in_water {
             if target.state == State::Swimming && !matches!(target.action, 0x500 | 0x501) {
                 0
@@ -190,16 +180,13 @@ impl Sight {
             }
         } else if target.state == State::Crouched {
             target.height >> 2
-        } else if world.edition == Edition::Japan {
-            target.height
         } else {
-            target.height >> 1
+            target.height
         };
         let mut delta = target.position.wrapping_sub(eye);
         delta.y = delta.y.wrapping_sub(i32::from(target_height));
         cursor.current = None;
-        if terrain::segment(world.terrain, cursor, eye, delta, world.edition, world.math)?.is_some()
-        {
+        if terrain::segment(world.terrain, cursor, eye, delta, world.math)?.is_some() {
             return Ok(Visibility::Hidden);
         }
         if world.script_mode < 3 && (world.script_mode < 2 || observer.kind & 0xe0 == 0xe0) {

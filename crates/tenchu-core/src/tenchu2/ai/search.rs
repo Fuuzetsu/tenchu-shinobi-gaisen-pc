@@ -5,7 +5,7 @@ use crate::{
     tenchu2::{actor::Actor, input, terrain},
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{Edition, collision::Collision};
+use tenchu_assets::tenchu2::collision::Collision;
 
 #[derive(Default)]
 pub struct SearchResult {
@@ -159,7 +159,6 @@ impl Pursuit {
                                 c.sight.destination,
                                 step.into(),
                                 0,
-                                c.resources.registry.edition,
                                 &c.resources.math,
                             )?
                             .is_none()
@@ -179,11 +178,7 @@ impl Pursuit {
                 }
                 let old_elapsed = *elapsed;
                 *elapsed = elapsed.wrapping_add(1);
-                let timeout = match c.resources.registry.edition {
-                    Edition::Europe => 300,
-                    Edition::Japan => 150,
-                };
-                if reached || old_elapsed > timeout {
+                if reached || old_elapsed > 150 {
                     self.start_looking();
                 }
                 decision

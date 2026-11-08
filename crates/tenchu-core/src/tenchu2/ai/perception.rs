@@ -12,7 +12,6 @@ use crate::{
     tenchu2::{actor::State, input, physics::IN_WATER},
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::Edition;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Routine {
@@ -118,19 +117,13 @@ pub fn update(
                 {
                     if c.actor.motion.action != 0x70c {
                         let changed = reactions.action(c, 0x709)?;
-                        if !changed && c.resources.registry.edition == Edition::Japan {
+                        if !changed {
                             reactions.voice(c, 8)?;
                         }
                     }
                     c.observed_flags = base_flags | 2;
                     reactions.reset(true);
-                    spotted = recognize(
-                        c,
-                        scene,
-                        global,
-                        reactions,
-                        c.resources.registry.edition == Edition::Europe,
-                    )?;
+                    spotted = recognize(c, scene, global, reactions, false)?;
                 } else if *c.visibility == Visibility::Suspicious {
                     let forget = global.alert.remaining != 0 && !c.actor.weapon_drawn();
                     reactions.action(c, if forget { 0x700 } else { 0x708 })?;

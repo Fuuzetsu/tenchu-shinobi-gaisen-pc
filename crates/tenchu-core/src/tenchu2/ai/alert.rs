@@ -29,7 +29,6 @@ pub fn watch(
         decision
     } else {
         let (held, action) = sentry.update(
-            c.resources.registry.edition,
             SentryInput {
                 action: c.actor.motion.action,
                 health: c.actor.health,

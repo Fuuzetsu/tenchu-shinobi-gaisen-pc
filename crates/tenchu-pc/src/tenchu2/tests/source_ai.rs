@@ -14,7 +14,7 @@ fn native_patrol_routes_and_obstacle_responses_match_source() {
     };
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let edition = Edition::detect(&disc).unwrap();
+    assert_eq!(Edition::detect(&disc).unwrap(), Edition::Japan);
     let math = Math {
         tables: math_tables(&disc).unwrap(),
     };
@@ -95,7 +95,7 @@ fn native_patrol_routes_and_obstacle_responses_match_source() {
                 material: material as u16,
             }),
         };
-        let choice = patrol.update(edition, &actor, &math, &mut rng).unwrap();
+        let choice = patrol.update(&actor, &math, &mut rng).unwrap();
         assert_eq!(
             (
                 i64::from(choice.held),
@@ -135,7 +135,7 @@ fn sentry_turning_and_japanese_idle_actions_match_source() {
     use tenchu_core::tenchu2::ai::{Sentry, SentryInput};
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let edition = Edition::detect(&disc).unwrap();
+    assert_eq!(Edition::detect(&disc).unwrap(), Edition::Japan);
     let input = std::io::BufReader::new(
         std::fs::File::open(std::env::var_os("TENCHU2_SENTRY_ORACLE").unwrap()).unwrap(),
     );
@@ -171,7 +171,6 @@ fn sentry_turning_and_japanese_idle_actions_match_source() {
         }
         let (input, requested) = sentry
             .update(
-                edition,
                 SentryInput {
                     action: action as i16,
                     health: health as i16,
@@ -195,7 +194,7 @@ fn sentry_turning_and_japanese_idle_actions_match_source() {
         count += 1;
     }
     assert!(count > 300000);
-    assert_eq!(actions > 0, edition == Edition::Japan);
+    assert!(actions > 0);
 }
 
 #[test]
