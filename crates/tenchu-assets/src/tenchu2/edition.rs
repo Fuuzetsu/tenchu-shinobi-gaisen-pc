@@ -43,6 +43,13 @@ impl Edition {
         }
     }
 
+    pub fn ticks_per_second(self) -> u32 {
+        match self {
+            Self::Europe => 25,
+            Self::Japan => 30,
+        }
+    }
+
     pub fn model_prefix(self) -> &'static str {
         match self {
             Self::Europe => "tenchu2:",

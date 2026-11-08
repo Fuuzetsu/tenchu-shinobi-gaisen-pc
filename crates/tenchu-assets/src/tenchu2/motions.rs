@@ -1,4 +1,4 @@
-use super::{BONES, cab_member, volume::Volume};
+use super::{BONES, Edition, cab_member, volume::Volume};
 use crate::{
     ReadAt, Result,
     disc::Disc,
@@ -34,6 +34,28 @@ pub fn spline_basis(disc: &Disc<impl ReadAt>) -> Result<[[i16; 4]; 33]> {
 }
 
 impl Clip {
+    pub fn at_gameplay_rate(mut self, edition: Edition) -> Self {
+        if edition == Edition::Europe && self.duration != 0 {
+            self.duration = ((i32::from(self.duration) * 5) / 6) as i16;
+            for keys in std::iter::once(&mut self.root).chain(&mut self.bones) {
+                let mut end = 1;
+                for i in 1..keys.len() {
+                    let mut key = keys[i];
+                    key.time = ((i32::from(key.time) * 5) / 6) as i16;
+                    if keys[end - 1].time < key.time {
+                        keys[end] = key;
+                        end += 1;
+                    }
+                    if key.time >= self.duration {
+                        break;
+                    }
+                }
+                keys.truncate(end);
+            }
+        }
+        self
+    }
+
     pub fn gaisen_pose(&self) -> motion::Clip {
         motion::Clip {
             id: self.id,

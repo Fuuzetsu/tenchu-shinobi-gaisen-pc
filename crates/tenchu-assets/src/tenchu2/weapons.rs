@@ -34,6 +34,22 @@ pub struct Weapons {
 }
 
 impl Weapons {
+    pub fn at_gameplay_rate(mut self) -> Self {
+        if self.edition == Edition::Europe {
+            let scale = |value| (u16::from(value) * 5 / 6) as u8;
+            let start = |value| scale(value).saturating_sub(1).max(1);
+            for attack in &mut self.attacks {
+                attack.steering = scale(attack.steering);
+                attack.combo = scale(attack.combo);
+                attack.start = start(attack.start);
+                attack.end = scale(attack.end);
+                attack.trail_start = start(attack.trail_start);
+                attack.trail_end = scale(attack.trail_end);
+            }
+        }
+        self
+    }
+
     pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
         let (edition, data) = executable(disc)?;
         let executable = Executable::new(&data)?;

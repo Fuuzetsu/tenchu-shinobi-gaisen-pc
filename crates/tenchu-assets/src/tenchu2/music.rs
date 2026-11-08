@@ -26,14 +26,11 @@ pub fn ambience(disc: &Disc<impl ReadAt>, map: usize) -> Result<Ambience> {
         exe.bytes(edition.addresses().ambience_intervals + map as u32 * 2, 2)?,
         0,
     )?;
-    let ticks_per_second = match edition {
-        Edition::Europe => {
-            // GAME.EXE converts the whole table, including negative entries.
-            interval = interval * 5 / 6;
-            25
-        }
-        Edition::Japan => 30,
-    };
+    let ticks_per_second = edition.ticks_per_second();
+    if edition == Edition::Europe {
+        // GAME.EXE converts the whole table, including negative entries.
+        interval = interval * 5 / 6;
+    }
     let volume = Volume::open(disc)?;
     // The environment tones are identical in all three heroes' banks.
     let source =

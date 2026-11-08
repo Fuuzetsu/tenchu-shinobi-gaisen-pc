@@ -194,3 +194,84 @@ fn native_motion_matches_source_pose_transitions() {
     assert!(checked > 10000);
     eprintln!("{:?}: {checked} source pose states match", registry.edition);
 }
+
+#[test]
+#[ignore = "requires EU TENCHU2_DISC and TENCHU2_PAL_ORACLE directory from the source conversion routine"]
+fn pal_gameplay_motion_and_hit_windows_match_source_conversion() {
+    use serde::Deserialize;
+    use std::io::BufRead;
+    use tenchu_assets::{motion::Key, tenchu2::Edition};
+    #[derive(Deserialize)]
+    struct Case {
+        clip: i16,
+        duration: i16,
+        tracks: Vec<Vec<[i16; 4]>>,
+    }
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    assert_eq!(Edition::detect(&disc).unwrap(), Edition::Europe);
+    let directory = std::path::PathBuf::from(std::env::var_os("TENCHU2_PAL_ORACLE").unwrap());
+    let input =
+        std::io::BufReader::new(std::fs::File::open(directory.join("pal-oracle.jsonl")).unwrap());
+    let cases: Vec<Case> = input
+        .lines()
+        .map(|line| serde_json::from_str(&line.unwrap()).unwrap())
+        .collect();
+    let clips = motions::collect(&disc, cases.iter().map(|case| case.clip).collect()).unwrap();
+    assert_eq!(cases.len(), 1208);
+    for case in cases {
+        let raw = &clips[&case.clip];
+        assert_eq!(raw.clone().at_gameplay_rate(Edition::Japan), *raw);
+        let converted = raw.clone().at_gameplay_rate(Edition::Europe);
+        assert_eq!(converted.duration, case.duration, "clip {}", case.clip);
+        for (actual, expected) in std::iter::once(&converted.root)
+            .chain(&converted.bones)
+            .zip(case.tracks)
+        {
+            let expected: Vec<_> = expected
+                .into_iter()
+                .map(|[x, y, z, time]| Key {
+                    value: [x, y, z],
+                    time,
+                })
+                .collect();
+            assert_eq!(*actual, expected, "clip {}", case.clip);
+        }
+        assert_eq!(converted.blend, raw.blend);
+        assert_eq!(
+            (converted.forward_speed, converted.side_speed),
+            (raw.forward_speed, raw.side_speed)
+        );
+    }
+    let raw = Weapons::load(&disc).unwrap();
+    let converted = raw.clone().at_gameplay_rate();
+    let data = std::fs::read(directory.join("pal-attacks.bin")).unwrap();
+    assert_eq!(data.len(), (converted.attacks.len() + 1) * 16);
+    for (attack, row) in converted.attacks.iter().zip(data.chunks_exact(16)) {
+        assert_eq!(
+            attack.clip,
+            i16::from_le_bytes(row[..2].try_into().unwrap())
+        );
+        assert_eq!(
+            [
+                attack.power,
+                attack.steering,
+                attack.combo,
+                attack.start,
+                attack.end,
+                attack.trail_start,
+                attack.trail_end
+            ],
+            row[2..9],
+            "attack {}",
+            attack.clip
+        );
+        assert_eq!(
+            attack.bones,
+            u32::from_le_bytes(row[12..16].try_into().unwrap())
+        );
+    }
+    let mut jp = raw;
+    jp.edition = Edition::Japan;
+    assert_eq!(jp.clone().at_gameplay_rate().attacks, jp.attacks);
+}

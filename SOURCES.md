@@ -1492,3 +1492,13 @@ model slots, joint anchors, hit spheres and attack masks. Native skeleton checks
 cover every registered actor's weapon joints in both editions. These facilities
 are the native animation/combat foundation; game actor controllers remain a
 separate unfinished port.
+
+EU gameplay additionally calls DATAMNG `800cf848` from `80063388` after actors
+are loaded. It scales clip durations and key times by 5/6, compacts coincident
+keys, and retimes attack windows (including the special one-tick start offset).
+The raw readers remain usable at 30 Hz for imports; `at_gameplay_rate` applies
+this conversion when running native EU gameplay at 25 Hz. JP retains its source
+30 Hz data. Blends and stored speeds are unchanged by this routine; EU's actor
+velocity helper applies its separate 6/5 speed adjustment. Private execution of
+the actual conversion routine matches all 1,208 EU clips and 231 attack windows
+(`TENCHU2_PAL_ORACLE`).
