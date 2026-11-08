@@ -175,7 +175,7 @@ impl<E: Events> Driver<'_, E> {
                         c.grip(actor, slot, spare, grip, self.random)?
                     }
                     AttackCue::NockArrow => c.emit(actor, Event::NockArrow, self.random)?,
-                    AttackCue::Fire(kind) => c.emit(actor, Event::Fire(kind), self.random)?,
+                    AttackCue::Fire(kind) => c.fire(actor, kind, &mut self.terrain, self.random)?,
                     AttackCue::Land => {
                         c.emit(
                             actor,

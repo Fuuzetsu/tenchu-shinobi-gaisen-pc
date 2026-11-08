@@ -1,13 +1,15 @@
 pub mod aim;
+pub mod arrow;
 pub mod flight;
 pub mod grapple;
+pub mod gun;
 pub mod projectile;
 
 use crate::{
     Result,
     math::{Math, Matrix, Position},
     scene::{ModelId, Scene},
-    tenchu2::collision::Collision,
+    tenchu2::{collision::Collision, terrain::Cursor},
 };
 use serde::{Deserialize, Serialize};
 
@@ -30,6 +32,36 @@ pub struct Entry {
 pub enum State {
     Grapple(grapple::Grapple),
     Projectile(projectile::Projectile),
+    Arrow(arrow::Arrow),
+    Gunshot(gun::Gunshot),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Event {
+    Splash(Position),
+    Impact {
+        position: Position,
+        direction: Position,
+    },
+    Sound {
+        position: Position,
+        id: u8,
+    },
+    Alert(Position),
+    Explosion {
+        position: Position,
+        contact: bool,
+    },
+    Smoke(Position),
+}
+
+pub struct Context<'a> {
+    pub map: &'a tenchu_assets::tenchu2::collision::Collision,
+    pub cursor: &'a mut Cursor,
+    pub math: &'a Math,
+    pub scene: &'a mut Scene,
+    pub collision: &'a mut Collision,
+    pub player: usize,
 }
 
 impl Items {
@@ -60,11 +92,30 @@ impl Items {
             .free_models
             .pop()
             .unwrap_or_else(|| (scene.add(None, Matrix::default()), 0));
-        if let State::Projectile(projectile) = &mut state {
-            // The source allocator leaves the previous item's floor outside its cleared range.
-            projectile.flight.floor = floor;
-            scene.update(model, projectile.transform);
-            projectile.register(model, collision)?;
+        scene.models[model].parent = None;
+        match &mut state {
+            State::Projectile(projectile) => {
+                // The source allocator leaves the previous item's floor outside its cleared range.
+                projectile.flight.floor = floor;
+                scene.update(model, projectile.transform);
+                projectile.register(model, collision)?;
+            }
+            State::Arrow(arrow) => {
+                arrow.flight.floor = floor;
+                scene.update(model, arrow.transform);
+                arrow.register(model, collision)?;
+            }
+            State::Gunshot(shot) => {
+                scene.update(
+                    model,
+                    Matrix {
+                        translation: shot.position,
+                        ..Default::default()
+                    },
+                );
+                shot.register(model, collision)?;
+            }
+            State::Grapple(_) => {}
         }
         self.entries.push(Entry {
             model,
@@ -79,7 +130,8 @@ impl Items {
         collision.remove(entry.model);
         let floor = match entry.state {
             State::Projectile(projectile) => projectile.flight.floor,
-            State::Grapple(_) => entry.unused_floor,
+            State::Arrow(arrow) => arrow.flight.floor,
+            State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor));
     }
@@ -91,6 +143,15 @@ fn facing(direction: Position, vertical: i32, math: &Math) -> [[i16; 3]; 3] {
     } else {
         Position::new(0, vertical, 0)
     };
+    let mut rotation = basis(direction, up, math);
+    for row in &mut rotation {
+        row[0] = row[0].wrapping_neg();
+        row[2] = row[2].wrapping_neg();
+    }
+    rotation
+}
+
+fn basis(direction: Position, up: Position, math: &Math) -> [[i16; 3]; 3] {
     let cross = |a: Position, b: Position| {
         Position::from_fn(|i| {
             let j = (i + 1) % 3;
@@ -102,11 +163,5 @@ fn facing(direction: Position, vertical: i32, math: &Math) -> [[i16; 3]; 3] {
     };
     let side = math.normalize_vector(cross(up, direction));
     let up = math.normalize_vector(cross(direction, side));
-    std::array::from_fn(|i| {
-        [
-            side[i].wrapping_neg() as i16,
-            up[i] as i16,
-            direction[i].wrapping_neg() as i16,
-        ]
-    })
+    std::array::from_fn(|i| [side[i] as i16, up[i] as i16, direction[i] as i16])
 }

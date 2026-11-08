@@ -1,15 +1,17 @@
-use super::flight::{Contact, Flight, Motion};
+use super::{
+    Context, Event,
+    flight::{Contact, Flight, Motion},
+};
 use crate::{
     Result,
     math::{Math, Matrix, Position, Vector3},
-    scene::{ModelId, Scene},
+    scene::ModelId,
     tenchu2::{
         collision::{BODY, Collision, WEAPON},
-        terrain::{self, Cursor, Query},
+        terrain::{self, Query},
     },
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::collision::Collision as Map;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Kind {
@@ -33,29 +35,6 @@ pub struct Projectile {
     pub rotation: [i16; 3],
     pub phase: Phase,
     pub trail: bool,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Event {
-    Splash(Position),
-    Impact {
-        position: Position,
-        direction: Position,
-    },
-    Sound {
-        position: Position,
-        id: u8,
-    },
-    Alert(Position),
-}
-
-pub struct Context<'a> {
-    pub map: &'a Map,
-    pub cursor: &'a mut Cursor,
-    pub math: &'a Math,
-    pub scene: &'a mut Scene,
-    pub collision: &'a mut Collision,
-    pub player: usize,
 }
 
 impl Projectile {

@@ -8,10 +8,7 @@ use crate::{
         actor::{State as ActorState, Velocity},
         ai::status::AlertCause,
         collision::{BODY, WEAPON},
-        items::{
-            State, grapple,
-            projectile::{self, Phase},
-        },
+        items::{Context, Event as ItemEvent, State, grapple, projectile::Phase},
     },
 };
 
@@ -26,6 +23,14 @@ impl World {
             let entry = &mut self.items.entries[index];
             let model = entry.model;
             let mut cues = Vec::new();
+            let mut context = Context {
+                map: &self.terrain,
+                cursor: &mut self.cursor,
+                math: &assets.resources.math,
+                scene: &mut self.scene,
+                collision: &mut self.collision,
+                player: self.player,
+            };
             let (mut alive, pickup) = match &mut entry.state {
                 State::Grapple(grapple) => {
                     if grapple.state == grapple::State::Released {
@@ -36,43 +41,71 @@ impl World {
                             .joints
                             .get(11)
                             .ok_or("Missing Tenchu 2 grapple hand")?;
-                        let hand = self.scene.world(hand)?.translation;
+                        let hand = context.scene.world(hand)?.translation;
                         if let Some(direction) =
                             grapple.advance(self.items.aim.target, hand, &assets.resources.math)
                         {
                             let position = grapple.transform.translation;
-                            cues.push(projectile::Event::Impact {
+                            cues.push(ItemEvent::Impact {
                                 position,
                                 direction,
                             });
-                            cues.push(projectile::Event::Sound { position, id: 49 });
+                            cues.push(ItemEvent::Sound { position, id: 49 });
                         }
                         (true, false)
                     }
                 }
                 State::Projectile(projectile) => {
                     let pickup = projectile.phase == Phase::Resting;
-                    let alive = projectile.advance(
-                        model,
-                        &mut projectile::Context {
-                            map: &self.terrain,
-                            cursor: &mut self.cursor,
-                            math: &assets.resources.math,
-                            scene: &mut self.scene,
-                            collision: &mut self.collision,
-                            player: self.player,
-                        },
-                        |event| {
-                            cues.push(event);
-                            Ok(())
-                        },
-                    )?;
+                    let alive = projectile.advance(model, &mut context, |event| {
+                        cues.push(event);
+                        Ok(())
+                    })?;
                     (alive, pickup)
                 }
+                State::Arrow(arrow) => (
+                    arrow.advance(model, self.tick, &mut context, |event| {
+                        cues.push(event);
+                        Ok(())
+                    })?,
+                    false,
+                ),
+                State::Gunshot(shot) => (
+                    shot.advance(model, &mut context, |event| {
+                        cues.push(event);
+                        Ok(())
+                    })?,
+                    false,
+                ),
             };
             for cue in cues {
                 match cue {
-                    projectile::Event::Splash(position) => {
+                    ItemEvent::Explosion { position, contact } => {
+                        self.effects.explosion(
+                            position,
+                            1,
+                            &assets.resources.math,
+                            &mut self.random,
+                        )?;
+                        self.ai.global.perception.alert.raise(
+                            if contact {
+                                AlertCause::Corpse
+                            } else {
+                                AlertCause::Combat
+                            },
+                            self.difficulty,
+                            &assets.combat_rules,
+                        )?;
+                        self.ai.global.perception.alert.position = Some(position);
+                    }
+                    ItemEvent::Smoke(position) => self.effects.smoke(
+                        position,
+                        3,
+                        self.hidden_scene,
+                        &assets.resources.math,
+                        &mut self.random,
+                    )?,
+                    ItemEvent::Splash(position) => {
                         self.effects.ripple(position, 30)?;
                         self.effects.splash(
                             position,
@@ -81,7 +114,7 @@ impl World {
                             &mut self.random,
                         )?;
                     }
-                    projectile::Event::Impact {
+                    ItemEvent::Impact {
                         position,
                         direction,
                     } => {
@@ -93,10 +126,10 @@ impl World {
                             &mut self.random,
                         )?;
                     }
-                    projectile::Event::Sound { position, id } => {
+                    ItemEvent::Sound { position, id } => {
                         self.emit(self.player, Event::SoundPosition { position, id }, events)?;
                     }
-                    projectile::Event::Alert(position) => {
+                    ItemEvent::Alert(position) => {
                         let alert = &mut self.ai.global.perception.alert;
                         alert.raise(
                             AlertCause::Suspicion,

@@ -30,6 +30,45 @@ pub struct Reticle {
     pub ready: bool,
 }
 
+pub fn target<'a>(
+    origin: Position,
+    direction: Position,
+    owner: usize,
+    actors: impl Iterator<Item = (usize, &'a crate::tenchu2::actor::Actor)>,
+    math: &Math,
+) -> Option<usize> {
+    use crate::tenchu2::actor::State;
+    let mut closest = i32::MAX;
+    let mut target = None;
+    for (index, actor) in actors {
+        if index == owner
+            || actor.flags & 8 != 0
+            || matches!(actor.state, State::Hurt | State::Dead)
+        {
+            continue;
+        }
+        let delta = actor.position.wrapping_sub(origin);
+        if delta.x.wrapping_abs() > 16000 || delta.z.wrapping_abs() > 16000 {
+            continue;
+        }
+        let normal = math.normalize_vector(delta);
+        let facing = normal
+            .x
+            .wrapping_mul(direction.x)
+            .wrapping_add(normal.z.wrapping_mul(direction.z));
+        // VectorNormal returns the squared length of its signed-halfword inputs.
+        let distance = delta.into_iter().fold(0i32, |sum, v| {
+            let v = i32::from(v as i16);
+            sum.wrapping_add(v * v)
+        });
+        if facing > 0xddb3d7 && distance < closest {
+            closest = distance;
+            target = Some(index);
+        }
+    }
+    target
+}
+
 impl Aim {
     pub fn update(
         &mut self,

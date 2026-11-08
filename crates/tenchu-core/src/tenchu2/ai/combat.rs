@@ -122,13 +122,13 @@ impl Context<'_> {
     }
 
     pub fn combo(&mut self, reach: i32, cone: i16) -> Result<u16> {
-        let attack = self
+        let combo = self
             .actor
             .attack
             .index
             .and_then(|i| self.resources.weapons.attacks.get(i))
-            .ok_or("Missing Tenchu 2 AI attack")?;
-        if self.actor.motion.frame != i16::from(attack.combo) {
+            .map_or(0, |attack| attack.combo);
+        if self.actor.motion.frame != i16::from(combo) {
             return Ok(0);
         }
         let mut held = 0;

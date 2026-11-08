@@ -5,7 +5,7 @@ use tenchu_core::{
     scene::Scene,
     tenchu2::{
         collision::Collision,
-        items::projectile::{Context, Event, Projectile},
+        items::{Context, Event, projectile::Projectile},
         terrain::Cursor,
     },
 };
@@ -90,6 +90,7 @@ fn native_thrown_blades_match_original_motion_and_contacts() {
                             direction,
                         } => json!(["impact", position.to_array(), direction.to_array()]),
                         Event::Alert(position) => json!(["alert", position.to_array()]),
+                        other => panic!("Unexpected blade event {other:?}"),
                     });
                     Ok(())
                 },

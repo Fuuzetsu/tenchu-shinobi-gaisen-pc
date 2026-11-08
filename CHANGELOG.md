@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect native JP bows, fire arrows and firearms, including arrow attachment,
+  deflection, explosions and the player's fire-arrow item. Fix mission setup
+  leaving native guards' perception disabled and ranged combat failing when a
+  motion has no melee-combo entry. These changes apply to the internal JP preview.
 - Connect native JP shuriken and kunai to flight, impacts, guard damage and
   recoverable shuriken pickups. The internal preview accepts `--loadout 4:20`
   for testing and now plays positional blood-contact sounds.

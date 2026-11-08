@@ -27,6 +27,7 @@ impl<E: Events> Driver<'_, E> {
             map: c.map as i16,
             story_triggered: c.controls.story_triggered,
         };
+        let aimed = item.camera_actor && item.camera == 20;
         actor.update_item(
             request,
             &mut item,
@@ -60,7 +61,18 @@ impl<E: Events> Driver<'_, E> {
                     Ok(())
                 }
                 ItemCue::Use { item, direction } => {
-                    c.emit(actor, Event::UseItem { item, direction }, random)
+                    if item.index() == 9
+                        && let Some(direction) = direction
+                    {
+                        let distance = if aimed {
+                            c.items.aim.reach.unwrap_or(-1)
+                        } else {
+                            0
+                        };
+                        c.fire_arrow(actor, direction, distance, &mut self.terrain, random)
+                    } else {
+                        c.emit(actor, Event::UseItem { item, direction }, random)
+                    }
                 }
                 ItemCue::Medicine(effect) => c.emit(actor, Event::Medicine(effect), random),
                 ItemCue::ShowHealth => c.emit(actor, Event::ShowHealth, random),
@@ -138,6 +150,147 @@ impl<E: Events> Driver<'_, E> {
 }
 
 impl<E: Events> Context<'_, E> {
+    pub(super) fn fire(
+        &mut self,
+        actor: &Actor,
+        kind: Projectile,
+        terrain: &mut Terrain<'_>,
+        random: &mut Random,
+    ) -> Result<()> {
+        use crate::tenchu2::{
+            horizontal_distance,
+            items::{State, arrow::Arrow, gun::Gunshot},
+        };
+        if matches!(kind, Projectile::Kunai | Projectile::KunaiFan) {
+            return self.emit(actor, Event::Fire(kind), random);
+        }
+        let target = actor.target.and_then(|id| self.others.get(id, actor));
+        let distance =
+            target.map(|target| horizontal_distance(actor.position, target.position, &self.math));
+        let [sin, cos] = self.math.pair(actor.rotation.y);
+        let direction = if kind == Projectile::ForwardGunshot {
+            Position::new(-sin, 0, -cos)
+        } else {
+            self.instances[self.index].rig.weapons[2] = None;
+            let target = target.ok_or("Tenchu 2 ranged attack has no target")?;
+            let distance = distance.unwrap_or_default() as i16;
+            Position::new(
+                sin.wrapping_neg().wrapping_mul(i32::from(distance)) >> 12,
+                target.position.y.wrapping_sub(actor.position.y),
+                cos.wrapping_neg().wrapping_mul(i32::from(distance)) >> 12,
+            )
+        };
+        if matches!(kind, Projectile::Gunshot | Projectile::ForwardGunshot) {
+            let origin = self.item_origin(11)?;
+            self.emit(
+                actor,
+                Event::SoundPosition {
+                    position: origin,
+                    id: 58,
+                },
+                random,
+            )?;
+            let shot = Gunshot::launch(
+                self.index,
+                origin,
+                direction,
+                distance,
+                terrain.map,
+                terrain.cursor,
+                &self.math,
+            )?;
+            self.items
+                .insert(State::Gunshot(shot), self.scene, self.collision)?;
+        } else {
+            let flaming = matches!(self.map, 4..=6 | 17 | 21)
+                && actor.kind & 0xf0 == 0x40
+                && random.next15() % 5 == 0;
+            if flaming {
+                return self.fire_arrow(
+                    actor,
+                    direction,
+                    distance.unwrap_or_default(),
+                    terrain,
+                    random,
+                );
+            }
+            self.emit(actor, Event::Voice(2), random)?;
+            let origin = self.item_origin(5)?;
+            let arrow = Arrow::launch(
+                origin,
+                direction,
+                distance.unwrap_or_default(),
+                &self.math,
+                random,
+            );
+            self.items
+                .insert(State::Arrow(arrow), self.scene, self.collision)?;
+        }
+        Ok(())
+    }
+
+    fn fire_arrow(
+        &mut self,
+        actor: &Actor,
+        direction: Position,
+        mut distance: i32,
+        terrain: &mut Terrain<'_>,
+        random: &mut Random,
+    ) -> Result<()> {
+        use crate::tenchu2::{
+            horizontal_distance,
+            items::{
+                State, aim,
+                arrow::{Arrow, FireAim},
+            },
+            terrain::{self as surface, Query},
+        };
+        let origin = self.item_origin(11)?;
+        let aim = if surface::level(terrain.map, terrain.cursor, origin, Query::Surface)?.is_none()
+        {
+            FireAim::Blocked
+        } else if self.index == self.player {
+            let root = self.item_origin(1)?;
+            let normal = self.math.normalize_vector(direction);
+            let actors =
+                (0..self.others.len()).filter_map(|i| self.others.get(i, actor).map(|a| (i, a)));
+            if let Some(target) = aim::target(root, normal, self.index, actors, &self.math)
+                .and_then(|i| self.others.get(i, actor))
+            {
+                distance = horizontal_distance(actor.position, target.position, &self.math)
+                    .wrapping_sub(500)
+                    .max(0);
+            }
+            FireAim::Player
+        } else {
+            FireAim::Guard
+        };
+        let arrow = Arrow::fire(
+            self.index, origin, direction, distance, aim, &self.math, random,
+        );
+        self.items
+            .insert(State::Arrow(arrow), self.scene, self.collision)?;
+        self.effects
+            .smoke(origin, 4, self.hidden, &self.math, random)?;
+        self.emit(
+            actor,
+            Event::SoundPosition {
+                position: origin,
+                id: 52,
+            },
+            random,
+        )
+    }
+
+    fn item_origin(&mut self, bone: usize) -> Result<Position> {
+        let joint = *self.instances[self.index]
+            .rig
+            .joints
+            .get(bone)
+            .ok_or("Missing Tenchu 2 projectile joint")?;
+        Ok(self.scene.world(joint)?.translation)
+    }
+
     pub(super) fn item_event(
         &mut self,
         actor: &Actor,
@@ -149,6 +302,12 @@ impl<E: Events> Context<'_, E> {
             projectile::{Kind, Projectile as Shot},
         };
         let (kind, direction, fan) = match event {
+            Event::NockArrow => {
+                let rig = &mut self.instances[self.index].rig;
+                rig.weapons[2] = rig.weapons[4];
+                self.emit(actor, Event::Voice(3), random)?;
+                return Ok(true);
+            }
             Event::UseItem {
                 item,
                 direction: Some(direction),

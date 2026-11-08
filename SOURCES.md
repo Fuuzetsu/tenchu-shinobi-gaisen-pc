@@ -2246,3 +2246,26 @@ controlled fixture boundaries; they are not full-frame comparisons. A connected
 world check throws through actor controls, damages a guard, recovers a missed
 shuriken, stresses bounded coordinate reuse and restores in-flight items from a
 snapshot. Other item types, trail presentation and campaign logic remain open.
+
+Native JP arrows follow `8005c304`, `8005c658` and `8005ca54`; fire arrows use
+`80056b10` / `80057000`, and firearms use `8005d1d4` / `8005d480`. Their native
+actor-controller call sites retain bow nocking, map/kind-specific fire-arrow
+odds, aimed trajectories and sound order. Auto-aim follows `8001c738`, including
+`VectorNormal` returning the squared length of signed-halfword inputs.
+
+`TENCHU2_RANGED_ORACLE` compares 2,600 private original constructors and updates
+on JP maps, including parent-bone embedding, water extinguishing, deflection,
+explosion phases, firearm damage windows and source RNG. Projection, drawing,
+contacts and effect creation are controlled boundaries. `TENCHU2_AIM_TARGET_ORACLE`
+checks 1,000 target selections. Connected-world checks exercise guard bow,
+fire-arrow and firearm hits, the player's fire-arrow inventory/damage path,
+and in-flight snapshot continuation. All 56 mission casts and three-hero frame/
+audio continuation still pass; these are not complete mission parity checks.
+
+Those connected checks exposed two setup gaps: `80039358` enables assigned AI
+with `8002fb20`'s `0x10` return flag, and the zeroed actor created by `8001b5ac`
+initially references attack row zero. Missing melee entries later select the
+all-zero terminator; `80035740` still reads its zero combo timing rather than
+failing. Both loaded editions' terminators have been inspected. The 36,000 JP
+combat decision comparison now includes that terminator, and the 29,400 attack
+controller and attack-sequence regressions pass.

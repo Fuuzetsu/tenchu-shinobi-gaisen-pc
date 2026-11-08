@@ -73,7 +73,7 @@ impl Items {
             return None;
         }
         let id = match id {
-            8 => 22,
+            9 => 22,
             12 => 7,
             _ => id,
         };

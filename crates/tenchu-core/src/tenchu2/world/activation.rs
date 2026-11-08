@@ -1,7 +1,8 @@
 use super::{Assets, World};
 use crate::{
     Result,
-    math::{Math, Position},
+    math::Position,
+    tenchu2::horizontal_distance as distance,
     tenchu2::{actor::Velocity, ai::direction, rig::WeaponMode},
 };
 
@@ -158,16 +159,6 @@ impl World {
 
 fn exempt(kind: i16) -> bool {
     kind & 0x5e == 0x5e || kind & 0x80 != 0
-}
-
-fn distance(a: Position, b: Position, math: &Math) -> i32 {
-    let x = a.x.wrapping_sub(b.x);
-    let z = a.z.wrapping_sub(b.z);
-    if x.wrapping_abs() >= 32767 || z.wrapping_abs() >= 32767 {
-        32767
-    } else {
-        math.square_root(x.wrapping_mul(x).wrapping_add(z.wrapping_mul(z)))
-    }
 }
 
 fn partition(indices: &mut [usize], front: impl Fn(usize) -> bool) {

@@ -339,11 +339,46 @@ impl Models {
             output.parts(&self.items, parts, scene.world(hand)?, math)?;
         }
         for entry in &world.items.entries {
-            if let tenchu_core::tenchu2::items::State::Projectile(projectile) = &entry.state
-                && let Some(parts) = assets.items.model(projectile.model())
-            {
-                let transform = projectile.transform.compose(&Matrix {
-                    rotation: math.rotate_yxz(projectile.rotation),
+            use tenchu_core::tenchu2::items::{State, arrow::Phase};
+            let (model, transform, rotation) = match &entry.state {
+                State::Projectile(p) => (p.model(), p.transform, p.rotation),
+                State::Arrow(arrow) => {
+                    if arrow.flame {
+                        let image =
+                            assets.sprites.effects[12 + (world.tick.wrapping_sub(1) & 3) as usize];
+                        let projected = output.project(arrow.flight.position);
+                        if projected[2] > 0.0 {
+                            let scale = 2400.0 / projected[2];
+                            output.screen_sprite(
+                                projected,
+                                image.size.map(f32::from),
+                                [scale; 2],
+                                0,
+                                [1.0; 3],
+                                Some(image),
+                                2,
+                            );
+                        }
+                    }
+                    if matches!(arrow.phase, Phase::Exploding(_)) && !arrow.flame {
+                        continue;
+                    }
+                    let transform = if let Phase::Embedded {
+                        parent: Some(parent),
+                        ..
+                    } = arrow.phase
+                    {
+                        scene.world(parent)?.compose(&arrow.transform)
+                    } else {
+                        arrow.transform
+                    };
+                    (arrow.model(), transform, arrow.rotation)
+                }
+                _ => continue,
+            };
+            if let Some(parts) = assets.items.model(model) {
+                let transform = transform.compose(&Matrix {
+                    rotation: math.rotate_yxz(rotation),
                     ..Default::default()
                 });
                 output.parts(&self.items, parts, transform, math)?;

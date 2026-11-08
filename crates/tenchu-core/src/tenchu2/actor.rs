@@ -68,11 +68,21 @@ pub struct Change {
     pub changed: bool,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Attack {
     pub index: Option<usize>,
     pub contacts: u32,
     pub trails: u32,
+}
+
+impl Default for Attack {
+    fn default() -> Self {
+        Self {
+            index: Some(0),
+            contacts: 0,
+            trails: 0,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -15,3 +15,17 @@ pub mod rig;
 pub mod terrain;
 pub mod visibility;
 pub mod world;
+
+pub fn horizontal_distance(
+    a: crate::math::Position,
+    b: crate::math::Position,
+    math: &crate::math::Math,
+) -> i32 {
+    let x = a.x.wrapping_sub(b.x);
+    let z = a.z.wrapping_sub(b.z);
+    if x.wrapping_abs() >= 32767 || z.wrapping_abs() >= 32767 {
+        32767
+    } else {
+        math.square_root(x.wrapping_mul(x).wrapping_add(z.wrapping_mul(z)))
+    }
+}

@@ -660,3 +660,179 @@ fn native_shuriken_hits_and_returns_to_inventory() {
         postcard::to_allocvec(&restored).unwrap()
     );
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; native AI must nock, fire and injure the player through the full world loop"]
+fn native_archers_and_gunners_land_their_attacks() {
+    use tenchu_core::tenchu2::items::{State as ItemState, arrow::Phase};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let layouts = Layout::available(&disc).unwrap();
+    let registry = tenchu_assets::tenchu2::registry::Registry::load(&disc).unwrap();
+    let (_, flat_assets, _) = fixture();
+    for mode in ["bow", "fire", "gun"] {
+        let clip = if mode == "gun" { 0x418 } else { 0x205 };
+        let layout = layouts
+            .iter()
+            .find(|l| {
+                (mode != "fire" || matches!(l.map, 4..=6 | 17 | 21))
+                    && l.actors.iter().any(|a| {
+                        registry.clip(a.kind, 0x900) == Some(clip)
+                            && a.behavior & 0xf00 == 0x100
+                            && (mode != "fire" || a.kind & 0xf0 == 0x40)
+                    })
+            })
+            .unwrap_or_else(|| panic!("No {mode} layout"));
+        let mut layout = layout.clone();
+        let archer = layout
+            .actors
+            .iter()
+            .find(|a| {
+                registry.clip(a.kind, 0x900) == Some(clip)
+                    && a.behavior & 0xf00 == 0x100
+                    && (mode != "fire" || a.kind & 0xf0 == 0x40)
+            })
+            .unwrap()
+            .clone();
+        layout.actors = vec![archer];
+        layout.start = [0; 3];
+        layout.facing = 2048;
+        layout.actors[0].position = [0, 0, 6000];
+        layout.actors[0].facing = 0;
+        layout.actors[0].route.clear();
+        let hero = if layout.sequence >= 185 {
+            2
+        } else {
+            usize::from(layout.sequence >= 101)
+        };
+        let mut assets = Assets::load(&disc, hero, &layout).unwrap();
+        assets.level.collision = flat_assets.level.collision.clone();
+        let mut world = World::new(
+            &layout,
+            Options {
+                hero,
+                difficulty: 2,
+                seed: 123,
+                inventory: Inventory::default(),
+            },
+            &assets,
+        )
+        .unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+        let mut events = Recorded::default();
+        let mut nocked = false;
+        let mut shot = false;
+        let mut flame = false;
+        let mut embedded = false;
+        let mut snapshot = None;
+        for _ in 0..2400 {
+            world
+                .step([0; 2], &mut assets, &mut events)
+                .unwrap_or_else(|e| panic!("{mode} tick {}: {e}", world.tick));
+            nocked |= world.instances[1].rig.weapons[2].is_some();
+            for entry in &world.items.entries {
+                match &entry.state {
+                    ItemState::Arrow(arrow) => {
+                        shot = true;
+                        flame |= arrow.fire_model;
+                        embedded |= matches!(
+                            arrow.phase,
+                            Phase::Embedded {
+                                parent: Some(_),
+                                ..
+                            }
+                        );
+                    }
+                    ItemState::Gunshot(_) => shot = true,
+                    _ => {}
+                }
+            }
+            if shot && snapshot.is_none() {
+                snapshot = Some(postcard::to_allocvec(&world).unwrap());
+            }
+            if world.actors[0].actor.health < 100 && (mode != "fire" || flame) {
+                break;
+            }
+        }
+        assert!(
+            shot && world.actors[0].actor.health < 100,
+            "{mode}: no hit, nocked={nocked}, shot={shot}, ticks={}, health={}, action={:x}, pending={:?}",
+            world.tick,
+            world.actors[0].actor.health,
+            world.actors[1].actor.motion.action,
+            events.0
+        );
+        assert!(mode == "gun" || nocked, "{mode}: never nocked an arrow");
+        assert!(
+            mode != "fire" || flame,
+            "fire-arrow chance was never exercised"
+        );
+        assert!(
+            !events
+                .0
+                .iter()
+                .any(|e| matches!(e, Event::NockArrow | Event::Fire(_)))
+        );
+        eprintln!(
+            "{mode}: sequence={}, kind={:x}, tick={}, player health={}, attached={embedded}",
+            layout.sequence, world.actors[1].actor.kind, world.tick, world.actors[0].actor.health
+        );
+        let bytes = snapshot.unwrap();
+        let mut original: World = postcard::from_bytes(&bytes).unwrap();
+        let mut restored: World = postcard::from_bytes(&bytes).unwrap();
+        for _ in 0..200 {
+            original
+                .step([0; 2], &mut assets, &mut Recorded::default())
+                .unwrap();
+            restored
+                .step([0; 2], &mut assets, &mut Recorded::default())
+                .unwrap();
+        }
+        assert_eq!(
+            postcard::to_allocvec(&original).unwrap(),
+            postcard::to_allocvec(&restored).unwrap()
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; uses the fire-arrow item through native controls and damages a guard"]
+fn native_player_fire_arrow_uses_inventory_and_burns_a_guard() {
+    use tenchu_core::tenchu2::items::{State as ItemState, arrow::Phase};
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[0].actor.inventory.counts[9] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(9).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let before = world.actors[guard].actor.health;
+    let mut flaming = false;
+    let mut explosion = false;
+    for _ in 0..100 {
+        for i in [0, guard] {
+            world.move_actor(i, &assets, &mut events).unwrap();
+            world.actors[i].actor.pad.update(0);
+            world.control_actor(i, &mut assets, &mut events).unwrap();
+            world.animate_actor(i, &assets).unwrap();
+        }
+        world.update_items(&assets, &mut events).unwrap();
+        for entry in &world.items.entries {
+            if let ItemState::Arrow(arrow) = &entry.state {
+                flaming |= arrow.fire_model;
+                explosion |= matches!(arrow.phase, Phase::Exploding(_));
+            }
+        }
+        world.update_effects().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+    }
+    assert_eq!(world.actors[0].actor.inventory.counts[9], 1);
+    assert!(
+        flaming && explosion,
+        "fire arrow did not launch/explode: {flaming}/{explosion}"
+    );
+    assert!(
+        world.actors[guard].actor.health < before,
+        "fire arrow caused no damage"
+    );
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}

@@ -207,7 +207,7 @@ impl World {
                 options.difficulty,
                 &mut world.random,
             )? {
-                actor.flags |= 1;
+                actor.flags |= 0x10;
             }
             actor.rotation.y = entry.facing;
             agent.behavior.patrol = super::ai::Patrol::new(&entry.route, actor.position);
