@@ -48,9 +48,9 @@ pub struct Target {
 pub trait Reactions {
     fn nearest_target(&mut self, c: &mut Context<'_>, range: i32) -> Result<Option<Target>>;
     fn action(&mut self, c: &mut Context<'_>, action: i16) -> Result<()>;
-    fn idle(&mut self, c: &mut Context<'_>) -> Result<u16>;
+    fn idle(&mut self, c: &mut Context<'_>, global: &mut Global) -> Result<u16>;
     fn victory(&mut self, c: &mut Context<'_>) -> Result<u16>;
-    fn corpses(&mut self, c: &mut Context<'_>) -> Result<()>;
+    fn corpses(&mut self, c: &mut Context<'_>, global: &mut Global) -> Result<()>;
     fn confusion(&mut self, c: &mut Context<'_>) -> Result<u16>;
     fn sight(&mut self, c: &mut Context<'_>) -> Result<()>;
     fn sample_player_terrain(&mut self, c: &mut Context<'_>) -> Result<()>;
@@ -112,7 +112,7 @@ pub fn update(
     let health_limit = if europe { 1 } else { 0 };
     if c.actor.state != State::Dead && c.actor.health < health_limit {
         let held = if c.observed_flags & 0x10 != 0 {
-            reactions.idle(c)?
+            reactions.idle(c, global)?
         } else {
             0
         };
@@ -127,7 +127,7 @@ pub fn update(
         reactions.clear_forced();
         if !player {
             if c.actor.health <= 0 {
-                reactions.corpses(c)?;
+                reactions.corpses(c, global)?;
             } else {
                 if global.perception.nearest_distance > 0 {
                     let distance = if (c.actor.flags & 0x800 == 0 || c.actor.motion.loops >= 0)
@@ -177,7 +177,7 @@ pub fn update(
             if !europe {
                 reactions.sample_player_terrain(c)?;
             }
-            held = reactions.idle(c)?;
+            held = reactions.idle(c, global)?;
             if player {
                 global.player_held = held;
             }

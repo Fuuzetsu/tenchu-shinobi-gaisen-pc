@@ -91,6 +91,15 @@ fn native_sleep_waking_and_idle_transitions_match_source() {
                 &mut destination,
                 &resources,
                 &mut random,
+                |actor, action| {
+                    actor
+                        .change_motion(
+                            action,
+                            tenchu_core::tenchu2::actor::Velocity::Motion,
+                            &resources,
+                        )
+                        .map(|_| ())
+                },
             )
             .unwrap();
         let actual = json!({

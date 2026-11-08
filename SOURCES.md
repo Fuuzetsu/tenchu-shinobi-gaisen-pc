@@ -1930,3 +1930,15 @@ source ordering. Nested behavior, target lookup, sight and motion calls are
 recorded boundaries. JP's additional 1000-unit direct-input terrain samples also
 match original code over all 23 maps, alongside the 1500-unit guard samples and
 movement-constraint comparisons. Native behavior-state/world wiring remains.
+
+Persistent behavior dispatch now connects the perception transitions to the
+actual idle, patrol, combat, search and corpse programs. Each edition matches
+48,000 decisions in 80 continuous 600-step sequences
+(`TENCHU2_BEHAVIOR_ORACLE`), including 50/53 item inputs and 144/136 attacks.
+The patrol wrapper follows EU `80032b04` / JP `80033850`; awareness resets
+preserve waypoint index/wait, while clearing the shared turn counter. Sleep
+motion changes execute synchronously. Original nested routines, terrain and RNG
+run in the comparison; sight inputs, motion selection and voices remain
+controlled boundaries. These sequences cover ordinary perception transitions,
+not arbitrary scripted reassignment between stateful programs or complete AI
+ticks. Native world, effects and campaign integration are still unfinished.

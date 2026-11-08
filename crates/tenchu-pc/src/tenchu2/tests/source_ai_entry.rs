@@ -56,13 +56,13 @@ impl Reactions for Boundary<'_> {
         self.calls.push(json!(["action", action]));
         Ok(())
     }
-    fn idle(&mut self, _: &mut Context<'_>) -> Result<u16> {
+    fn idle(&mut self, _: &mut Context<'_>, _: &mut Global) -> Result<u16> {
         Ok(self.routine("idle"))
     }
     fn victory(&mut self, _: &mut Context<'_>) -> Result<u16> {
         Ok(self.routine("victory"))
     }
-    fn corpses(&mut self, _: &mut Context<'_>) -> Result<()> {
+    fn corpses(&mut self, _: &mut Context<'_>, _: &mut Global) -> Result<()> {
         self.calls.push(json!(["corpses"]));
         Ok(())
     }

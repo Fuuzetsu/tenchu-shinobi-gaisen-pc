@@ -7,7 +7,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::{Edition, collision::Collision};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Visibility {
     Unchanged,
     Hidden,

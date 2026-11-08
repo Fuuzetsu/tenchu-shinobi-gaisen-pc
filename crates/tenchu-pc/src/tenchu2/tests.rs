@@ -7,6 +7,7 @@ mod source_ai_status;
 mod source_alert;
 mod source_attack;
 mod source_awareness;
+mod source_behavior;
 mod source_body;
 mod source_combat;
 mod source_control;

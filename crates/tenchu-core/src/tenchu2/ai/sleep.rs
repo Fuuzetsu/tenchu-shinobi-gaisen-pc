@@ -4,7 +4,7 @@ use crate::{
     math::Position,
     random::Random,
     tenchu2::{
-        actor::{Actor, Resources, Velocity},
+        actor::{Actor, Resources},
         input,
     },
 };
@@ -34,6 +34,7 @@ impl Sleep {
         destination: &mut Position,
         resources: &Resources,
         random: &mut Random,
+        mut apply: impl FnMut(&mut Actor, i16) -> Result<()>,
     ) -> Result<SleepOutput> {
         let poisoned = actor.flags & 0x100 != 0;
         let resting = matches!(actor.motion.action, 0 | 0x100);
@@ -41,14 +42,14 @@ impl Sleep {
             && actor.position.z.wrapping_sub(input.home.z).wrapping_abs() < 5000;
         if near_home && !poisoned {
             if resting && actor.motion.loops > 0 && input.alert == 0 {
-                actor.change_motion(0x70c, Velocity::Motion, resources)?;
+                apply(actor, 0x70c)?;
             }
         } else if resting {
             if !poisoned && (self.wait < 451 || input.alert != 0) {
                 self.wait = self.wait.wrapping_add(1);
             } else {
                 if !poisoned {
-                    actor.change_motion(0x70c, Velocity::Motion, resources)?;
+                    apply(actor, 0x70c)?;
                 }
                 self.wait = 0;
             }
@@ -74,7 +75,7 @@ impl Sleep {
             random,
         )?;
         if let Some(action) = action {
-            actor.change_motion(action, Velocity::Motion, resources)?;
+            apply(actor, action)?;
         }
         Ok(SleepOutput {
             held,
