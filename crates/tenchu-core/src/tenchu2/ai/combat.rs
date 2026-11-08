@@ -237,7 +237,7 @@ impl Context<'_> {
         Ok(decision)
     }
 
-    fn command(&mut self, action: i16) -> u16 {
+    pub(super) fn command(&mut self, action: i16) -> u16 {
         let commands = if action == 0x910 {
             &self.resources.commands.jumping
         } else {

@@ -9,6 +9,7 @@ pub use corpses::{CorpseContext, CorpseSearch};
 pub mod alert;
 pub mod combat;
 pub mod navigation;
+pub mod perception;
 pub mod search;
 pub mod sight;
 pub mod status;

@@ -1910,3 +1910,13 @@ Each edition matches 60,000 source executions (`TENCHU2_STATUS_ORACLE`), coverin
 timer boundaries, all difficulty levels, radar thresholds and victory phases.
 Motion requests are recorded at the selection boundary; native-world dispatch
 remains unfinished.
+
+Enclosing guard-perception transitions follow EU `8002f8cc..80030600` and JP
+`80030524..8003113c`. Each edition matches 40,000 original-code transitions
+(`TENCHU2_PERCEPTION_ORACLE`), including 296 player-spotted events. Calm,
+suspicious, fighting and searching transitions preserve routine dispatch, reset
+and memory semantics, radar/alert updates, motion/voice requests and input
+suppression. EU/JP recognition differs in voice RNG and missing-animation
+handling. Program results and motion/voice calls are controlled boundaries;
+source alert timers, steering, command input and RNG execute directly. This
+verifies transition policy, not yet a complete native AI tick or mission.
