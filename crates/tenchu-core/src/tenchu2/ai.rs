@@ -12,6 +12,7 @@ pub mod combat;
 pub mod entry;
 pub mod navigation;
 pub mod perception;
+pub mod runtime;
 pub mod search;
 pub mod sight;
 pub mod status;

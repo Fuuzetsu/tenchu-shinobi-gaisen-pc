@@ -170,7 +170,8 @@ fn native_corpse_search_and_terrain_visibility_match_source() {
         let observed = search
             .observe(
                 3,
-                &actors,
+                actors.len(),
+                |index| actors.get(index),
                 &mut CorpseContext {
                     edition: resources.registry.edition,
                     player: 0,

@@ -220,7 +220,7 @@ impl Flank {
                     } else {
                         input::RIGHT
                     };
-                    if c.sight.distance < 2000 && c.target.state == State::Attack {
+                    if c.sight.distance < 2000 && c.target()?.state == State::Attack {
                         decision.held = c.guard(decision.held)?;
                     }
                 }

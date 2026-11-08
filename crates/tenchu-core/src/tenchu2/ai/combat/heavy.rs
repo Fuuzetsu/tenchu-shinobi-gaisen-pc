@@ -81,7 +81,7 @@ impl Melee {
             }
             if c.low_health() && c.likely()? {
                 held = c.choose_item(ItemChoices::BOTH)?;
-                if held != 0 && c.target.state != State::Hurt {
+                if held != 0 && c.target()?.state != State::Hurt {
                     return Ok(held);
                 }
                 return Ok(if c.actor.kind == 0xe1 && c.random.next15() & 1 != 0 {

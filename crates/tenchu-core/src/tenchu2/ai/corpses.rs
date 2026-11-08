@@ -26,18 +26,19 @@ pub struct CorpseContext<'a> {
 }
 
 impl CorpseSearch {
-    pub fn observe(
+    pub fn observe<'a>(
         &mut self,
         corpse: usize,
-        actors: &[Actor],
+        count: usize,
+        actor_at: impl Fn(usize) -> Option<&'a Actor>,
         world: &mut CorpseContext<'_>,
     ) -> Result<Option<usize>> {
-        let body = actors.get(corpse).ok_or("Missing Tenchu 2 corpse")?;
+        let body = actor_at(corpse).ok_or("Missing Tenchu 2 corpse")?;
         if body.motion.loops != i16::MIN || local_alert_only(body.kind) || body.flags & 0x80 != 0 {
             return Ok(None);
         }
-        self.observer = (self.observer + 1) % actors.len();
-        let observer = &actors[self.observer];
+        self.observer = (self.observer + 1) % count;
+        let observer = actor_at(self.observer).ok_or("Missing Tenchu 2 corpse observer")?;
         if observer.flags & 0xb != 0
             || matches!(observer.state, State::Hurt | State::Dead)
             || observer.motion.action == 0x70c

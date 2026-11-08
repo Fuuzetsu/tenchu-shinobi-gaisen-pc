@@ -35,9 +35,28 @@ pub struct Dog {
     pub waiting: u8,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Target {
+    pub flags: u32,
+    pub state: State,
+    pub action: i16,
+    pub position: Position,
+}
+
+impl From<&Actor> for Target {
+    fn from(actor: &Actor) -> Self {
+        Self {
+            flags: actor.flags,
+            state: actor.state,
+            action: actor.motion.action,
+            position: actor.position,
+        }
+    }
+}
+
 pub struct Context<'a> {
     pub actor: &'a mut Actor,
-    pub target: &'a Actor,
+    pub target: Option<Target>,
     pub sight: &'a mut Sight,
     pub visibility: &'a mut Visibility,
     pub steering: SteeringInput,
@@ -72,6 +91,11 @@ impl ItemChoices {
 }
 
 impl Context<'_> {
+    pub(super) fn target(&self) -> Result<Target> {
+        self.target
+            .ok_or_else(|| "Missing Tenchu 2 combat target".into())
+    }
+
     pub(super) fn keep_visible(&mut self, range: i32) {
         if self.sight.distance < range && *self.visibility != Visibility::Hidden {
             *self.visibility = Visibility::Unchanged;
@@ -140,13 +164,13 @@ impl Context<'_> {
         if choices.defensive {
             if chance(self.random)
                 && self.actor.inventory.counts[6] != 0
-                && self.target.flags & 0x80000 == 0
+                && self.target()?.flags & 0x80000 == 0
             {
                 return self.select_item(6);
             }
             if chance(self.random)
                 && self.actor.inventory.counts[10] != 0
-                && self.target.flags & 0x80200 == 0
+                && self.target()?.flags & 0x80200 == 0
             {
                 return self.select_item(10);
             }
@@ -154,13 +178,13 @@ impl Context<'_> {
         if choices.offensive {
             if chance(self.random)
                 && self.actor.inventory.counts[4] != 0
-                && self.target.flags & 0x80000 == 0
+                && self.target()?.flags & 0x80000 == 0
             {
                 return self.select_item(4);
             }
             if chance(self.random)
                 && self.actor.inventory.counts[8] != 0
-                && self.target.flags & 0x80100 == 0
+                && self.target()?.flags & 0x80100 == 0
             {
                 return self.select_item(8);
             }
@@ -198,13 +222,13 @@ impl Context<'_> {
             return Ok(Decision::default());
         }
         let x = self
-            .target
+            .target()?
             .position
             .x
             .wrapping_add(offset.x)
             .wrapping_sub(self.actor.position.x);
         let z = self
-            .target
+            .target()?
             .position
             .z
             .wrapping_add(offset.z)
@@ -295,7 +319,7 @@ impl Context<'_> {
     }
 
     fn defend(&mut self, held: u16) -> Result<u16> {
-        if self.target.state == State::Attack {
+        if self.target()?.state == State::Attack {
             self.guard(held)
         } else if self.player_held & input::DOWN != 0 && self.random.next15() & 3 == 0 {
             self.choose_item(ItemChoices::DEFENSIVE)
@@ -309,7 +333,7 @@ impl Context<'_> {
             return Ok(held);
         }
         let bearing = i32::from(self.sight.player_angle).abs();
-        if self.target.state == State::Attack && bearing < 512 {
+        if self.target()?.state == State::Attack && bearing < 512 {
             return self.guard(held);
         }
         if self.facing >= 200 {
@@ -320,7 +344,7 @@ impl Context<'_> {
             });
         }
         let hesitate = if self.resources.registry.edition == Edition::Europe {
-            bearing <= 512 && self.target.state != State::Hurt
+            bearing <= 512 && self.target()?.state != State::Hurt
         } else {
             self.difficulty != 0 || bearing <= 512
         };
@@ -351,7 +375,7 @@ impl Context<'_> {
                 self.turn_around()
             });
         }
-        if self.target.state == State::Attack && bearing < 512 {
+        if self.target()?.state == State::Attack && bearing < 512 {
             return self.guard(held);
         }
         if usize::from(attack_delay) <= self.difficulty * 10 || !self.likely()? {
@@ -459,7 +483,7 @@ impl Ranged {
                     .ok_or("Missing Tenchu 2 ranged actor")?
                     .weapon;
                 let mask = if context.resources.registry.edition == Edition::Japan
-                    && context.target.state == State::Swimming
+                    && context.target()?.state == State::Swimming
                 {
                     15
                 } else {

@@ -129,25 +129,26 @@ pub enum TargetQuery {
     Nearby { distance: i32, enemies_only: bool },
 }
 
-pub fn find_target(
-    actors: &[Actor],
+pub fn find_target<'a>(
+    count: usize,
+    actor_at: impl Fn(usize) -> Option<&'a Actor>,
     origin: usize,
     player: Option<usize>,
     query: TargetQuery,
     math: &Math,
 ) -> Option<usize> {
     match query {
-        TargetQuery::Kind(kind) => actors
-            .iter()
-            .position(|actor| actor.kind == i16::from(kind)),
+        TargetQuery::Kind(kind) => (0..count)
+            .find(|&index| actor_at(index).is_some_and(|actor| actor.kind == i16::from(kind))),
         TargetQuery::Nearby {
             distance,
             enemies_only,
         } => {
-            let position = actors.get(origin)?.position;
+            let position = actor_at(origin)?.position;
             let mut closest = i32::MAX;
             let mut target = None;
-            for (index, actor) in actors.iter().enumerate() {
+            for index in 0..count {
+                let actor = actor_at(index)?;
                 if index == origin
                     || actor.flags & 8 != 0
                     || (enemies_only

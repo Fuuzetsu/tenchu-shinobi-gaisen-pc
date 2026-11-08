@@ -142,7 +142,7 @@ fn native_behavior_sequences_match_source() {
         let cached_flags = actor.flags;
         let mut c = Context {
             actor: &mut actor,
-            target: &target,
+            target: Some((&target).into()),
             sight: &mut sight,
             visibility: &mut seen,
             steering,

@@ -61,7 +61,7 @@ fn native_alert_reactions_match_source() {
         let mut random = Random::new(int("seed") as u32);
         let mut context = Context {
             actor: &mut actor,
-            target: &target,
+            target: Some((&target).into()),
             sight: &mut sight,
             visibility: &mut visible,
             steering: SteeringInput {

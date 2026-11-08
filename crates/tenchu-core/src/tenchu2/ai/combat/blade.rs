@@ -121,7 +121,7 @@ impl Melee {
             }
             return Ok(input::ATTACK);
         }
-        if c.target.state == State::Attack && bearing < 512 {
+        if c.target()?.state == State::Attack && bearing < 512 {
             return c.guard(held);
         }
         if usize::from(self.attack_delay) <= c.difficulty * 10 || !c.likely()? {
@@ -146,7 +146,7 @@ impl Melee {
         }
         if c.low_health() && c.likely()? {
             held = c.choose_item(ItemChoices::BOTH)?;
-            if held == 0 || c.target.state == State::Hurt {
+            if held == 0 || c.target()?.state == State::Hurt {
                 held = input::ATTACK;
             }
             if c.actor.kind == 0xf1 {
@@ -154,7 +154,7 @@ impl Melee {
             }
             return Ok(held);
         }
-        if c.target.state == State::Attack && i32::from(c.sight.player_angle).abs() < 512 {
+        if c.target()?.state == State::Attack && i32::from(c.sight.player_angle).abs() < 512 {
             return c.guard(held);
         }
         Ok(if c.random.next15() & 3 == 0 {

@@ -37,7 +37,7 @@ impl Melee {
             i32::from(c.rules.close[category])
         };
         let mut decision = Decision::default();
-        if c.target.flags & 0x200 == 0 {
+        if c.target()?.flags & 0x200 == 0 {
             self.engaged = false;
         } else if !self.engaged {
             decision = c.approach(&mut self.offset, reach - 200)?;

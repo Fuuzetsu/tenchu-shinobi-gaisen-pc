@@ -155,7 +155,7 @@ fn native_ai_entry_matches_source() {
             Surroundings::default().steering(&actor, actor.flags, sight.angle, int("forced") != 0);
         let mut c = Context {
             actor: &mut actor,
-            target: &template,
+            target: Some((&template).into()),
             sight: &mut sight,
             visibility: &mut visible,
             steering,

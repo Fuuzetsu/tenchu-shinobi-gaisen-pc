@@ -1942,3 +1942,13 @@ run in the comparison; sight inputs, motion selection and voices remain
 controlled boundaries. These sequences cover ordinary perception transitions,
 not arbitrary scripted reassignment between stateful programs or complete AI
 ticks. Native world, effects and campaign integration are still unfinished.
+
+Complete AI dispatch now joins entry, sight, persistent behavior and final
+navigation, with synchronous corpse-witness updates and shared regional state.
+EU `8002f074` and JP `8002fce4` each match 48,000 full actor-AI calls in 40
+four-actor sequences across five maps (`TENCHU2_RUNTIME_ORACLE`). The comparison
+executes original target selection, sight rays, corpse scans, behavior, terrain,
+pad history and RNG; it checks every actor and the shared alert/radar after each
+round. Controller sampling, motion changes and voices remain explicit boundaries;
+movement/postures are controlled inputs. Native rendering, actor controllers,
+effects and campaign still need to be joined into a playable runtime.

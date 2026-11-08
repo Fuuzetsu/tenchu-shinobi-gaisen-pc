@@ -199,7 +199,14 @@ fn native_target_selection_keeps_source_filters_order_and_distances() {
             }
         };
         assert_eq!(
-            find_target(&actors, case.origin, case.player, query, &resources.math),
+            find_target(
+                actors.len(),
+                |index| actors.get(index),
+                case.origin,
+                case.player,
+                query,
+                &resources.math
+            ),
             case.expected,
             "case {index}"
         );

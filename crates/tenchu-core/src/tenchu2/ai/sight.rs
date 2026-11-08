@@ -47,6 +47,7 @@ impl Ranges {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Body {
     pub position: Position,
     pub yaw: i16,
@@ -54,6 +55,19 @@ pub struct Body {
     pub state: State,
     pub action: i16,
     pub in_water: bool,
+}
+
+impl From<&crate::tenchu2::actor::Actor> for Body {
+    fn from(actor: &crate::tenchu2::actor::Actor) -> Self {
+        Self {
+            position: actor.position,
+            yaw: actor.rotation.y,
+            height: actor.height,
+            state: actor.state,
+            action: actor.motion.action,
+            in_water: actor.flags & 0x2000 != 0,
+        }
+    }
 }
 
 pub struct Observer {

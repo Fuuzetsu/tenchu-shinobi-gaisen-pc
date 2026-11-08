@@ -94,13 +94,13 @@ impl Melee {
             }
             if c.low_health() && c.likely()? {
                 held = c.choose_item(ItemChoices::BOTH)?;
-                return Ok(if held == 0 || c.target.state == State::Hurt {
+                return Ok(if held == 0 || c.target()?.state == State::Hurt {
                     input::ATTACK
                 } else {
                     held
                 });
             }
-            if c.target.state == State::Attack && i32::from(c.sight.player_angle).abs() < 512 {
+            if c.target()?.state == State::Attack && i32::from(c.sight.player_angle).abs() < 512 {
                 return c.guard(held);
             }
             return Ok(if c.random.next15() & 3 == 0 {

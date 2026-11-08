@@ -225,14 +225,14 @@ pub fn update(
                 if scene.player_action == 0xa25
                     || (c.actor.target.is_some()
                         && !scene.target_is_player
-                        && c.target.state == State::Dead)
+                        && c.target()?.state == State::Dead)
                 {
                     decision.held &= 0xf0;
                 }
             }
             if *c.visibility == Visibility::Hidden {
                 c.observed_flags = base_flags | 0x83;
-                reactions.remember(c.target.position);
+                reactions.remember(c.target()?.position);
                 reactions.reset(false);
                 if c.random.next15() & 1 != 0 && scene.script == 0 {
                     reactions.voice(c, 9)?;
@@ -309,7 +309,7 @@ fn avoid(c: &mut Context<'_>, surroundings: &Surroundings, decision: &mut Decisi
         }
     }
     if c.actor.target.is_some()
-        && matches!(c.target.motion.action, 0x803 | 0x805)
+        && matches!(c.target()?.action, 0x803 | 0x805)
         && c.difficulty != 3
         && c.random.next15() % (c.difficulty as i32 + 1) == 0
     {
