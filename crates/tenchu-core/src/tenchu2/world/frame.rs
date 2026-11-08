@@ -68,35 +68,9 @@ impl World {
         assets: &Assets,
         events: &mut impl controls::Events,
     ) -> Result<Option<crate::tenchu2::items::aim::Reticle>> {
-        use crate::tenchu2::items::{aim::Input, grapple::State};
+        use crate::tenchu2::items::aim::Input;
         let math = &assets.resources.math;
-        if let Some(grapple) = &mut self.items.grapple {
-            if grapple.state == State::Released {
-                self.items.grapple = None;
-            } else {
-                let hand = *self.instances[self.player]
-                    .rig
-                    .joints
-                    .get(11)
-                    .ok_or("Missing Tenchu 2 grapple hand")?;
-                let hand = self.scene.world(hand)?.translation;
-                if let Some(direction) = grapple.advance(self.items.aim.target, hand, math) {
-                    let position = grapple.transform.translation;
-                    self.effects.impact(
-                        position,
-                        direction,
-                        math,
-                        &assets.effect_rules,
-                        &mut self.random,
-                    )?;
-                    self.emit(
-                        self.player,
-                        Event::SoundPosition { id: 49, position },
-                        events,
-                    )?;
-                }
-            }
-        }
+        self.advance_items(assets, events)?;
         let root = self
             .scene
             .world(self.instances[self.player].rig.joints[0])?
@@ -167,7 +141,7 @@ impl World {
         Ok(())
     }
 
-    fn emit(
+    pub(super) fn emit(
         &mut self,
         index: usize,
         event: Event,

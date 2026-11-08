@@ -167,21 +167,9 @@ impl Grapple {
 }
 
 fn basis(direction: Position, math: &Math) -> [[i16; 3]; 3] {
-    let up = if direction.x == 0 && direction.z == 0 {
-        Position::new(0, 0, -direction.y)
-    } else {
-        Position::new(0, -4096, 0)
-    };
-    let cross = |a: Position, b: Position| {
-        Position::from_fn(|i| {
-            let j = (i + 1) % 3;
-            let k = (i + 2) % 3;
-            a[j].wrapping_mul(b[k])
-                .wrapping_sub(a[k].wrapping_mul(b[j]))
-                >> 12
-        })
-    };
-    let side = math.normalize_vector(cross(up, direction));
-    let up = math.normalize_vector(cross(direction, side));
-    std::array::from_fn(|i| [-side[i] as i16, -up[i] as i16, -direction[i] as i16])
+    let mut basis = super::facing(direction, -4096, math);
+    for row in &mut basis {
+        row[1] = row[1].wrapping_neg();
+    }
+    basis
 }

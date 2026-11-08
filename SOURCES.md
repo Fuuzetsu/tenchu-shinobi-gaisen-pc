@@ -2230,3 +2230,19 @@ this is not a complete interactive water-gameplay comparison.
 Native character rendering now uses every source joint, including the 23 JP
 bodies/costumes with more than 15 joints. A disc-driven check builds and poses
 every catalog rig; Gaisen's blended-joint seam regression still passes.
+
+Native JP thrown blades follow `8005356c` / `80053770` (shuriken), `80053d64`
+/ `80053f6c` (kunai), and the resting/falling pickup paths `8005baa0` /
+`8005bdec`. They share the source's 30-active-item replacement threshold
+(`800533ac`–`800534e4`) with the grapple and reuse coordinates. The allocator's
+uncleared floor value survives record reuse; fresh owned slots start at zero.
+Projectile damage decodes the collider's low six bits (`800202bc`), separately
+from its weapon/contact flags. Blood contact audio uses ID29 (`8004028c`).
+
+`TENCHU2_PROJECTILE_ORACLE` compares 1,600 original constructors and updates on
+actual JP collision maps, including deflections, object/body contacts, sounds,
+alerts and water entry. Projection/trail drawing and contact enumeration are
+controlled fixture boundaries; they are not full-frame comparisons. A connected
+world check throws through actor controls, damages a guard, recovers a missed
+shuriken, stresses bounded coordinate reuse and restores in-flight items from a
+snapshot. Other item types, trail presentation and campaign logic remain open.

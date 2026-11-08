@@ -14,8 +14,8 @@ use std::ops::ControlFlow;
 pub enum Projectile {
     Arrow,
     Gunshot,
-    Ice,
-    IceFan,
+    Kunai,
+    KunaiFan,
     ForwardGunshot,
 }
 
@@ -101,7 +101,7 @@ impl Actor {
                 match clip {
                     0x4e2 => self.attack_grip(request, frame, 9, 12, 0, &mut cue)?,
                     0x10d => self.attack_grip(request, frame, 5, 34, 0, &mut cue)?,
-                    0x510 if frame == 15 => cue(self, request, AttackCue::Fire(Projectile::Ice))?,
+                    0x510 if frame == 15 => cue(self, request, AttackCue::Fire(Projectile::Kunai))?,
                     _ => {}
                 }
                 if combo {
@@ -119,7 +119,7 @@ impl Actor {
                     0x10e => self.attack_grip(request, frame, 12, 37, 0, &mut cue)?,
                     0xbc => self.attack_grip(request, frame, 5, 31, 0, &mut cue)?,
                     0x4e3 => self.attack_grip(request, frame, 10, 14, 0, &mut cue)?,
-                    0x176 if frame == 15 => cue(self, request, AttackCue::Fire(Projectile::Ice))?,
+                    0x176 if frame == 15 => cue(self, request, AttackCue::Fire(Projectile::Kunai))?,
                     _ => {}
                 }
                 if combo {
@@ -186,7 +186,7 @@ impl Actor {
                 }
             }
             0x915 => match clip {
-                0x177 if frame == 16 => cue(self, request, AttackCue::Fire(Projectile::IceFan))?,
+                0x177 if frame == 16 => cue(self, request, AttackCue::Fire(Projectile::KunaiFan))?,
                 0x110 => self.attack_grip(request, frame, 12, 47, 0, &mut cue)?,
                 0x48f => {
                     if frame == 23 {

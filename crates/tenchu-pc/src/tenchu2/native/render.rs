@@ -313,7 +313,7 @@ impl Models {
                 }
             }
         }
-        if let Some(hook) = &world.items.grapple {
+        if let Some(hook) = world.items.grapple() {
             if let Some(parts) = assets.items.model(0) {
                 output.parts(&self.items, parts, hook.transform, math)?;
             }
@@ -337,6 +337,17 @@ impl Models {
                 .get(11)
                 .ok_or("Missing native held-item hand")?;
             output.parts(&self.items, parts, scene.world(hand)?, math)?;
+        }
+        for entry in &world.items.entries {
+            if let tenchu_core::tenchu2::items::State::Projectile(projectile) = &entry.state
+                && let Some(parts) = assets.items.model(projectile.model())
+            {
+                let transform = projectile.transform.compose(&Matrix {
+                    rotation: math.rotate_yxz(projectile.rotation),
+                    ..Default::default()
+                });
+                output.parts(&self.items, parts, transform, math)?;
+            }
         }
         for sprite in &frame.scenery.sprites {
             let size = sprite.image.size.map(f32::from);

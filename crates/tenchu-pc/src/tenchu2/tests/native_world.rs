@@ -158,7 +158,7 @@ fn native_world_grapple_pulls_the_player_and_survives_a_snapshot() {
     player.inventory.active = Item::GRAPPLE;
     let mut events = Recorded::default();
     world.control_actor(0, &mut assets, &mut events).unwrap();
-    assert!(world.items.grapple.is_some());
+    assert!(world.items.grapple().is_some());
     assert_eq!(world.camera.mode, 19);
     let mut attached = false;
     let mut pulled = false;
@@ -187,7 +187,7 @@ fn native_world_grapple_pulls_the_player_and_survives_a_snapshot() {
         pulled |= world.actors[0].actor.position.z < -3000;
     }
     assert!(attached && pulled);
-    assert!(world.items.grapple.is_none());
+    assert!(world.items.grapple().is_none());
     assert_eq!(
         postcard::to_allocvec(&world).unwrap(),
         postcard::to_allocvec(&restored.unwrap()).unwrap()
@@ -530,5 +530,133 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
     assert_eq!(
         postcard::to_allocvec(&restored).unwrap(),
         postcard::to_allocvec(&world).unwrap()
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; exercises throwing, damaging a guard, retrieving a shuriken and bounded item reuse"]
+fn native_shuriken_hits_and_returns_to_inventory() {
+    use tenchu_core::tenchu2::items::{
+        State as ItemState,
+        projectile::{Kind, Projectile},
+    };
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[0].actor.inventory.counts[4] = 3;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(4).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let health = world.actors[guard].actor.health;
+    let mut launched = false;
+    let mut hit = false;
+    for _ in 0..100 {
+        for i in [0, guard] {
+            world.move_actor(i, &assets, &mut events).unwrap();
+            world.actors[i].actor.pad.update(0);
+            world.control_actor(i, &mut assets, &mut events).unwrap();
+            world.animate_actor(i, &assets).unwrap();
+        }
+        if !launched && let Some(entry) = world.items.entries.first() {
+            let ItemState::Projectile(projectile) = &entry.state else {
+                panic!("wrong item");
+            };
+            let target = projectile
+                .flight
+                .position
+                .wrapping_add(projectile.flight.velocity.map(|v| (v * 1500) >> 12));
+            let actor = &mut world.actors[guard].actor;
+            actor.position.x = target.x;
+            actor.position.z = target.z;
+            actor.previous = actor.position;
+            world.publish(guard, &assets);
+            launched = true;
+        }
+        world.update_items(&assets, &mut events).unwrap();
+        world.update_effects().unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+        hit |= world.actors[guard].actor.health < health;
+    }
+    assert!(
+        launched && hit,
+        "no native shuriken hit: launched={launched}, health={health} -> {}, pending={:?}",
+        world.actors[guard].actor.health,
+        events.0
+    );
+    assert_eq!(world.actors[0].actor.inventory.counts[4], 2);
+    assert!(world.items.entries.is_empty());
+    // A missed throw becomes a physical pickup rather than disappearing on the floor.
+    world.actors[guard].actor.flags |= 8;
+    let origin = Position::new(4000, -20, 4000);
+    let shot = Projectile::launch(
+        Kind::Shuriken,
+        0,
+        origin,
+        Position::new(0, 4096, 0),
+        &assets.resources.math,
+    );
+    world
+        .items
+        .insert(
+            ItemState::Projectile(shot),
+            &mut world.scene,
+            &mut world.collision,
+        )
+        .unwrap();
+    world.update_items(&assets, &mut events).unwrap();
+    world.finish_tick(&assets, 6).unwrap();
+    let player = &mut world.actors[0].actor;
+    player.position = Position::new(4000, 0, 4000);
+    player.previous = player.position;
+    player
+        .change_motion(0, Velocity::Stop, &assets.resources)
+        .unwrap();
+    world.publish(0, &assets);
+    world.finish_tick(&assets, 6).unwrap();
+    world.update_items(&assets, &mut events).unwrap();
+    assert!(
+        world.items.entries.is_empty(),
+        "resting shuriken was not picked up"
+    );
+    assert_eq!(world.actors[0].actor.inventory.counts[4], 3);
+    let initial_models = world.scene.models.len();
+    for i in 0..240 {
+        let shot = Projectile::launch(
+            Kind::Shuriken,
+            0,
+            Position::new(i * 100, -1500, 0),
+            Position::new(0, 0, -4096),
+            &assets.resources.math,
+        );
+        world
+            .items
+            .insert(
+                ItemState::Projectile(shot),
+                &mut world.scene,
+                &mut world.collision,
+            )
+            .unwrap();
+        world
+            .collision
+            .compute(|model| world.scene.world(model))
+            .unwrap();
+    }
+    assert_eq!(world.items.entries.len(), 30);
+    assert!(
+        world.scene.models.len() <= initial_models + 30,
+        "projectile coordinates grow without bound"
+    );
+    let snapshot = postcard::to_allocvec(&world).unwrap();
+    let mut restored: World = postcard::from_bytes(&snapshot).unwrap();
+    for _ in 0..20 {
+        world.update_items(&assets, &mut events).unwrap();
+        restored
+            .update_items(&assets, &mut Recorded::default())
+            .unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+        restored.finish_tick(&assets, 6).unwrap();
+    }
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored).unwrap()
     );
 }

@@ -14,6 +14,11 @@ health, water state and unconnected events; F3 pauses, F4 advances one logic
 tick, and Escape closes the preview. This mode does not write campaign saves
 or change saved graphics settings.
 
+Add `--loadout 4:20` for twenty shuriken. The normal item-selection and item-use
+bindings apply; the preview overlay shows the selected item ID and quantity.
+Other inventory entries accept comma-separated `ID:COUNT` pairs, but their
+effects are still being connected.
+
 For a repeatable capture:
 
 ```sh
@@ -25,9 +30,10 @@ Tenchu 2 pad mask for the requested ticks. `TENCHU_SETTINGS` selects a settings
 file for rendering; the separate `tenchu2-hd.tar.zst` pack is discovered normally.
 
 This preview uses JP actors, controls, AI, collision, water interaction, camera,
-scenery, grapple and particles. It loads the hero/area VAB from the supplied disc
+scenery, grapple, shuriken/kunai and particles. Missed shuriken can be retrieved;
+blade impacts use the native damage, deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the
-port's visual enhancements. Projectiles, some procedural effects, story scripts,
+port's visual enhancements. Other projectiles/items, some procedural effects, story scripts,
 the original HUD, menus, results and progression remain integration work.
 Component comparisons and snapshot continuation do not establish full campaign
 parity. F6 and `play-t2` retain the existing Gaisen sandbox until that boundary

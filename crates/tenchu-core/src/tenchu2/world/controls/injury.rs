@@ -107,7 +107,7 @@ impl<E: Events> Driver<'_, E> {
             hit: if slot.flags & OBJECT == 0 {
                 Hit::Weapon
             } else {
-                Hit::Object(slot.flags as u8)
+                Hit::Object((slot.flags & 0x3f) as u8)
             },
             contact: slot.position,
             body,

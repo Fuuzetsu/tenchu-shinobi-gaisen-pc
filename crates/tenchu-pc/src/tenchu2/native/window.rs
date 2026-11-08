@@ -116,6 +116,7 @@ impl View {
                 egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
                     ui.label(format!("JP native preview · area {} · sequence {} · tick {}",session.world.map,session.world.sequence,session.world.tick));
                     ui.label(format!("Health {} / {} · {:?} · Ki {:?}",player.health,player.max_health,player.state,session.world.ai.global.radar));
+                    if let Some(item) = player.inventory.selected { ui.label(format!("Item {} × {}",item.index(),player.inventory.count(item))); }
                     ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
                     if *paused { ui.label("PAUSED"); }
                     if let Some(error) = error { ui.colored_label(egui::Color32::LIGHT_RED,error); }

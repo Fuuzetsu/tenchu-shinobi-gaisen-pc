@@ -77,6 +77,14 @@ impl Session {
         self.frame = self
             .world
             .step([buttons, 0], &mut self.assets, &mut events)?;
+        for &position in &self.frame.effects.blood_sounds {
+            events.requests.push(SoundRequest {
+                id: 29,
+                listener: self.world.listener(),
+                position: Some(position),
+                volume: None,
+            });
+        }
         let mut sounds: Vec<_> = self.frame.ambience.into_iter().collect();
         for request in events.requests {
             if let Some((direction, volume)) = request
@@ -183,7 +191,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nInternal native JP integration preview. Projectiles, story, HUD and campaign progression are still being connected; F1 shows the current boundaries. Existing play-t2 remains the Gaisen sandbox."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nInternal native JP integration preview. Projectiles, story, HUD and campaign progression are still being connected; F1 shows the current boundaries. Existing play-t2 remains the Gaisen sandbox."
         );
         return Ok(());
     }
@@ -191,6 +199,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let mut seed = 1;
     let mut ticks = 30;
     let mut buttons = 0;
+    let mut loadout = Vec::new();
     for pair in args[first..].chunks(2) {
         if pair.len() != 2 {
             return Err("Native JP options require a value".into());
@@ -216,6 +225,23 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                 buttons = u16::from_str_radix(value.trim_start_matches("0x"), 16)
                     .map_err(|e| e.to_string())?
             }
+            Some("--loadout") => {
+                for entry in value.split(',') {
+                    let (item, count) = entry
+                        .split_once(':')
+                        .ok_or("Use --loadout ITEM:COUNT,ITEM:COUNT")?;
+                    let item: usize = item
+                        .parse()
+                        .map_err(|e: std::num::ParseIntError| e.to_string())?;
+                    let count: u8 = count
+                        .parse()
+                        .map_err(|e: std::num::ParseIntError| e.to_string())?;
+                    if item >= 20 {
+                        return Err("Native JP inventory item must be 0–19".into());
+                    }
+                    loadout.push((item, count));
+                }
+            }
             _ => {
                 return Err(format!(
                     "Unknown native JP option {}",
@@ -226,6 +252,12 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     }
     let disc = crate::source::open_disc(args[1].as_ref())?;
     let mut session = Session::load(&disc, sequence, seed)?;
+    for (item, count) in loadout {
+        session.world.actors[session.world.player]
+            .actor
+            .inventory
+            .counts[item] = count;
+    }
     let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
         crate::settings::Store::new()?.load()?
     } else {

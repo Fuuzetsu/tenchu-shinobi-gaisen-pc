@@ -286,6 +286,9 @@ impl<E: Events> Context<'_, E> {
         if self.particle(actor, event, random)? {
             return Ok(());
         }
+        if self.item_event(actor, event, random)? {
+            return Ok(());
+        }
         Events::emit(
             self.events,
             EventSource {

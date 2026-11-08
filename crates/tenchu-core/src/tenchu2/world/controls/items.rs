@@ -49,18 +49,14 @@ impl<E: Events> Driver<'_, E> {
                     Ok(())
                 }
                 ItemCue::ReleaseGrapple => {
-                    if let Some(grapple) = &mut c.items.grapple {
+                    if let Some(grapple) = c.items.grapple_mut() {
                         grapple.release();
                     }
                     Ok(())
                 }
                 ItemCue::GrapplePosition => {
-                    input.grapple_position = c
-                        .items
-                        .grapple
-                        .as_ref()
-                        .ok_or("Missing Tenchu 2 grapple")?
-                        .origin;
+                    input.grapple_position =
+                        c.items.grapple().ok_or("Missing Tenchu 2 grapple")?.origin;
                     Ok(())
                 }
                 ItemCue::Use { item, direction } => {
@@ -142,10 +138,75 @@ impl<E: Events> Driver<'_, E> {
 }
 
 impl<E: Events> Context<'_, E> {
+    pub(super) fn item_event(
+        &mut self,
+        actor: &Actor,
+        event: Event,
+        random: &mut Random,
+    ) -> Result<bool> {
+        use crate::tenchu2::items::{
+            State,
+            projectile::{Kind, Projectile as Shot},
+        };
+        let (kind, direction, fan) = match event {
+            Event::UseItem {
+                item,
+                direction: Some(direction),
+            }
+            | Event::ThrowItem { item, direction }
+                if item.index() == 4 =>
+            {
+                (Kind::Shuriken, direction, false)
+            }
+            Event::Fire(Projectile::Kunai | Projectile::KunaiFan) => {
+                let target = actor
+                    .target
+                    .and_then(|id| self.others.get(id, actor))
+                    .ok_or("Tenchu 2 kunai throw has no target")?;
+                (
+                    Kind::Kunai,
+                    target.position.wrapping_sub(actor.position),
+                    event == Event::Fire(Projectile::KunaiFan),
+                )
+            }
+            _ => return Ok(false),
+        };
+        let hand = *self.instances[self.index]
+            .rig
+            .joints
+            .get(11)
+            .ok_or("Missing Tenchu 2 throwing hand")?;
+        let origin = self.scene.world(hand)?.translation;
+        let yaw = if fan {
+            crate::tenchu2::ai::direction(&self.math, direction.x, direction.z, 0)?
+                .wrapping_sub(192)
+        } else {
+            0
+        };
+        for i in 0..if fan { 4 } else { 1 } {
+            let direction = if fan {
+                let [s, c] = self.math.pair(yaw.wrapping_add(i * 128));
+                Position::new(-s, direction.y, -c)
+            } else {
+                direction
+            };
+            self.items.insert(
+                State::Projectile(Shot::launch(
+                    kind, self.index, origin, direction, &self.math,
+                )),
+                self.scene,
+                self.collision,
+            )?;
+        }
+        if kind == Kind::Kunai {
+            self.emit(actor, Event::Voice(33), random)?;
+        }
+        Ok(true)
+    }
+
     fn grapple_status(&self) -> GrappleStatus {
         self.items
-            .grapple
-            .as_ref()
+            .grapple()
             .map_or(GrappleStatus::Failed, |grapple| grapple.status())
     }
 
@@ -155,7 +216,7 @@ impl<E: Events> Context<'_, E> {
         direction: Position,
         random: &mut Random,
     ) -> Result<()> {
-        if self.items.grapple.is_some() {
+        if self.items.grapple().is_some() {
             return Ok(());
         }
         let joint = *self.instances[self.index]
@@ -164,14 +225,20 @@ impl<E: Events> Context<'_, E> {
             .get(1)
             .ok_or("Missing Tenchu 2 grapple joint")?;
         let position = self.scene.world(joint)?.translation;
-        self.items.grapple = crate::tenchu2::items::grapple::Grapple::launch(
+        let grapple = crate::tenchu2::items::grapple::Grapple::launch(
             self.index,
             position,
             direction,
             &mut self.items.aim,
             &self.math,
         );
-        if self.items.grapple.is_none() {
+        if let Some(grapple) = grapple {
+            self.items.insert(
+                crate::tenchu2::items::State::Grapple(grapple),
+                self.scene,
+                self.collision,
+            )?;
+        } else {
             self.emit(actor, Event::SoundPosition { id: 6, position }, random)?;
         }
         Ok(())

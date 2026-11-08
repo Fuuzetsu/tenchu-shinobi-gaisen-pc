@@ -33,6 +33,7 @@ mod source_motion;
 mod source_navigation;
 mod source_perception;
 mod source_physics;
+mod source_projectiles;
 mod source_scene;
 mod source_search;
 mod source_sequence;

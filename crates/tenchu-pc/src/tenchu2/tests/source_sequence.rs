@@ -88,8 +88,8 @@ fn native_attack_sequences_preserve_combos_grips_projectiles_and_landings() {
                             calls.push(json!(["gun"]));
                         }
                         AttackCue::Fire(Projectile::ForwardGunshot) => calls.push(json!(["gun"])),
-                        AttackCue::Fire(Projectile::Ice | Projectile::IceFan) => {
-                            for _ in 0..if cue == AttackCue::Fire(Projectile::IceFan) {
+                        AttackCue::Fire(Projectile::Kunai | Projectile::KunaiFan) => {
+                            for _ in 0..if cue == AttackCue::Fire(Projectile::KunaiFan) {
                                 4
                             } else {
                                 1

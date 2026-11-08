@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect native JP shuriken and kunai to flight, impacts, guard damage and
+  recoverable shuriken pickups. The internal preview accepts `--loadout 4:20`
+  for testing and now plays positional blood-contact sounds.
 - Animate imported Tenchu 2 water and waterfalls at their original map-specific
   speeds, including HD replacements. Native JP rendering also supports the full
   joint counts of costumes that exceed Gaisen's 15-joint character layout.

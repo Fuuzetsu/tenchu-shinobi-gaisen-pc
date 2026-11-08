@@ -23,6 +23,7 @@ mod camera;
 pub mod controls;
 mod effects;
 mod frame;
+mod items;
 mod update;
 pub use assets::Assets;
 pub use frame::Frame;
