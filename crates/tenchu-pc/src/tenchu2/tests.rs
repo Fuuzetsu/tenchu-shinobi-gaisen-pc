@@ -1,5 +1,7 @@
 use super::*;
 
+mod source_motion;
+
 #[test]
 #[ignore = "requires TENCHU2_DISC; checks every map's source background samples and schedules"]
 fn stage_ambience_uses_distinct_map_banks_and_retail_scheduling() {

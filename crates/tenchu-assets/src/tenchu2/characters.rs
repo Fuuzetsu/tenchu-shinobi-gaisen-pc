@@ -10,6 +10,42 @@ pub struct Character {
     pub idle: Option<Clip>,
 }
 
+pub struct Rig {
+    pub parts: Vec<Part>,
+    pub vram: Vram,
+}
+
+pub fn rig(disc: &Disc<impl ReadAt>, name: &str) -> Result<Rig> {
+    if name.is_empty()
+        || name.len() >= 32
+        || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    {
+        return Err("Invalid Tenchu 2 model name".into());
+    }
+    read_model(&Volume::open(disc)?, name, true)
+}
+
+fn read_model(volume: &Volume<'_, impl ReadAt>, name: &str, native: bool) -> Result<Rig> {
+    let directory = r"o:\cdimage\game\actor";
+    let data = volume.read(directory, &format!("{name}.mdl"))?;
+    let mut parts = if native {
+        model::rig(&data)?
+    } else {
+        model::character(&data)?
+    };
+    let textures = volume.read(directory, &format!("{name}.arc"))?;
+    let mut vram = Vram::default();
+    let count = usize::from(u16_le(&textures, 0)?);
+    if count > 256 {
+        return Err("Excessive Tenchu 2 character textures".into());
+    }
+    for i in 0..count {
+        vram.upload_tim(crate::model::arc_entry(&textures, i)?)?;
+    }
+    model::resolve_transparency(parts.iter_mut(), &vram);
+    Ok(Rig { parts, vram })
+}
+
 struct Definition {
     name: String,
     kinds: Vec<i16>,
@@ -70,19 +106,7 @@ pub fn load(disc: &Disc<impl ReadAt>, kinds: Option<&BTreeSet<i16>>) -> Result<V
     definitions
         .into_iter()
         .map(|definition| {
-            let directory = r"o:\cdimage\game\actor";
-            let mut parts =
-                model::character(&volume.read(directory, &format!("{}.mdl", definition.name))?)?;
-            let textures = volume.read(directory, &format!("{}.arc", definition.name))?;
-            let mut vram = Vram::default();
-            let count = usize::from(u16_le(&textures, 0)?);
-            if count > 256 {
-                return Err("Excessive Tenchu 2 character textures".into());
-            }
-            for i in 0..count {
-                vram.upload_tim(crate::model::arc_entry(&textures, i)?)?;
-            }
-            model::resolve_transparency(parts.iter_mut(), &vram);
+            let Rig { parts, vram } = read_model(&volume, &definition.name, false)?;
             let idle = definition
                 .idle
                 .and_then(|id| idle_clips.get(&id))

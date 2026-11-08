@@ -20,6 +20,19 @@ pub struct Clip {
     pub bones: Vec<Vec<Key>>,
 }
 
+pub fn spline_basis(disc: &Disc<impl ReadAt>) -> Result<[[i16; 4]; 33]> {
+    let (edition, data) = super::executable(disc)?;
+    let executable = crate::executable::Executable::new(&data)?;
+    let bytes = executable.bytes(edition.addresses().spline_basis, 33 * 8)?;
+    let mut basis = [[0; 4]; 33];
+    for (out, row) in basis.iter_mut().zip(bytes.chunks_exact(8)) {
+        for (i, value) in out.iter_mut().enumerate() {
+            *value = i16_le(row, i * 2)?;
+        }
+    }
+    Ok(basis)
+}
+
 impl Clip {
     pub fn gaisen_pose(&self) -> motion::Clip {
         motion::Clip {

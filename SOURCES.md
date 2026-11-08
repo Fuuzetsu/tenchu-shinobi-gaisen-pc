@@ -1469,3 +1469,26 @@ for identical tracks. EU supplies 1,208 distinct clips and JP 1,191; JP's campai
 bundles omit nineteen horse/hawk/crow clips still named in its actor registry.
 Those missing resources must not be silently relabelled as Gaisen motions or
 replaced by another edition when native T2 behavior is requested.
+
+The native rig reader retains all MDL joints; the older fifteen-joint projection
+remains available for Gaisen model swaps. `tenchu-core::tenchu2::motion` follows
+EU `8001a774`–`8001b4fc` / JP `8001a824`–`8001b5ac` for selection, blending,
+partial-body overlays, held poses and logical advancement without posing. It
+shares the verified GTE Hermite evaluation with Gaisen, reading each edition's
+basis from its executable. An overlay preserves the original timeline and clip
+header but replaces selected tracks; the source also replaces the last joint
+regardless of the overlay mask.
+
+Private MIPS execution compared 13,385 EU and 13,213 JP pose states across every
+campaign clip, including masks, blending, restarts, loops and skipped poses.
+The oracle supplies COP2 MVMVA arithmetic and stubs matrix publication only;
+selection, tangent calculation, track sampling and state advancement execute
+the original instructions. `TENCHU2_POSE_ORACLE` reads those private traces.
+
+Weapon attachments come from EU `8007ff2c` / JP `80081e5c` and their hit timing
+from `game/weapon/atktbl.dat`: 152 parts in 58 weapon groups, 231 attack records.
+EU `8001b4fc`, `8001f358`, `8001f604` / corresponding JP routines establish
+model slots, joint anchors, hit spheres and attack masks. Native skeleton checks
+cover every registered actor's weapon joints in both editions. These facilities
+are the native animation/combat foundation; game actor controllers remain a
+separate unfinished port.

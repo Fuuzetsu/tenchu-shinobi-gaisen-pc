@@ -21,6 +21,7 @@ pub mod projection;
 pub mod random;
 pub mod roster;
 pub mod scene;
+pub mod tenchu2;
 pub mod terrain;
 pub mod visibility;
 

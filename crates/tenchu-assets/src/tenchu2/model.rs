@@ -156,7 +156,16 @@ pub(super) fn scenery(data: &[u8]) -> Result<Geometry> {
 }
 
 pub(super) fn character(data: &[u8]) -> Result<Vec<Part>> {
+    parts(parse(data)?, &super::BONES)
+}
+
+pub(super) fn rig(data: &[u8]) -> Result<Vec<Part>> {
     let mesh = parse(data)?;
+    let bones: Vec<_> = (0..mesh.parents.len()).collect();
+    parts(mesh, &bones)
+}
+
+fn parts(mesh: Mesh, bones: &[usize]) -> Result<Vec<Part>> {
     let mut roots = Vec::<[i32; 3]>::new();
     let mut mapped = Vec::new();
     for (joint, &parent) in mesh.parents.iter().enumerate() {
@@ -169,13 +178,13 @@ pub(super) fn character(data: &[u8]) -> Result<Vec<Part>> {
             origin[i] + i32::from(mesh.positions[joint][i])
         }));
         mapped.push(
-            super::BONES
+            bones
                 .iter()
                 .position(|&b| b == joint)
                 .unwrap_or_else(|| mapped[parent as usize]),
         );
     }
-    let mut parts: Vec<_> = super::BONES
+    let mut parts: Vec<_> = bones
         .iter()
         .enumerate()
         .map(|(index, &joint)| {
@@ -199,12 +208,12 @@ pub(super) fn character(data: &[u8]) -> Result<Vec<Part>> {
         .collect();
     let mut indices = vec![std::collections::BTreeMap::new(); parts.len()];
     for mut face in mesh.faces {
-        let mut counts = [0; 15];
+        let mut counts = vec![0; parts.len()];
         for corner in &face.corners {
             counts[mapped[mesh.joints[usize::from(corner.vertex)]]] += 1;
         }
-        let owner = (0..15).max_by_key(|&i| counts[i]).unwrap();
-        let root = roots[super::BONES[owner]];
+        let owner = (0..parts.len()).max_by_key(|&i| counts[i]).unwrap();
+        let root = roots[bones[owner]];
         let geometry = &mut parts[owner].geometry[0];
         for corner in &mut face.corners {
             let source = usize::from(corner.vertex);
