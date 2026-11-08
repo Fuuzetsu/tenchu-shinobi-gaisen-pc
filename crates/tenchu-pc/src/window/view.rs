@@ -775,21 +775,32 @@ impl View {
     }
 
     pub(super) fn artwork_status(&self) -> String {
-        if let Some(error) = &self.pack_error {
-            return format!("Asset pack failed to load: {error}");
-        }
-        if self.pack.textures.is_empty() && self.pack.models.is_empty() {
-            return "No replacement textures or models loaded for this mission. HD artwork is a separate download: place tenchu-hd.tar.zst beside the game, restart, and enable Replacement artwork. For custom packs, check TENCHU_ASSET_PACK.".into();
-        }
-        let status = format!(
-            "Loaded for this mission: {} textures, {} models",
-            self.pack.textures.len(),
-            self.pack.models.len()
-        );
+        let status = if let Some(error) = &self.pack_error {
+            format!("Asset pack failed to load: {error}")
+        } else {
+            format!(
+                "Gaisen artwork loaded: {} textures, {} models. Imported terrain and characters load artwork separately.",
+                self.pack.textures.len(),
+                self.pack.models.len()
+            )
+        };
         #[cfg(not(target_arch = "wasm32"))]
-        let status = match crate::visuals::pack::configured_root() {
-            Some(path) => format!("{status}\n{}", path.display()),
-            None => status,
+        let status = {
+            use crate::visuals::pack::{configured_root, configured_tenchu2_root};
+            let mut status = status;
+            for (name, path, archive) in [
+                ("Shinobi Gaisen", configured_root(), "tenchu-hd.tar.zst"),
+                ("Tenchu 2", configured_tenchu2_root(), "tenchu2-hd.tar.zst"),
+            ] {
+                status.push_str(&match path {
+                    Some(path) => format!("\n{name} pack: {}", path.display()),
+                    None => format!(
+                        "\n{name} pack not installed. Put {archive} beside the game and restart."
+                    ),
+                });
+            }
+            status.push_str("\nReplacement artwork toggles both packs. Missing textures use the corresponding disc's originals.");
+            status
         };
         status
     }

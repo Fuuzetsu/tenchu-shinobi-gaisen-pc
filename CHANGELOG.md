@@ -5,6 +5,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 now reports both Shinobi Gaisen and Tenchu 2 artwork pack paths, with the correct separate download name when either is missing.
 - Japanese Tenchu 2 imports now select each mission’s alternate scenery and prop layout where the original uses one.
 
 ## 0.21.0 — 2026-11-07
