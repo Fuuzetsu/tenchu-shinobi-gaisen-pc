@@ -142,7 +142,8 @@ impl World {
         }
     }
 
-    pub fn animate_actor(&mut self, index: usize, visible: bool, assets: &Assets) -> Result<()> {
+    pub fn animate_actor(&mut self, index: usize, assets: &Assets) -> Result<()> {
+        let view = self.view();
         let actor = &mut self.actors[index].actor;
         if actor.flags & 8 != 0 {
             return Ok(());
@@ -157,7 +158,8 @@ impl World {
                 translation: actor.position,
             },
         );
-        let visible = index == self.player || visible;
+        let visible =
+            index == self.player || view.actor(&self.scene.world(rig.joints[0])?).is_some();
         if index == self.player {
             self.effort = self
                 .effort
@@ -283,5 +285,19 @@ impl World {
         self.scene.finish_tick();
         self.tick = self.tick.wrapping_add(1);
         Ok(())
+    }
+
+    pub fn view(&self) -> super::super::visibility::View {
+        super::super::visibility::View {
+            eye: self.camera.eye,
+            look: self.camera.look,
+            focus: if self.environment.background_only {
+                self.camera.look
+            } else {
+                self.actors[self.controls.camera_actor].actor.position
+            },
+            matrix: self.camera.view,
+            distance: self.view_distance,
+        }
     }
 }

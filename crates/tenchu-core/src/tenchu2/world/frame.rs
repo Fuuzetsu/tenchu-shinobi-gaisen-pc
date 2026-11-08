@@ -7,10 +7,6 @@ use crate::{
     tenchu2::{actor::Actor, ai::behavior, physics::FallDeath},
 };
 
-pub trait ActorEvents: controls::Events + crate::tenchu2::environment::Events {
-    fn visible(&mut self, source: EventSource<'_>) -> Result<bool>;
-}
-
 #[derive(Default)]
 struct Voices(Vec<u8>);
 
@@ -26,7 +22,7 @@ impl World {
         &mut self,
         controllers: [u16; 2],
         assets: &mut Assets,
-        events: &mut impl ActorEvents,
+        events: &mut (impl controls::Events + crate::tenchu2::environment::Events),
     ) -> Result<()> {
         let mut voices = Voices::default();
         for index in 0..self.actors.len() {
@@ -62,19 +58,9 @@ impl World {
                 self.emit(index, Event::Voice(voice), events)?;
             }
             self.control_actor(index, assets, events)?;
-            let visible = index == self.player || events.visible(self.event_source(index))?;
-            self.animate_actor(index, visible, assets)?;
+            self.animate_actor(index, assets)?;
         }
         Ok(())
-    }
-
-    fn event_source(&mut self, index: usize) -> EventSource<'_> {
-        EventSource {
-            index,
-            actor: &self.actors[index].actor,
-            rig: &self.instances[index].rig,
-            scene: &mut self.scene,
-        }
     }
 
     fn emit(
@@ -100,9 +86,8 @@ impl World {
     pub fn update_environment(
         &mut self,
         assets: &Assets,
-        enabled: impl FnMut(usize) -> bool,
         events: &mut impl crate::tenchu2::environment::Events,
-    ) -> Result<()> {
+    ) -> Result<crate::tenchu2::environment::Visible> {
         use crate::tenchu2::ai::status::{Alert, AlertCause};
         use crate::tenchu2::environment::{Context, Event};
         struct Sink<'a, E> {
@@ -127,8 +112,14 @@ impl World {
                 }
             }
         }
+        let visible = self.environment.activate(
+            &assets.level,
+            &self.view(),
+            &mut self.collision,
+            &assets.resources.math,
+        )?;
         if self.environment.background_only {
-            return Ok(());
+            return Ok(visible);
         }
         let mut sink = Sink {
             alert: &mut self.ai.global.perception.alert,
@@ -148,9 +139,10 @@ impl World {
         self.environment.update_contacts(
             &assets.level.scene.bounds,
             (self.player, self.actors[self.player].actor.position),
-            enabled,
+            |object| assets.level.grid.contains(object.cell),
             &mut context,
         )?;
-        self.environment.update_triggers(&mut context)
+        self.environment.update_triggers(&mut context)?;
+        Ok(visible)
     }
 }

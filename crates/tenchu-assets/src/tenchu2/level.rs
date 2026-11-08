@@ -1,14 +1,17 @@
 use super::{model, volume::Volume};
-use crate::{ReadAt, Result, disc::Disc, model::Part, short3, slice, texture::Vram, u32_le};
+use crate::{ReadAt, Result, disc::Disc, model::Part, texture::Vram, u32_le};
 
+pub mod grid;
 pub mod objects;
 use objects::{Objects, Variant};
 
 #[derive(Clone)]
 pub struct Level {
     pub id: usize,
+    pub grid: grid::Grid,
     pub map: Vec<Part>,
     pub objects: Vec<Part>,
+    pub object_sizes: Vec<i32>,
     pub scene: Objects,
     pub vram: Vram,
     pub collision: super::collision::Collision,
@@ -67,27 +70,13 @@ impl Level {
         let directory = directory(id);
         let read = |name: &str| volume.read(&directory, name);
         let msd = read("map.msd")?;
-        let origin = short3(&msd, 0)?.map(i32::from);
-        let dimensions = short3(&msd, 6)?;
-        if dimensions.iter().any(|n| !(1..=64).contains(n)) {
-            return Err("Invalid Tenchu 2 map dimensions".into());
-        }
-        let [nx, ny, nz] = dimensions.map(|v| v as usize);
-        let cells = slice(&msd, 12, nx * ny * nz * 4)?;
+        let grid = grid::Grid::parse(&msd, id)?;
         let mut map = Vec::new();
-        for (index, row) in cells.chunks_exact(4).enumerate() {
-            if u32_le(row, 0)? == 0 {
+        for (index, cell) in grid.cells.iter().enumerate() {
+            if cell.is_none() {
                 continue;
             }
-            let x = (index / (ny * nz)) as i32;
-            let z = ((index / ny) % nz) as i32;
-            let y = (index % ny) as i32;
-            let height = if id == 4 { 6 } else { 16 };
-            let center = [
-                origin[0] + x * 16 + 8,
-                origin[1] - y * height - height / 2,
-                origin[2] + z * 16 + 8,
-            ];
+            let center = grid.center(index);
             let mut position = [0; 3];
             for axis in 0..3 {
                 position[axis] = (center[axis] * 100)
@@ -121,20 +110,31 @@ impl Level {
             return Err("Excessive Tenchu 2 object count".into());
         }
         let mut objects = Vec::new();
+        let mut object_sizes = Vec::new();
         for i in 0..count {
+            let geometry = model::scenery(crate::model::arc_entry(&archive, i)?)?;
+            let (low, high) = geometry
+                .vertices
+                .iter()
+                .fold((i16::MAX, i16::MIN), |(low, high), v| {
+                    (low.min(v[1]), high.max(v[1]))
+                });
+            object_sizes.push((i32::from(high) - i32::from(low)) / 2);
             objects.push(Part {
                 parent: -1,
                 child: -1,
                 position: [0; 3],
-                geometry: vec![model::scenery(crate::model::arc_entry(&archive, i)?)?],
+                geometry: vec![geometry],
             });
         }
         model::resolve_transparency(map.iter_mut().chain(&mut objects), &vram);
         let scene = Objects::parse(&read(layout)?, variant, objects.len())?;
         Ok(Self {
             id,
+            grid,
             map,
             objects,
+            object_sizes,
             scene,
             vram,
             collision: super::collision::Collision::parse(&read("map.mcd")?)?,

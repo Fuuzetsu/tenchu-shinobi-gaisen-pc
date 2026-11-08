@@ -769,3 +769,4 @@ fn motion_registration_matches_source_selection() {
 mod source_objects;
 
 mod source_camera;
+mod source_visibility;

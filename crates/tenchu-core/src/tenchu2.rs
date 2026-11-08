@@ -10,4 +10,5 @@ pub mod motion;
 pub mod physics;
 pub mod rig;
 pub mod terrain;
+pub mod visibility;
 pub mod world;

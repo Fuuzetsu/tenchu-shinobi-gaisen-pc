@@ -85,7 +85,11 @@ fn native_actor_visibility_feet_head_tracking_and_effort_match_source() {
         world.effort = int("effort") as u16;
         world.travel = int("travel");
         world.publish(0, &assets);
-        world.animate_actor(0, flag("visible"), &assets).unwrap();
+        world.camera.view = tenchu_core::math::Matrix {
+            rotation: [[0; 3]; 3],
+            translation: Position::new(0, 0, if flag("visible") { 1000 } else { 0 }),
+        };
+        world.animate_actor(0, &assets).unwrap();
         let expected = &row["expected"];
         assert_eq!(
             world.actors[0].actor.flags,
@@ -354,7 +358,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
             world
                 .control_actor(0, assets, events)
                 .unwrap_or_else(|e| panic!("hero {hero} tick {}: {e}", world.tick));
-            world.animate_actor(0, true, assets).unwrap();
+            world.animate_actor(0, assets).unwrap();
             world.finish_tick().unwrap();
         };
         for &held in &inputs[..180] {

@@ -226,7 +226,7 @@ impl Camera {
     }
 }
 
-fn length(vector: Position, math: &Math) -> i32 {
+pub(crate) fn length(vector: Position, math: &Math) -> i32 {
     if vector.into_iter().any(|v| v.wrapping_abs() >= 32768) {
         math.length(vector.map(|v| v >> 8)).wrapping_shl(8)
     } else {

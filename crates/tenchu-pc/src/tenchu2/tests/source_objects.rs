@@ -89,6 +89,7 @@ fn native_surface_traps_and_object_motion_match_source() {
                 );
                 collisions.insert(coordinate).unwrap().flags = 0x1000;
                 Object {
+                    cell: 0,
                     coordinate,
                     position: super::source_physics::vector(&r["position"]),
                     yaw: int("yaw") as i16,
@@ -225,6 +226,7 @@ fn native_doors_breakables_and_hazards_match_source_contacts() {
                 },
             );
             objects.push(Object {
+                cell: i,
                 coordinate,
                 position: super::source_physics::vector(&r["position"]),
                 yaw: int("yaw") as i16,
@@ -301,7 +303,7 @@ fn native_doors_breakables_and_hazards_match_source_contacts() {
             .update_contacts(
                 &[bounds.clone(), bounds],
                 (0, Position::new(1000, 0, 500)),
-                |i| i == 0,
+                |object| object.cell == 0,
                 &mut Context {
                     map: &mut map,
                     cursor: &mut cursor,

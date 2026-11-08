@@ -14,12 +14,12 @@ impl Environment {
         &mut self,
         bounds: &[Bounds],
         player: (usize, Position),
-        mut enabled: impl FnMut(usize) -> bool,
+        mut enabled: impl FnMut(&super::Object) -> bool,
         c: &mut Context<'_, impl Events>,
     ) -> Result<()> {
         for index in 0..self.objects.len() {
             let object = &self.objects[index];
-            if object.model.is_none() || !enabled(index) {
+            if object.model.is_none() || !enabled(object) {
                 continue;
             }
             let contacts: Vec<_> = c.collision.contacts(object.coordinate).collect();

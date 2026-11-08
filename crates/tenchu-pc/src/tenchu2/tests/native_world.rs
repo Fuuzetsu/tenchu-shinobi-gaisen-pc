@@ -153,7 +153,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             world
                 .control_actor(i, &mut assets, &mut events)
                 .unwrap_or_else(|e| panic!("actor {i} tick {}: {e}", world.tick));
-            world.animate_actor(i, true, &assets).unwrap();
+            world.animate_actor(i, &assets).unwrap();
         }
         world.finish_tick().unwrap();
     }
@@ -241,7 +241,7 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
     for _ in 0..180 {
         world.actors[0].actor.pad.update(0);
         world.control_actor(0, &mut assets, &mut events).unwrap();
-        world.animate_actor(0, true, &assets).unwrap();
+        world.animate_actor(0, &assets).unwrap();
         world.finish_tick().unwrap();
     }
     assert_eq!(
@@ -264,17 +264,11 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
     };
     for _ in 0..9 {
         world.control_actor(0, &mut assets, &mut events).unwrap();
-        world.animate_actor(0, true, &assets).unwrap();
+        world.animate_actor(0, &assets).unwrap();
         world.finish_tick().unwrap();
     }
     assert_eq!(world.actors[0].actor.health, 0);
     assert_eq!(world.actors[0].actor.state, State::Dead);
-}
-
-impl tenchu_core::tenchu2::world::ActorEvents for Recorded {
-    fn visible(&mut self, _: EventSource<'_>) -> Result<bool> {
-        Ok(true)
-    }
 }
 
 #[test]
@@ -316,6 +310,11 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                     .unwrap_or_else(|error| {
                         panic!("sequence {} tick {tick}: {error}", layout.sequence)
                     });
+                world
+                    .update_environment(&assets, &mut events)
+                    .unwrap_or_else(|error| {
+                        panic!("sequence {} tick {tick}: {error}", layout.sequence)
+                    });
                 world.finish_tick().unwrap();
                 world
                     .update_activation(world.camera.eye, world.camera.look, 6, &assets)
@@ -346,6 +345,13 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
     let coordinate = world.scene.add(None, Matrix::default());
     world.environment = Environment {
         objects: vec![Object {
+            cell: assets
+                .level
+                .grid
+                .cells
+                .iter()
+                .position(Option::is_some)
+                .unwrap(),
             coordinate,
             position: Position::default(),
             yaw: 0,
@@ -388,9 +394,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
     world.finish_tick().unwrap();
     let mut events = Recorded::default();
     for _ in 0..26 {
-        world
-            .update_environment(&assets, |_| true, &mut events)
-            .unwrap();
+        world.update_environment(&assets, &mut events).unwrap();
         world.finish_tick().unwrap();
     }
     assert_eq!(
@@ -403,6 +407,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
     let object = &mut world.environment.objects[0];
     object.position = Position::default();
     object.kind = 7;
+    object.cell = usize::MAX;
     object.link = 0;
     object.clock = 0;
     object.actor = None;
@@ -417,9 +422,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
         world
             .move_actor(world.player, &assets, &mut events)
             .unwrap();
-        world
-            .update_environment(&assets, |_| false, &mut events)
-            .unwrap();
+        world.update_environment(&assets, &mut events).unwrap();
         world.finish_tick().unwrap();
         if tick == 20 {
             snapshots.push(postcard::to_allocvec(&world).unwrap());
@@ -434,9 +437,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
         restored
             .move_actor(restored.player, &assets, &mut events)
             .unwrap();
-        restored
-            .update_environment(&assets, |_| false, &mut events)
-            .unwrap();
+        restored.update_environment(&assets, &mut events).unwrap();
         restored.finish_tick().unwrap();
     }
     assert_eq!(

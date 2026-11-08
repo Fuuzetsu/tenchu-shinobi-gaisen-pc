@@ -20,9 +20,8 @@ use tenchu_assets::tenchu2::layout::Layout;
 mod activation;
 mod assets;
 mod camera;
-mod frame;
-pub use frame::ActorEvents;
 pub mod controls;
+mod frame;
 mod update;
 pub use assets::Assets;
 pub use update::Movement;
@@ -208,7 +207,7 @@ impl World {
             world.publish(index, assets);
         }
         world.environment = super::environment::Environment::new(
-            &assets.level.scene,
+            &assets.level,
             &mut world.scene,
             &assets.resources.math,
             &mut world.random,

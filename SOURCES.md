@@ -2097,3 +2097,20 @@ run with the camera and activation together, and the three-hero control check
 includes exact saved-camera continuation. Concrete visibility, object rendering,
 effects/items and campaign presentation remain integration work; this is not a
 claim that native JP missions are playable yet.
+
+Native JP visibility now follows `80018030`, `8004f168`, `8004fb80` and
+`80050db8`: actor projection/depth, scenery height and camera-direction gates,
+static effect cones, interactive-object collision activation/removal and clocks.
+MSD cell identity and the model half-height from `8004ce78` are retained. Assets
+are resident in native memory; empty-cell fallback is preserved, but PS1 CD load
+latency is not simulated. Actor visibility is computed after publishing its root
+transform and before advancing its pose, rather than supplied by a test callback.
+
+Private original-instruction checks cover 12,000 actor projections and 4,000
+scenery passes with 20 placements each (`TENCHU2_ACTOR_VISIBILITY_ORACLE`,
+`TENCHU2_SCENERY_VISIBILITY_ORACLE`). The latter records draw/effect creation as
+boundaries; it does not verify the unfinished procedural scenery effects. All 56
+campaign casts run the native camera, actor, scenery/contact and activation loops.
+The existing actor-tail, object contacts/triggers and snapshot-continuation
+checks pass. Rendering the selected scenery, falling props, concrete items and
+effects, and the complete native campaign remain integration work.

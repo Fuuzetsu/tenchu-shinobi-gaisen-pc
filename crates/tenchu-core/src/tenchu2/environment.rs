@@ -10,10 +10,13 @@ use tenchu_assets::tenchu2::{collision, level::objects};
 
 mod contacts;
 mod triggers;
+mod visibility;
+pub use visibility::Visible;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Object {
     pub coordinate: ModelId,
+    pub cell: usize,
     pub position: Position,
     pub yaw: i16,
     pub roll: i32,
@@ -123,11 +126,12 @@ pub struct SurfaceActor {
 
 impl Environment {
     pub fn new(
-        assets: &objects::Objects,
+        level: &tenchu_assets::tenchu2::level::Level,
         scene: &mut Scene,
         math: &Math,
         random: &mut Random,
     ) -> Result<Self> {
+        let assets = &level.scene;
         let static_phases = assets
             .statics
             .iter()
@@ -158,6 +162,7 @@ impl Environment {
                     i32::from(bounds.offset[1])
                 });
                 Ok(Object {
+                    cell: level.grid.object_cell(position.to_array())?,
                     coordinate: scene.add(
                         None,
                         Matrix {
