@@ -34,6 +34,7 @@ impl Content {
     pub fn tick(&self) -> i64 {
         match self {
             Self::MissionSelection(selection) => i64::from(selection.state.tick),
+            Self::Prologue(intro) => i64::from(intro.state.tick),
             Self::Gameplay(session) => session.world.tick as i64,
             Self::Equipment(selection) => i64::from(selection.state.tick),
             Self::Story { story, .. } => i64::from(story.state.frame),
@@ -50,6 +51,7 @@ impl Content {
                 output.send(Command::Bank(selection.bank.clone()));
                 output.send(Command::Music(Some(selection.music.clone()), false));
             }
+            Self::Prologue(intro) => output.send(Command::Music(Some(intro.audio.clone()), false)),
             Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
             Self::Equipment(selection) => output.send(Command::Bank(selection.bank.clone())),
             Self::Results(results) => output.send(Command::Bank(results.bank.clone())),
@@ -70,6 +72,15 @@ impl Content {
         let mut action = None;
         if let Self::MissionSelection(selection) = self {
             action = selection::controls(selection, ctx);
+        } else if let Self::Prologue(_) = self {
+            egui::Area::new("jp-prologue-actions".into())
+                .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -8.0])
+                .show(ctx, |ui| {
+                    ui.spacing_mut().interact_size.y = 36.0;
+                    if ui.button("Skip · Start / Circle").clicked() {
+                        action = Some(Action::Continue);
+                    }
+                });
         } else if let Self::Equipment(selection) = self {
             action = equipment::controls(selection, ctx);
         } else if let Self::Results(results) = self {
@@ -210,6 +221,7 @@ impl Content {
 
 pub(crate) enum ContentDrawing {
     MissionSelection(selection::Drawing),
+    Prologue(Arc<crate::frontend::draw::Frame>),
     Equipment(equipment::Drawing),
     Gameplay(Box<Drawing>),
     Story(Box<StoryDrawing>),
@@ -228,6 +240,7 @@ impl ContentDrawing {
             Content::MissionSelection(selection) => Ok(Self::MissionSelection(
                 selection::Drawing::new(selection, graphics)?,
             )),
+            Content::Prologue(intro) => Ok(Self::Prologue(film::prologue(intro))),
             Content::Equipment(selection) => {
                 Ok(Self::Equipment(equipment::Drawing::new(selection)))
             }
@@ -273,6 +286,10 @@ impl ContentDrawing {
             (Self::MissionSelection(drawing), Content::MissionSelection(selection)) => {
                 drawing.update(selection)
             }
+            (Self::Prologue(frame), Content::Prologue(intro)) => {
+                *frame = film::prologue(intro);
+                Ok(())
+            }
             (Self::Equipment(drawing), Content::Equipment(selection)) => {
                 drawing.update(selection);
                 Ok(())
@@ -303,6 +320,7 @@ impl ContentDrawing {
             (Self::Story(drawing), Content::Story { .. }) => drawing.draw(target, renderer),
             (Self::Results(_), Content::Results(_))
             | (Self::MissionSelection(_), Content::MissionSelection(_))
+            | (Self::Prologue(_), Content::Prologue(_))
             | (Self::Equipment(_), Content::Equipment(_))
             | (Self::Empty, Content::Failed | Content::Complete)
             | (Self::Introduction(_), Content::Introduction(_))
@@ -352,7 +370,8 @@ impl ContentDrawing {
             (Self::Story(drawing), _) => {
                 crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts)
             }
-            (Self::Introduction(frame), _) | (Self::Results(results::Drawing { frame, .. }), _) => {
+            (Self::Introduction(frame) | Self::Prologue(frame), _)
+            | (Self::Results(results::Drawing { frame, .. }), _) => {
                 ctx.layer_painter(egui::LayerId::background()).add(
                     egui_wgpu::Callback::new_paint_callback(
                         film::rect(ctx),

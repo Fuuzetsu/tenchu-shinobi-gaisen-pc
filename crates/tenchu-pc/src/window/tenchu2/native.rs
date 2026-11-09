@@ -388,6 +388,7 @@ impl Application {
                             let native = self.native_tenchu2.as_mut().unwrap();
                             native.playback.action = match native.playback.content {
                                 Content::MissionSelection(_)
+                                | Content::Prologue(_)
                                 | Content::Equipment(_)
                                 | Content::Results(_) => Some(NativeAction::Continue),
                                 Content::Failed | Content::Complete => Some(NativeAction::Retry),

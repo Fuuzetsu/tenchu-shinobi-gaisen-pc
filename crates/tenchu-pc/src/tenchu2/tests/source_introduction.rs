@@ -119,3 +119,60 @@ fn native_introduction_and_movie_resources_load_from_disc() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU2_PROLOGUE_ORACLE; original MENU.EXE pre-training narration, fade, text sheets and skip timing"]
+fn native_prologue_matches_original_draw_sequence() {
+    use tenchu_core::tenchu2::introduction::Prologue;
+    let mut checked = 0;
+    for (case_index, case) in
+        super::source_control::cases::<serde_json::Value>("TENCHU2_PROLOGUE_ORACLE").enumerate()
+    {
+        let mut state = Prologue::default();
+        let frames = case["states"].as_array().unwrap();
+        let audio_end = case["audio_end"].as_u64().unwrap() as usize;
+        for (tick, expected) in frames.iter().enumerate() {
+            state.step(
+                case["inputs"][tick].as_u64().unwrap() as u16,
+                tick >= audio_end,
+            );
+            assert!(!state.finished, "case {case_index} tick {tick}");
+            assert_eq!(
+                i64::from(state.frame.fade),
+                expected["fade"].as_i64().unwrap(),
+                "case {case_index} tick {tick}"
+            );
+            let columns: Vec<_> = expected["columns"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|row| {
+                    let index = row[0].as_u64().unwrap() as usize;
+                    assert_eq!(
+                        row[3].as_u64().unwrap() as usize,
+                        if index < 16 { 15 - index } else { 19 - index } * 16
+                    );
+                    (
+                        index,
+                        row[1].as_i64().unwrap() as i16,
+                        row[2].as_u64().unwrap() as u8,
+                    )
+                })
+                .collect();
+            assert_eq!(
+                state.frame.columns, columns,
+                "case {case_index} tick {tick}"
+            );
+            if tick % 101 == 0 {
+                state = serde_json::from_slice(&serde_json::to_vec(&state).unwrap()).unwrap();
+            }
+            checked += 1;
+        }
+        state.step(
+            case["inputs"][frames.len()].as_u64().unwrap() as u16,
+            frames.len() >= audio_end,
+        );
+        assert!(state.finished, "case {case_index}");
+    }
+    eprintln!("{checked} original JP prologue draws");
+}

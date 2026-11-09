@@ -14,6 +14,8 @@ starts at the mission's opening scene. F1 can return to this screen during JP
 play; leaving equipment or results returns here when the mission began here.
 Saved ranks and supplies are retained; making missions available does not grant
 items or change your recorded results.
+Until that hero's training is complete, Rikimaru and Ayame first play the original
+narrated prologue. Start/Circle, Enter or the on-screen button skips it.
 
 The same route is available from the command line:
 

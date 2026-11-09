@@ -36,7 +36,7 @@ pub struct Resources {
     pub music: Track,
 }
 
-fn executable(disc: &Disc<impl ReadAt>) -> Result<Vec<u8>> {
+pub(super) fn executable(disc: &Disc<impl ReadAt>) -> Result<Vec<u8>> {
     if Edition::detect(disc)? != Edition::Japan {
         return Err("Native Tenchu 2 mission selection requires the Japanese disc".into());
     }

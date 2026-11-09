@@ -18,6 +18,7 @@ mod tests;
 
 pub enum Content {
     MissionSelection(Box<super::selection::Selection>),
+    Prologue(Box<super::film::Prologue>),
     Equipment(Box<super::equipment::Selection>),
     Gameplay(Box<Session>),
     Introduction(Box<super::film::Introduction>),
@@ -261,7 +262,16 @@ impl<S: ReadAt> Playback<S> {
                         run.progress.clone_from(&self.run.progress);
                         run.random = self.run.random;
                         self.run = run;
-                        Some(Destination::Sequence(sequence))
+                        if hero != 2 && self.run.progress.records[hero][0].time_tenths == 59999 {
+                            self.content = Content::Prologue(Box::new(
+                                super::film::Prologue::load(&self.disc)?,
+                            ));
+                            self.generation += 1;
+                            update.stop_music = true;
+                            None
+                        } else {
+                            Some(Destination::Sequence(sequence))
+                        }
                     }
                 } else {
                     update.sounds = selection.step(buttons, action)?;
@@ -300,6 +310,14 @@ impl<S: ReadAt> Playback<S> {
                     if intro.step(buttons) {
                         update.music = intro.audio.clone();
                     }
+                    None
+                }
+            }
+            Content::Prologue(intro) => {
+                if intro.state.finished {
+                    Some(Destination::Sequence(self.run.sequence))
+                } else {
+                    intro.step(buttons, matches!(action, Some(Action::Continue)));
                     None
                 }
             }

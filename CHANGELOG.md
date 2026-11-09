@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore the Japanese Tenchu 2 menu's narrated prologue before Rikimaru or
+  Ayame's campaign while training is incomplete, including the original scrolling
+  text, audio and fades. Start/Circle, Enter or the touch button can skip it.
+
 - Add the original Japanese Tenchu 2 mission selector to F6 and the JP F1 menu,
   with all three heroes and 29 missions available, animated portraits, original
   music/artwork and readable Japanese descriptions. Support mouse/touch alongside

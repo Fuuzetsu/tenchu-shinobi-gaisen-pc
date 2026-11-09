@@ -128,3 +128,67 @@ impl Introduction {
         }
     }
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Prologue {
+    pub frame: Frame,
+    pub tick: u32,
+    pub finished: bool,
+    fade: i16,
+    columns: [i16; 20],
+    previous: u16,
+}
+
+impl Default for Prologue {
+    fn default() -> Self {
+        Self {
+            frame: Frame {
+                fade: 128,
+                ..Default::default()
+            },
+            tick: 0,
+            finished: false,
+            fade: 128,
+            columns: [i16::MIN; 20],
+            previous: u16::MAX,
+        }
+    }
+}
+
+impl Prologue {
+    pub fn step(&mut self, buttons: u16, audio_finished: bool) {
+        if self.finished {
+            return;
+        }
+        let mut fade = 0;
+        if self.fade == 0 {
+            if audio_finished || self.previous == 0 && matches!(buttons, 8 | 0x2000) {
+                self.fade = -8;
+            }
+        } else {
+            self.fade -= 8;
+            if self.fade < -240 {
+                self.finished = true;
+                return;
+            }
+            fade = self.fade.abs();
+        }
+        self.frame.fade = fade;
+        if self.tick.is_multiple_of(30) && self.tick / 30 < 20 {
+            self.columns[(self.tick / 30) as usize] = -160;
+        }
+        self.frame.columns.clear();
+        for (index, x) in self.columns.iter_mut().enumerate() {
+            if *x != i16::MIN {
+                let intensity = (128 - (x.abs() - 128).max(0) * 4) as u8;
+                self.frame.columns.push((index, *x, intensity));
+                *x += 1;
+                if *x >= 160 {
+                    *x = i16::MIN;
+                }
+            }
+        }
+        self.previous = buttons;
+        self.tick += 1;
+    }
+}

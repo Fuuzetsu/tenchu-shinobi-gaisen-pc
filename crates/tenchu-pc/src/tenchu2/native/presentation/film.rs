@@ -39,3 +39,22 @@ pub(super) fn rect(ctx: &egui::Context) -> egui::Rect {
     let scale = (screen.width() / 320.0).min(screen.height() / 240.0);
     egui::Rect::from_center_size(screen.center(), egui::vec2(320.0, 240.0) * scale)
 }
+
+pub(super) fn prologue(intro: &super::super::film::Prologue) -> Arc<Frame> {
+    let mut canvas = Canvas::new(320);
+    canvas.frame = Some(Frame::new([320, 240], Arc::default()));
+    canvas.sprite(Sprite::new(&intro.resources.background, 0.0, 0.0));
+    for &(index, x, intensity) in intro.state.frame.columns.iter().rev() {
+        let sheet = usize::from(index >= 16);
+        let image = &intro.resources.text[sheet];
+        let column = if sheet == 0 { 15 - index } else { 19 - index };
+        canvas.sprite(
+            Sprite::new(image, f32::from(x), 0.0)
+                .region([column * 16, 0, 16, image.size[1]])
+                .light(i32::from(intensity))
+                .blend(Blend::Add),
+        );
+    }
+    canvas.fade((i32::from(intro.state.frame.fade) + 1) / 2);
+    Arc::new(canvas.frame.unwrap())
+}

@@ -2799,3 +2799,15 @@ missions are available without modifying saved ranks, stocks or unlock flags.
 Disc integration checks enter each hero's opening story, reach equipment, preserve
 supplies and cancel back to selection; the main launcher check covers returning
 to Gaisen without changing its progress.
+
+JP pre-training narration follows MENU.EXE `80110dac`, its cue0x75 at the
+`8012f3d8` table, and `katari.tim` / `kmozi01.tim` / `kmozi02.tim`. The selector's
+original condition is hero != Tatsumaru and that hero's training record time is
+59999; starting another mission does not bypass it. Source input edges, 15 Hz
+updates, 20 columns, entry fade and delayed exit fade are retained. A private
+original-instruction oracle stubs only input/audio status and drawing helpers;
+33 traces / 14,984 draws compare all columns, brightness and fades, including
+held inputs and early audio completion. The ignored Rust check also restores
+snapshots. Native campaign coverage verifies narration audio, skip and arrival
+at the selected sequence without consuming its opening story. The on-screen
+skip request is retained until the next 15 Hz update.

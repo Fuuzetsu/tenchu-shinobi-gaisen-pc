@@ -96,3 +96,41 @@ impl Movie {
         Ok(())
     }
 }
+
+pub struct Prologue {
+    pub resources: frontend::Prologue,
+    pub state: tenchu_core::tenchu2::introduction::Prologue,
+    pub audio: Arc<Clip>,
+    vblanks: u8,
+    skip: bool,
+}
+
+impl Prologue {
+    pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
+        let resources = frontend::Prologue::load(disc)?;
+        let audio = Arc::new(Clip::load(disc, &resources.audio)?);
+        Ok(Self {
+            resources,
+            state: Default::default(),
+            audio,
+            vblanks: 0,
+            skip: false,
+        })
+    }
+
+    pub fn step(&mut self, buttons: u16, skip: bool) {
+        self.skip |= skip;
+        self.vblanks += 2;
+        if self.vblanks >= 4 {
+            self.vblanks -= 4;
+            let finished = u64::from(self.state.tick) * u64::from(self.audio.rate)
+                >= self.audio.frames.len() as u64 * 15;
+            let buttons = if std::mem::take(&mut self.skip) {
+                8
+            } else {
+                buttons
+            };
+            self.state.step(buttons, finished);
+        }
+    }
+}

@@ -81,31 +81,6 @@ impl Introduction {
             return Err("Invalid Japanese Tenchu 2 title sheet".into());
         }
         let narration = if let Some(cue) = cue {
-            let path = "TENCHU2/XA/NARAT_J.XA";
-            let file = disc.find(path)?;
-            let mut audio = None;
-            for i in 0..64 {
-                let row = exe.bytes(0x800812e4 + i * 8, 8)?;
-                let id = u16_le(row, 0)?;
-                if id == 0 {
-                    break;
-                }
-                if id == cue {
-                    let start = music::time(&row[4..6])?;
-                    let end = music::time(&row[6..8])?;
-                    if row[3] > 31 || start >= end || end > file.size.div_ceil(2048) {
-                        return Err("Invalid Japanese Tenchu 2 narration cue".into());
-                    }
-                    audio = Some(Track {
-                        path: path.into(),
-                        channel: row[3],
-                        start,
-                        end,
-                        repeat: false,
-                    });
-                    break;
-                }
-            }
             let text = image(&format!("intro{resource}.tim"))?;
             if text.size[0] != 256 {
                 return Err("Invalid Japanese Tenchu 2 narration columns".into());
@@ -113,7 +88,7 @@ impl Introduction {
             Some(Narration {
                 background: image(&format!("nback{resource}.tim"))?,
                 text,
-                audio: audio.ok_or("Missing Japanese Tenchu 2 narration cue")?,
+                audio: narration_track(disc, &exe, 0x800812e4, cue)?,
             })
         } else {
             None
@@ -158,5 +133,62 @@ impl Movie {
             },
             last_frame,
         }))
+    }
+}
+
+fn narration_track(
+    disc: &Disc<impl ReadAt>,
+    exe: &Executable<'_>,
+    table: u32,
+    cue: u16,
+) -> Result<Track> {
+    let path = "TENCHU2/XA/NARAT_J.XA";
+    let file = disc.find(path)?;
+    for i in 0..64 {
+        let row = exe.bytes(table + i * 8, 8)?;
+        let id = u16_le(row, 0)?;
+        if id == 0 {
+            break;
+        }
+        if id == cue {
+            let start = music::time(&row[4..6])?;
+            let end = music::time(&row[6..8])?;
+            if row[3] > 31 || start >= end || end > file.size.div_ceil(2048) {
+                return Err("Invalid Japanese Tenchu 2 narration cue".into());
+            }
+            return Ok(Track {
+                path: path.into(),
+                channel: row[3],
+                start,
+                end,
+                repeat: false,
+            });
+        }
+    }
+    Err("Missing Japanese Tenchu 2 narration cue".into())
+}
+
+pub struct Prologue {
+    pub background: Image,
+    pub text: [Image; 2],
+    pub audio: Track,
+}
+
+impl Prologue {
+    pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
+        let bytes = super::selection::executable(disc)?;
+        let exe = Executable::new(&bytes)?;
+        let volume = Volume::open(disc)?;
+        let image =
+            |name: &str| super::texture::image(&volume.read(r"o:\cdimage\menu\image", name)?);
+        let text = [image("kmozi01.tim")?, image("kmozi02.tim")?];
+        if text[0].size[0] != 256 || text[1].size[0] != 64 {
+            return Err("Invalid Japanese prologue columns".into());
+        }
+        Ok(Self {
+            background: image("katari.tim")?,
+            text,
+            audio: narration_track(disc, &exe, 0x8012f3d8, 0x75)?,
+        })
     }
 }

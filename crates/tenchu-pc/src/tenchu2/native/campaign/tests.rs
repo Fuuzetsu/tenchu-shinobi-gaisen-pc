@@ -85,6 +85,27 @@ fn native_mission_menu_enters_each_campaign_from_its_opening_scene() {
             playback.run.sequence,
             playback.campaign.starts[hero][1].unwrap()
         );
+        if hero != 2 {
+            let Content::Prologue(intro) = &playback.content else {
+                panic!("missing training prologue")
+            };
+            assert!(
+                intro
+                    .audio
+                    .frames
+                    .iter()
+                    .flatten()
+                    .any(|&sample| sample != 0)
+            );
+            if hero == 1 {
+                for _ in 0..40 {
+                    playback.step(0).unwrap();
+                }
+                playback.action = Some(Action::Continue);
+                playback.step(0).unwrap();
+            }
+            next(&mut playback);
+        }
         assert!(matches!(playback.content, Content::Story { .. }));
         for tick in 0..1500 {
             if matches!(playback.content, Content::Equipment(_)) {
@@ -110,6 +131,20 @@ fn native_mission_menu_enters_each_campaign_from_its_opening_scene() {
         assert!(matches!(playback.content, Content::MissionSelection(_)));
         assert_eq!(playback.run.progress.stock[hero].items[4], Some(23));
     }
+    let Content::MissionSelection(selection) = &mut playback.content else {
+        unreachable!()
+    };
+    selection.state.progress.records[0][0].time_tenths = 1200;
+    for _ in 0..15 {
+        playback.step(0).unwrap();
+    }
+    playback.action = Some(Action::Continue);
+    playback.step(0).unwrap();
+    next(&mut playback);
+    assert!(
+        matches!(playback.content, Content::Story { .. }),
+        "Completed training should skip the prologue"
+    );
 }
 
 #[test]
