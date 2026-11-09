@@ -43,10 +43,18 @@ link independently of the Gaisen pack.
 Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
 Presets remain shared, with only the supported graphics applied in native JP.
-Modern lights/shadows, weather, blood/water enhancements, hair/cloth physics,
+Modern lights/shadows, blood/water enhancements, hair/cloth physics,
 model swapping, camera-relative controls, rewind, randomizer, gameplay cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
+wind-directed shelter on terrain and static props, accumulation, runoff, tracks,
+and synthesized ambience/thunder. Weather remains optional in every preset.
+Original leaves native weather unchanged. Baked-snow recognition on T2 artwork
+and moving-prop shelter are still pending; the disabled baked-snow control does
+not enable footprints on original snowy textures. Replacing artwork retains
+wetness/snow but rebuilds the surface cache and clears existing footprint decals.
 
 **F1 → Camera** supports free flight (F2), speed/FOV, player or actor focus,
 overhead views and a camera bookmark. WASD/QE move, Shift boosts and RMB looks;

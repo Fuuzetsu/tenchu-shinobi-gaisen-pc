@@ -567,29 +567,6 @@ impl Application {
                     choices[(current as i32 + direction).rem_euclid(choices.len() as i32) as usize];
                 self.set_dismemberment(settings);
             }
-            Item::ThunderStyle => {
-                let styles = tenchu_audio::ThunderStyle::ALL;
-                let index = styles
-                    .iter()
-                    .position(|&s| s == self.settings.graphics.weather.thunder_style)
-                    .unwrap();
-                self.settings.graphics.weather.thunder_style =
-                    styles[(index as i32 + direction).rem_euclid(styles.len() as i32) as usize];
-            }
-            Item::Weather => {
-                let modes = settings::WeatherMode::ALL;
-                let index = modes
-                    .iter()
-                    .position(|&mode| mode == self.settings.graphics.weather.mode)
-                    .unwrap_or(0);
-                self.settings.graphics.weather.mode =
-                    modes[(index as i32 + direction).rem_euclid(modes.len() as i32) as usize];
-            }
-            Item::WeatherQuality => {
-                self.settings.graphics.weather.quality =
-                    (i32::from(self.settings.graphics.weather.quality) + direction).rem_euclid(3)
-                        as u16;
-            }
             Item::ClearWeather => {
                 self.settings.graphics.weather.mode = settings::WeatherMode::Clear;
                 if let Some(view) = &mut self.view {

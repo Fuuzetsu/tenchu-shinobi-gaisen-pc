@@ -92,7 +92,13 @@ fn results_keep_the_final_scene_and_disc_artwork() {
         results.values.record.rank = rank;
         let content = Content::Results(Box::new(results));
         drawing
-            .replace(&content, &Default::default(), &graphics, &mut renderer)
+            .replace(
+                &content,
+                &Default::default(),
+                &graphics,
+                &mut renderer,
+                false,
+            )
             .unwrap();
         let super::super::ContentDrawing::Results(result) = &drawing else {
             unreachable!()

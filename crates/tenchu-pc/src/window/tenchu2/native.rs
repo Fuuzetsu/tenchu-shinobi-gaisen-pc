@@ -201,6 +201,7 @@ impl Application {
                         native.playback.vram(),
                         &graphics,
                         &mut view.renderer,
+                        native.generation == Some(native.playback.generation),
                     )?;
             }
             native.generation = Some(native.playback.generation);
@@ -253,6 +254,13 @@ impl Application {
                     samples: &view.renderer.sample_counts,
                 },
             );
+            if actions.clear_weather || actions.clear_footprints {
+                native
+                    .drawing
+                    .as_mut()
+                    .unwrap()
+                    .clear_weather(!actions.clear_weather);
+            }
             leave |= actions.leave;
             step |= actions.step;
             if actions.select_mission {
@@ -260,7 +268,7 @@ impl Application {
                 native.menu.panel.open = false;
                 self.paused = false;
             }
-            if self.settings.show_fps {
+            if self.settings.show_fps && !native.menu.tools.debug.photo_mode {
                 egui::Area::new("native-fps".into())
                     .anchor(egui::Align2::RIGHT_TOP, [-12.0, 12.0])
                     .show(ctx, |ui| {
@@ -283,6 +291,29 @@ impl Application {
                 .layout(ctx.screen_rect(), self.settings.touch, mode, false, false);
             self.touch.paint(ctx, self.settings.touch);
         });
+        if let Some(audio) = &self.audio {
+            let (ambience, thunder) = native
+                .drawing
+                .as_mut()
+                .unwrap()
+                .weather_audio(&graphics.weather);
+            let accelerated =
+                native.playback.content.cutscene() && (input.fast_forward || input.speed != 1);
+            audio
+                .output()
+                .send(crate::audio::output::Command::Ambience(if accelerated {
+                    Default::default()
+                } else {
+                    ambience
+                }));
+            audio
+                .output()
+                .send(crate::audio::output::Command::Thunder(if accelerated {
+                    None
+                } else {
+                    thunder
+                }));
+        }
         view.window.set_title(&format!(
             "Tenchu 2 Japan · sequence {} · tick {}",
             native.playback.run.sequence,

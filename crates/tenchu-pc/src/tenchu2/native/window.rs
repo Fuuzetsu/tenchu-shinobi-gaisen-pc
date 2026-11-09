@@ -142,7 +142,7 @@ impl View {
                 }
                 menu.cutscene_controls(ctx, session.content.cutscene());
                 action = menu.show(ctx, state);
-                if state.settings.show_fps {
+                if state.settings.show_fps && !menu.tools.debug.photo_mode {
                     egui::Area::new("native-fps".into())
                         .anchor(egui::Align2::RIGHT_TOP, [-12.0, 12.0])
                         .show(ctx, |ui| {
@@ -310,10 +310,11 @@ impl Application {
                         self.session.vram(),
                         &graphics,
                         &mut view.renderer,
+                        view.generation == self.session.generation,
                     )?;
                 }
                 view.generation = self.session.generation;
-                view.graphics = graphics;
+                view.graphics.clone_from(&graphics);
                 self.last = Instant::now();
             }
             view.drawing.set_camera(self.menu.tools.debug.camera);
@@ -337,6 +338,22 @@ impl Application {
                 self.error.as_deref(),
                 self.fps,
             )?;
+            if action.clear_weather || action.clear_footprints {
+                view.drawing.clear_weather(!action.clear_weather);
+            }
+            if let Some(audio) = &self.audio {
+                let (ambience, thunder) = view.drawing.weather_audio(&graphics.weather);
+                let accelerated = self.session.content.cutscene()
+                    && (self.menu.fast_forward
+                        || self.controls.held(KeyCode::Backspace)
+                        || self.settings.cutscene_speed != 1);
+                audio.send(Command::Ambience(if accelerated {
+                    Default::default()
+                } else {
+                    ambience
+                }));
+                audio.send(Command::Thunder(if accelerated { None } else { thunder }));
+            }
             self.quit |= action.leave;
             if action.step && self.error.is_none() {
                 self.step()?;

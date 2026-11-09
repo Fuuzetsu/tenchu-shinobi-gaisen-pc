@@ -14,7 +14,7 @@ use tenchu_assets::{Result, tenchu2::level::objects::StaticKind};
 use tenchu_core::{math::Matrix, motion::Pose};
 
 pub(super) struct Models {
-    terrain: Meshes,
+    pub(super) terrain: Meshes,
     actors: BTreeMap<i16, Meshes>,
     weapons: BTreeMap<String, Meshes>,
     textures: Vec<AnimatedTextures>,

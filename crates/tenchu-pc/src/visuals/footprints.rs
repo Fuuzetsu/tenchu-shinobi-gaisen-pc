@@ -172,37 +172,9 @@ impl Footprints {
         settings: &Weather,
         snow: f32,
     ) {
-        let coating = settings.mode != WeatherMode::Original && snow > 0.01;
-        let baked = settings.baked_snow && surfaces.contains(render_mesh::SNOW);
-        if !settings.footprints || !coating && !baked {
-            self.clear();
-            self.tick = Some(game.tick);
+        if !self.begin(game.tick, surfaces, settings, snow) {
             return;
         }
-        if self.tick == Some(game.tick) {
-            return;
-        }
-        if self.tick.is_some_and(|tick| tick + 1 != game.tick) {
-            self.clear();
-        }
-        self.tick = Some(game.tick);
-        self.update_shelter(surfaces, settings.direction());
-        let falling = if settings.mode.snow() {
-            f32::from(settings.amount) / 100.0
-        } else {
-            0.0
-        };
-        for mark in &mut self.marks {
-            mark.age += 1.0 / 30.0;
-            if let Some(fade) = &mut mark.retirement {
-                *fade = (*fade - 1.0 / 45.0).max(0.0);
-            }
-            if mark.exposed {
-                mark.burial += falling / 30.0;
-            }
-        }
-        self.marks
-            .retain(|mark| mark.opacity(settings.footprint_seconds) > 0.005);
         let mut soles = BTreeMap::new();
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
@@ -232,6 +204,65 @@ impl Footprints {
                 contacts.push((key.canonical(), position, forward));
             }
         });
+        self.contacts(contacts, surfaces, settings, snow);
+    }
+
+    pub fn tick_contacts(
+        &mut self,
+        tick: u64,
+        contacts: impl FnOnce() -> Vec<(Part, Vec3, Vec3)>,
+        surfaces: &Surfaces,
+        settings: &Weather,
+        snow: f32,
+    ) {
+        if self.begin(tick, surfaces, settings, snow) {
+            self.contacts(contacts(), surfaces, settings, snow);
+        }
+    }
+
+    fn begin(&mut self, tick: u64, surfaces: &Surfaces, settings: &Weather, snow: f32) -> bool {
+        let coating = settings.mode != WeatherMode::Original && snow > 0.01;
+        let baked = settings.baked_snow && surfaces.contains(render_mesh::SNOW);
+        if !settings.footprints || !coating && !baked {
+            self.clear();
+            self.tick = Some(tick);
+            return false;
+        }
+        if self.tick == Some(tick) {
+            return false;
+        }
+        if self.tick.is_some_and(|old| old + 1 != tick) {
+            self.clear();
+        }
+        self.tick = Some(tick);
+        self.update_shelter(surfaces, settings.direction());
+        let falling = if settings.mode.snow() {
+            f32::from(settings.amount) / 100.0
+        } else {
+            0.0
+        };
+        for mark in &mut self.marks {
+            mark.age += 1.0 / 30.0;
+            if let Some(fade) = &mut mark.retirement {
+                *fade = (*fade - 1.0 / 45.0).max(0.0);
+            }
+            if mark.exposed {
+                mark.burial += falling / 30.0;
+            }
+        }
+        self.marks
+            .retain(|mark| mark.opacity(settings.footprint_seconds) > 0.005);
+        true
+    }
+
+    fn contacts(
+        &mut self,
+        contacts: Vec<(Part, Vec3, Vec3)>,
+        surfaces: &Surfaces,
+        settings: &Weather,
+        snow: f32,
+    ) {
+        let coating = settings.mode != WeatherMode::Original && snow > 0.01;
         self.last
             .retain(|key, _| contacts.iter().any(|(part, _, _)| part == key));
         let mut vertex_count: usize = self.marks.iter().map(|m| m.vertices.len()).sum();

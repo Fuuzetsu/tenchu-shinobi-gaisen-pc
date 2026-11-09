@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect the shared rain, snow, blizzard and storm effects to native Japanese
+  Tenchu 2 gameplay and 3D cutscenes. F1 weather settings now control wind,
+  roof/wall shelter, surface wetness and snow, rain haze/reflections, runoff,
+  lightning, rain/wind ambience and thunder. Native actors leave snow footprints;
+  clear-weather/clear-tracks buttons work, pause freezes buildup, and changing
+  artwork preserves accumulation. Weather stays optional and leaves game logic
+  and RNG untouched.
+
 - Add native Tenchu 2 free camera in gameplay and 3D cutscenes: F2, mouse/stick
   flight, adjustable speed/FOV, actor/player focus, overhead view and camera
   bookmarks through the shared F1 menu. Touch controls support flying and

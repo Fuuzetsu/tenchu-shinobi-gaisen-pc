@@ -28,6 +28,12 @@ impl Runtime {
             | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed
             | Pause | Step | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor
             | Overhead | SaveCamera | RestoreCamera | PhotoMode => None,
+            Weather | WeatherAmount | WeatherWind | WeatherHeading | WeatherQuality
+            | WeatherDistance | Wetness | RainReflections | PuddleCoverage | PoolingSpeed
+            | RainHaze | RainStreaks | SnowCover | SnowDrift | Footprints | FootprintSeconds
+            | ClearFootprints | RoofRunoff | RunoffAmount | ClearWeather | StormLightning
+            | StormBolts | StormInterval | StormThunder | RainVolume | WindVolume
+            | ThunderStyle => None,
             PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts
             | ReloadModels => Some(
                 "Model and moveset swapping are not connected to native Tenchu 2 JP yet. Saved Gaisen choices are kept, but do not apply here.",

@@ -21,6 +21,7 @@ use tenchu_core::{
 };
 
 mod background;
+mod environment;
 mod hud;
 mod story;
 #[cfg(test)]
@@ -41,9 +42,26 @@ struct SceneDrawing {
     terrain: crate::renderer::Mesh,
     actors: crate::renderer::Mesh,
     effects: crate::renderer::EffectMesh,
+    environment: Option<environment::Environment>,
 }
 
 impl Drawing {
+    pub fn clear_weather(&mut self, tracks_only: bool) {
+        self.scene.clear_weather(tracks_only);
+    }
+    pub fn weather_audio(
+        &mut self,
+        settings: &crate::settings::Weather,
+    ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
+        self.scene.weather_audio(settings)
+    }
+    pub fn preserve_weather(&mut self, previous: &mut Self) {
+        self.scene.environment = previous.scene.environment.take();
+        if let Some(e) = &mut self.scene.environment {
+            e.stale = true;
+        }
+    }
+
     pub fn new(
         session: &super::Session,
         graphics: &Graphics,
@@ -69,7 +87,7 @@ impl Drawing {
     }
 
     pub fn update(&mut self, session: &super::Session, renderer: &mut Renderer) -> Result<()> {
-        let geometry = self.models.geometry(
+        let mut geometry = self.models.geometry(
             &session.world,
             &session.assets,
             &session.frame,
@@ -77,6 +95,18 @@ impl Drawing {
             self.show_hud,
             self.camera,
         )?;
+        self.scene.weather(
+            &mut geometry,
+            environment::Frame {
+                level: &session.assets.level,
+                meshes: &self.models.scenery,
+                math: &session.assets.resources.math,
+                tick: u64::from(session.world.tick),
+                camera: camera_matrix(session.world.camera.view, self.camera, renderer.size()),
+                world: Some((&session.world, &session.assets)),
+            },
+            renderer,
+        );
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
         self.view = session.world.camera.view;
@@ -94,7 +124,72 @@ impl Drawing {
     }
 }
 
+fn camera_matrix(
+    view: Matrix,
+    camera: Option<crate::debug::camera::Camera>,
+    size: [u32; 2],
+) -> glam::Mat4 {
+    camera
+        .unwrap_or_else(|| crate::debug::camera::Camera::from_view(view, 300.0))
+        .matrix(size[0] as f32 / size[1] as f32)
+}
+
 impl SceneDrawing {
+    fn weather(
+        &mut self,
+        geometry: &mut Geometry,
+        frame: environment::Frame<'_>,
+        renderer: &mut Renderer,
+    ) {
+        let graphics = renderer.graphics().clone();
+        if graphics.weather.mode != crate::settings::WeatherMode::Original
+            && self.environment.is_none()
+        {
+            self.environment = Some(environment::Environment::new(
+                frame.level,
+                frame.meshes,
+                frame.math,
+                renderer,
+            ));
+        }
+        renderer.weather = Default::default();
+        renderer.daylight = None;
+        if let Some(environment) = &mut self.environment {
+            if environment.stale {
+                environment.rebuild(&frame, renderer);
+            }
+            let mut effects =
+                environment.update(frame.tick, frame.camera, &graphics, frame.world, renderer);
+            effects.append(std::mem::replace(
+                &mut geometry.effects,
+                render_effects::Geometry {
+                    vertices: Vec::new(),
+                    batches: Vec::new(),
+                },
+            ));
+            geometry.effects = effects;
+        }
+    }
+
+    fn clear_weather(&mut self, tracks_only: bool) {
+        if let Some(environment) = &mut self.environment {
+            if tracks_only {
+                environment.clear_footprints();
+            } else {
+                environment.clear();
+            }
+        }
+    }
+
+    fn weather_audio(
+        &mut self,
+        settings: &crate::settings::Weather,
+    ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
+        self.environment
+            .as_mut()
+            .map_or_else(|| (Default::default(), None), |e| e.audio(settings))
+    }
+
     fn new(geometry: Geometry, renderer: &mut Renderer) -> Self {
         Self {
             backgrounds: geometry
@@ -105,6 +200,7 @@ impl SceneDrawing {
             terrain: renderer.upload(&geometry.terrain),
             actors: renderer.upload(&geometry.actors),
             effects: renderer.upload_effects(geometry.effects),
+            environment: None,
         }
     }
 
@@ -149,7 +245,10 @@ impl SceneDrawing {
             },
             Some(&self.effects),
             &[],
-            &[],
+            &self
+                .environment
+                .as_ref()
+                .map_or_else(Vec::new, |e| vec![&e.caster, &self.actors]),
         )
     }
 }

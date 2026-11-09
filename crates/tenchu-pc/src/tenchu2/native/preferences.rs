@@ -29,6 +29,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         upscale: g.upscale,
         samples: g.samples,
         post: g.post.clone(),
+        weather: g.weather.clone(),
         ..Default::default()
     }
 }
@@ -61,6 +62,8 @@ pub struct Action {
     pub leave: bool,
     pub select_mission: bool,
     pub step: bool,
+    pub clear_weather: bool,
+    pub clear_footprints: bool,
 }
 
 impl Menu {
@@ -290,6 +293,15 @@ impl Menu {
                                     .rem_euclid(state.samples.len() as i32)
                                     as usize];
                             }
+                            Ok(())
+                        }
+                        Item::ClearWeather => {
+                            state.settings.graphics.weather.mode = settings::WeatherMode::Clear;
+                            action.clear_weather = true;
+                            Ok(())
+                        }
+                        Item::ClearFootprints => {
+                            action.clear_footprints = true;
                             Ok(())
                         }
                         Item::Pause => {

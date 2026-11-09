@@ -12,13 +12,29 @@ mod tests;
 
 pub(crate) struct Drawing {
     models: models::Models,
-    scene: SceneDrawing,
+    pub(super) scene: SceneDrawing,
     pub texts: Vec<fonts::Text>,
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
 }
 
 impl Drawing {
+    pub fn clear_weather(&mut self, tracks_only: bool) {
+        self.scene.clear_weather(tracks_only);
+    }
+    pub fn weather_audio(
+        &mut self,
+        settings: &crate::settings::Weather,
+    ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
+        self.scene.weather_audio(settings)
+    }
+    pub fn preserve_weather(&mut self, previous: &mut Self) {
+        self.scene.environment = previous.scene.environment.take();
+        if let Some(e) = &mut self.scene.environment {
+            e.stale = true;
+        }
+    }
+
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         let mut models = models::Models::new(story, graphics, renderer)?;
         let (geometry, texts) = models.geometry(story, renderer, None)?;
@@ -32,7 +48,19 @@ impl Drawing {
     }
 
     pub fn update(&mut self, story: &Story, renderer: &mut Renderer) -> Result<()> {
-        let (geometry, texts) = self.models.geometry(story, renderer, self.camera)?;
+        let (mut geometry, texts) = self.models.geometry(story, renderer, self.camera)?;
+        self.scene.weather(
+            &mut geometry,
+            super::environment::Frame {
+                level: &story.level,
+                meshes: &self.models.terrain,
+                math: &story.math,
+                tick: story.state.frame.max(0) as u64,
+                camera: super::camera_matrix(story.state.view, self.camera, renderer.size()),
+                world: None,
+            },
+            renderer,
+        );
         self.scene.update(geometry, renderer);
         self.texts = texts;
         self.view = story.state.view;

@@ -59,17 +59,10 @@ impl Application {
                 self.settings.graphics.models.foliage = s.graphics.models.foliage
             }
             Item::WaterDetail => self.settings.graphics.water.detail = s.graphics.water.detail,
-            Item::Weather => self.settings.graphics.weather.mode = s.graphics.weather.mode,
             Item::HeadRest => {
                 let mut settings = self.settings.dismemberment;
                 settings.head_rest = s.dismemberment.head_rest;
                 self.set_dismemberment(settings);
-            }
-            Item::ThunderStyle => {
-                self.settings.graphics.weather.thunder_style = s.graphics.weather.thunder_style
-            }
-            Item::WeatherQuality => {
-                self.settings.graphics.weather.quality = s.graphics.weather.quality
             }
             Item::PlayerModel => self.settings.player_model.clear(),
             Item::MovesetModel => self.settings.moveset_model.clear(),

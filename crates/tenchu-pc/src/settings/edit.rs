@@ -358,6 +358,28 @@ impl Item {
                     );
                     settings.graphics.set_filtering(next);
                 }
+                Item::Weather => {
+                    let modes = super::WeatherMode::ALL;
+                    let index = modes
+                        .iter()
+                        .position(|&mode| mode == settings.graphics.weather.mode)
+                        .unwrap_or(0);
+                    settings.graphics.weather.mode =
+                        modes[(index as i32 + direction).rem_euclid(modes.len() as i32) as usize];
+                }
+                Item::WeatherQuality => {
+                    settings.graphics.weather.quality =
+                        cycle(settings.graphics.weather.quality, &[0, 1, 2], direction)
+                }
+                Item::ThunderStyle => {
+                    let styles = tenchu_audio::ThunderStyle::ALL;
+                    let index = styles
+                        .iter()
+                        .position(|&style| style == settings.graphics.weather.thunder_style)
+                        .unwrap_or(0);
+                    settings.graphics.weather.thunder_style =
+                        styles[(index as i32 + direction).rem_euclid(styles.len() as i32) as usize];
+                }
                 Item::CutsceneSpeed => {
                     settings.cutscene_speed =
                         cycle(settings.cutscene_speed, &[1, 2, 4, 8, 16, 0], direction)
@@ -396,6 +418,14 @@ impl Item {
                     .graphics
                     .set_filtering(defaults.graphics.filtering()),
                 Item::CutsceneSpeed => settings.cutscene_speed = defaults.cutscene_speed,
+                Item::Weather => settings.graphics.weather.mode = defaults.graphics.weather.mode,
+                Item::WeatherQuality => {
+                    settings.graphics.weather.quality = defaults.graphics.weather.quality
+                }
+                Item::ThunderStyle => {
+                    settings.graphics.weather.thunder_style =
+                        defaults.graphics.weather.thunder_style
+                }
                 _ => return false,
             }
         }

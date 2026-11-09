@@ -262,6 +262,25 @@ pub(crate) enum ContentDrawing {
 }
 
 impl ContentDrawing {
+    pub fn clear_weather(&mut self, tracks_only: bool) {
+        match self {
+            Self::Gameplay(d) => d.clear_weather(tracks_only),
+            Self::Story(d) => d.clear_weather(tracks_only),
+            _ => {}
+        }
+    }
+
+    pub fn weather_audio(
+        &mut self,
+        settings: &crate::settings::Weather,
+    ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
+        match self {
+            Self::Gameplay(d) => d.weather_audio(settings),
+            Self::Story(d) => d.weather_audio(settings),
+            _ => (Default::default(), None),
+        }
+    }
+
     pub fn set_camera(&mut self, camera: Option<crate::debug::camera::Camera>) {
         match self {
             Self::Gameplay(drawing) => drawing.camera = camera,
@@ -316,6 +335,7 @@ impl ContentDrawing {
         vram: &tenchu_assets::texture::Vram,
         graphics: &Graphics,
         renderer: &mut Renderer,
+        preserve_weather: bool,
     ) -> Result<()> {
         let backdrop = if matches!(content, Content::Results(_)) {
             self.results_backdrop(renderer)?
@@ -323,11 +343,19 @@ impl ContentDrawing {
             None
         };
         renderer.reset_vram(vram);
-        *self = if let Content::Results(results) = content {
+        let mut replacement = if let Content::Results(results) = content {
             Self::Results(results::Drawing::new(results, backdrop))
         } else {
             Self::new(content, graphics, renderer)?
         };
+        if preserve_weather {
+            match (&mut replacement, &mut *self) {
+                (Self::Gameplay(next), Self::Gameplay(old)) => next.preserve_weather(old),
+                (Self::Story(next), Self::Story(old)) => next.preserve_weather(old),
+                _ => {}
+            }
+        }
+        *self = replacement;
         Ok(())
     }
 
