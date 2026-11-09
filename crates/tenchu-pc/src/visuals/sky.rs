@@ -74,16 +74,13 @@ impl Clock {
             *self = Self::default();
             return;
         }
-        if self.tick.is_none_or(|old| old + 1 != tick) || self.setting != settings.time {
+        if self.tick.is_none_or(|old| tick < old) || self.setting != settings.time {
             self.minutes = f64::from(settings.time % 1440);
             self.previous = self.minutes;
-        } else {
-            self.previous = self.minutes;
-            self.minutes += f64::from(settings.speed.min(120)) / 30.0;
-            if self.minutes >= 1440.0 {
-                self.minutes -= 1440.0;
-                self.previous -= 1440.0;
-            }
+        } else if let Some(old) = self.tick.filter(|&old| old < tick) {
+            let step = f64::from(settings.speed.min(120)) / 30.0;
+            self.minutes = (self.minutes + (tick - old) as f64 * step).rem_euclid(1440.0);
+            self.previous = self.minutes - step;
         }
         self.tick = Some(tick);
         self.setting = settings.time;
@@ -145,13 +142,21 @@ mod tests {
         assert_eq!(clock.minutes(&settings, 0.5), 0.0);
         assert_eq!(clock.minutes(&settings, 1.0), 1.0);
         for _ in 0..100 {
+            clock.tick(2, &settings);
             clock.sample(&settings, 0.5);
         }
+        assert_eq!(clock.minutes(&settings, 0.5), 0.0);
         clock.tick(3, &settings);
         assert_eq!(clock.minutes(&settings, 1.0), 3.0);
         settings.time = 600;
         assert_eq!(clock.minutes(&settings, 0.5), 600.0);
         clock.tick(4, &settings);
         assert_eq!(clock.minutes(&settings, 1.0), 600.0);
+        let mut fast = clock.clone();
+        for tick in 5..=104 {
+            clock.tick(tick, &settings);
+        }
+        fast.tick(104, &settings);
+        assert_eq!(clock.minutes(&settings, 0.5), fast.minutes(&settings, 0.5));
     }
 }

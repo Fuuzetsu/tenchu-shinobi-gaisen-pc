@@ -11,6 +11,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Settings edits and availability | `settings/edit.rs`, `settings/runtime.rs` | Runtime-specific command handlers for gameplay changes |
 | Experiment inventory UI | `settings/menu.rs` uses named, numbered inventory slots | Gaisen/native adapters supply their own items and quantity rules; queued native commands edit actual player state |
 | Light selection, priorities and budgets | `lighting.rs` | `lighting/gaisen.rs`; native `render/lighting.rs` |
+| Sun/moon and visual time of day | `visuals/sky.rs`, shared renderer | Each runtime supplies its simulation tick and retained shadow geometry |
 | Texture-based emitter discovery | `visuals/lights.rs` accepts a model catalog, VRAM and rules | `visuals/lights/gaisen.rs` supplies source meshes and instances |
 | GPU shading, shadows, materials and post effects | `renderer` | Source scene preparation, including native palette/fog decoding |
 | Weather and footprints | `visuals/weather`, `visuals/footprints`, `visuals/surfaces` | Source terrain and sole-contact adapters |
@@ -28,7 +29,9 @@ Both runtimes use the same light selection and GPU shadow code. Native T2 maps
 its explicit static flame emitters; its texture-based lamp metadata and transient
 combat emitters are still missing. Static shadow/shelter geometry is retained by
 the native environment cache. Source simulation visibility does not switch these
-lights on/off as the camera turns. Original keeps dynamic lighting disabled.
+lights on/off as the camera turns. Both also drive the shared directional light
+and sky clock; repeated presentation frames do not advance time, and fast-forward
+accounts for every elapsed simulation tick. Original keeps these effects disabled.
 
 For additional F1 features, connect an adapter to an existing shared component
 before adding another renderer or menu implementation. Enable a control only when

@@ -33,11 +33,8 @@ impl Drawing {
     ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
         self.scene.weather_audio(settings)
     }
-    pub fn preserve_weather(&mut self, previous: &mut Self) {
-        self.scene.environment = previous.scene.environment.take();
-        if let Some(e) = &mut self.scene.environment {
-            e.stale = true;
-        }
+    pub fn preserve_environment(&mut self, previous: &mut Self) {
+        self.scene.preserve_environment(&mut previous.scene);
     }
 
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {

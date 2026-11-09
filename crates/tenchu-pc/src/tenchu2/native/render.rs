@@ -46,6 +46,7 @@ struct SceneDrawing {
     effects: crate::renderer::EffectMesh,
     environment: Option<environment::Environment>,
     lighting: lighting::Lighting,
+    sky: crate::visuals::sky::Clock,
 }
 
 impl Drawing {
@@ -63,11 +64,8 @@ impl Drawing {
     ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
         self.scene.weather_audio(settings)
     }
-    pub fn preserve_weather(&mut self, previous: &mut Self) {
-        self.scene.environment = previous.scene.environment.take();
-        if let Some(e) = &mut self.scene.environment {
-            e.stale = true;
-        }
+    pub fn preserve_environment(&mut self, previous: &mut Self) {
+        self.scene.preserve_environment(&mut previous.scene);
     }
 
     pub fn new(
@@ -182,6 +180,14 @@ fn camera_matrix(
 }
 
 impl SceneDrawing {
+    fn preserve_environment(&mut self, previous: &mut Self) {
+        self.environment = previous.environment.take();
+        self.sky = previous.sky.clone();
+        if let Some(environment) = &mut self.environment {
+            environment.stale = true;
+        }
+    }
+
     fn prepare_environment(
         &mut self,
         geometry: &mut Geometry,
@@ -189,8 +195,11 @@ impl SceneDrawing {
         renderer: &mut Renderer,
     ) {
         let graphics = renderer.graphics().clone();
+        let sky_light = graphics.sky.enabled
+            || (graphics.lighting.enabled && graphics.lighting.directional.intensity > 0);
         if (graphics.weather.mode != crate::settings::WeatherMode::Original
-            || (self.lighting.active(&graphics.lighting) && graphics.lighting.shadows))
+            || ((self.lighting.active(&graphics.lighting) || sky_light)
+                && graphics.lighting.shadows))
             && self.environment.is_none()
         {
             self.environment = Some(environment::Environment::new(
@@ -201,7 +210,8 @@ impl SceneDrawing {
             ));
         }
         renderer.weather = Default::default();
-        renderer.daylight = None;
+        self.sky.tick(frame.tick, &graphics.sky);
+        renderer.daylight = self.sky.sample(&graphics.sky, 1.0);
         if let Some(environment) = &mut self.environment {
             if environment.stale {
                 environment.rebuild(&frame, renderer);
@@ -250,6 +260,7 @@ impl SceneDrawing {
             effects: renderer.upload_effects(geometry.effects),
             environment: None,
             lighting: lighting::Lighting::new(level),
+            sky: Default::default(),
         }
     }
 

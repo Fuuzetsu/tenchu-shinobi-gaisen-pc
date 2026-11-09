@@ -30,13 +30,12 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         samples: g.samples,
         post: g.post.clone(),
         weather: g.weather.clone(),
+        sky: g.sky.clone(),
         lighting: crate::settings::Lighting {
-            directional: Default::default(),
             lamps: false,
             markers: false,
             flame_motion: 0,
             heat_shimmer: 0,
-            sky_tint: 0,
             ..g.lighting.clone()
         },
         ..Default::default()

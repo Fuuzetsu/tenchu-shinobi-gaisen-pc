@@ -325,6 +325,20 @@ impl Item {
             } as u16;
         } else {
             match self {
+                Item::DirectionalColor => {
+                    settings.graphics.lighting.directional.color = cycle(
+                        settings.graphics.lighting.directional.color,
+                        &[0, 1, 2],
+                        direction,
+                    )
+                }
+                Item::DirectionalResolution => {
+                    settings.graphics.lighting.directional.resolution = u32::from(cycle(
+                        settings.graphics.lighting.directional.resolution as u16,
+                        &[512, 1024, 2048, 4096],
+                        direction,
+                    ))
+                }
                 Item::ShadowCount => {
                     settings.graphics.lighting.shadow_count = cycle(
                         settings.graphics.lighting.shadow_count,
@@ -421,6 +435,14 @@ impl Item {
             *value = *self.number(&mut defaults).unwrap();
         } else {
             match self {
+                Item::DirectionalColor => {
+                    settings.graphics.lighting.directional.color =
+                        defaults.graphics.lighting.directional.color
+                }
+                Item::DirectionalResolution => {
+                    settings.graphics.lighting.directional.resolution =
+                        defaults.graphics.lighting.directional.resolution
+                }
                 Item::LightCount => {
                     settings.graphics.lighting.count = defaults.graphics.lighting.count
                 }

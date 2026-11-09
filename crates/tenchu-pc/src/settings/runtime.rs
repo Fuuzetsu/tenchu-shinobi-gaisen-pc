@@ -34,6 +34,22 @@ impl Runtime {
             GodMode | Armor | GiveItems | ClearItems | Inventory(_) => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
+            DirectionalIntensity
+            | DirectionalColor
+            | DirectionalAzimuth
+            | DirectionalElevation
+            | DirectionalRadius
+            | DirectionalResolution
+            | SkyTint
+            | TimeClock
+            | TimeOfDay
+            | TimeSpeed
+            | SunStrength
+            | MoonStrength
+            | DayAmbient
+            | NightAmbient
+            | SunPath
+            | DayRelighting => None,
             LampLights => Some(
                 "Native Tenchu 2 currently supplies flame sources. Texture-based lamp discovery still needs its model metadata adapter.",
             ),

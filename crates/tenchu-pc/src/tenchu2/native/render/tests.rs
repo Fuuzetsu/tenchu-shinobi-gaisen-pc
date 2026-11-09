@@ -354,3 +354,93 @@ fn native_sources_share_lighting_and_inspection_without_changing_logic() {
     }
     assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; native sky uses the shared shading and shadow pipeline"]
+fn native_sky_lighting_and_shadows_do_not_change_simulation() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..40 {
+        session.step(0).unwrap();
+    }
+    let before = serde_json::to_vec(&session.world).unwrap();
+    let mut graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        ..Default::default()
+    };
+    graphics.lighting.count = 0;
+    graphics.lighting.ambient = 55;
+    graphics.lighting.directional.intensity = 100;
+    let mut images = Vec::new();
+    for mode in ["original", "moon", "moon-shadows", "noon", "night"] {
+        graphics.lighting.enabled = matches!(mode, "moon" | "moon-shadows");
+        graphics.lighting.shadows = mode != "moon";
+        graphics.sky.enabled = matches!(mode, "noon" | "night");
+        graphics.sky.time = if mode == "noon" { 720 } else { 0 };
+        let path = output.join(format!("native-sky-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            assert_eq!(renderer.daylight.is_some(), graphics.sky.enabled);
+            if mode == "moon-shadows" || graphics.sky.enabled {
+                assert!(
+                    drawing.scene.environment.is_some(),
+                    "missing native shadow casters"
+                );
+            }
+            Ok((drawing.scene, session.world.camera.view, Vec::new()))
+        })
+        .unwrap();
+        images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+    }
+    for pair in images.windows(2) {
+        let changed = pair[0]
+            .rgba
+            .chunks_exact(4)
+            .zip(pair[1].rgba.chunks_exact(4))
+            .filter(|(a, b)| a != b)
+            .count();
+        assert!(
+            changed > 100,
+            "sky option did not change the rendered scene: {changed}"
+        );
+    }
+    assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
+
+    let mut story = super::super::story::Story::load(&disc, 0, 201, 1).unwrap();
+    for _ in 0..60 {
+        story.step(true).unwrap();
+    }
+    graphics.sky.time = 720;
+    graphics.sky.speed = 120;
+    capture_frame(
+        &story.level.vram.clone(),
+        &graphics,
+        &output.join("native-sky-cutscene.png"),
+        |renderer| {
+            let mut drawing = StoryDrawing::new(&story, &graphics, renderer)?;
+            drawing.update(&story, renderer)?;
+            for _ in 0..30 {
+                story.step(true)?;
+            }
+            let before = serde_json::to_vec(&story.state).unwrap();
+            drawing.update(&story, renderer)?;
+            let minutes = drawing.scene.sky.minutes(&graphics.sky, 1.0);
+            assert_eq!(minutes, 840.0);
+            let mut rebuilt = StoryDrawing::new(&story, &graphics, renderer)?;
+            rebuilt.preserve_environment(&mut drawing);
+            rebuilt.update(&story, renderer)?;
+            assert_eq!(rebuilt.scene.sky.minutes(&graphics.sky, 1.0), minutes);
+            assert!(rebuilt.scene.environment.is_some());
+            assert!(renderer.daylight.is_some());
+            assert_eq!(serde_json::to_vec(&story.state).unwrap(), before);
+            Ok((rebuilt.scene, story.state.view, rebuilt.texts))
+        },
+    )
+    .unwrap();
+}

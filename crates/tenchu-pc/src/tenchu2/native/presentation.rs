@@ -321,7 +321,7 @@ impl ContentDrawing {
         vram: &tenchu_assets::texture::Vram,
         graphics: &Graphics,
         renderer: &mut Renderer,
-        preserve_weather: bool,
+        preserve_environment: bool,
     ) -> Result<()> {
         let backdrop = if matches!(content, Content::Results(_)) {
             self.results_backdrop(renderer)?
@@ -334,10 +334,10 @@ impl ContentDrawing {
         } else {
             Self::new(content, graphics, renderer)?
         };
-        if preserve_weather {
+        if preserve_environment {
             match (&mut replacement, &mut *self) {
-                (Self::Gameplay(next), Self::Gameplay(old)) => next.preserve_weather(old),
-                (Self::Story(next), Self::Story(old)) => next.preserve_weather(old),
+                (Self::Gameplay(next), Self::Gameplay(old)) => next.preserve_environment(old),
+                (Self::Story(next), Self::Story(old)) => next.preserve_environment(old),
                 _ => {}
             }
         }

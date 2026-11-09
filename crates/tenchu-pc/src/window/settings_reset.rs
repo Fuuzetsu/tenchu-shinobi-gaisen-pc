@@ -75,15 +75,6 @@ impl Application {
             Item::GameplayPreset => self.set_gameplay_preset(0)?,
             Item::Preset => self.settings.set_visual_preset(0),
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
-            Item::DirectionalColor => {
-                self.settings.graphics.lighting.directional.color =
-                    s.graphics.lighting.directional.color
-            }
-            Item::DirectionalResolution => {
-                self.settings.graphics.lighting.directional.resolution =
-                    s.graphics.lighting.directional.resolution
-            }
-
             Item::Speed => self.debug.speed = d.speed,
             Item::SightDistance => self.set_sight(d.sight_percent),
             Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),

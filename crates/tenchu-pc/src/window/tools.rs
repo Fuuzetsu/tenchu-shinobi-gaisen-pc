@@ -687,21 +687,6 @@ impl Application {
                         .push_str(&format!(", {images} frontend images"));
                 }
             }
-            Item::DirectionalColor => {
-                self.settings.graphics.lighting.directional.color = cycle(
-                    self.settings.graphics.lighting.directional.color,
-                    &[0, 1, 2],
-                    direction,
-                )
-            }
-            Item::DirectionalResolution => {
-                self.settings.graphics.lighting.directional.resolution = u32::from(cycle(
-                    self.settings.graphics.lighting.directional.resolution as u16,
-                    &[512, 1024, 2048, 4096],
-                    direction,
-                ))
-            }
-
             Item::ShadowPreview => {
                 if !self.campaign.playing() {
                     return Err("Start a mission to preview model shadows".into());

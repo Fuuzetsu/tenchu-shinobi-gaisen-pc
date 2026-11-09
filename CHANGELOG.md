@@ -5,6 +5,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect native Tenchu 2 JP to the shared sun/moon lighting, directional shadows and time-of-day controls, including 3D cutscenes. The visual clock follows simulation time through pause and fast-forward; model/artwork changes preserve it.
 - Enable native JP god mode, armour protection and mission inventory editing in the shared F1 Experiment tab. The inventory lists T2's own items; edits preserve active effects and leave campaign stock unchanged. God mode prevents combat, poison, drowning and fall damage without refilling health or removing hit reactions.
 - Native Tenchu 2 JP gains collision, patrol, mission-destination and surface-trigger overlays. Guard sight overlays use JP terrain checks, show obstruction points and explain the selected guard's next perception check without changing gameplay.
 - Enable coordinate and click/tap teleporting in native JP through the shared F1 tools, with floor/wall checks and camera/collision updates. Free-camera clicks can select actors for inspection.

@@ -68,8 +68,13 @@ remembered Gaisen disc; open it once through `play` to connect the gallery.
 **F1 → Lighting** uses the shared dynamic-light and shadow renderer for native
 stage flames, with the same intensity, ambient, radius, light/shadow counts,
 resolution and softness controls. Modern High/Ultra use their existing settings;
-Original keeps these effects off. Moon/sun lighting and other emitters remain
-unavailable. These sources are independent of the source camera's draw culling.
+Original keeps these effects off. These sources are independent of the source
+camera's draw culling. **Sky lighting** provides manual sun/moon direction,
+colour, intensity and shadow quality. **Time of day** can instead drive the light
+and ambient colour through a day/night cycle. Both work in gameplay and 3D
+cutscenes, use the shared terrain/model shadows, and remain presentation-only.
+The visual clock follows simulation time, including pause and fast-forward;
+changing models or artwork preserves it. Other combat/lamp emitters remain pending.
 
 **F1 → Overlays** provides hitboxes, actor labels and the actor inspector, with
 X-ray and photo-mode handling. The boxes come from native collision slots.
