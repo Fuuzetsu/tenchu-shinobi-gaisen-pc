@@ -93,16 +93,18 @@ Connecting a disc adds its **Tenchu 2 (EU)** or **Tenchu 2 (JP)** tab to
 Each imported edition has 83 bodies, including alternate and masked costumes. Search by name to find the heroes, bosses, guards,
 animals and alternate costumes. The visible preview tiles play source idle
 motions. Swapping a body is appearance-only until **Override moveset** is enabled.
-**Moveset source** can select imported Rikimaru, Ayame or Tatsumaru from either
-edition independently of the body; their alternate costumes share that hero's
-moves. This imports standing/running, crouching/rolling, wall movement, jumping
+**Moveset source** can select imported heroes and supported melee guards/bosses
+from either edition independently of the body; alternate costumes share their
+character's moves. This imports standing/running, crouching/rolling, wall movement, jumping
 and melee combos with source attack timing, striking joints and recovery turns.
 **Use player movement** keeps Gaisen locomotion with the chosen T2 attacks.
 The Gaisen controller, collision and damage rules remain in charge. Paired
 stealth kills, items, grapple, ledges, special deaths and unmapped actions still
-use Gaisen motions; T2 guard/boss movesets and extra source controllers are not
+use Gaisen motions. Projectile-only attacks and extra source controllers are not
 yet selectable. Gaisen weapon models and voices remain in use. This is an
 optional moveset adapter, not a T2-native simulation in a Gaisen map.
+The same gallery also supports Gaisen bodies and movesets in
+[native Japanese T2 missions](tenchu2-native.md).
 The separate Tatsumaru unarmed importer remains available in Movement.
 Extra hair/accessory joints are attached to their nearest
 supported body joint, so their independent source animation is not reproduced.

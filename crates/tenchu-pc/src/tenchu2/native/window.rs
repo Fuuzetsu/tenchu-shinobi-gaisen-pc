@@ -193,6 +193,8 @@ struct Application {
     fps_frames: u32,
     error: Option<String>,
     quit: bool,
+    gallery: Option<super::models::Gallery>,
+    gallery_error: Option<String>,
 }
 
 impl Application {
@@ -281,6 +283,33 @@ impl Application {
             elapsed.as_secs_f32(),
             self.focused && !self.menu.panel.open,
         );
+        let wants_models = (self.menu.panel.open && self.menu.panel.page == 10)
+            || !self.settings.player_model.is_empty()
+            || self.settings.moveset_id().is_some();
+        if wants_models && self.gallery.is_none() && self.gallery_error.is_none() {
+            match super::models::Gallery::remembered() {
+                Ok(gallery) => self.gallery = Some(gallery),
+                Err(error) => {
+                    self.menu.panel.notice = error.clone();
+                    self.gallery_error = Some(error);
+                }
+            }
+        }
+        let mut models_changed = false;
+        if let (Content::Gameplay(session), Some(gallery)) =
+            (&mut self.session.content, &mut self.gallery)
+        {
+            match session.models.sync(
+                &mut session.world,
+                &mut session.assets,
+                &mut gallery.game,
+                &gallery.library,
+                &self.settings,
+            ) {
+                Ok(changed) => models_changed = changed,
+                Err(error) => self.menu.panel.notice = error,
+            }
+        }
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
@@ -300,10 +329,14 @@ impl Application {
                 view.config.present_mode = present_mode;
                 view.surface.configure(&view.renderer.device, &view.config);
             }
-            if view.generation != self.session.generation || view.graphics != graphics {
+            if view.generation != self.session.generation
+                || view.graphics != graphics
+                || models_changed
+            {
                 view.renderer.configure(&graphics);
                 if view.generation != self.session.generation
                     || view.graphics.asset_pack != graphics.asset_pack
+                    || models_changed
                 {
                     view.drawing.replace(
                         &self.session.content,
@@ -325,6 +358,16 @@ impl Application {
                 self.settings.show_hud && !self.menu.tools.debug.photo_mode,
                 &mut view.renderer,
             )?;
+            let original_model = if let Content::Gameplay(session) = &self.session.content {
+                session
+                    .assets
+                    .resources
+                    .registry
+                    .actor(session.world.actors[session.world.player].actor.kind)
+                    .map(|a| format!("tenchu2-jp:{}", a.model))
+            } else {
+                None
+            };
             let action = view.draw(
                 &mut self.session,
                 &mut self.menu,
@@ -334,6 +377,10 @@ impl Application {
                     controls: &mut self.controls,
                     presets: &mut self.presets,
                     samples: &view.renderer.sample_counts.clone(),
+                    models: self
+                        .gallery
+                        .as_mut()
+                        .map(|gallery| gallery.state(original_model)),
                 },
                 self.error.as_deref(),
                 self.fps,
@@ -553,6 +600,8 @@ pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
         fps_frames: 0,
         error: None,
         quit: false,
+        gallery: None,
+        gallery_error: None,
     };
     let events = EventLoop::new().map_err(|e| e.to_string())?;
     events

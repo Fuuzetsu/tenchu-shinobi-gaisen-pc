@@ -106,7 +106,7 @@ impl Actor {
         }
         let kind = resources
             .registry
-            .actor(self.kind)
+            .actor(self.definition_kind())
             .ok_or("Missing Tenchu 2 actor definition")?
             .weapon;
         if matches!(mode, WeaponMode::Draw | WeaponMode::Sheathe) {
@@ -157,6 +157,30 @@ impl Actor {
     ) -> Result<()> {
         if !self.weapon_drawn() {
             return Ok(());
+        }
+        if mode == Contacts::Start
+            && let Some(attack) = self.imported_attack()
+        {
+            let owner = rig
+                .joints
+                .first()
+                .and_then(|&joint| collision.get_mut(joint))
+                .and_then(|slot| slot.owner);
+            for contact in attack.contacts.iter().flatten() {
+                let joint = *rig
+                    .joints
+                    .get(contact.part)
+                    .ok_or("Missing imported weapon bone")?;
+                let slot = collision.insert(joint)?;
+                slot.owner = owner;
+                slot.offset = contact.hitbox.center.into();
+                slot.size = Vector3::new(
+                    contact.hitbox.radius,
+                    contact.hitbox.radius,
+                    contact.hitbox.radius,
+                );
+                slot.flags = WEAPON | DISABLED;
+            }
         }
         let mask = if mode == Contacts::Start {
             resources

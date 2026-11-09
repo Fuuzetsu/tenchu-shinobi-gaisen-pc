@@ -14,6 +14,7 @@ pub(in crate::window) struct Native {
     pub menu: preferences::Menu,
     transport: Transport,
     pub error: Option<String>,
+    donor: Option<Game>,
 }
 
 impl Application {
@@ -51,6 +52,7 @@ impl Application {
             menu: preferences::Menu::default(),
             transport: Transport::default(),
             error: None,
+            donor: None,
         });
         self.tenchu2.open = false;
         self.menu.open = false;
@@ -178,7 +180,37 @@ impl Application {
         };
         view.presentation_settings(&self.settings);
         let native = self.native_tenchu2.as_mut().unwrap();
-        if native.generation != Some(native.playback.generation) || native.graphics != graphics {
+        let wants_models = (native.menu.panel.open && native.menu.panel.page == 10)
+            || !self.settings.player_model.is_empty()
+            || self.settings.moveset_id().is_some();
+        if wants_models && view.model_library.is_none() {
+            view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
+        }
+        let mut models_changed = false;
+        if let Content::Gameplay(session) = &mut native.playback.content
+            && let Some(library) = &view.model_library
+            && (native.donor.is_some()
+                || !self.settings.player_model.is_empty()
+                || self.settings.moveset_id().is_some())
+        {
+            if native.donor.is_none() {
+                native.donor = Some(crate::tenchu2::native::models::donor(&self.assets)?);
+            }
+            match session.models.sync(
+                &mut session.world,
+                &mut session.assets,
+                native.donor.as_mut().unwrap(),
+                library,
+                &self.settings,
+            ) {
+                Ok(changed) => models_changed = changed,
+                Err(error) => native.menu.panel.notice = error,
+            }
+        }
+        if native.generation != Some(native.playback.generation)
+            || native.graphics != graphics
+            || models_changed
+        {
             #[cfg(target_os = "android")]
             {
                 view.renderer
@@ -192,6 +224,7 @@ impl Application {
             view.renderer.configure(&graphics);
             if native.generation != Some(native.playback.generation)
                 || native.graphics.asset_pack != graphics.asset_pack
+                || models_changed
             {
                 native
                     .drawing
@@ -252,6 +285,23 @@ impl Application {
                     controls: &mut self.controls,
                     presets: &mut self.presets,
                     samples: &view.renderer.sample_counts,
+                    models: Some(crate::visuals::appearance::picker::State {
+                        picker: &mut view.model_picker,
+                        library: view.model_library.as_ref(),
+                        bodies: &view.bodies,
+                        game: &self.campaign.game,
+                        original_model: if let Content::Gameplay(session) = &native.playback.content
+                        {
+                            session
+                                .assets
+                                .resources
+                                .registry
+                                .actor(session.world.actors[session.world.player].actor.kind)
+                                .map(|a| format!("tenchu2-jp:{}", a.model))
+                        } else {
+                            None
+                        },
+                    }),
                 },
             );
             if actions.clear_weather || actions.clear_footprints {

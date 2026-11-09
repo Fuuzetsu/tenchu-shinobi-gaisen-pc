@@ -11,7 +11,7 @@ fn imported_heroes_move_fight_and_restore_in_gaisen() {
     let gaisen = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
     let assets = GameAssets::open(crate::source::open_disc(gaisen.as_ref()).unwrap()).unwrap();
     for character in 0..2 {
-        for (&kind, source) in &movesets {
+        for (&kind, source) in movesets.iter().filter(|(kind, _)| **kind < 3) {
             let mut game = crate::session::Options {
                 character,
                 ..Default::default()
@@ -155,13 +155,36 @@ fn imported_heroes_move_fight_and_restore_in_gaisen() {
 
 #[test]
 #[ignore = "requires TENCHU_DISC and TENCHU2_DISC; verifies real damage from imported weapons/limbs and cleanup during attacks"]
-fn imported_hero_attacks_hit_gaisen_guards() {
+fn imported_attacks_hit_gaisen_guards() {
     let disc = std::env::var_os("TENCHU2_DISC").expect("TENCHU2_DISC");
     let sources = load(&crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+    let mut ids = std::collections::BTreeSet::new();
+    for source in sources.values() {
+        for clip in &source.clips {
+            assert!(
+                ids.insert(clip.id),
+                "overlapping actor motion {:#x}",
+                clip.id
+            );
+            assert!(
+                !tenchu_assets::tenchu2::CLIPS
+                    .iter()
+                    .any(|id| clip.id == 0x6000 + id),
+                "overlaps standalone Tatsumaru motion {:#x}",
+                clip.id
+            );
+        }
+    }
     let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
     let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
     for character in 0..2 {
-        for (kind, source) in &sources {
+        for (kind, source) in sources.iter().filter(|(kind, source)| {
+            **kind < 3
+                || matches!(
+                    source.character.model.as_str(),
+                    "busi" | "roukuno" | "tatu2"
+                )
+        }) {
             let mut game = crate::session::Options {
                 character,
                 ..Default::default()

@@ -126,6 +126,11 @@ impl Actor {
         if self.motion.action != request.action {
             self.end_attack_contacts(resources, context, &mut cue)?;
             let old = self.motion.action;
+            let turn_on_exit = self
+                .imported_attack()
+                .map_or(matches!(old, 0x907..=0x90c | 0x915), |a| a.turn_on_exit);
+            let retain_combo_pose = request.action >> 8 == 9
+                && self.moveset.as_ref().is_some_and(|m| m.retain_combo_pose);
             if self
                 .change_motion(request.action, request.velocity, resources)?
                 .is_some()
@@ -138,13 +143,15 @@ impl Actor {
                     .and_then(|keys| keys.first())
                     .ok_or("Missing Tenchu 2 root rotation")?
                     .value[1];
-                if matches!(old, 0x907..=0x90c | 0x915) {
+                if turn_on_exit && !retain_combo_pose {
                     self.rotation.y = self
                         .rotation
                         .y
                         .wrapping_add(self.motion.pose.rotation[0][1].wrapping_sub(yaw));
                 }
-                self.motion.pose.rotation[0][1] = yaw;
+                if !retain_combo_pose {
+                    self.motion.pose.rotation[0][1] = yaw;
+                }
                 self.end_attack_contacts(resources, context, &mut cue)?;
             }
             return Ok(());
@@ -189,7 +196,7 @@ impl Actor {
         if frame == i16::from(attack.trail_start) {
             let kind = resources
                 .registry
-                .actor(self.kind)
+                .actor(self.definition_kind())
                 .ok_or("Missing Tenchu 2 actor")?
                 .weapon;
             let mut slot = 0;

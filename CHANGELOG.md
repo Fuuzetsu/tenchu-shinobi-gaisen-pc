@@ -5,6 +5,21 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Enable the shared F1 player-model gallery in native Japanese Tenchu 2.
+  Select Gaisen or imported T2 bodies and optionally use their locomotion and
+  melee movesets, independently of appearance. Player-movement and idle-taunt
+  overrides work here too; returning to Original restores the native hero.
+  Swaps wait for a living, idle/crouching player outside cutscenes, preserve
+  mission identity and inventory, and keep weather buildup when rebuilding models.
+- Extend both editions' imported T2 movesets to supported guards and bosses,
+  usable as player moves in Gaisen or native JP. Import attack timing, contact
+  shapes, combos and temporary weapon holsters. Source-specific combo recovery
+  prevents unwanted facing changes. Scripted/projectile-only attacks remain
+  unavailable; voices, paired kills, items and unmapped actions use the host game,
+  and imported T2 moves still use compatible Gaisen weapon geometry.
+- Fix a black Gaisen shop after starting directly in T2 and switching games
+  through F6. Load the Gaisen menu resources when first returning to it.
+
 ## 0.23.0 — 2026-11-09
 
 - Enable imported Tenchu 2 Rikimaru, Ayame and Tatsumaru movesets in Gaisen:

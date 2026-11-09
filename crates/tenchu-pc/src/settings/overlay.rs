@@ -215,16 +215,21 @@ pub fn show(
                     }
                     if menu.page == 10 {
                         available_ui(ui, runtime, Item::PlayerModel, |ui| {
-                        if ui.button("Choose player model…").clicked() {
-                            menu.model_picker = true;
-                        }
-                        ui.label("Model folder (optional)");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut menu.model_directory)
-                                .desired_width(f32::INFINITY)
-                                .hint_text("Path to an exported or custom model pack"),
-                        );
-                        ui.weak("Choose a body below. Folder edits apply on Load / reload.");
+                            if ui.button("Choose player model…").clicked() {
+                                menu.model_picker = true;
+                            }
+                            available_ui(ui, runtime, Item::ReloadModels, |ui| {
+                                ui.label("Model folder (optional)");
+                                ui.add(
+                                    egui::TextEdit::singleline(&mut menu.model_directory)
+                                        .desired_width(f32::INFINITY)
+                                        .hint_text("Path to an exported or custom model pack"),
+                                );
+                                ui.weak("Choose a body below. Folder edits apply on Load / reload.");
+                            });
+                            if runtime == Runtime::Tenchu2 {
+                                ui.weak("Swaps apply when standing or crouching outside a cutscene. Unsupported projectile/scripted moves retain the host moveset. Voices, items and paired kills remain native T2.");
+                            }
                         });
                         ui.separator();
                     }

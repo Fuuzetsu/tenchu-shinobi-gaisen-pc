@@ -88,6 +88,7 @@ impl Default for Attack {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Actor {
     pub kind: i16,
+    pub moveset: Option<Box<Override>>,
     pub state: State,
     pub flags: u32,
     pub health: i16,
@@ -112,7 +113,23 @@ pub struct Actor {
     pub inventory: Inventory,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Override {
+    pub definition: i16,
+    pub attacks: BTreeMap<i16, tenchu_assets::weapon::ImportedAttack>,
+    pub no_idle_taunts: bool,
+    pub retain_combo_pose: bool,
+}
+
 impl Actor {
+    pub fn definition_kind(&self) -> i16 {
+        self.moveset.as_ref().map_or(self.kind, |m| m.definition)
+    }
+
+    pub fn imported_attack(&self) -> Option<&tenchu_assets::weapon::ImportedAttack> {
+        self.moveset.as_ref()?.attacks.get(&self.motion.clip?)
+    }
+
     pub fn new(kind: i16, parts: &[Part], resources: &Resources) -> Result<Self> {
         if resources.registry.edition != Edition::Japan {
             return Err("Native Tenchu 2 gameplay requires Japanese actor definitions".into());
@@ -133,6 +150,7 @@ impl Actor {
         };
         Ok(Self {
             kind,
+            moveset: None,
             state: State::Normal,
             flags: 0,
             health,
@@ -164,6 +182,9 @@ impl Actor {
         velocity: Velocity,
         resources: &Resources,
     ) -> Result<Option<Change>> {
+        if action == 0x110 && self.moveset.as_ref().is_some_and(|m| m.no_idle_taunts) {
+            action = if self.weapon_drawn() { 0x100 } else { 0 };
+        }
         let changed = self.motion.action != action;
         if changed {
             if self.state == State::Attack && self.motion.loops < 1 && self.weapon_drawn() {
@@ -172,16 +193,24 @@ impl Actor {
             }
             if self
                 .motion
-                .select(action, self.kind, &resources.registry, &resources.clips)?
+                .select(
+                    action,
+                    self.definition_kind(),
+                    &resources.registry,
+                    &resources.clips,
+                )?
                 .is_none()
             {
                 if action != 0x110 {
                     return Ok(None);
                 }
                 action = if self.weapon_drawn() { 0x100 } else { 0 };
-                let selected =
-                    self.motion
-                        .select(action, self.kind, &resources.registry, &resources.clips)?;
+                let selected = self.motion.select(
+                    action,
+                    self.definition_kind(),
+                    &resources.registry,
+                    &resources.clips,
+                )?;
                 if selected.is_none() && !self.weapon_drawn() {
                     return Ok(None);
                 }
@@ -200,7 +229,7 @@ impl Actor {
                 .overlay(
                     action,
                     0xe3e,
-                    self.kind,
+                    self.definition_kind(),
                     &resources.registry,
                     &resources.clips,
                 )?

@@ -38,6 +38,15 @@ impl Application {
                 }
             }
             Event::Gaisen(continue_save) => {
+                if self.frontend.is_none() {
+                    self.frontend = Some(crate::frontend::Frontend::new(
+                        &self.assets,
+                        &self.disc,
+                        &self.campaign,
+                        self.settings.frontend.clone(),
+                    )?);
+                }
+                self.campaign.frontend = true;
                 self.campaign.cursor = usize::from(!continue_save);
                 self.campaign_action(Action::Confirm);
             }
@@ -170,6 +179,31 @@ mod tests {
     use std::path::Path;
 
     #[test]
+    #[ignore = "requires TENCHU_DISC; switching back from a direct T2 launch must load the Gaisen shop"]
+    fn returning_to_gaisen_initializes_the_shop() {
+        let mut app = super::super::tests::application(Options::default());
+        app.campaign.screen = Screen::Launcher;
+        app.campaign.quick_launcher = true;
+        assert!(app.frontend.is_none());
+        app.apply_tenchu2(Event::Gaisen(false)).unwrap();
+        assert!(app.fault.is_none(), "{:?}", app.fault);
+        assert!(matches!(app.campaign.screen, Screen::Inventory(_)));
+        assert!(app.frontend_visible());
+        assert_eq!(
+            app.frontend.as_ref().unwrap().page,
+            crate::frontend::Page::Shop
+        );
+        assert!(
+            !app.frontend
+                .as_ref()
+                .unwrap()
+                .events
+                .iter()
+                .any(|event| { matches!(event, crate::frontend::Event::QuickLauncher) })
+        );
+    }
+
+    #[test]
     #[ignore = "requires Gaisen, TENCHU2_DISC, TENCHU2_JP_DISC and isolated TENCHU_T2_CONFIG; both editions persist and remain independently selectable"]
     fn both_editions_remain_connected_after_switching_and_restarting() {
         let config = std::env::var_os("TENCHU_T2_CONFIG").expect("Isolate disc preferences");
@@ -232,8 +266,8 @@ mod tests {
             let eu = library.get(&format!("tenchu2:{name}")).unwrap();
             let jp = library.get(&format!("tenchu2-jp:{name}")).unwrap();
             assert!(!std::ptr::eq(eu, jp));
-            assert_eq!(eu.has_moveset(), name != "tatu2_m");
-            assert_eq!(jp.has_moveset(), name != "tatu2_m");
+            assert!(eu.has_moveset(), "{name}: EU moveset");
+            assert!(jp.has_moveset(), "{name}: JP moveset");
         }
         assert!(
             library.get("tenchu2:rikimaru").unwrap().vram

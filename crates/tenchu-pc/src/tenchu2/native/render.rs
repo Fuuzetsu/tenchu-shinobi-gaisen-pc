@@ -315,6 +315,7 @@ pub struct Models {
     scenery: Meshes,
     bodies: BTreeMap<String, Meshes>,
     weapons: Meshes,
+    imported_weapons: BTreeMap<String, Meshes>,
     items: Meshes,
     weapon_names: BTreeMap<usize, String>,
 }
@@ -389,11 +390,13 @@ impl Models {
         renderer.bind_meshes(&mut scenery);
         let mut bodies = BTreeMap::new();
         for (name, model) in &assets.models {
-            let mut meshes = build(
-                &model.vram,
-                sources(&format!("actors/{name}"), &model.parts),
-                graphics,
-            )?;
+            let mut model_sources = sources(&format!("actors/{name}"), &model.parts);
+            if let Some(ids) = assets.model_sources.get(name) {
+                for (source, id) in model_sources.iter_mut().zip(ids) {
+                    source.id.clone_from(id);
+                }
+            }
+            let mut meshes = build(&model.vram, model_sources, graphics)?;
             meshes.skin(&model.parts);
             renderer.bind_meshes(&mut meshes);
             bodies.insert(name.clone(), meshes);
@@ -401,10 +404,27 @@ impl Models {
         let weapon_sources = assets
             .weapons
             .iter()
+            .filter(|(name, _)| !assets.weapon_textures.contains_key(*name))
             .flat_map(|(name, parts)| sources(&format!("weapons/{name}"), parts))
             .collect();
         let mut weapons = build(&assets.weapon_vram, weapon_sources, graphics)?;
         renderer.bind_meshes(&mut weapons);
+        let mut imported_weapons = BTreeMap::new();
+        for (name, vram) in &assets.weapon_textures {
+            let parts = &assets.weapons[name];
+            let mut model_sources = sources(&format!("weapons/{name}"), parts);
+            if let Some(kind) = name
+                .strip_prefix("gaisen-weapon-")
+                .and_then(|k| k.parse::<i16>().ok())
+            {
+                for source in &mut model_sources {
+                    source.id = format!("weapons/{kind:04x}");
+                }
+            }
+            let mut meshes = build(vram, model_sources, graphics)?;
+            renderer.bind_meshes(&mut meshes);
+            imported_weapons.insert(name.clone(), meshes);
+        }
         let item_sources = assets
             .items
             .models()
@@ -417,7 +437,7 @@ impl Models {
             let definition = assets
                 .resources
                 .registry
-                .actor(agent.actor.kind)
+                .actor(agent.actor.definition_kind())
                 .ok_or("Missing native actor")?;
             let mut roots: Vec<_> = instance.rig.weapons.iter().flatten().copied().collect();
             roots.sort_unstable();
@@ -435,6 +455,7 @@ impl Models {
             scenery,
             bodies,
             weapons,
+            imported_weapons,
             items,
             weapon_names,
         })
@@ -493,7 +514,7 @@ impl Models {
             let definition = assets
                 .resources
                 .registry
-                .actor(actor.kind)
+                .actor(actor.definition_kind())
                 .ok_or("Missing native actor definition")?;
             let body = &assets.models[&definition.model];
             let meshes = &self.bodies[&definition.model];
@@ -509,7 +530,18 @@ impl Models {
                     meshes,
                     part,
                     matrix,
-                    if instance.translucent {
+                    if assets
+                        .model_sources
+                        .get(&definition.model)
+                        .is_some_and(|ids| {
+                            ids.iter()
+                                .any(|id| !id.is_empty() && !id.starts_with("tenchu2/"))
+                        })
+                    {
+                        ModelStyle::Imported {
+                            concealed: instance.translucent,
+                        }
+                    } else if instance.translucent {
                         ModelStyle::Concealed
                     } else {
                         ModelStyle::Actor
@@ -524,10 +556,16 @@ impl Models {
                 let parts = &assets.weapons[name];
                 for (index, part) in parts.iter().enumerate() {
                     output.model(
-                        &self.weapons,
+                        self.imported_weapons.get(name).unwrap_or(&self.weapons),
                         part,
                         scene.world(root + 1 + index)?,
-                        ModelStyle::Actor,
+                        if assets.weapon_textures.contains_key(name) {
+                            ModelStyle::Imported {
+                                concealed: instance.translucent,
+                            }
+                        } else {
+                            ModelStyle::Actor
+                        },
                     );
                 }
             }
@@ -826,6 +864,7 @@ enum ModelStyle {
     Terrain,
     Actor,
     Concealed,
+    Imported { concealed: bool },
 }
 
 impl Builder {
@@ -904,9 +943,16 @@ impl Builder {
                     .fog_start
                     .filter(|&start| depth > start)
                     .map_or(0, |start| (z - start).max(0));
-                palette_color(vertex, &self.shading, fade);
+                if matches!(style, ModelStyle::Imported { .. }) {
+                    vertex.color = vertex.color.map(|c| (c - fade as f32 / 128.0).max(0.0));
+                } else {
+                    palette_color(vertex, &self.shading, fade);
+                }
             }
-            if matches!(style, ModelStyle::Concealed) {
+            if matches!(
+                style,
+                ModelStyle::Concealed | ModelStyle::Imported { concealed: true }
+            ) {
                 for vertex in &mut triangle {
                     vertex.flags |= render_mesh::TRANSLUCENT;
                     vertex.page |= 0x60;

@@ -155,7 +155,7 @@ fn contacts(world: &World, assets: &Assets) -> Vec<(Part, Vec3, Vec3)> {
         if actor.flags & 8 != 0 || actor.health <= 0 || actor.kind & 0xf0 == 0x70 {
             continue;
         }
-        let Some(definition) = assets.resources.registry.actor(actor.kind) else {
+        let Some(definition) = assets.resources.registry.actor(actor.definition_kind()) else {
             continue;
         };
         let parts = &assets.models[&definition.model].parts;

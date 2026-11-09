@@ -66,7 +66,7 @@ fn select_with<T>(
     Ok(selected)
 }
 
-fn remembered_path(saved: &Path) -> Option<PathBuf> {
+pub(crate) fn remembered_path(saved: &Path) -> Option<PathBuf> {
     let load = || {
         let bytes = match crate::storage::read(saved) {
             Ok(bytes) => bytes,

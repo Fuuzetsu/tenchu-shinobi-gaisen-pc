@@ -2848,3 +2848,30 @@ animation exports are compiled into the port. Disc-backed tests exercise contact
 actual hits, full forward combos, heading recovery, mid-attack save/rewind restore,
 movement overrides and weapon restoration on both Gaisen heroes; optional GPU
 captures verify imported bodies/costumes with their own animations.
+
+### Cross-game melee and native JP model overrides
+
+The same disc-parsed action map now includes compatible T2 guard/boss melee
+registrations. Missing optional clips, projectile-only attacks, contacts on
+unmapped extra bones and attacks exceeding the two-contact Gaisen adapter are
+excluded rather than substituted with ineffective animations. Imported IDs are
+isolated by edition and actor, outside the separate Tatsumaru unarmed import
+range; hero IDs remain unchanged. Costume aliases share
+their source actor. Both editions retain authored 30 Hz motion/attack data.
+
+The native JP override adapts the existing Gaisen model library and scalar
+game/moveset implementation, using the verified T2 BONES mapping in reverse.
+It remaps geometry skin joints, motion tracks, weapon attachments, contact
+spheres and registration/combination IDs, retaining the host protagonist's
+identity and collision body. Gaisen's actor/combat controller carries its root
+pose between combo strikes and commits yaw on recovery; T2's sequence/attack
+controller applies selective per-strike recovery. The adapter preserves that
+distinction. Synthetic definitions and clips use reserved negative IDs, outside
+the native source's clip-specific event dispatch. The default path is unchanged.
+
+This remains a player override, not a cross-game AI replacement: source scripts,
+paired kills, items and voices remain host behavior. Native T2 projectile/extra
+boss-script adapters and actual T2 weapon geometry imports remain separate work.
+T2 source melee contacts/timing are retained even when Gaisen supplies a weapon
+mesh. No executable, motion, texture, mesh or audio data is added to the source
+tree. Swaps reuse scene joints and weapon slots and do not consume gameplay RNG.

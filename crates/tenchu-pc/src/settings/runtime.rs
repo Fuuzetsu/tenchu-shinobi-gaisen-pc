@@ -34,9 +34,11 @@ impl Runtime {
             | ClearFootprints | RoofRunoff | RunoffAmount | ClearWeather | StormLightning
             | StormBolts | StormInterval | StormThunder | RainVolume | WindVolume
             | ThunderStyle => None,
-            PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts
-            | ReloadModels => Some(
-                "Model and moveset swapping are not connected to native Tenchu 2 JP yet. Saved Gaisen choices are kept, but do not apply here.",
+            PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts => {
+                None
+            }
+            ReloadModels => Some(
+                "Reopen the mission after changing model files. Custom folder rigs are not connected to native Tenchu 2 yet.",
             ),
             Rewind | RewindHistory | RewindSpeed | SaveState | LoadState | StateSlot => Some(
                 "Native Tenchu 2 JP does not yet support mid-mission saves or rewind. Campaign progress still saves normally.",

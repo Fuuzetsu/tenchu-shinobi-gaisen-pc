@@ -566,6 +566,7 @@ impl super::Application {
                     library: view.model_library.as_ref(),
                     bodies: &view.bodies,
                     game: &self.campaign.game,
+                    original_model: None,
                 }),
                 demo: self.demo.as_mut(),
                 video_time,

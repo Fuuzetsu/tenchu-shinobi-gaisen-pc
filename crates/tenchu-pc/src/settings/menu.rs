@@ -1450,13 +1450,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::MovesetModel,
                 "Moveset source",
                 s.moveset_model.clone(),
-                "Choose an available actor's moves while keeping your current body. Imported T2 Rikimaru, Ayame and Tatsumaru include their locomotion and melee combos; paired kills, items and unmapped actions use Gaisen motions. Other T2 actors and custom bodies currently retain player moves.",
+                "Choose an available actor's moves while keeping your current body. T1 and supported T2 heroes/guards/bosses provide locomotion and melee combos. Paired kills, items and unmapped actions stay with the mission's protagonist. T2 scripted/projectile attacks and custom-body moves are not imported.",
             ),
             (
                 Item::ModelPlayerMovement,
                 "Use player movement",
                 on(s.model_moveset_options.player_movement),
-                "With a moveset override enabled, use Ayame's or Rikimaru's walking, running, dashes, crouching, jumping and climbing motions and speeds. Keep the selected actor's attacks.",
+                "With a moveset override enabled, use the mission protagonist's walking, running, dashes, crouching, jumping and climbing motions and speeds. Keep the selected actor's attacks.",
             ),
             (
                 Item::ModelNoIdleTaunts,

@@ -27,6 +27,8 @@ mod equipment;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
 #[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod models;
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod preferences;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod presentation;
@@ -53,6 +55,8 @@ pub struct Session {
     pub frame: Frame,
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
     pub pending: BTreeSet<String>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub models: models::Override,
 }
 
 impl Session {
@@ -105,6 +109,8 @@ impl Session {
             frame: Frame::default(),
             bank,
             pending: BTreeSet::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            models: Default::default(),
         })
     }
 
@@ -321,6 +327,9 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         return Err("Use the Android launcher's F6 quick menu to start Japanese Tenchu 2".into());
         #[cfg(not(target_os = "android"))]
         {
+            crate::tenchu2::menu::remember(
+                &std::fs::canonicalize(&args[1]).map_err(|e| e.to_string())?,
+            )?;
             let specified = !loadout.is_empty();
             let mut items = [0; 21];
             items[0] = 255;

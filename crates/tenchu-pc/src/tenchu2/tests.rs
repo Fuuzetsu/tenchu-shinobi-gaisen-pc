@@ -679,21 +679,24 @@ fn imported_character_models_animate_with_isolated_textures() {
             review.configure(graphics.clone());
         }
         for body in &bodies {
-            assert_eq!(
-                body.has_moveset(),
-                matches!(
-                    body.id.strip_prefix(prefix),
-                    Some(
-                        "rikimaru"
-                            | "rikia"
-                            | "ayame"
-                            | "ayamea"
-                            | "tatumaru"
-                            | "tatua"
-                            | "tatua_m"
-                    )
+            if matches!(
+                body.id.strip_prefix(prefix),
+                Some(
+                    "rikimaru"
+                        | "rikia"
+                        | "ayame"
+                        | "ayamea"
+                        | "tatumaru"
+                        | "tatua"
+                        | "tatua_m"
+                        | "tatu2"
+                        | "tatu2_m"
+                        | "busi"
+                        | "roukuno"
                 )
-            );
+            ) {
+                assert!(body.has_moveset(), "{}", body.id);
+            }
             let mut models = Models::default()
                 .with_player(
                     &poses[0],

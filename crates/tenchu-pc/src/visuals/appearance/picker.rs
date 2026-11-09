@@ -25,6 +25,7 @@ pub struct Picker {
     search: String,
     source: Source,
     selection: Option<String>,
+    original_model: Option<String>,
     previews: BTreeMap<String, Result<Preview>>,
 }
 
@@ -65,6 +66,7 @@ pub struct State<'a> {
     pub library: Option<&'a Library>,
     pub bodies: &'a Pack,
     pub game: &'a Game,
+    pub original_model: Option<String>,
 }
 
 struct Preview {
@@ -78,14 +80,18 @@ struct Preview {
 
 impl Preview {
     fn new(id: &str, state: &State<'_>) -> Result<Self> {
-        let original = format!("disc:{}", state.game.player().rendered_mesh_kind);
+        let original = state
+            .original_model
+            .clone()
+            .unwrap_or_else(|| format!("disc:{}", state.game.player().rendered_mesh_kind));
+        let external = !id.is_empty() || state.original_model.is_some();
         let mut appearance = Appearance::build(
             state.game,
             if id.is_empty() { &original } else { id },
             &Pack::default(),
             state.bodies,
             &Graphics::default(),
-            if id.is_empty() { None } else { state.library },
+            if external { state.library } else { None },
         )?
         .ok_or("Model unavailable")?;
         appearance.meshes.detach_textures();
@@ -93,7 +99,7 @@ impl Preview {
         let body = state
             .library
             .and_then(|l| l.get(if id.is_empty() { &original } else { id }));
-        let clip = if let Some(body) = body.filter(|_| !id.is_empty()) {
+        let clip = if let Some(body) = body.filter(|_| external) {
             body.idle.map(|i| &body.clips[i])
         } else {
             let definition = &state.game.mission.characters[state.game.player().definition];
@@ -218,6 +224,10 @@ impl State<'_> {
         settings: &Settings,
         edits: &mut Vec<Edit>,
     ) {
+        if self.picker.original_model != self.original_model {
+            self.picker.previews.remove("");
+            self.picker.original_model.clone_from(&self.original_model);
+        }
         if self.picker.selection.as_ref() != Some(&settings.player_model) {
             self.picker.source = Source::of(&settings.player_model);
             self.picker.selection = Some(settings.player_model.clone());
@@ -458,6 +468,7 @@ mod tests {
                             library: Some(&library),
                             bodies: &bodies,
                             game: &game,
+                            original_model: None,
                         }
                         .show(ui, &mut menu, &settings, &mut Vec::new());
                     });
@@ -528,6 +539,7 @@ mod tests {
                                 library: Some(&library),
                                 bodies: &bodies,
                                 game: &game,
+                                original_model: None,
                             }),
                         );
                         assert!(edits.is_empty());

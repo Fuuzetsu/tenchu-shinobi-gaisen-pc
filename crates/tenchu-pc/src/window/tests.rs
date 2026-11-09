@@ -19,6 +19,7 @@ pub(super) fn application(options: Options) -> Application {
     campaign.screen = Screen::Playing;
     let debug = crate::debug::Debug::new(&campaign.game).unwrap();
     Application {
+        disc: disc.into(),
         tenchu2: Default::default(),
         #[cfg(not(target_arch = "wasm32"))]
         native_tenchu2: None,

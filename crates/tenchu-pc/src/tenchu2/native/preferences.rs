@@ -55,6 +55,7 @@ pub struct State<'a> {
     pub controls: &'a mut Controls,
     pub presets: &'a mut Manager,
     pub samples: &'a [u32],
+    pub models: Option<crate::visuals::appearance::picker::State<'a>>,
 }
 
 #[derive(Default)]
@@ -162,6 +163,23 @@ impl Menu {
                 |path| format!("Tenchu 2 artwork: {}", path.display()),
             );
         }
+        if let Some(models) = &state.models {
+            self.panel.player_models =
+                crate::visuals::appearance::choices(models.game, models.bodies, models.library);
+            self.panel
+                .player_models
+                .retain(|(id, _)| !id.starts_with("pack:"));
+            self.panel.moveset_models = vec![(String::new(), "Selected player body".into())];
+            if let Some(library) = models.library {
+                self.panel.moveset_models.extend(
+                    library
+                        .bodies
+                        .iter()
+                        .filter(|b| super::models::compatible_moveset(b))
+                        .map(|b| (b.id.clone(), b.name.clone())),
+                );
+            }
+        }
         let mut navigation = self.pending.take();
         if !ctx.wants_keyboard_input()
             && !state.controls.editor.open
@@ -208,7 +226,7 @@ impl Menu {
                 samples: state.samples,
             },
             Some(&state.presets.library),
-            None,
+            state.models.as_mut(),
         );
         for edit in edits {
             self.apply(edit, state, &mut action);
@@ -227,6 +245,15 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::PlayerModel(id) => {
+                state.settings.player_model = id;
+                Ok(())
+            }
+            Edit::MovesetModel(id) => {
+                state.settings.moveset_model = id;
+                state.settings.model_moveset = true;
+                Ok(())
+            }
             Edit::Touch(value) => {
                 state.settings.touch = value;
                 Ok(())
@@ -294,6 +321,28 @@ impl Menu {
                                     as usize];
                             }
                             Ok(())
+                        }
+                        Item::PlayerModel => {
+                            if state.models.is_some() {
+                                self.panel.model_picker = true;
+                                Ok(())
+                            } else {
+                                Err("Open through play with the Gaisen disc to load the cross-game model gallery.".into())
+                            }
+                        }
+                        Item::MovesetModel => {
+                            let choices = &self.panel.moveset_models;
+                            if choices.is_empty() {
+                                Err("Load the model gallery first.".into())
+                            } else {
+                                let index = choices
+                                    .iter()
+                                    .position(|(id, _)| *id == state.settings.moveset_model)
+                                    .unwrap_or(0);
+                                state.settings.moveset_model.clone_from(&choices[(index as i32 + delta).rem_euclid(choices.len() as i32) as usize].0);
+                                state.settings.model_moveset = true;
+                                Ok(())
+                            }
                         }
                         Item::ClearWeather => {
                             state.settings.graphics.weather.mode = settings::WeatherMode::Clear;
@@ -374,6 +423,7 @@ mod tests {
             controls: &mut controls,
             presets: &mut presets,
             samples: &[1, 4],
+            models: None,
         };
         for page in 0..settings::menu::PAGES.len() {
             for row in settings::menu::rows(page, &original, &Debug::default(), false) {
@@ -395,8 +445,6 @@ mod tests {
             }
         }
         for edit in [
-            Edit::PlayerModel("other".into()),
-            Edit::MovesetModel("other".into()),
             Edit::GameplayPreset(0),
             Edit::Randomizer,
             Edit::Benchmark,
@@ -427,6 +475,7 @@ mod tests {
             controls: &mut controls,
             presets: &mut presets,
             samples: &[1, 4],
+            models: None,
         };
         for page in 0..settings::menu::PAGES.len() {
             for row in settings::menu::rows(page, &Settings::default(), &Debug::default(), false) {
@@ -439,6 +488,8 @@ mod tests {
                             | Item::Fov
                             | Item::Actor
                             | Item::PhotoMode
+                            | Item::MovesetModel
+                            | Item::PlayerModel
                     )
                 {
                     let original = state.settings.clone();
@@ -493,6 +544,7 @@ mod tests {
             controls: &mut controls,
             presets: &mut presets,
             samples: &[1, 4],
+            models: None,
         };
         let input = |events| egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(

@@ -56,6 +56,7 @@ use winit::{
 };
 
 struct Application {
+    disc: PathBuf,
     assets: GameAssets<DiscSource>,
     campaign: Campaign,
     storage: Storage,
@@ -1662,6 +1663,7 @@ pub fn run(
         audio.preferences(&settings.frontend);
     }
     let mut application = Application {
+        disc: disc.to_owned(),
         assets,
         campaign,
         storage,

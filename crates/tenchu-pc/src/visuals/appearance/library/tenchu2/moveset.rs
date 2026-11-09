@@ -8,57 +8,7 @@ use tenchu_assets::{
 };
 use tenchu_core::{game::moveset::Imported, ids::*};
 
-// Gaisen actions with an equivalent in T2's standing, crouch, jump and melee
-// controllers. Paired kills and item scripts keep their Gaisen registrations.
-const ACTIONS: &[(i16, i16)] = &[
-    (MOT_NORMAL, 0),
-    (MOT_NORMAL_TURN_R, 1),
-    (MOT_NORMAL_TURN_L, 2),
-    (MOT_MOVE, 3),
-    (MOT_MOVE_BACK, 4),
-    (MOT_ENGAGE_STANCE, 0x100),
-    (MOT_ENGAGE_TURN_R, 0x101),
-    (MOT_ENGAGE_TURN_L, 0x102),
-    (MOT_CHASE, 0x103),
-    (MOT_CHASE_BACK, 0x104),
-    (MOT_SQUAT, 0x200),
-    (MOT_SQUAT_WALK_F, 0x201),
-    (MOT_SQUAT_WALK_B, 0x202),
-    (MOT_SQUAT_WALK_R, 0x203),
-    (MOT_SQUAT_WALK_L, 0x204),
-    (MOT_SQUAT_ROLL_F, 0x210),
-    (MOT_SQUAT_ROLL_B, 0x211),
-    (MOT_SQUAT_ROLL_R, 0x212),
-    (MOT_SQUAT_ROLL_L, 0x213),
-    (MOT_SQUAT_BACKFLIP, 0x220),
-    (MOT_STICKON, 0x300),
-    (MOT_STICKON_SLIDE_L, 0x301),
-    (MOT_STICKON_SLIDE_R, 0x302),
-    (MOT_JUMP, 0x600),
-    (MOT_JUMP_FORWARD, 0x601),
-    (MOT_JUMP_BACK, 0x602),
-    (MOT_JUMP_RIGHT, 0x603),
-    (MOT_JUMP_LEFT, 0x604),
-    (MOT_JUMP_WALLKICK, 0x605),
-    (MOT_JUMP_RUN, 0x606),
-    (MOT_JUMP_FLIP, 0x607),
-    (MOT_ATTACK, 0x900),
-    (MOT_ATTACK_SLASH2, 0x901),
-    (MOT_ATTACK_SLASH2_RIGHT, 0x902),
-    (MOT_ATTACK_SLASH2_LEFT, 0x903),
-    (MOT_ATTACK_SLASH3, 0x904),
-    (MOT_ATTACK_SLASH4, 0x905),
-    (MOT_UNARMED_FINISH, 0x906),
-    (MOT_ATTACK_RIGHT1, 0x907),
-    (MOT_ATTACK_RIGHT2, 0x908),
-    (MOT_ATTACK_RIGHT2_LEFT, 0x909),
-    (MOT_ATTACK_LEFT1, 0x90a),
-    (MOT_ATTACK_LEFT2, 0x90b),
-    (MOT_ATTACK_LEFT2_RIGHT, 0x90c),
-    (MOT_ATTACK_LUNGE, 0x910),
-    (MOT_ATTACK_CROUCH, 0x914),
-    (MOT_ATTACK_BACK, 0x915),
-];
+use tenchu_core::game::moveset::T2_ACTIONS as ACTIONS;
 
 pub fn hero(name: &str) -> Option<i16> {
     match name {
@@ -77,7 +27,10 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
     let registry_ref = &registry;
     let clips = motions::collect(
         disc,
-        (0..3)
+        registry
+            .actors
+            .iter()
+            .map(|actor| actor.kind)
             .flat_map(|kind| {
                 ACTIONS
                     .iter()
@@ -86,15 +39,29 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
             .collect(),
     )?;
     let mut out = BTreeMap::new();
-    for kind in 0..3 {
-        let actor = registry.actor(kind).ok_or("Missing Tenchu 2 hero")?;
+    // 0x6000..0x6800 belongs to the separate Tatsumaru unarmed importer.
+    let base_npc: i16 = match registry.edition {
+        Edition::Japan => 0x6800,
+        Edition::Europe => 0x7400,
+    };
+    let mut next_id = base_npc;
+    for actor in &registry.actors {
+        let kind = actor.kind;
         let base: i16 = match registry.edition {
             Edition::Japan => 0x3000,
             Edition::Europe => 0x4800,
-        } + kind * 0x800;
+        } + kind.min(2) * 0x800;
         let mut character = Character {
-            kind: base + kind,
-            weapon: [kind::NINJA, kind::KODATI, kind::FIST][kind as usize],
+            kind: if kind < 3 {
+                base + kind
+            } else {
+                base_npc + kind
+            },
+            weapon: if kind < 3 {
+                [kind::NINJA, kind::KODATI, kind::FIST][kind as usize]
+            } else {
+                proxy_weapon(actor.weapon, &weapons)
+            },
             turn: actor.turn,
             health: actor.health,
             width: 0,
@@ -104,6 +71,7 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
         };
         let mut converted = BTreeMap::new();
         let mut attacks = Vec::new();
+        let mut ids = BTreeMap::new();
         for &(action, original) in ACTIONS {
             let Some(id) = registry.clip(kind, original) else {
                 continue;
@@ -111,22 +79,51 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
             if !(0..0x800).contains(&id) {
                 return Err("Tenchu 2 motion exceeds reserved import range".into());
             }
-            let source = clips
-                .get(&id)
-                .ok_or_else(|| format!("Missing Tenchu 2 motion {id:#x}"))?;
+            let Some(source) = clips.get(&id) else {
+                if kind < 3 {
+                    return Err(format!("Missing Tenchu 2 motion {id:#x}"));
+                }
+                continue;
+            };
             let mut clip = source.gaisen_pose();
-            clip.id = base
-                .checked_add(id)
-                .ok_or("Tenchu 2 motion ID out of range")?;
+            clip.id = if kind < 3 {
+                base + id
+            } else if let Some(&mapped) = ids.get(&id) {
+                mapped
+            } else {
+                let mapped = next_id;
+                next_id = next_id
+                    .checked_add(1)
+                    .ok_or("Tenchu 2 motion ID out of range")?;
+                if registry.edition == Edition::Japan && next_id >= 0x7400 {
+                    return Err("Tenchu 2 motion import range exhausted".into());
+                }
+                ids.insert(id, mapped);
+                mapped
+            };
             clip.sweep = (-i32::from(source.blend))
                 .try_into()
                 .map_err(|_| "Tenchu 2 blend out of range")?;
             clip.forward_speed = source.forward_speed;
             clip.side_speed = source.side_speed;
             if original >= 0x900 {
-                let source_attack = weapons
-                    .attack(id)
-                    .ok_or_else(|| format!("Missing Tenchu 2 attack {id:#x}"))?;
+                let Some(source_attack) = weapons.attack(id) else {
+                    continue;
+                };
+                // Projectile and scripted boss attacks need their own event adapter;
+                // never advertise them as working melee just because they animate.
+                if kind >= 3 && source_attack.start == 0 {
+                    continue;
+                }
+                if kind >= 3
+                    && weapons.parts(actor.weapon).any(|p| {
+                        p.radius > 0
+                            && source_attack.bones & (1 << p.bone) != 0
+                            && !tenchu2::BONES.contains(&p.bone)
+                    })
+                {
+                    continue;
+                }
                 let contacts = weapons
                     .parts(actor.weapon)
                     .filter(|p| p.radius > 0 && source_attack.bones & (1 << p.bone) != 0)
@@ -146,6 +143,9 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
                     })
                     .collect::<Result<Vec<_>>>()?;
                 if contacts.len() > 2 || contacts.is_empty() && source_attack.start > 0 {
+                    if kind >= 3 {
+                        continue;
+                    }
                     return Err(format!(
                         "Unsupported Tenchu 2 attack contacts {id:#x}: {}",
                         contacts.len()
@@ -188,6 +188,16 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
                 clip: clip.id,
             });
             converted.insert(clip.id, clip);
+        }
+        if kind >= 3 && !character.motions.iter().any(|m| m.action == MOT_ATTACK) {
+            continue;
+        }
+        let supported: std::collections::BTreeSet<_> =
+            character.motions.iter().map(|m| m.action).collect();
+        for (_, attack) in &mut attacks {
+            for next in &mut attack.combo {
+                *next = next.filter(|action| supported.contains(action));
+            }
         }
         out.insert(
             kind,
@@ -244,3 +254,23 @@ fn holster(clip: i16) -> Option<[i16; 2]> {
 
 #[cfg(test)]
 mod tests;
+
+fn proxy_weapon(kind: i16, weapons: &Weapons) -> i16 {
+    let names: Vec<_> = weapons
+        .parts(kind)
+        .filter_map(|p| p.model.as_deref())
+        .collect();
+    if names.is_empty() {
+        return kind::FIST;
+    }
+    if kind & 0xf00 == 0x200 {
+        return kind::KODATI;
+    }
+    if names
+        .iter()
+        .any(|name| name.contains("yari") || name.contains("nagi"))
+    {
+        return kind::YARI;
+    }
+    kind::NINJA
+}

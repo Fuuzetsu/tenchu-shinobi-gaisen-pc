@@ -44,9 +44,26 @@ Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
 Presets remain shared, with only the supported graphics applied in native JP.
 Modern lights/shadows, blood/water enhancements, hair/cloth physics,
-model swapping, camera-relative controls, rewind, randomizer, gameplay cheats
+camera-relative controls, rewind, randomizer, gameplay cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Player model** uses the shared searchable gallery of Gaisen and connected
+T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**
+on **Selected player body** to inherit its moves. You can also select an explicit
+source independently of appearance. This includes supported guards and bosses,
+not just heroes. **Use player movement** retains the mission protagonist's
+locomotion with the chosen attacks; **Disable idle taunts** suppresses fidgets.
+Changes apply while alive and standing/crouching outside cutscenes. Disable the
+moveset override and select **Original** to return to the native hero.
+
+Movement and melee use source registrations, timing, combos and contacts. The
+host still supplies collision, damage rules, mission identity, inventory,
+voices, paired stealth kills and unmapped actions. Imported T2 moves currently
+use Gaisen weapon geometry. Scripted/projectile-only moves and custom-folder
+bodies are not connected to the native runtime yet. A body without a supported
+moveset keeps the host's moves. The standalone `play-t2-jp` preview needs a
+remembered Gaisen disc; open it once through `play` to connect the gallery.
 
 **F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
 wind-directed shelter on terrain and static props, accumulation, runoff, tracks,

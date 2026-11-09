@@ -49,6 +49,25 @@ impl Actor {
             .map_or(0, |attack| attack.combo);
         let combo = (i32::from(frame) - i32::from(combo_at)).abs() < 4
             && input & !self.pad.previous & ATTACK != 0;
+        if let Some(attack) = self.imported_attack().cloned() {
+            if let Some([start, end]) = attack.holster {
+                self.attack_grip(request, frame, start, end, 0, &mut cue)?;
+            }
+            if combo {
+                let direction = if input & RIGHT != 0 {
+                    1
+                } else if input & LEFT != 0 {
+                    2
+                } else {
+                    0
+                };
+                if let Some(action) = attack.combo[direction] {
+                    request.action = action;
+                    request.velocity = Velocity::Motion;
+                }
+            }
+            return Ok(ControlFlow::Continue(()));
+        }
         let mut next = None;
         match self.motion.action {
             0x900 => {

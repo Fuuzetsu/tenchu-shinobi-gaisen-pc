@@ -6,6 +6,10 @@ impl Library {
         let edition = tenchu_assets::tenchu2::Edition::detect(disc)?;
         let models = tenchu_assets::tenchu2::characters::load(disc, None)?;
         let movesets = moveset::load(disc)?;
+        let suzaku = models
+            .iter()
+            .find(|m| m.name == "tatu2")
+            .and_then(|m| m.kinds.iter().copied().find(|k| movesets.contains_key(k)));
         for model in models {
             let id = format!("{}{}", edition.model_prefix(), model.name);
             if self.aliases.contains_key(&id) {
@@ -63,6 +67,14 @@ impl Library {
                 vram: Arc::new(model.vram),
                 character: behavior.character.clone(),
                 imported_moveset: moveset::hero(&model.name)
+                    .or_else(|| (model.name == "tatu2_m").then_some(suzaku).flatten())
+                    .or_else(|| {
+                        model
+                            .kinds
+                            .iter()
+                            .copied()
+                            .find(|kind| movesets.contains_key(kind))
+                    })
                     .and_then(|kind| movesets.get(&kind))
                     .cloned(),
                 clips: Arc::new(clips),
