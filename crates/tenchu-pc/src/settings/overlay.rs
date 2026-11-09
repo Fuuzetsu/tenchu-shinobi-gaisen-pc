@@ -800,13 +800,13 @@ mod tests {
         let mut edits = Vec::new();
         let paint = |ctx: &egui::Context, rect: &mut egui::Rect, edits: &mut Vec<Edit>| {
             egui::CentralPanel::default().show(ctx, |ui| {
-                available_ui(ui, Runtime::Tenchu2, Item::Lighting, |ui| {
-                    *rect = ui.button("Dynamic lighting").rect;
+                available_ui(ui, Runtime::Tenchu2, Item::Sight, |ui| {
+                    *rect = ui.button("Guard sight bounds").rect;
                 });
                 action_button(
                     ui,
                     "Reset",
-                    Edit::Reset(Item::Lighting),
+                    Edit::Reset(Item::Sight),
                     Runtime::Tenchu2,
                     edits,
                 );

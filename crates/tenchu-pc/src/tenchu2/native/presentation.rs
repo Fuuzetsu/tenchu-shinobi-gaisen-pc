@@ -95,6 +95,7 @@ impl Content {
         open: &mut bool,
         paused: &mut bool,
         error: Option<&str>,
+        photo_mode: bool,
     ) -> Option<Action> {
         let mut action = None;
         if let Self::MissionSelection(selection) = self {
@@ -155,9 +156,9 @@ impl Content {
                 ui.label("Esc: leave preview");
             });
         }
-        if *open || *paused || error.is_some() {
+        if (!photo_mode && (*open || *paused)) || error.is_some() {
             egui::Area::new("native-status".into())
-                .fixed_pos(egui::pos2(12.0, 12.0))
+                .anchor(egui::Align2::RIGHT_TOP, [-12.0, 36.0])
                 .show(ctx, |ui| {
                     egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
                         match self {
@@ -262,6 +263,14 @@ pub(crate) enum ContentDrawing {
 }
 
 impl ContentDrawing {
+    pub fn light_count(&self, settings: &crate::settings::Lighting) -> usize {
+        match self {
+            Self::Gameplay(drawing) => drawing.light_count(settings),
+            Self::Story(drawing) => drawing.light_count(settings),
+            _ => 0,
+        }
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         match self {
             Self::Gameplay(d) => d.clear_weather(tracks_only),

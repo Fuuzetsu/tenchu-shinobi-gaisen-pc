@@ -30,6 +30,15 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         samples: g.samples,
         post: g.post.clone(),
         weather: g.weather.clone(),
+        lighting: crate::settings::Lighting {
+            directional: Default::default(),
+            lamps: false,
+            markers: false,
+            flame_motion: 0,
+            heat_shimmer: 0,
+            sky_tint: 0,
+            ..g.lighting.clone()
+        },
         ..Default::default()
     }
 }
@@ -54,6 +63,7 @@ pub struct State<'a> {
     pub paused: &'a mut bool,
     pub controls: &'a mut Controls,
     pub presets: &'a mut Manager,
+    pub lights: usize,
     pub samples: &'a [u32],
     pub models: Option<crate::visuals::appearance::picker::State<'a>>,
 }
@@ -222,7 +232,7 @@ impl Menu {
                 settings: state.settings,
                 debug: &self.tools.debug,
                 paused: *state.paused,
-                lights: 0,
+                lights: state.lights,
                 samples: state.samples,
             },
             Some(&state.presets.library),
@@ -422,6 +432,7 @@ mod tests {
             paused: &mut paused,
             controls: &mut controls,
             presets: &mut presets,
+            lights: 0,
             samples: &[1, 4],
             models: None,
         };
@@ -474,6 +485,7 @@ mod tests {
             paused: &mut paused,
             controls: &mut controls,
             presets: &mut presets,
+            lights: 0,
             samples: &[1, 4],
             models: None,
         };
@@ -543,6 +555,7 @@ mod tests {
             paused: &mut paused,
             controls: &mut controls,
             presets: &mut presets,
+            lights: 0,
             samples: &[1, 4],
             models: None,
         };

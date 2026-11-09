@@ -33,7 +33,7 @@ fn opening_scene_uses_its_own_distance_palette() {
                 "stage palette was lost"
             );
             Ok((
-                SceneDrawing::new(geometry, renderer),
+                SceneDrawing::new(geometry, renderer, &story.level),
                 story.state.view,
                 texts,
             ))

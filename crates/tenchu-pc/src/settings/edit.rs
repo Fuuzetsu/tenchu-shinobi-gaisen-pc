@@ -325,6 +325,27 @@ impl Item {
             } as u16;
         } else {
             match self {
+                Item::ShadowCount => {
+                    settings.graphics.lighting.shadow_count = cycle(
+                        settings.graphics.lighting.shadow_count,
+                        &[0, 1, 2, 3, 4, 6, 8],
+                        direction,
+                    )
+                }
+                Item::LightCount => {
+                    settings.graphics.lighting.count = cycle(
+                        settings.graphics.lighting.count,
+                        &[0, 1, 2, 4, 8, 16],
+                        direction,
+                    )
+                }
+                Item::LightResolution => {
+                    settings.graphics.lighting.resolution = u32::from(cycle(
+                        settings.graphics.lighting.resolution as u16,
+                        &[256, 512, 1024, 2048],
+                        direction,
+                    ))
+                }
                 Item::FogTint => {
                     settings.graphics.post.fog_tint =
                         cycle(settings.graphics.post.fog_tint, &[0, 1, 2, 3], direction)
@@ -400,6 +421,16 @@ impl Item {
             *value = *self.number(&mut defaults).unwrap();
         } else {
             match self {
+                Item::LightCount => {
+                    settings.graphics.lighting.count = defaults.graphics.lighting.count
+                }
+                Item::ShadowCount => {
+                    settings.graphics.lighting.shadow_count =
+                        defaults.graphics.lighting.shadow_count
+                }
+                Item::LightResolution => {
+                    settings.graphics.lighting.resolution = defaults.graphics.lighting.resolution
+                }
                 Item::FogTint => settings.graphics.post.fog_tint = defaults.graphics.post.fog_tint,
                 Item::Temperature => {
                     settings.graphics.post.temperature = defaults.graphics.post.temperature

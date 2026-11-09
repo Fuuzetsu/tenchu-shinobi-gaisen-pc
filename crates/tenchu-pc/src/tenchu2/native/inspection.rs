@@ -42,6 +42,7 @@ pub(super) fn overlay(session: &Session, debug: &Debug, matrix: Mat4, aspect: f3
         && let Some(agent) = session.world.actors.get(debug.selected_actor)
     {
         let actor = &agent.actor;
+        let ai = &agent.behavior.programs;
         drawing.inspection([
             format!(
                 "#{} kind {:02x} HP {}/{}",
@@ -55,10 +56,11 @@ pub(super) fn overlay(session: &Session, debug: &Debug, matrix: Mat4, aspect: f3
                 "Yaw {} motion {:04x}:{}",
                 actor.rotation.y, actor.motion.action, actor.motion.frame
             ),
-            format!(
-                "State {:?} flags {:04x} AI {:?}",
-                actor.state, actor.flags, agent.behavior.programs
-            ),
+            format!("State {:?} flags {:04x}", actor.state, actor.flags),
+            format!("AI idle {:?}", ai.idle),
+            format!("AI suspicious {:?}", ai.suspicious),
+            format!("AI combat {:?}", ai.combat),
+            format!("AI searching {:?}", ai.searching),
         ]);
     }
     drawing.finish()

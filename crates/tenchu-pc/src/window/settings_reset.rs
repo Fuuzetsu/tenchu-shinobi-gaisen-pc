@@ -83,13 +83,7 @@ impl Application {
                 self.settings.graphics.lighting.directional.resolution =
                     s.graphics.lighting.directional.resolution
             }
-            Item::LightCount => self.settings.graphics.lighting.count = s.graphics.lighting.count,
-            Item::ShadowCount => {
-                self.settings.graphics.lighting.shadow_count = s.graphics.lighting.shadow_count
-            }
-            Item::LightResolution => {
-                self.settings.graphics.lighting.resolution = s.graphics.lighting.resolution
-            }
+
             Item::Target(axis) => self.debug.target[axis] = d.target[axis],
             Item::SnapFloor => self.debug.snap_to_floor = d.snap_to_floor,
             Item::Speed => self.debug.speed = d.speed,

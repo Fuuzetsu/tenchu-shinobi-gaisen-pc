@@ -137,6 +137,7 @@ impl View {
                             &mut menu.diagnostics,
                             state.paused,
                             error,
+                            menu.tools.debug.photo_mode,
                         )
                         .or(session.action);
                 }
@@ -366,6 +367,7 @@ impl Application {
             } else {
                 None
             };
+            let lights = view.drawing.light_count(&view.renderer.graphics().lighting);
             let action = view.draw(
                 &mut self.session,
                 &mut self.menu,
@@ -374,6 +376,7 @@ impl Application {
                     paused: &mut self.paused,
                     controls: &mut self.controls,
                     presets: &mut self.presets,
+                    lights,
                     samples: &view.renderer.sample_counts.clone(),
                     models: self
                         .gallery

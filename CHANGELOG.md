@@ -5,6 +5,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP stage flames can use the existing dynamic lighting and model/terrain shadows, with shared F1 quality controls and Modern preset settings.
 - Native Tenchu 2 JP now uses the shared F1 hitbox, actor-label and actor-inspection overlays, including X-ray and photo-mode handling.
 
 ## 0.24.0 — 2026-11-09

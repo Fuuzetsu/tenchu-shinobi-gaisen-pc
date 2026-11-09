@@ -23,6 +23,7 @@ use tenchu_core::{
 mod background;
 mod environment;
 mod hud;
+mod lighting;
 mod story;
 #[cfg(test)]
 mod tests;
@@ -44,9 +45,15 @@ struct SceneDrawing {
     actors: crate::renderer::Mesh,
     effects: crate::renderer::EffectMesh,
     environment: Option<environment::Environment>,
+    lighting: lighting::Lighting,
 }
 
 impl Drawing {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn light_count(&self, settings: &crate::settings::Lighting) -> usize {
+        self.scene.lighting.count(settings)
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         self.scene.clear_weather(tracks_only);
     }
@@ -80,7 +87,7 @@ impl Drawing {
         )?;
         Ok(Self {
             models,
-            scene: SceneDrawing::new(geometry, renderer),
+            scene: SceneDrawing::new(geometry, renderer, &session.assets.level),
             view: session.world.camera.view,
             show_hud: true,
             camera: None,
@@ -102,7 +109,16 @@ impl Drawing {
             self.show_hud,
             self.camera,
         )?;
-        self.scene.weather(
+        self.scene.lighting.focus = self.camera.is_none().then(|| {
+            glam::Vec3::from(
+                session.world.actors[session.world.player]
+                    .actor
+                    .position
+                    .to_array()
+                    .map(|v| v as f32),
+            )
+        });
+        self.scene.prepare_environment(
             &mut geometry,
             environment::Frame {
                 level: &session.assets.level,
@@ -154,14 +170,15 @@ fn camera_matrix(
 }
 
 impl SceneDrawing {
-    fn weather(
+    fn prepare_environment(
         &mut self,
         geometry: &mut Geometry,
         frame: environment::Frame<'_>,
         renderer: &mut Renderer,
     ) {
         let graphics = renderer.graphics().clone();
-        if graphics.weather.mode != crate::settings::WeatherMode::Original
+        if (graphics.weather.mode != crate::settings::WeatherMode::Original
+            || (self.lighting.active(&graphics.lighting) && graphics.lighting.shadows))
             && self.environment.is_none()
         {
             self.environment = Some(environment::Environment::new(
@@ -209,7 +226,7 @@ impl SceneDrawing {
             .map_or_else(|| (Default::default(), None), |e| e.audio(settings))
     }
 
-    fn new(geometry: Geometry, renderer: &mut Renderer) -> Self {
+    fn new(geometry: Geometry, renderer: &mut Renderer, level: &Level) -> Self {
         Self {
             backgrounds: geometry
                 .backgrounds
@@ -220,6 +237,7 @@ impl SceneDrawing {
             actors: renderer.upload(&geometry.actors),
             effects: renderer.upload_effects(geometry.effects),
             environment: None,
+            lighting: lighting::Lighting::new(level),
         }
     }
 
@@ -254,6 +272,8 @@ impl SceneDrawing {
         target: &wgpu::TextureView,
         renderer: &mut Renderer,
     ) -> Result<()> {
+        let eye = camera.inverse().project_point3(glam::Vec3::ZERO);
+        let lights = self.lighting.sources(&renderer.graphics().lighting, eye);
         renderer.draw_lit(
             target,
             camera,
@@ -263,7 +283,7 @@ impl SceneDrawing {
                 backgrounds: &self.backgrounds,
             },
             Some(&self.effects),
-            &[],
+            &lights,
             &self
                 .environment
                 .as_ref()
@@ -278,7 +298,8 @@ pub fn capture(
     path: &std::path::Path,
 ) -> Result<()> {
     capture_frame(&session.assets.sprites.vram, graphics, path, |renderer| {
-        let drawing = Drawing::new(session, graphics, renderer)?;
+        let mut drawing = Drawing::new(session, graphics, renderer)?;
+        drawing.update(session, renderer, None)?;
         Ok((drawing.scene, session.world.camera.view, Vec::new()))
     })?;
     eprintln!(

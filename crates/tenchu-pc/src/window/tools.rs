@@ -694,20 +694,7 @@ impl Application {
                     direction,
                 ))
             }
-            Item::ShadowCount => {
-                self.settings.graphics.lighting.shadow_count = cycle(
-                    self.settings.graphics.lighting.shadow_count,
-                    &[0, 1, 2, 3, 4, 6, 8],
-                    direction,
-                )
-            }
-            Item::LightCount => {
-                self.settings.graphics.lighting.count = cycle(
-                    self.settings.graphics.lighting.count,
-                    &[0, 1, 2, 4, 8, 16],
-                    direction,
-                )
-            }
+
             Item::ShadowPreview => {
                 if !self.campaign.playing() {
                     return Err("Start a mission to preview model shadows".into());
@@ -725,13 +712,7 @@ impl Application {
                 self.apply_item(Item::PlayerLight, 1)?;
                 self.menu.notice = "Preview ready: close F1; move or attack".into();
             }
-            Item::LightResolution => {
-                self.settings.graphics.lighting.resolution = u32::from(cycle(
-                    self.settings.graphics.lighting.resolution as u16,
-                    &[256, 512, 1024, 2048],
-                    direction,
-                ))
-            }
+
             Item::DebugLight => {
                 self.debug.light = if self.debug.light.is_some() {
                     None

@@ -34,7 +34,7 @@ fn native_night_scenery_does_not_depend_on_the_effect_pass() {
                 geometry.effects.batches.clear();
             }
             Ok((
-                SceneDrawing::new(geometry, renderer),
+                SceneDrawing::new(geometry, renderer, &session.assets.level),
                 session.world.camera.view,
                 Vec::new(),
             ))
@@ -95,7 +95,7 @@ fn native_backgrounds_stay_behind_the_scene() {
                     geometry.effects.batches.clear();
                 }
                 Ok((
-                    SceneDrawing::new(geometry, renderer),
+                    SceneDrawing::new(geometry, renderer, &session.assets.level),
                     session.world.camera.view,
                     Vec::new(),
                 ))
@@ -279,4 +279,78 @@ fn native_character_geometry_keeps_all_source_joints() {
     }
     assert!(extended > 0, "did not exercise JP's extended rigs");
     eprintln!("{extended} native bodies with more than fifteen joints");
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; native sources use common lighting/shadows without touching simulation"]
+fn native_sources_share_lighting_and_inspection_without_changing_logic() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..40 {
+        session.step(0).unwrap();
+    }
+    let before = serde_json::to_vec(&session.world).unwrap();
+    let mut graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        ..Default::default()
+    };
+    graphics.lighting.enabled = true;
+    graphics.lighting.count = 8;
+    graphics.lighting.shadow_count = 4;
+    let mut sources = lighting::Lighting::new(&session.assets.level);
+    let player = glam::Vec3::from(
+        session.world.actors[session.world.player]
+            .actor
+            .position
+            .to_array()
+            .map(|v| v as f32),
+    );
+    sources.focus = Some(player);
+    let lights = sources.sources(&graphics.lighting, player);
+    assert!(!lights.is_empty(), "night stage has no mapped flames");
+    assert_eq!(
+        lights.iter().map(|l| l.position).collect::<Vec<_>>(),
+        sources
+            .sources(&graphics.lighting, player + glam::Vec3::X * 100000.0)
+            .iter()
+            .map(|l| l.position)
+            .collect::<Vec<_>>(),
+        "camera orbit must not change light/shadow priority"
+    );
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    camera.focus(lights[0].position, false);
+    let mut images = Vec::new();
+    for mode in ["original", "lit", "shadowed", "inspection"] {
+        graphics.lighting.enabled = mode != "original";
+        graphics.lighting.shadows = mode != "lit";
+        let path = output.join(format!("native-shared-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            let mut debug = crate::debug::Debug::default();
+            debug.hitboxes = mode == "inspection";
+            debug.xray = true;
+            drawing.update(&session, renderer, Some(&debug))?;
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+    }
+    for pair in images.windows(2) {
+        let changed = pair[0]
+            .rgba
+            .chunks_exact(4)
+            .zip(pair[1].rgba.chunks_exact(4))
+            .filter(|(a, b)| a != b)
+            .count();
+        assert!(
+            changed > 100,
+            "lighting, shadows or inspection failed to reach the shared renderer: {changed}"
+        );
+    }
+    assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
 }

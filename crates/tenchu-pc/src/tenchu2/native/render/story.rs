@@ -19,6 +19,11 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn light_count(&self, settings: &crate::settings::Lighting) -> usize {
+        self.scene.lighting.count(settings)
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         self.scene.clear_weather(tracks_only);
     }
@@ -40,7 +45,7 @@ impl Drawing {
         let (geometry, texts) = models.geometry(story, renderer, None)?;
         Ok(Self {
             models,
-            scene: SceneDrawing::new(geometry, renderer),
+            scene: SceneDrawing::new(geometry, renderer, &story.level),
             texts,
             view: story.state.view,
             camera: None,
@@ -49,7 +54,7 @@ impl Drawing {
 
     pub fn update(&mut self, story: &Story, renderer: &mut Renderer) -> Result<()> {
         let (mut geometry, texts) = self.models.geometry(story, renderer, self.camera)?;
-        self.scene.weather(
+        self.scene.prepare_environment(
             &mut geometry,
             super::environment::Frame {
                 level: &story.level,
@@ -92,7 +97,8 @@ pub(in crate::tenchu2::native) fn capture(
         story.step(true)?;
     }
     capture_frame(&story.level.vram, graphics, path, |renderer| {
-        let drawing = Drawing::new(&story, graphics, renderer)?;
+        let mut drawing = Drawing::new(&story, graphics, renderer)?;
+        drawing.update(&story, renderer)?;
         Ok((drawing.scene, story.state.view, drawing.texts))
     })?;
     eprintln!(

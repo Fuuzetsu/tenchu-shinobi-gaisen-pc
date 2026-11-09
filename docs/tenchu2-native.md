@@ -43,7 +43,7 @@ link independently of the Gaisen pack.
 Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
 Presets remain shared, with only the supported graphics applied in native JP.
-Modern lights/shadows, blood/water enhancements, hair/cloth physics,
+Texture-based lamp discovery, combat-effect lights, blood/water enhancements, hair/cloth physics,
 camera-relative controls, rewind, randomizer, gameplay cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
@@ -64,6 +64,17 @@ use Gaisen weapon geometry. Scripted/projectile-only moves and custom-folder
 bodies are not connected to the native runtime yet. A body without a supported
 moveset keeps the host's moves. The standalone `play-t2-jp` preview needs a
 remembered Gaisen disc; open it once through `play` to connect the gallery.
+
+**F1 → Lighting** uses the shared dynamic-light and shadow renderer for native
+stage flames, with the same intensity, ambient, radius, light/shadow counts,
+resolution and softness controls. Modern High/Ultra use their existing settings;
+Original keeps these effects off. Moon/sun lighting and other emitters remain
+unavailable. These sources are independent of the source camera's draw culling.
+
+**F1 → Overlays** provides hitboxes, actor labels and the actor inspector, with
+X-ray and photo-mode handling. The boxes come from native collision slots. Sight,
+patrol and event overlays still need their native queries. Both games share the
+[inspection and presentation boundaries](runtime-boundaries.md).
 
 **F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
 wind-directed shelter on terrain and static props, accumulation, runoff, tracks,

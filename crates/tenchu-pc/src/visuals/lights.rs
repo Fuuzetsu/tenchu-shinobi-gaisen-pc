@@ -7,7 +7,9 @@ use glam::{Mat3, Vec3};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use tenchu_assets::{Result, model::Geometry};
-use tenchu_core::{game::Game, math::Matrix};
+use tenchu_core::math::Matrix;
+
+mod gaisen;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -110,25 +112,23 @@ pub struct Emitters {
 }
 
 impl Emitters {
-    pub fn build(game: &Game, pack: &Pack, artwork: bool) -> Self {
-        let rules = rules(pack, artwork);
+    pub fn new<'a>(
+        vram: &tenchu_assets::texture::Vram,
+        models: impl IntoIterator<Item = catalog::ModelSource<'a>>,
+        rules: &[Rule],
+    ) -> Self {
         let mut out = Self::default();
-        for model in catalog::models(&game.mission) {
+        for model in models {
             let Some(rule) = rules.iter().rev().find(|r| r.matches(&model)) else {
                 continue;
             };
             if !rule.enabled || model.geometry.is_empty() {
                 continue;
             }
-            if let Some(emitter) = detect(&model, rule, &game.mission.vram, &mut out.emissions) {
+            if let Some(emitter) = detect(&model, rule, vram, &mut out.emissions) {
                 out.models.insert(model.geometry.as_ptr() as usize, emitter);
             }
         }
-        render_mesh::visit_stage(&game.mission, &game.math, |geometry, matrix| {
-            if let Some(source) = out.source(geometry, || matrix) {
-                out.placed.push(source);
-            }
-        });
         out
     }
 
@@ -152,28 +152,6 @@ impl Emitters {
                 radius: 12_000.0 * emitter.radius_scale,
             },
         })
-    }
-
-    pub fn sources(&self, game: &Game) -> Vec<Source> {
-        self.sources_presented(game, None)
-    }
-
-    pub fn sources_presented(
-        &self,
-        game: &Game,
-        frame: Option<&super::interpolation::Frame>,
-    ) -> Vec<Source> {
-        let mut out = self.placed.clone();
-        let mut append = |key, geometry: &[Geometry], matrix| {
-            if let Some(source) = self.source(geometry, || {
-                super::interpolation::Frame::transform(frame, key, matrix)
-            }) {
-                out.push(source);
-            }
-        };
-        render_mesh::visit_character_parts(game, true, &mut append);
-        render_mesh::visit_hinged_parts(game, append);
-        out
     }
 }
 

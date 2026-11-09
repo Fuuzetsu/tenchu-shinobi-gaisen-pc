@@ -29,6 +29,11 @@ impl Runtime {
             | Pause | Step | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor
             | Overhead | SaveCamera | RestoreCamera | PhotoMode | Hitboxes | Labels
             | InspectActor | Xray => None,
+            Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
+            | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
+            LampLights => Some(
+                "Native Tenchu 2 currently supplies flame sources. Texture-based lamp discovery still needs its model metadata adapter.",
+            ),
             Weather | WeatherAmount | WeatherWind | WeatherHeading | WeatherQuality
             | WeatherDistance | Wetness | RainReflections | PuddleCoverage | PoolingSpeed
             | RainHaze | RainStreaks | SnowCover | SnowDrift | Footprints | FootprintSeconds

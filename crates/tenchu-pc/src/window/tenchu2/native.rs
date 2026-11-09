@@ -270,6 +270,7 @@ impl Application {
                         &mut native.menu.diagnostics,
                         &mut self.paused,
                         native.error.as_deref(),
+                        native.menu.tools.debug.photo_mode,
                     )
                     .or(native.playback.action);
             }
@@ -283,6 +284,11 @@ impl Application {
                     paused: &mut self.paused,
                     controls: &mut self.controls,
                     presets: &mut self.presets,
+                    lights: native
+                        .drawing
+                        .as_ref()
+                        .unwrap()
+                        .light_count(&view.renderer.graphics().lighting),
                     samples: &view.renderer.sample_counts,
                     models: Some(crate::visuals::appearance::picker::State {
                         picker: &mut view.model_picker,

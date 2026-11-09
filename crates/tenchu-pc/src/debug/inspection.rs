@@ -24,6 +24,7 @@ pub trait Scene {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Default)]
 pub struct Snapshot {
     pub camera: Option<Camera>,
@@ -31,6 +32,7 @@ pub struct Snapshot {
     pub actors: Vec<Actor>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Scene for Snapshot {
     fn camera(&self) -> Option<Camera> {
         self.camera
