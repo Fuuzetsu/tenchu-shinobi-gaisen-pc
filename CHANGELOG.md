@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.23.0 — 2026-11-09
+
 - Enable imported Tenchu 2 Rikimaru, Ayame and Tatsumaru movesets in Gaisen:
   choose either installed edition in F1 → Player model → Moveset source, or
   follow the selected hero/costume. Import locomotion and melee combos, including
