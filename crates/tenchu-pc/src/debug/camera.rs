@@ -17,13 +17,6 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn from_game(game: &tenchu_core::game::Game) -> Self {
-        Self::from_view(
-            game.rendered_view,
-            f32::from(tenchu_core::projection::DISTANCE),
-        )
-    }
-
     pub fn from_view(view: tenchu_core::math::Matrix, distance: f32) -> Self {
         let inverse = crate::renderer::view_matrix(view).inverse();
         let forward = inverse.transform_vector3(Vec3::NEG_Z).normalize();

@@ -1,4 +1,6 @@
 pub mod camera;
+mod gaisen;
+pub mod inspection;
 mod overlay;
 mod sight;
 pub use overlay::{Anchor, Label, Overlay, light_markers};
@@ -8,10 +10,8 @@ pub mod terrain;
 mod tests;
 
 use camera::Camera;
-use glam::{Mat4, Vec3};
+use glam::Vec3;
 use std::collections::VecDeque;
-use tenchu_assets::Result;
-use tenchu_core::game::Game;
 
 pub struct Debug {
     pub state_slot: u8,
@@ -119,59 +119,6 @@ impl Default for Debug {
 }
 
 impl Debug {
-    pub fn new(game: &Game) -> Result<Self> {
-        Ok(Self {
-            selected_actor: game.player_id,
-            target: game.player().position,
-            god_mode: game.player().invulnerable,
-            stealth: game.intelligence.ignore_player,
-            inventory: game.player().inventory[..19].try_into().unwrap(),
-            bandages: game.player().bleeding.as_ref().map(|s| s.bandages),
-            armor: game.combat.armor,
-            sight_percent: game.intelligence.sight_percent,
-            surfaces: terrain::surfaces(&game.mission.terrain)?,
-            last_tick: game.tick,
-            ..Self::default()
-        })
-    }
-
-    pub fn reload(&mut self, game: &Game) -> Result<()> {
-        self.click_teleport = false;
-        self.update(game);
-        self.return_camera();
-        self.actor_imports.clear();
-        self.actors_edited = false;
-        self.bookmark = None;
-        self.light = None;
-        self.light_follow = false;
-        self.selected_actor = game.player_id;
-        self.target = game.player().position;
-        self.surfaces = terrain::surfaces(&game.mission.terrain)?;
-        self.sight_occluders.take();
-        self.trail.clear();
-        self.last_tick = game.tick;
-        Ok(())
-    }
-
-    pub fn matrix(&self, game: &Game, aspect: f32) -> Mat4 {
-        self.camera.or(self.follow_camera).map_or_else(
-            || crate::renderer::game_camera(game.rendered_view, aspect),
-            |c| c.matrix(aspect),
-        )
-    }
-
-    pub fn eye(&self, game: &Game) -> Vec3 {
-        self.camera
-            .or(self.follow_camera)
-            .unwrap_or_else(|| Camera::from_game(game))
-            .position
-    }
-
-    pub fn light_position(&self, game: &Game) -> Option<Vec3> {
-        self.light
-            .map(|p| if self.light_follow { self.eye(game) } else { p })
-    }
-
     pub fn return_camera(&mut self) {
         self.camera = None;
         self.camera_actor = None;
@@ -179,147 +126,6 @@ impl Debug {
         self.looking = false;
         self.teleport_armed = false;
         self.pick_actor_position = false;
-    }
-
-    pub fn toggle_camera(&mut self, game: &Game) {
-        let returning = self.camera.is_some() || self.camera_actor.is_some();
-        let current = self
-            .follow_camera
-            .unwrap_or_else(|| Camera::from_game(game));
-        self.return_camera();
-        if !returning {
-            self.camera = Some(current);
-        }
-    }
-
-    pub fn free_camera(&mut self, game: &Game) -> &mut Camera {
-        self.camera_actor = None;
-        self.camera.get_or_insert_with(|| {
-            self.follow_camera
-                .unwrap_or_else(|| Camera::from_game(game))
-        })
-    }
-
-    pub fn followed_actor<'a>(&self, game: &'a Game) -> Option<&'a tenchu_core::actor::Actor> {
-        let subject = self.camera_actor?;
-        game.roster
-            .actors
-            .get(subject.id)?
-            .as_ref()
-            .filter(|actor| actor.root_model == subject.root_model)
-    }
-
-    pub fn follow_selected(&mut self, game: &Game) -> Result<()> {
-        let actor = game
-            .roster
-            .actors
-            .get(self.selected_actor)
-            .and_then(Option::as_ref)
-            .ok_or("The selected actor is no longer in this mission")?;
-        self.return_camera();
-        self.camera_actor = Some(camera::Subject {
-            id: actor.id,
-            root_model: actor.root_model,
-        });
-        Ok(())
-    }
-
-    pub fn focus(&mut self, game: &Game, overhead: bool) {
-        let actor = game
-            .roster
-            .actors
-            .get(self.selected_actor)
-            .and_then(Option::as_ref)
-            .unwrap_or_else(|| game.player());
-        let target = Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
-        self.free_camera(game).focus(target, overhead);
-    }
-
-    pub fn select(&mut self, game: &Game, direction: i32) {
-        let order = &game.roster.order;
-        let index = order
-            .iter()
-            .position(|&id| id == self.selected_actor)
-            .unwrap_or(0);
-        self.selected_actor =
-            order[(index as i32 + direction).rem_euclid(order.len() as i32) as usize];
-    }
-
-    pub fn pick_actor(&mut self, game: &Game, origin: Vec3, direction: Vec3) {
-        let mut nearest = f32::INFINITY;
-        for slot in &game.collision.slots[..game.collision.len] {
-            let Some(actor) = slot
-                .actor()
-                .and_then(|id| game.roster.actors.get(id))
-                .and_then(Option::as_ref)
-            else {
-                continue;
-            };
-            if slot.class & tenchu_core::collision::HIT != 0
-                || actor.attribute & tenchu_core::ids::ATTR_SUSPEND != 0
-            {
-                continue;
-            }
-            if !slot.model.is_some_and(|id| {
-                game.scene.models[id].attribute & tenchu_core::scene::COLLIDE != 0
-            }) {
-                continue;
-            }
-            let center = Vec3::from(slot.position.map(|v| v as f32).to_array());
-            let half = Vec3::from(slot.size.map(f32::from));
-            if let Some(near) = ray_box(origin, direction, center - half, center + half)
-                && near < nearest
-            {
-                nearest = near;
-                self.selected_actor = actor.id;
-                self.inspect_actor = true;
-            }
-        }
-    }
-
-    pub fn update(&mut self, game: &Game) {
-        if self.camera_actor.is_some() && self.followed_actor(game).is_none() {
-            self.return_camera();
-        }
-        let actor = game
-            .roster
-            .actors
-            .get(self.selected_actor)
-            .and_then(Option::as_ref)
-            .filter(|a| tenchu_core::ai::profiles::eligible(a, &game.mission, game.player_id));
-        self.actor_behavior = actor.map(|a| a.behavior);
-        self.actor_combat = actor
-            .filter(|a| {
-                game.intelligence.profiles.applies(
-                    a,
-                    &game.mission,
-                    game.player_id,
-                    game.intelligence.difficulty,
-                )
-            })
-            .map(|a| game.intelligence.profiles.combat(a));
-        self.god_mode = game.player().invulnerable;
-        self.stealth = game.intelligence.ignore_player;
-        self.inventory
-            .copy_from_slice(&game.player().inventory[..19]);
-        self.bandages = game.player().bleeding.as_ref().map(|s| s.bandages);
-        self.armor = game.combat.armor;
-        if self.last_tick != game.tick {
-            if game.tick < self.last_tick {
-                self.trail.clear();
-            }
-            self.last_tick = game.tick;
-            self.trail.push_back(Vec3::from(
-                game.player().position.map(|v| v as f32).to_array(),
-            ));
-            if self.trail.len() > 1800 {
-                self.trail.pop_front();
-            }
-        }
-    }
-
-    pub fn overlay(&self, game: &Game, aspect: f32) -> Overlay {
-        overlay::build(self, game, aspect)
     }
 
     pub fn active(&self) -> bool {

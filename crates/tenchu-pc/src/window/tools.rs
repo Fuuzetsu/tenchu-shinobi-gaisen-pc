@@ -466,6 +466,18 @@ impl Application {
         if item.change_setting(&mut self.settings, direction) {
             return Ok(());
         }
+        if self
+            .debug
+            .change_inspection(&self.campaign.game, item, direction)?
+        {
+            if item == Item::Actor && self.debug.camera_actor.is_some() {
+                self.debug.follow_selected(&self.campaign.game)?;
+            }
+            if item == Item::SaveCamera {
+                self.menu.notice = "Camera bookmark saved".into();
+            }
+            return Ok(());
+        }
         match item {
             Item::Tenchu2Missions | Item::Tenchu2Diagnostics | Item::Tenchu2Launcher => {
                 unreachable!("checked runtime availability")
@@ -583,7 +595,6 @@ impl Application {
                     view.blood.clear();
                 }
             }
-            Item::PhotoMode => self.debug.photo_mode = !self.debug.photo_mode,
             Item::PlayerModel => {
                 if let Some(view) = &self.view {
                     let choices = &view.player_models;
@@ -819,33 +830,6 @@ impl Application {
                         counts[(index as i32 + direction).rem_euclid(counts.len() as i32) as usize];
                 }
             }
-            Item::Hitboxes => self.debug.hitboxes = !self.debug.hitboxes,
-            Item::Sight => self.debug.sight = !self.debug.sight,
-            Item::SightStance => {
-                self.debug.sight_stance =
-                    (i32::from(self.debug.sight_stance) + direction).rem_euclid(3) as u8
-            }
-            Item::Collision => self.debug.collision = !self.debug.collision,
-            Item::CollisionOnly => self.debug.collision_only = !self.debug.collision_only,
-            Item::Patrols => self.debug.patrols = !self.debug.patrols,
-            Item::Events => self.debug.events = !self.debug.events,
-            Item::Labels => self.debug.labels = !self.debug.labels,
-            Item::Xray => self.debug.xray = !self.debug.xray,
-            Item::Trail => self.debug.show_trail = !self.debug.show_trail,
-            Item::FreeCamera => self.debug.toggle_camera(&self.campaign.game),
-            Item::FlightSpeed => {
-                self.debug.flight_speed =
-                    (i32::from(self.debug.flight_speed) + direction * 2).clamp(2, 100) as u16
-            }
-            Item::Fov => {
-                let camera = self.debug.free_camera(&self.campaign.game);
-                camera.fov = (camera.fov + direction as f32 * 5.0).clamp(20.0, 110.0);
-            }
-            Item::FocusPlayer => {
-                self.debug.selected_actor = self.campaign.game.player_id;
-                self.debug.focus(&self.campaign.game, false);
-            }
-            Item::FocusActor => self.debug.focus(&self.campaign.game, false),
             Item::FollowActor => {
                 if self.debug.camera_actor.is_some() {
                     self.debug.return_camera();
@@ -855,30 +839,6 @@ impl Application {
                     return Err("Start a mission before following an actor".into());
                 }
             }
-            Item::Overhead => self.debug.focus(&self.campaign.game, true),
-            Item::SaveCamera => {
-                self.debug.bookmark = Some(
-                    self.debug
-                        .camera
-                        .or(self.debug.follow_camera)
-                        .unwrap_or_else(|| {
-                            crate::debug::camera::Camera::from_game(&self.campaign.game)
-                        }),
-                );
-                self.menu.notice = "Camera bookmark saved".into();
-            }
-            Item::RestoreCamera => {
-                let camera = self.debug.bookmark.ok_or("No camera bookmark saved")?;
-                self.debug.return_camera();
-                self.debug.camera = Some(camera);
-            }
-            Item::Actor => {
-                self.debug.select(&self.campaign.game, direction);
-                if self.debug.camera_actor.is_some() {
-                    self.debug.follow_selected(&self.campaign.game)?;
-                }
-            }
-            Item::InspectActor => self.debug.inspect_actor = !self.debug.inspect_actor,
             Item::Target(axis) => {
                 self.debug.target[axis] =
                     (self.debug.target[axis] + direction * 100).clamp(-320_000, 320_000)

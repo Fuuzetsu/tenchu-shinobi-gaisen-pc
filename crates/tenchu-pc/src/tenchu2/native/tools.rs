@@ -1,7 +1,11 @@
 use super::campaign::Content;
 use crate::{
     controls::Controls,
-    debug::{Debug, camera::Camera},
+    debug::{
+        Debug,
+        camera::Camera,
+        inspection::{Actor, Snapshot},
+    },
     settings::menu::Item,
 };
 use glam::Vec3;
@@ -11,10 +15,8 @@ use winit::event::{ElementState, MouseButton, WindowEvent};
 #[derive(Default)]
 pub struct Tools {
     pub debug: Debug,
-    source: Option<Camera>,
+    scene: Snapshot,
     generation: Option<u64>,
-    subjects: Vec<Vec3>,
-    player: usize,
     cursor: Option<(f64, f64)>,
 }
 
@@ -27,30 +29,36 @@ impl Tools {
             self.generation = Some(generation);
             self.cursor = None;
         }
-        self.subjects.clear();
+        self.scene.actors.clear();
         let view = match content {
             Content::Gameplay(session) => {
-                self.player = session.world.player;
-                self.subjects.extend(
-                    session
-                        .world
-                        .actors
-                        .iter()
-                        .map(|a| Vec3::from(a.actor.position.map(|v| v as f32).to_array())),
-                );
+                self.scene.player = session.world.player;
+                self.scene
+                    .actors
+                    .extend(
+                        session
+                            .world
+                            .actors
+                            .iter()
+                            .enumerate()
+                            .map(|(id, a)| Actor {
+                                id,
+                                position: Vec3::from(a.actor.position.map(|v| v as f32).to_array()),
+                            }),
+                    );
                 Some(session.world.camera.view)
             }
             Content::Story { story, .. } => {
-                self.player = 0;
+                self.scene.player = 0;
                 Some(story.state.view)
             }
             _ => None,
         };
-        self.source = view.map(|v| Camera::from_view(v, 300.0));
+        self.scene.camera = view.map(|v| Camera::from_view(v, 300.0));
         self.debug.selected_actor = self
             .debug
             .selected_actor
-            .min(self.subjects.len().saturating_sub(1));
+            .min(self.scene.actors.len().saturating_sub(1));
     }
 
     pub fn advance(&mut self, controls: &Controls, elapsed: f32, active: bool) {
@@ -94,73 +102,20 @@ impl Tools {
         }
     }
 
-    fn camera(&mut self) -> Result<&mut Camera> {
-        let source = self
-            .source
-            .ok_or("Start a mission or a 3D cutscene before using the camera.")?;
-        Ok(self.debug.camera.get_or_insert(source))
-    }
-
     pub fn change(&mut self, item: Item, delta: i32) -> Result<()> {
-        match item {
-            Item::FreeCamera => {
-                if self.debug.camera.is_some() {
-                    self.debug.return_camera();
-                } else {
-                    self.camera()?;
-                }
-            }
-            Item::FlightSpeed => {
-                self.debug.flight_speed =
-                    (i32::from(self.debug.flight_speed) + delta * 2).clamp(2, 100) as u16
-            }
-            Item::Fov => {
-                let camera = self.camera()?;
-                camera.fov = (camera.fov + delta as f32 * 5.0).clamp(20.0, 110.0);
-            }
-            Item::Actor => {
-                if self.subjects.is_empty() {
-                    return Err("No gameplay actors in this scene.".into());
-                }
-                self.debug.selected_actor = (self.debug.selected_actor as i32 + delta)
-                    .rem_euclid(self.subjects.len() as i32)
-                    as usize;
-            }
-            Item::FocusPlayer | Item::FocusActor | Item::Overhead => {
-                if item == Item::FocusPlayer {
-                    self.debug.selected_actor = self.player;
-                }
-                let target = *self
-                    .subjects
-                    .get(self.debug.selected_actor)
-                    .ok_or("No gameplay actor selected.")?;
-                self.camera()?
-                    .focus(target - Vec3::Y * 900.0, item == Item::Overhead);
-            }
-            Item::SaveCamera => self.debug.bookmark = Some(*self.camera()?),
-            Item::RestoreCamera => {
-                self.debug.camera = Some(self.debug.bookmark.ok_or("No camera bookmark saved.")?)
-            }
-            Item::PhotoMode => self.debug.photo_mode = !self.debug.photo_mode,
-            _ => {
-                return Err(
-                    "This camera control is not connected to native Tenchu 2 JP yet.".into(),
-                );
-            }
+        if self.debug.change_inspection(&self.scene, item, delta)? {
+            Ok(())
+        } else {
+            Err("This control is not connected to native Tenchu 2 JP yet.".into())
         }
-        Ok(())
     }
 
     pub fn reset(&mut self, item: Item) -> Result<()> {
-        match item {
-            Item::FreeCamera => self.debug.return_camera(),
-            Item::FlightSpeed => self.debug.flight_speed = Debug::default().flight_speed,
-            Item::Fov => self.camera()?.fov = Camera::from_view(Default::default(), 300.0).fov,
-            Item::Actor => self.debug.selected_actor = self.player,
-            Item::PhotoMode => self.debug.photo_mode = false,
-            _ => return Err("This action has no default value.".into()),
+        if self.debug.reset_inspection(&self.scene, item)? {
+            Ok(())
+        } else {
+            Err("This action has no default value.".into())
         }
-        Ok(())
     }
 
     pub fn hint(&self, ctx: &egui::Context, menu_open: bool) {

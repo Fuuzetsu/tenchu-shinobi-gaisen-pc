@@ -26,6 +26,12 @@ impl Application {
         if item.reset_setting(&mut self.settings) {
             return Ok(());
         }
+        if self.debug.reset_inspection(&self.campaign.game, item)? {
+            if item == Item::Actor && self.debug.camera_actor.is_some() {
+                self.debug.follow_selected(&self.campaign.game)?;
+            }
+            return Ok(());
+        }
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
@@ -68,7 +74,6 @@ impl Application {
             Item::MovesetModel => self.settings.moveset_model.clear(),
             Item::GameplayPreset => self.set_gameplay_preset(0)?,
             Item::Preset => self.settings.set_visual_preset(0),
-            Item::PhotoMode => self.debug.photo_mode = false,
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
             Item::DirectionalColor => {
                 self.settings.graphics.lighting.directional.color =
@@ -85,30 +90,6 @@ impl Application {
             Item::LightResolution => {
                 self.settings.graphics.lighting.resolution = s.graphics.lighting.resolution
             }
-            Item::Hitboxes => self.debug.hitboxes = d.hitboxes,
-            Item::Sight => self.debug.sight = d.sight,
-            Item::SightStance => self.debug.sight_stance = d.sight_stance,
-            Item::Collision => self.debug.collision = d.collision,
-            Item::CollisionOnly => self.debug.collision_only = d.collision_only,
-            Item::Patrols => self.debug.patrols = d.patrols,
-            Item::Events => self.debug.events = d.events,
-            Item::Labels => self.debug.labels = d.labels,
-            Item::Xray => self.debug.xray = d.xray,
-            Item::Trail => self.debug.show_trail = d.show_trail,
-            Item::FreeCamera | Item::FollowActor => self.debug.return_camera(),
-            Item::FlightSpeed => self.debug.flight_speed = d.flight_speed,
-            Item::Fov => {
-                if let Some(camera) = &mut self.debug.camera {
-                    camera.fov = crate::debug::camera::Camera::from_game(&self.campaign.game).fov;
-                }
-            }
-            Item::Actor => {
-                self.debug.selected_actor = d.selected_actor;
-                if self.debug.camera_actor.is_some() {
-                    self.debug.follow_selected(&self.campaign.game)?;
-                }
-            }
-            Item::InspectActor => self.debug.inspect_actor = d.inspect_actor,
             Item::Target(axis) => self.debug.target[axis] = d.target[axis],
             Item::SnapFloor => self.debug.snap_to_floor = d.snap_to_floor,
             Item::Speed => self.debug.speed = d.speed,
