@@ -21,8 +21,6 @@ impl Application {
             .sequence
             .ok_or("Select a Japanese mission layout")?;
         let disc = crate::source::open_disc(self.tenchu2.path.as_ref())?;
-        let mut loadout = [0; 21];
-        loadout[0] = 255;
         let difficulty = match self.campaign.options.difficulty {
             tenchu_core::ai::Difficulty::Easy => 1,
             tenchu_core::ai::Difficulty::Normal => 2,
@@ -33,7 +31,7 @@ impl Application {
             sequence,
             difficulty,
             self.campaign.seed,
-            loadout,
+            None,
             Some(crate::tenchu2::native::save::SaveFile::new()?),
         )?;
         self.finish_recording();
@@ -184,7 +182,7 @@ impl Application {
                 .open(&mut native.open).default_size([440.0, 400.0]).vscroll(true)
                 .show(ctx, |ui| {
                     ui.label("Japanese gameplay, voices, swimming and campaign progression");
-                    ui.small("Original equipment screens, modern lighting and some effects are still being connected.");
+                    ui.small("Modern lighting and some effects are still being connected.");
                     ui.checkbox(&mut self.paused, "Pause");
                     ui.checkbox(&mut self.settings.pause_in_menu, "Pause while this menu is open");
                     ui.checkbox(&mut self.settings.pause_on_defocus, "Pause when unfocused");
@@ -384,7 +382,9 @@ impl Application {
                         KeyCode::Enter => {
                             let native = self.native_tenchu2.as_mut().unwrap();
                             native.playback.action = match native.playback.content {
-                                Content::Results(_) => Some(NativeAction::Continue),
+                                Content::Equipment(_) | Content::Results(_) => {
+                                    Some(NativeAction::Continue)
+                                }
                                 Content::Failed | Content::Complete => Some(NativeAction::Retry),
                                 _ => None,
                             };
@@ -438,6 +438,23 @@ mod tests {
             .unwrap()
             .map;
         app.tenchu2_action(Event::Play);
+        assert!(matches!(
+            app.native_tenchu2.as_ref().unwrap().playback.content,
+            Content::Equipment(_)
+        ));
+        for _ in 0..15 {
+            app.step_native_tenchu2().unwrap();
+        }
+        app.native_tenchu2.as_mut().unwrap().playback.action = Some(NativeAction::Continue);
+        for _ in 0..30 {
+            if matches!(
+                app.native_tenchu2.as_ref().unwrap().playback.content,
+                Content::Gameplay(_)
+            ) {
+                break;
+            }
+            app.step_native_tenchu2().unwrap();
+        }
         let native = app
             .native_tenchu2
             .as_ref()

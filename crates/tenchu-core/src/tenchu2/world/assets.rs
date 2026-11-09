@@ -39,6 +39,18 @@ pub struct Assets {
 
 impl Assets {
     pub fn load(disc: &Disc<impl ReadAt>, hero: usize, layout: &Layout) -> Result<Self> {
+        Self::equipped(disc, hero, layout, false)
+    }
+
+    pub fn equipped(
+        disc: &Disc<impl ReadAt>,
+        hero: usize,
+        layout: &Layout,
+        alternate: bool,
+    ) -> Result<Self> {
+        if hero >= 3 {
+            return Err("Invalid Tenchu 2 hero".into());
+        }
         let map = layout.map;
         let combat_rules = combat::Rules::load(disc)?;
         let mut registry = Registry::load(disc)?;
@@ -65,6 +77,21 @@ impl Assets {
                 .find(|actor| actor.kind == 0x65)
                 .ok_or("Missing Tenchu 2 story actor")?
                 .model = "mati_m".into();
+        }
+        if alternate {
+            let player = registry
+                .actors
+                .iter_mut()
+                .find(|actor| actor.kind == hero as i16)
+                .ok_or("Missing Tenchu 2 hero definition")?;
+            player.skill = 5;
+            player.model = match hero {
+                0 => "rikia",
+                1 => "ayamea",
+                _ if (12..14).contains(&map) => "tatua_m",
+                _ => "tatua",
+            }
+            .into();
         }
         let weapons = Weapons::load(disc)?;
         let mut models = BTreeMap::new();

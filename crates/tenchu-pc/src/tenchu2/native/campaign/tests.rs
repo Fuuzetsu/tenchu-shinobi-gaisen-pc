@@ -8,7 +8,7 @@ fn start(sequence: usize) -> Playback<crate::source::DiscSource> {
     let mut loadout = [0; 21];
     loadout[0] = 255;
     loadout[4] = 5;
-    Playback::load(disc, sequence, 2, 17, loadout, None).unwrap()
+    Playback::load(disc, sequence, 2, 17, Some(loadout), None).unwrap()
 }
 
 fn reach_exit(playback: &mut Playback<crate::source::DiscSource>) {
@@ -35,6 +35,140 @@ fn next(playback: &mut Playback<crate::source::DiscSource>) {
         }
     }
     panic!("sequence {} did not finish", playback.run.sequence);
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; original equipment, stock, menu audio, training bypass and boss-area carry"]
+fn native_equipment_supplies_the_campaign_inventory() {
+    use super::super::equipment::Edit;
+    let disc =
+        || crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for (sequence, counts) in [(1, [(1, 0), (4, 0)]), (4, [(1, 1), (4, 5)])] {
+        let playback = Playback::load(disc(), sequence, 2, 17, None, None).unwrap();
+        let Content::Gameplay(session) = &playback.content else {
+            panic!("training equipment did not bypass the menu")
+        };
+        for (item, count) in counts {
+            assert_eq!(session.world.actors[0].actor.inventory.counts[item], count);
+        }
+    }
+    let mut playback = Playback::load(disc(), 9, 2, 17, None, None).unwrap();
+    assert!(matches!(playback.content, Content::Equipment(_)));
+    for _ in 0..15 {
+        playback.step(0).unwrap();
+    }
+    let Content::Equipment(selection) = &playback.content else {
+        unreachable!()
+    };
+    assert_eq!(selection.state.fade, 0);
+    let mut mixer = tenchu_audio::Mixer::new(44100);
+    mixer.set_bank(selection.bank.clone());
+    let sounds = playback.step(0x2000).unwrap().sounds;
+    assert_eq!(sounds.len(), 1);
+    for sound in sounds {
+        mixer.play_at(0, i16::from(sound.id), sound.volume, sound.note);
+    }
+    assert!(
+        (0..4410)
+            .flat_map(|_| mixer.frame())
+            .any(|s| s.abs() > 0.01)
+    );
+    playback.step(0).unwrap();
+    playback.action = Some(Action::Equipment(Edit::Select(3)));
+    playback.step(0).unwrap();
+    for _ in 0..3 {
+        playback.action = Some(Action::Equipment(Edit::Add));
+        playback.step(0).unwrap();
+    }
+    playback.action = Some(Action::Equipment(Edit::Remove));
+    playback.step(0).unwrap();
+    let Content::Equipment(selection) = &playback.content else {
+        unreachable!()
+    };
+    assert_eq!(selection.state.remaining, 9);
+    assert_eq!(selection.state.stock.items[1], Some(2));
+    assert_eq!(selection.state.stock.items[4], Some(8));
+    playback.action = Some(Action::Continue);
+    playback.step(0).unwrap();
+    next(&mut playback);
+    let Content::Gameplay(session) = &playback.content else {
+        panic!("equipment did not enter gameplay")
+    };
+    assert_eq!(session.world.actors[0].actor.inventory.counts[1], 1);
+    assert_eq!(session.world.actors[0].actor.inventory.counts[4], 2);
+    assert_eq!(playback.run.progress.stock[0].items[4], Some(8));
+    reach_exit(&mut playback);
+    next(&mut playback);
+    playback.step(0x2000).unwrap();
+    next(&mut playback);
+    assert_eq!(playback.run.sequence, 11);
+    let Content::Gameplay(session) = &playback.content else {
+        panic!("boss entry reopened equipment")
+    };
+    assert_eq!(session.world.actors[0].actor.inventory.counts[4], 2);
+
+    let mut playback = Playback::load(disc(), 9, 2, 17, None, None).unwrap();
+    for _ in 0..15 {
+        playback.step(0).unwrap();
+    }
+    playback.step(0x2000).unwrap();
+    playback.action = Some(Action::Quit);
+    playback.step(0).unwrap();
+    let mut quit = false;
+    for _ in 0..20 {
+        quit |= playback.step(0).unwrap().quit;
+    }
+    assert!(quit);
+    assert_eq!(playback.run.progress.stock[0].items[1], Some(3));
+    assert_eq!(playback.run.carry.inventory[0], 0);
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; armor selects each source costume and activates the damage rule without replacing the weapon"]
+fn native_equipment_armor_uses_the_original_costumes() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let campaign = Campaign::load(&disc).unwrap();
+    let layouts = tenchu_assets::tenchu2::layout::Layout::available(&disc).unwrap();
+    for (hero, map, name) in [
+        (0, 2, "rikia"),
+        (1, 3, "ayamea"),
+        (2, 12, "tatua_m"),
+        (2, 14, "tatua"),
+    ] {
+        let layout = layouts
+            .iter()
+            .find(|l| l.map == map && campaign.mission(hero, l.sequence).is_some())
+            .unwrap();
+        let mut run = Run::new(&campaign, hero, layout.sequence, 2, 17).unwrap();
+        run.prepare_area(&campaign).unwrap();
+        run.carry.inventory[0] = 1;
+        run.carry.alternate = true;
+        let mut session = Session::for_run(&disc, &run).unwrap();
+        let definition = session
+            .assets
+            .resources
+            .registry
+            .actor(hero as i16)
+            .unwrap();
+        assert_eq!(definition.model, name);
+        assert_eq!(definition.skill, 5);
+        assert_eq!(
+            definition.weapon,
+            tenchu_assets::tenchu2::registry::Registry::load(&disc)
+                .unwrap()
+                .actor(hero as i16)
+                .unwrap()
+                .weapon
+        );
+        assert!(session.assets.models.contains_key(name));
+        assert!(session.world.controls.armor);
+        assert_eq!(session.world.actors[0].actor.inventory.counts[19], 0);
+        for _ in 0..30 {
+            session.step(0).unwrap();
+        }
+        assert!(session.pending.is_empty());
+    }
 }
 
 #[test]
@@ -68,8 +202,15 @@ fn native_results_survive_restarting_the_campaign() {
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let mut loadout = [0; 21];
     loadout[0] = 255;
-    let reopened =
-        Playback::load(disc, 134, 2, 17, loadout, Some(SaveFile::at(path.clone()))).unwrap();
+    let reopened = Playback::load(
+        disc,
+        134,
+        2,
+        17,
+        Some(loadout),
+        Some(SaveFile::at(path.clone())),
+    )
+    .unwrap();
     assert_eq!(
         serde_json::to_value(&reopened.run.progress).unwrap(),
         expected

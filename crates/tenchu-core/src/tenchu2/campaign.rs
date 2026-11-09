@@ -123,6 +123,7 @@ impl Run {
         };
         world.controls.unlocked_items =
             std::array::from_fn(|i| self.progress.stock[self.hero].items[i].is_some());
+        world.controls.armor = self.carry.alternate;
         let player = world.player;
         let actor = &mut world.actors[player].actor;
         actor.inventory = Inventory::from_amounts(self.carry.inventory);

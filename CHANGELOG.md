@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore Japanese Tenchu 2 equipment selection before missions: original disc
+  artwork, supply counts, six-slot loadouts, item limits and sounds, with mouse
+  and touch buttons alongside the original controls. Carry supplies into boss
+  areas and apply each hero's armored costume and protection when equipped.
+
 - Fix transparent or glowing Tenchu 2 terrain and props by honoring their
   original opaque drawing modes, including night stages and HD replacements.
 
@@ -43,8 +48,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   Reuse the main window, saved controls and Android touch overlay, with F1 for
   supported settings and F6 to return. Gaisen saves stay separate. The Gaisen
   scenery sandbox remains an explicit JP option and the default for EU imports.
-  Original JP equipment artwork, some effects and modern lighting remain
-  integration work.
+  Some effects and modern lighting remain integration work.
 
 - Draw the Japanese Tenchu 2 health bars, Ki meter, underwater breath gauge,
   aiming reticle, item carousel and pickup notices using the user's disc artwork.
@@ -66,8 +70,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   with health, inventory, RNG and score totals carried across areas. Calculate
   rewards at the results sequence, after intervening story scenes. The internal
   preview can continue between areas, enter boss encounters, show results and
-  retry after failure. The original equipment presentation remains in
-  progress.
+  retry after failure.
 
 - Connect native JP mission objectives and end transitions in the internal
   preview, including unseen objectives, boss targets, input lock and fade timing.

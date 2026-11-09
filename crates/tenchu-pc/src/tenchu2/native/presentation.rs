@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tenchu_assets::Result;
 use tenchu_core::tenchu2::campaign::Run;
 
+mod equipment;
 mod film;
 mod results;
 
@@ -32,6 +33,7 @@ impl Content {
     pub fn tick(&self) -> i64 {
         match self {
             Self::Gameplay(session) => session.world.tick as i64,
+            Self::Equipment(selection) => i64::from(selection.state.tick),
             Self::Story { story, .. } => i64::from(story.state.frame),
             Self::Introduction(intro) => i64::from(intro.state.tick),
             Self::Movie(movie) => movie.frame.as_ref().map_or(0, |f| i64::from(f.number)),
@@ -43,6 +45,7 @@ impl Content {
         output.send(Command::Clear);
         match self {
             Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
+            Self::Equipment(selection) => output.send(Command::Bank(selection.bank.clone())),
             Self::Results(results) => output.send(Command::Bank(results.bank.clone())),
             Self::Story { audio, .. } => output.send(Command::Music(audio.clone(), false)),
             Self::Movie(movie) => output.send(Command::Music(movie.audio.clone(), false)),
@@ -59,7 +62,9 @@ impl Content {
         error: Option<&str>,
     ) -> Option<Action> {
         let mut action = None;
-        if let Self::Results(results) = self {
+        if let Self::Equipment(selection) = self {
+            action = equipment::controls(selection, ctx);
+        } else if let Self::Results(results) = self {
             egui::Area::new("jp-results-actions".into())
                 .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -8.0])
                 .show(ctx, |ui| {
@@ -159,7 +164,7 @@ impl Content {
                 });
         }
         egui::Window::new("Native JP integration").open(open).default_size([550.0, 480.0]).vscroll(true).show(ctx, |ui| {
-            ui.label("Original equipment screens and some effects are still being connected.");
+            ui.label("Modern lighting and some effects are still being connected.");
             ui.checkbox(paused, "Pause simulation");
             match self {
                 Self::Gameplay(session) => {
@@ -193,6 +198,7 @@ impl Content {
 }
 
 pub(crate) enum ContentDrawing {
+    Equipment(equipment::Drawing),
     Gameplay(Box<Drawing>),
     Story(Box<StoryDrawing>),
     Introduction(Arc<crate::frontend::draw::Frame>),
@@ -207,6 +213,9 @@ pub(crate) enum ContentDrawing {
 impl ContentDrawing {
     pub fn new(content: &Content, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         match content {
+            Content::Equipment(selection) => {
+                Ok(Self::Equipment(equipment::Drawing::new(selection)))
+            }
             Content::Gameplay(session) => Ok(Self::Gameplay(Box::new(Drawing::new(
                 session, graphics, renderer,
             )?))),
@@ -246,6 +255,10 @@ impl ContentDrawing {
 
     pub fn update(&mut self, content: &Content, renderer: &mut Renderer) -> Result<()> {
         match (self, content) {
+            (Self::Equipment(drawing), Content::Equipment(selection)) => {
+                drawing.update(selection);
+                Ok(())
+            }
             (Self::Gameplay(drawing), Content::Gameplay(session)) => {
                 drawing.update(session, renderer)
             }
@@ -271,6 +284,7 @@ impl ContentDrawing {
             (Self::Gameplay(drawing), Content::Gameplay(_)) => drawing.draw(target, renderer),
             (Self::Story(drawing), Content::Story { .. }) => drawing.draw(target, renderer),
             (Self::Results(_), Content::Results(_))
+            | (Self::Equipment(_), Content::Equipment(_))
             | (Self::Empty, Content::Failed | Content::Complete)
             | (Self::Introduction(_), Content::Introduction(_))
             | (Self::Movie { .. }, Content::Movie(_)) => {
@@ -298,6 +312,15 @@ impl ContentDrawing {
 
     pub fn paint(&mut self, content: &Content, ctx: &egui::Context) {
         match (self, content) {
+            (Self::Equipment(drawing), _) => {
+                ctx.layer_painter(egui::LayerId::background()).add(
+                    egui_wgpu::Callback::new_paint_callback(
+                        film::rect(ctx),
+                        crate::frontend::gpu::Paint::Frontend(drawing.frame.clone()),
+                    ),
+                );
+                crate::fonts::paint(ctx, film::rect(ctx), &drawing.text);
+            }
             (Self::Story(drawing), _) => {
                 crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts)
             }

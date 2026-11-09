@@ -23,6 +23,12 @@ The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
 The JP game uses Triangle for items and Circle for guarding (E and `/` with
 default keyboard bindings); Z/C cycle inventory. These follow Tenchu 2's controls.
+Before missions, the original equipment screen draws from your saved JP supplies.
+Directions select an item, Circle adds one, Cross removes one, Start confirms,
+and Start + Select cancels. Mouse/touch selection and buttons are also available;
+Enter confirms. Training keeps its original fixed loadouts, and boss-area
+transitions keep the inventory already carried. Armor selects the original
+armored costume and damage protection.
 At results, Circle continues, Start retries, and Cross leaves the mission. The
 original score/rank artwork and dimmed scene accompany mouse/touch buttons;
 Enter also continues. Results use the disc's menu sound bank.
@@ -40,7 +46,7 @@ health, water state and unconnected events; F3 pauses, F4 advances one logic
 tick, and Escape closes the preview. This mode does not write campaign saves
 or change saved graphics settings.
 
-Add `--loadout 4:20` for twenty shuriken. The normal item-selection and item-use
+Add `--loadout 4:20` to bypass the equipment screen with twenty shuriken. The normal item-selection and item-use
 bindings apply; the original item carousel shows the selected item and quantity.
 Use `--loadout 4:20,5:5,6:10,7:5,8:10,9:10,10:5,11:5,12:5,13:5,14:5,16:5,17:5,18:5,20:1` to add caltrops (5), grenades (6), mines (7), poison darts (8), fire
 arrows (9), smoke bombs (10), poisoned rice (11), coloured rice (12), invisibility (13), confusion powder (14), teleport (16), fire breath (17) sleeping bombs (18) and one passive resurrection leaf (20). Other inventory entries accept comma-separated
@@ -76,7 +82,7 @@ deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the
 port's visual enhancements. The original HUD now shows health/enemy bars, Ki,
 breath, the aiming reticle, item selection and pickup notices. Timed 3D story
-effects and original equipment artwork remain integration work.
+effects remain integration work.
 The native renderer also loads the original sky layers and distant scenery,
 including the story sequences' alternate evening palettes.
 Component comparisons and snapshot continuation do not establish full campaign

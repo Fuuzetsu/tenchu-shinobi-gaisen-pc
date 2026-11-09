@@ -2761,3 +2761,17 @@ checks portable serialization/continuation. Oracle inputs initialize the origina
 uninitialized previous-input register and history to zero; no shipped BIOS or
 captured RAM is required. The UI uses the bundled outline font for descriptions
 in place of the source BIOS glyph lookup.
+
+Equipment is now a campaign phase before a fresh non-training mission. It runs
+at the original menu's nominal 60 vblanks while gameplay remains 30 logic ticks;
+explicit developer loadouts bypass it. The original images, rotating rings,
+item-name sheet, quantities and descriptions are rendered in their source layout.
+Quantity spacing/shadows follow `800620dc`; grid quantities use foreground OT1
+while icons/rings use OT2. Mouse/touch selection and buttons are additions.
+Menu sounds use the hero/area VAB already selected by `80064a34`, without stage
+music. Armor follows that caller's model names and skill5 override, preserving
+the weapon assignment and enabling the existing source damage rule. Integration
+checks cover fixed training loadouts, picking/removing items, audible menu cues,
+stock/cancellation, boss-area carry and four armored-costume variants. The normal
+F6 launcher check confirms entry through equipment and isolation from Gaisen
+progress. Live native-window selection/confirmation and JP gameplay were reviewed.

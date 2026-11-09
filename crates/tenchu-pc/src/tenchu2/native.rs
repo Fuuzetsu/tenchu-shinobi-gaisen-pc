@@ -23,6 +23,8 @@ use tenchu_core::{
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod campaign;
 #[cfg(not(target_arch = "wasm32"))]
+mod equipment;
+#[cfg(not(target_arch = "wasm32"))]
 mod film;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod presentation;
@@ -69,18 +71,24 @@ impl Session {
                 seed: run.random.seed,
                 inventory: Inventory::from_amounts(run.carry.inventory),
             },
+            run.carry.alternate,
         )?;
         run.restore_area(&mut session.world, &session.assets, true)?;
         Ok(session)
     }
 
-    fn with_options(disc: &Disc<impl ReadAt>, sequence: usize, options: Options) -> Result<Self> {
+    fn with_options(
+        disc: &Disc<impl ReadAt>,
+        sequence: usize,
+        options: Options,
+        alternate: bool,
+    ) -> Result<Self> {
         let layout = Layout::available(disc)?
             .into_iter()
             .find(|l| l.sequence == sequence)
             .ok_or("No Japanese Tenchu 2 layout with that sequence")?;
         let hero = options.hero;
-        let assets = Assets::load(disc, hero, &layout)?;
+        let assets = Assets::equipped(disc, hero, &layout, alternate)?;
         let world = World::new(&layout, options, &assets)?;
         let bank = Arc::new(Audio::load(disc, hero, layout.map)?.bank);
         Ok(Self {
@@ -225,7 +233,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Original equipment artwork and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Modern lighting and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }
@@ -300,13 +308,21 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         return Err("Use the Android launcher's F6 quick menu to start Japanese Tenchu 2".into());
         #[cfg(not(target_os = "android"))]
         {
+            let specified = !loadout.is_empty();
             let mut items = [0; 21];
             items[0] = 255;
             for (item, count) in loadout {
                 items[item] = count;
             }
             return window::run(
-                campaign::Playback::load(disc, sequence, 2, seed, items, None)?,
+                campaign::Playback::load(
+                    disc,
+                    sequence,
+                    2,
+                    seed,
+                    specified.then_some(items),
+                    None,
+                )?,
                 settings.graphics,
             );
         }

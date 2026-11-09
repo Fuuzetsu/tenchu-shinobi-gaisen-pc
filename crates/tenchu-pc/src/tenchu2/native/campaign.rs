@@ -17,6 +17,7 @@ use tenchu_core::tenchu2::{
 mod tests;
 
 pub enum Content {
+    Equipment(Box<super::equipment::Selection>),
     Gameplay(Box<Session>),
     Introduction(Box<super::film::Introduction>),
     Movie(Box<super::film::Movie>),
@@ -34,6 +35,7 @@ pub enum Action {
     Continue,
     Retry,
     Quit,
+    Equipment(super::equipment::Edit),
 }
 
 #[derive(Default)]
@@ -51,7 +53,7 @@ pub struct Playback<S> {
     pub content: Content,
     pub generation: u64,
     pub action: Option<Action>,
-    loadout: [u8; 21],
+    loadout: Option<[u8; 21]>,
     previous_buttons: u16,
     blank: Vram,
     save: Option<super::save::SaveFile>,
@@ -63,7 +65,7 @@ impl<S: ReadAt> Playback<S> {
         sequence: usize,
         difficulty: u8,
         seed: u32,
-        loadout: [u8; 21],
+        loadout: Option<[u8; 21]>,
         save: Option<super::save::SaveFile>,
     ) -> Result<Self> {
         let campaign = Campaign::load(&disc)?;
@@ -100,47 +102,63 @@ impl<S: ReadAt> Playback<S> {
 
     fn load_current(&mut self) -> Result<()> {
         let descriptor = *self.run.descriptor(&self.campaign)?;
-        self.content = match descriptor.kind {
-            Kind::Gameplay(_) => {
-                if self.run.prepare_area(&self.campaign)? {
-                    self.run.carry.inventory = self.loadout;
+        self.content =
+            match descriptor.kind {
+                Kind::Gameplay(_) => {
+                    if self.run.prepare_area(&self.campaign)? {
+                        if let Some(items) = self.loadout.or_else(|| {
+                            tenchu_core::tenchu2::equipment::training(descriptor.resource)
+                        }) {
+                            self.run.carry.inventory = items;
+                            self.run.carry.alternate = items[19] != 0;
+                            self.run.carry.inventory[19] = 0;
+                        } else {
+                            self.content =
+                                Content::Equipment(Box::new(super::equipment::Selection::load(
+                                    &self.disc,
+                                    self.run.hero,
+                                    usize::from(descriptor.resource),
+                                    self.run.progress.stock[self.run.hero].clone(),
+                                )?));
+                            self.generation += 1;
+                            return Ok(());
+                        }
+                    }
+                    let session = Session::for_run(&self.disc, &self.run)?;
+                    Content::Gameplay(Box::new(session))
                 }
-                let session = Session::for_run(&self.disc, &self.run)?;
-                Content::Gameplay(Box::new(session))
-            }
-            Kind::Event => {
-                let mut story = Story::load(
+                Kind::Event => {
+                    let mut story = Story::load(
+                        &self.disc,
+                        self.run.sequence,
+                        descriptor.resource,
+                        self.run.random.seed,
+                    )?;
+                    story.state.random = self.run.random;
+                    story.step(true)?;
+                    let audio = story
+                        .resources
+                        .audio
+                        .as_ref()
+                        .map(|track| Clip::load(&self.disc, track).map(Arc::new))
+                        .transpose()?;
+                    Content::Story {
+                        story: Box::new(story),
+                        audio,
+                    }
+                }
+                Kind::Results => {
+                    let values = self.run.enter_results(&self.campaign)?.clone();
+                    Content::Results(Box::new(super::results::Results::load(&self.disc, values)?))
+                }
+                Kind::Introduction => Content::Introduction(Box::new(
+                    super::film::Introduction::load(&self.disc, descriptor.resource)?,
+                )),
+                Kind::Movie => Content::Movie(Box::new(super::film::Movie::load(
                     &self.disc,
-                    self.run.sequence,
                     descriptor.resource,
-                    self.run.random.seed,
-                )?;
-                story.state.random = self.run.random;
-                story.step(true)?;
-                let audio = story
-                    .resources
-                    .audio
-                    .as_ref()
-                    .map(|track| Clip::load(&self.disc, track).map(Arc::new))
-                    .transpose()?;
-                Content::Story {
-                    story: Box::new(story),
-                    audio,
-                }
-            }
-            Kind::Results => {
-                let values = self.run.enter_results(&self.campaign)?.clone();
-                Content::Results(Box::new(super::results::Results::load(&self.disc, values)?))
-            }
-            Kind::Introduction => Content::Introduction(Box::new(super::film::Introduction::load(
-                &self.disc,
-                descriptor.resource,
-            )?)),
-            Kind::Movie => Content::Movie(Box::new(super::film::Movie::load(
-                &self.disc,
-                descriptor.resource,
-            )?)),
-        };
+                )?)),
+            };
         self.generation += 1;
         if matches!(self.content, Content::Results(_))
             && let Some(save) = &self.save
@@ -173,6 +191,24 @@ impl<S: ReadAt> Playback<S> {
         let retry_on_confirm = matches!(self.content, Content::Failed | Content::Complete);
         let mut update = Update::default();
         let destination = match &mut self.content {
+            Content::Equipment(selection) => {
+                if selection.state.finished {
+                    self.run.progress.stock[self.run.hero].clone_from(&selection.state.stock);
+                    if selection.state.outcome
+                        == Some(tenchu_core::tenchu2::equipment::Outcome::Cancel)
+                    {
+                        update.quit = true;
+                        None
+                    } else {
+                        self.run.carry.inventory = selection.state.inventory();
+                        self.run.carry.alternate = selection.state.alternate();
+                        Some(Destination::Sequence(self.run.sequence))
+                    }
+                } else {
+                    update.sounds = selection.step(buttons, action);
+                    None
+                }
+            }
             Content::Introduction(intro) => {
                 use tenchu_core::tenchu2::introduction::{Outcome, Phase};
                 if intro.state.phase == Phase::Finished {
@@ -259,20 +295,23 @@ impl<S: ReadAt> Playback<S> {
                                 update.quit = true;
                                 None
                             }
+                            Action::Equipment(_) => None,
                         }
                     }
                 } else {
-                    let selected = action.or_else(|| {
-                        if previous != 0 {
-                            return None;
-                        }
-                        match buttons {
-                            0x2000 => Some(Action::Continue),
-                            8 => Some(Action::Retry),
-                            0x4000 | 9 => Some(Action::Quit),
-                            _ => None,
-                        }
-                    });
+                    let selected = action
+                        .filter(|a| !matches!(a, Action::Equipment(_)))
+                        .or_else(|| {
+                            if previous != 0 {
+                                return None;
+                            }
+                            match buttons {
+                                0x2000 => Some(Action::Continue),
+                                8 => Some(Action::Retry),
+                                0x4000 | 9 => Some(Action::Quit),
+                                _ => None,
+                            }
+                        });
                     if let Some(action) = selected {
                         results.exit = Some((action, 30));
                         update.sounds.push(Sound {
