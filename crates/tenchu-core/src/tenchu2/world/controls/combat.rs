@@ -249,7 +249,7 @@ impl<E: Events> Driver<'_, E> {
                     }
                     CombatCue::Clash { opponent, position } => {
                         c.others.get_mut(opponent)?.actor.motion.loops = -5;
-                        c.effects.flash(position, false)?;
+                        return c.effects.flash(position, false);
                     }
                     _ => {}
                 }

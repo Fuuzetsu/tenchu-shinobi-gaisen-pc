@@ -2737,3 +2737,12 @@ according to page0x60, but draw quads opaque. Decoding preserves those choices
 and black texture cutouts, independently of STP palette normalization. A GPU
 regression removes the particle pass from sequence119 and verifies that the
 night terrain remains visible; source and HD scrolling water are also checked.
+
+A controller-only native JP sequence9 integration check starts at the mission
+spawn, approaches the first guard using turn/walk inputs and attacks periodically.
+The guard pursues and damages the player; the target dies at tick1090 with the
+player at83HP. Thirty-four target voice cues are mixed through the actual JP
+VAB bank with nonzero output. No actor state is injected. This exercises ordinary
+session combat/audio, not a synchronized emulator replay. Weapon clashes already
+create their source flash and opponent recoil in the core; they no longer leak
+through as a falsely reported unconnected host event.

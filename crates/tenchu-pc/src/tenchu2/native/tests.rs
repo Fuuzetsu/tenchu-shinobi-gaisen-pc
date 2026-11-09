@@ -2,6 +2,81 @@ use super::*;
 use tenchu_core::tenchu2::input::{ATTACK, CROUCH, JUMP, RIGHT, UP};
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; controller-only approach and combat from mission start, with guard-only mixed voice audio"]
+fn native_guards_fight_and_speak_from_mission_start() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = Session::load(&disc, 9, 1).unwrap();
+    let target = 1;
+    assert_eq!(session.world.actors[target].actor.kind, 0x34);
+    let voice = session.world.instances[target].voice;
+    let mut mixer = tenchu_audio::Mixer::new(44100);
+    mixer.set_bank(session.bank.clone());
+    let mut voiced = 0;
+    let mut peak = 0.0f32;
+    for tick in 0..1800 {
+        let player = &session.world.actors[session.world.player].actor;
+        let delta = session.world.actors[target]
+            .actor
+            .position
+            .wrapping_sub(player.position);
+        let yaw = session
+            .assets
+            .resources
+            .math
+            .atan2(-delta.x, -delta.z)
+            .unwrap();
+        let turn = (i32::from(yaw) - i32::from(player.rotation[1]) + 2048).rem_euclid(4096) - 2048;
+        let held = if tick < 30 {
+            0
+        } else if delta.x.abs().max(delta.z.abs()) > 1400 {
+            if turn > 64 {
+                RIGHT
+            } else if turn < -64 {
+                tenchu_core::tenchu2::input::LEFT
+            } else {
+                UP
+            }
+        } else if tick % 45 == 0 {
+            ATTACK
+        } else {
+            0
+        };
+        for sound in session.step(held).unwrap() {
+            if sound.id >> 4 == voice {
+                voiced += 1;
+                mixer.play_at(
+                    usize::from(sound.slot),
+                    i16::from(sound.id),
+                    sound.volume,
+                    sound.note,
+                );
+            }
+        }
+        for _ in 0..1470 {
+            peak = mixer.frame().into_iter().fold(peak, |v, x| v.max(x.abs()));
+        }
+        if session.world.actors[session.world.player].actor.health <= 0
+            || session.world.actors[target].actor.health <= 0
+        {
+            break;
+        }
+    }
+    let player = &session.world.actors[session.world.player].actor;
+    assert!(player.health > 0 && player.health < player.max_health);
+    assert_eq!(session.world.actors[target].actor.health, 0);
+    assert!(
+        voiced > 5 && peak > 0.01,
+        "guard voices missing: {voiced}, {peak}"
+    );
+    assert!(session.pending.is_empty(), "{:?}", session.pending);
+    eprintln!(
+        "Controller-only JP encounter: tick {}, player HP {}, guard HP 0; {voiced} guard voice cues, mixed peak {peak:.3}",
+        session.world.tick, player.health
+    );
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC and TENCHU2_SHADING_RAM captured during retail training"]
 fn native_character_shading_matches_the_retail_color_table() {
     let disc =
