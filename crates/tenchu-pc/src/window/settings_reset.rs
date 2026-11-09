@@ -27,9 +27,6 @@ impl Application {
             return Ok(());
         }
         if self.debug.reset_inspection(&self.campaign.game, item)? {
-            if item == Item::Actor && self.debug.camera_actor.is_some() {
-                self.debug.follow_selected(&self.campaign.game)?;
-            }
             return Ok(());
         }
         let s = Settings::default();

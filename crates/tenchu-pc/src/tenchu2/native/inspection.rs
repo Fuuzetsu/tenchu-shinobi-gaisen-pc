@@ -20,6 +20,8 @@ pub(super) fn actors(session: &Session) -> impl Iterator<Item = Actor> + '_ {
         let actor = &agent.actor;
         Actor {
             id,
+            root: session.world.instances[id].rig.root,
+            yaw: actor.rotation.y,
             position: Vec3::from(actor.position.to_array().map(|v| v as f32)),
             kind: actor.kind,
             health: actor.health,

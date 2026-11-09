@@ -228,7 +228,7 @@ pub fn show(
                                 ui.weak("Choose a body below. Folder edits apply on Load / reload.");
                             });
                             if runtime == Runtime::Tenchu2 {
-                                ui.weak("Swaps apply when standing or crouching outside a cutscene. Unsupported projectile/scripted moves retain the host moveset. Voices, items and paired kills remain native T2.");
+                                ui.weak("Swaps apply when standing or crouching outside a cutscene. Movesets bring their own weapons and character sounds. Unsupported projectile/scripted moves, items and paired kills retain host behavior.");
                             }
                         });
                         ui.separator();

@@ -55,6 +55,24 @@ impl Drawing {
         self.scene.lighting.count(settings)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn follow_camera(
+        &mut self,
+        session: &super::Session,
+        orbit: &mut crate::navigation::Orbit,
+        settings: &crate::settings::Navigation,
+        elapsed: f32,
+        renderer: &mut Renderer,
+    ) -> crate::debug::camera::Camera {
+        let environment = self.scene.environment(
+            &session.assets.level,
+            &self.models.scenery,
+            &session.assets.resources.math,
+            renderer,
+        );
+        orbit.camera(1.0, elapsed, settings, &environment.surfaces)
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         self.scene.clear_weather(tracks_only);
     }
@@ -180,6 +198,22 @@ fn camera_matrix(
 }
 
 impl SceneDrawing {
+    fn environment(
+        &mut self,
+        level: &Level,
+        meshes: &Meshes,
+        math: &tenchu_core::math::Math,
+        renderer: &mut Renderer,
+    ) -> &mut environment::Environment {
+        let environment = self
+            .environment
+            .get_or_insert_with(|| environment::Environment::new(level, meshes, math, renderer));
+        if environment.stale {
+            environment.rebuild(level, meshes, math, renderer);
+        }
+        environment
+    }
+
     fn preserve_environment(&mut self, previous: &mut Self) {
         self.environment = previous.environment.take();
         self.sky = previous.sky.clone();
@@ -202,19 +236,14 @@ impl SceneDrawing {
                 && graphics.lighting.shadows))
             && self.environment.is_none()
         {
-            self.environment = Some(environment::Environment::new(
-                frame.level,
-                frame.meshes,
-                frame.math,
-                renderer,
-            ));
+            self.environment(frame.level, frame.meshes, frame.math, renderer);
         }
         renderer.weather = Default::default();
         self.sky.tick(frame.tick, &graphics.sky);
         renderer.daylight = self.sky.sample(&graphics.sky, 1.0);
         if let Some(environment) = &mut self.environment {
             if environment.stale {
-                environment.rebuild(&frame, renderer);
+                environment.rebuild(frame.level, frame.meshes, frame.math, renderer);
             }
             let mut effects =
                 environment.update(frame.tick, frame.camera, &graphics, frame.world, renderer);

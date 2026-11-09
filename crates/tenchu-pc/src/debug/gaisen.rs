@@ -1,7 +1,7 @@
 pub(super) mod overlay;
 use super::{Debug, Overlay, ray_box, terrain};
 use super::{
-    camera::{self, Camera},
+    camera::Camera,
     inspection::{Actor, Scene},
 };
 use glam::Mat4;
@@ -16,6 +16,10 @@ impl Scene for Game {
 
     fn player(&self) -> usize {
         self.player_id
+    }
+
+    fn actor(&self, id: usize) -> Option<Actor> {
+        self.roster.actors.get(id)?.as_ref().map(|a| actor(self, a))
     }
 
     fn actors(&self) -> impl Iterator<Item = Actor> {
@@ -90,27 +94,8 @@ impl Debug {
     }
 
     pub fn followed_actor<'a>(&self, game: &'a Game) -> Option<&'a tenchu_core::actor::Actor> {
-        let subject = self.camera_actor?;
-        game.roster
-            .actors
-            .get(subject.id)?
-            .as_ref()
-            .filter(|actor| actor.root_model == subject.root_model)
-    }
-
-    pub fn follow_selected(&mut self, game: &Game) -> Result<()> {
-        let actor = game
-            .roster
-            .actors
-            .get(self.selected_actor)
-            .and_then(Option::as_ref)
-            .ok_or("The selected actor is no longer in this mission")?;
-        self.return_camera();
-        self.camera_actor = Some(camera::Subject {
-            id: actor.id,
-            root_model: actor.root_model,
-        });
-        Ok(())
+        self.followed_inspection(game)
+            .map(|actor| game.roster.get(actor.id))
     }
 
     pub fn focus(&mut self, game: &Game, overhead: bool) {
@@ -223,6 +208,8 @@ impl Camera {
 fn actor(game: &Game, actor: &tenchu_core::actor::Actor) -> Actor {
     Actor {
         id: actor.id,
+        root: actor.root_model,
+        yaw: actor.rotation[1],
         position: Vec3::from(actor.position.to_array().map(|v| v as f32)),
         kind: actor.kind,
         health: actor.health,

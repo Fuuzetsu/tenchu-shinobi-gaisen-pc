@@ -1,4 +1,5 @@
 use super::*;
+use glam::Vec3;
 
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; checks opaque night scenery independently of particles"]
@@ -440,6 +441,77 @@ fn native_sky_lighting_and_shadows_do_not_change_simulation() {
             assert!(renderer.daylight.is_some());
             assert_eq!(serde_json::to_vec(&story.state).unwrap(), before);
             Ok((rebuilt.scene, story.state.view, rebuilt.texts))
+        },
+    )
+    .unwrap();
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; renders shared orbit following a native guard"]
+fn native_follow_camera_uses_the_shared_scene_surfaces() {
+    use crate::settings::menu::Item;
+    use crate::tenchu2::native::{campaign::Content, presentation::ContentDrawing, tools::Tools};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let content = Content::Gameplay(Box::new(session));
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    let guard = session
+        .world
+        .actors
+        .iter()
+        .enumerate()
+        .find(|(id, agent)| *id != session.world.player && agent.actor.flags & 8 == 0)
+        .map(|(id, _)| id)
+        .expect("visible guard");
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    tools.debug.selected_actor = guard;
+    tools.change(Item::FollowActor, 1).unwrap();
+    let graphics = Graphics {
+        fog: false,
+        ..Default::default()
+    };
+    capture_frame(
+        &session.assets.sprites.vram,
+        &graphics,
+        &output.join("jp-follow-guard.png"),
+        |renderer| {
+            let mut drawing = ContentDrawing::new(&content, &graphics, renderer)?;
+            tools.update_camera(
+                &content,
+                &mut drawing,
+                &Default::default(),
+                1.0 / 60.0,
+                renderer,
+            );
+            let camera = tools.debug.follow_camera.expect("follow camera");
+            drawing.update(&content, renderer, &tools.debug, false)?;
+            let ContentDrawing::Gameplay(drawing) = drawing else {
+                unreachable!()
+            };
+            let target = Vec3::from(
+                session.world.actors[guard]
+                    .actor
+                    .position
+                    .to_array()
+                    .map(|v| v as f32),
+            ) - Vec3::Y * 1100.0;
+            let environment = drawing.scene.environment.as_ref().expect("shared surfaces");
+            assert!(
+                !environment.surfaces.blocked(camera.position, target),
+                "camera crossed a wall"
+            );
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
         },
     )
     .unwrap();

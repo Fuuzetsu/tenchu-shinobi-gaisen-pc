@@ -6,6 +6,8 @@ use tenchu_assets::Result;
 #[derive(Clone, Copy)]
 pub struct Actor {
     pub id: usize,
+    pub root: usize,
+    pub yaw: i16,
     pub position: Vec3,
     pub kind: i16,
     pub health: i16,
@@ -45,7 +47,37 @@ impl Scene for Snapshot {
     }
 }
 
+impl From<Actor> for crate::navigation::Target {
+    fn from(actor: Actor) -> Self {
+        Self {
+            id: actor.id,
+            root: actor.root,
+            position: actor.position,
+            yaw: actor.yaw,
+        }
+    }
+}
+
 impl Debug {
+    pub fn followed_inspection(&self, scene: &impl Scene) -> Option<Actor> {
+        let subject = self.camera_actor?;
+        scene
+            .actor(subject.id)
+            .filter(|actor| actor.root == subject.root_model)
+    }
+
+    pub fn follow_selected(&mut self, scene: &impl Scene) -> Result<()> {
+        let actor = scene
+            .actor(self.selected_actor)
+            .ok_or("The selected actor is no longer in this mission")?;
+        self.return_camera();
+        self.camera_actor = Some(super::camera::Subject {
+            id: actor.id,
+            root_model: actor.root,
+        });
+        Ok(())
+    }
+
     pub fn inspection_camera(&mut self, scene: &impl Scene) -> Result<&mut Camera> {
         let source = self
             .camera
@@ -130,7 +162,19 @@ impl Debug {
                 let camera = self.inspection_camera(scene)?;
                 camera.fov = (camera.fov + delta as f32 * 5.0).clamp(20.0, 110.0);
             }
-            Item::Actor => self.select_inspection(scene, delta)?,
+            Item::Actor => {
+                self.select_inspection(scene, delta)?;
+                if self.camera_actor.is_some() {
+                    self.follow_selected(scene)?;
+                }
+            }
+            Item::FollowActor => {
+                if self.camera_actor.is_some() {
+                    self.return_camera();
+                } else {
+                    self.follow_selected(scene)?;
+                }
+            }
             Item::FocusPlayer | Item::FocusActor | Item::Overhead => {
                 if item == Item::FocusPlayer {
                     self.selected_actor = scene.player();
@@ -184,7 +228,12 @@ impl Debug {
                     camera.fov = scene.camera().ok_or("No camera in this scene")?.fov;
                 }
             }
-            Item::Actor => self.selected_actor = scene.player(),
+            Item::Actor => {
+                self.selected_actor = scene.player();
+                if self.camera_actor.is_some() {
+                    self.follow_selected(scene)?;
+                }
+            }
             Item::PhotoMode => self.photo_mode = false,
             Item::Hitboxes => self.hitboxes = false,
             Item::Sight => self.sight = false,

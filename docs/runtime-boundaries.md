@@ -7,6 +7,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Concern | Shared code | Source adapter |
 | --- | --- | --- |
 | Camera and inspection commands | `debug/inspection.rs`, `debug/camera.rs` | `debug/gaisen.rs`; native `tools.rs` and `inspection.rs` |
+| Follow/orbit camera and terrain avoidance | `navigation.rs` consumes an actor target and retained surfaces | Gaisen/native adapters supply actor identity, position, facing and simulation tick; Gaisen movement steering stays in `navigation/gaisen.rs` |
 | Overlay geometry and readable labels | `debug/overlay.rs` | `debug/gaisen/overlay.rs`; native `inspection.rs` |
 | Settings edits and availability | `settings/edit.rs`, `settings/runtime.rs` | Runtime-specific command handlers for gameplay changes |
 | Experiment inventory UI | `settings/menu.rs` uses named, numbered inventory slots | Gaisen/native adapters supply their own items and quantity rules; queued native commands edit actual player state |

@@ -471,6 +471,9 @@ impl Application {
         if let Some(reason) = settings::runtime::Runtime::Gaisen.unavailable(item) {
             return Err(reason.into());
         }
+        if item == Item::FollowActor && !self.campaign.scene_visible() {
+            return Err("Start a mission before following an actor".into());
+        }
         if item.change_setting(&mut self.settings, direction) {
             return Ok(());
         }
@@ -478,9 +481,6 @@ impl Application {
             .debug
             .change_inspection(&self.campaign.game, item, direction)?
         {
-            if item == Item::Actor && self.debug.camera_actor.is_some() {
-                self.debug.follow_selected(&self.campaign.game)?;
-            }
             if item == Item::SaveCamera {
                 self.menu.notice = "Camera bookmark saved".into();
             }
@@ -809,15 +809,6 @@ impl Application {
                         .unwrap_or(0);
                     self.settings.graphics.samples =
                         counts[(index as i32 + direction).rem_euclid(counts.len() as i32) as usize];
-                }
-            }
-            Item::FollowActor => {
-                if self.debug.camera_actor.is_some() {
-                    self.debug.return_camera();
-                } else if self.campaign.scene_visible() {
-                    self.debug.follow_selected(&self.campaign.game)?;
-                } else {
-                    return Err("Start a mission before following an actor".into());
                 }
             }
             Item::Teleport => self.teleport()?,

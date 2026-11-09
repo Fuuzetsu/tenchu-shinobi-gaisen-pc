@@ -280,9 +280,10 @@ impl Application {
             self.fps_time = 0.0;
         }
         self.menu.tools.advance(
-            &self.controls,
+            &mut self.controls,
             elapsed.as_secs_f32(),
             self.focused && !self.menu.panel.open,
+            &self.settings.navigation,
         );
         let wants_models = (self.menu.panel.open && self.menu.panel.page == 10)
             || !self.settings.player_model.is_empty()
@@ -351,6 +352,13 @@ impl Application {
                 view.graphics.clone_from(&graphics);
                 self.last = Instant::now();
             }
+            self.menu.tools.update_camera(
+                &self.session.content,
+                &mut view.drawing,
+                &self.settings.navigation,
+                elapsed.as_secs_f32(),
+                &mut view.renderer,
+            );
             view.drawing.update(
                 &self.session.content,
                 &mut view.renderer,
@@ -478,9 +486,11 @@ impl ApplicationHandler for Application {
         let Some(view) = &mut self.view else {
             return;
         };
-        self.menu
-            .tools
-            .event(&event, self.focused && !self.menu.panel.open);
+        self.menu.tools.event(
+            &event,
+            self.focused && !self.menu.panel.open,
+            &self.settings.navigation,
+        );
         let consumed = view.state.on_window_event(&view.window, &event).consumed;
         match event {
             WindowEvent::CloseRequested => events.exit(),
@@ -518,7 +528,10 @@ impl ApplicationHandler for Application {
                             KeyCode::Escape if self.menu.panel.open || self.menu.diagnostics => {
                                 self.menu.back(&mut self.controls, &mut self.presets);
                             }
-                            KeyCode::Escape if self.menu.tools.debug.camera.is_some() => {
+                            KeyCode::Escape
+                                if self.menu.tools.debug.camera.is_some()
+                                    || self.menu.tools.debug.camera_actor.is_some() =>
+                            {
                                 self.menu.tools.debug.return_camera();
                                 self.controls.clear();
                             }

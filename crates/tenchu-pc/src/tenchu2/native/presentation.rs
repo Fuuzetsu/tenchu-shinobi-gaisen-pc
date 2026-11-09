@@ -365,12 +365,12 @@ impl ContentDrawing {
                 Ok(())
             }
             (Self::Gameplay(drawing), Content::Gameplay(session)) => {
-                drawing.camera = debug.camera;
+                drawing.camera = debug.camera.or(debug.follow_camera);
                 drawing.show_hud = show_hud && !debug.photo_mode;
                 drawing.update(session, renderer, Some(debug))
             }
             (Self::Story(drawing), Content::Story { story, .. }) => {
-                drawing.camera = debug.camera;
+                drawing.camera = debug.camera.or(debug.follow_camera);
                 drawing.update(story, renderer)
             }
             (Self::Introduction(frame), Content::Introduction(intro)) => {

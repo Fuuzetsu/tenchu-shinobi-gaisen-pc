@@ -13,6 +13,8 @@ mod experiment;
 pub struct Tools {
     pub debug: Debug,
     scene: Snapshot,
+    orbit: crate::navigation::Orbit,
+    tick: u64,
     generation: Option<u64>,
     cursor: Option<(f64, f64)>,
     click: Option<(f64, f64)>,
@@ -25,6 +27,7 @@ impl Tools {
         let changed = self.generation != Some(generation);
         if changed {
             self.debug.return_camera();
+            self.orbit = Default::default();
             self.debug.bookmark = None;
             self.debug.selected_actor = 0;
             self.generation = Some(generation);
@@ -38,6 +41,7 @@ impl Tools {
         experiment::sync(&mut self.debug, content);
         let view = match content {
             Content::Gameplay(session) => {
+                self.tick = u64::from(session.world.tick);
                 self.scene.player = session.world.player;
                 if changed {
                     self.debug.target = session.world.actors[session.world.player].actor.position;
@@ -58,10 +62,49 @@ impl Tools {
             .min(self.scene.actors.len().saturating_sub(1));
     }
 
-    pub fn advance(&mut self, controls: &Controls, elapsed: f32, active: bool) {
+    pub fn update_camera(
+        &mut self,
+        content: &Content,
+        drawing: &mut super::presentation::ContentDrawing,
+        settings: &crate::settings::Navigation,
+        elapsed: f32,
+        renderer: &mut crate::renderer::Renderer,
+    ) {
+        self.debug.follow_camera = None;
+        let Some(actor) = self.debug.followed_inspection(&self.scene) else {
+            self.debug.camera_actor = None;
+            self.orbit = Default::default();
+            return;
+        };
+        self.orbit.observe(self.tick, actor);
+        if let (
+            Content::Gameplay(session),
+            super::presentation::ContentDrawing::Gameplay(drawing),
+        ) = (content, drawing)
+        {
+            self.debug.follow_camera =
+                Some(drawing.follow_camera(session, &mut self.orbit, settings, elapsed, renderer));
+        }
+    }
+
+    pub fn advance(
+        &mut self,
+        controls: &mut Controls,
+        elapsed: f32,
+        active: bool,
+        settings: &crate::settings::Navigation,
+    ) {
         if !active {
             self.debug.looking = false;
             return;
+        }
+        if let Some(actor) = self.debug.followed_inspection(&self.scene) {
+            self.orbit.observe(self.tick, actor);
+            if controls.take_recenter() {
+                self.orbit.recenter(actor);
+            }
+            self.orbit
+                .analog_look(controls.sticks()[1], elapsed, settings);
         }
         if let Some(camera) = &mut self.debug.camera {
             camera.advance(
@@ -72,7 +115,12 @@ impl Tools {
         }
     }
 
-    pub fn event(&mut self, event: &WindowEvent, active: bool) {
+    pub fn event(
+        &mut self,
+        event: &WindowEvent,
+        active: bool,
+        settings: &crate::settings::Navigation,
+    ) {
         match event {
             WindowEvent::MouseInput {
                 button: MouseButton::Left,
@@ -103,9 +151,13 @@ impl Tools {
                 if active
                     && self.debug.looking
                     && let Some((x, y)) = self.cursor
-                    && let Some(camera) = &mut self.debug.camera
                 {
-                    camera.look(position.x - x, position.y - y);
+                    if let Some(camera) = &mut self.debug.camera {
+                        camera.look(position.x - x, position.y - y);
+                    } else if let Some(actor) = self.debug.followed_inspection(&self.scene) {
+                        self.orbit.observe(self.tick, actor);
+                        self.orbit.mouse(position.x - x, position.y - y, settings);
+                    }
                 }
                 self.cursor = Some((position.x, position.y));
             }
@@ -118,6 +170,14 @@ impl Tools {
             return Ok(());
         }
         match item {
+            Item::RecenterOrbit => {
+                let actor = self
+                    .debug
+                    .followed_inspection(&self.scene)
+                    .ok_or("Follow an actor first")?;
+                self.orbit.recenter(actor);
+                return Ok(());
+            }
             Item::Teleport | Item::PickTeleport | Item::ClickTeleport => {
                 if self.scene.actors.is_empty() {
                     return Err("Start a mission before teleporting".into());
@@ -168,7 +228,11 @@ impl Tools {
         }
         if let Some((x, y)) = self.click.take()
             && let Content::Gameplay(session) = content
-            && let Some(camera) = self.debug.camera.or(self.scene.camera)
+            && let Some(camera) = self
+                .debug
+                .camera
+                .or(self.debug.follow_camera)
+                .or(self.scene.camera)
         {
             let matrix = camera.matrix(size[0].max(1) as f32 / size[1].max(1) as f32);
             let ndc = [
@@ -246,12 +310,17 @@ impl Tools {
                 )],
             );
         }
-        if self.debug.camera.is_some() && !self.debug.photo_mode && !menu_open {
+        if (self.debug.camera.is_some() || self.debug.camera_actor.is_some())
+            && !self.debug.photo_mode
+            && !menu_open
+        {
             egui::Area::new("native-camera-help".into())
                 .anchor(egui::Align2::LEFT_BOTTOM, [12.0, -12.0])
                 .show(ctx, |ui| {
                     egui::Frame::popup(ui.style()).show(ui, |ui| {
-                        ui.label(if cfg!(target_os = "android") {
+                        ui.label(if self.debug.camera_actor.is_some() {
+                            "FOLLOW ACTOR · RMB/right stick: orbit · F2/Back: return"
+                        } else if cfg!(target_os = "android") {
                         "FREE CAMERA · sticks move/look · Back: return"
                     } else {
                         "FREE CAMERA · WASD/QE: fly · Shift: boost · RMB/stick: look · F2: return"

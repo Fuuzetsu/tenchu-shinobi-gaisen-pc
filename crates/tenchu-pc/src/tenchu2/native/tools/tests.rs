@@ -175,10 +175,10 @@ fn inspection_is_independent_of_native_gameplay_and_scene_transitions() {
     let mut controls = Controls::default();
     controls.key(KeyCode::KeyW, true);
     for _ in 0..60 {
-        tools.advance(&controls, 1.0 / 60.0, true);
+        tools.advance(&mut controls, 1.0 / 60.0, true, &Default::default());
     }
     assert!(tools.debug.camera.unwrap().position.distance(start) > 11000.0);
-    tools.advance(&controls, 1.0, false);
+    tools.advance(&mut controls, 1.0, false, &Default::default());
     tools.change(Item::Actor, 1).unwrap();
     tools.change(Item::FocusActor, 1).unwrap();
     tools.change(Item::SaveCamera, 1).unwrap();
@@ -226,4 +226,59 @@ fn inspection_is_independent_of_native_gameplay_and_scene_transitions() {
     tools.sync(&Content::Failed, 1);
     assert!(tools.debug.camera.is_none() && tools.debug.bookmark.is_none());
     assert!(tools.change(Item::FreeCamera, 1).is_err());
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; follows live guards without changing simulation and returns/reset across scenes"]
+fn shared_follow_camera_tracks_native_guards_and_survives_player_death() {
+    use crate::visuals::surfaces::Surfaces;
+    use glam::Vec3;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let session = crate::tenchu2::native::Session::load(&disc, 9, 1).unwrap();
+    let mut content = Content::Gameplay(Box::new(session));
+    let mut tools = Tools::default();
+    let mut controls = Controls::default();
+    let navigation = crate::settings::Navigation::default();
+    tools.sync(&content, 0);
+    tools.debug.selected_actor = 1;
+    tools.change(Item::FollowActor, 1).unwrap();
+    let surfaces = Surfaces::default();
+    for tick in 0..180 {
+        let Content::Gameplay(session) = &mut content else {
+            unreachable!()
+        };
+        session.step(0).unwrap();
+        if tick == 90 {
+            session.world.actors[session.world.player].actor.health = 0;
+        }
+        let before = postcard::to_allocvec(&session.world).unwrap();
+        tools.sync(&content, 0);
+        tools.advance(&mut controls, 1.0 / 60.0, true, &navigation);
+        let actor = tools.debug.followed_inspection(&tools.scene).unwrap();
+        assert_eq!(actor.id, 1);
+        let camera = tools.orbit.camera(1.0, 1.0 / 60.0, &navigation, &surfaces);
+        let target = camera
+            .matrix(16.0 / 9.0)
+            .project_point3(actor.position - Vec3::Y * 1100.0);
+        assert!(target.x.abs() < 0.0001 && target.y.abs() < 0.0001);
+        assert!(camera.position.is_finite());
+        let Content::Gameplay(session) = &content else {
+            unreachable!()
+        };
+        assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+    }
+    tools.change(Item::Actor, 1).unwrap();
+    assert_eq!(tools.debug.camera_actor.unwrap().id, 2);
+    tools.reset(Item::Actor).unwrap();
+    assert_eq!(tools.debug.camera_actor.unwrap().id, tools.scene.player);
+    tools.reset(Item::FollowActor).unwrap();
+    assert!(tools.debug.camera_actor.is_none());
+    tools.change(Item::FollowActor, 1).unwrap();
+    tools.change(Item::FreeCamera, 1).unwrap();
+    assert!(tools.debug.camera_actor.is_none() && tools.debug.camera.is_none());
+    tools.change(Item::FollowActor, 1).unwrap();
+    tools.sync(&Content::Failed, 1);
+    assert!(tools.debug.camera_actor.is_none());
+    assert!(tools.change(Item::FollowActor, 1).is_err());
 }

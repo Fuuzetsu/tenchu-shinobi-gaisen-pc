@@ -513,6 +513,7 @@ mod tests {
                     && !matches!(
                         row.item,
                         Item::FreeCamera
+                            | Item::FollowActor
                             | Item::ClickTeleport
                             | Item::GodMode
                             | Item::Armor

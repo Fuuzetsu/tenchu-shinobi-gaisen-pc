@@ -115,7 +115,11 @@ wetness/snow but rebuilds the surface cache and clears existing footprint decals
 overhead views and a camera bookmark. WASD/QE move, Shift boosts and RMB looks;
 controller/touch sticks work too. F2 or Back returns to the game view. This also
 works while paused and in 3D cutscenes; gameplay input is withheld during free
-flight. F10 hides the gameplay HUD and camera help. Follow camera remains pending.
+flight. F10 hides the gameplay HUD and camera help. During missions, **Follow Actor**
+tracks the selected actor, including after the player dies. RMB/right stick orbits;
+distance, sensitivity, inversion and recentering use the shared camera controls.
+Terrain and props keep the camera out of walls. Following does not steer the actor
+or change the simulation camera; F2/Back restores the original view.
 
 **F1 → Tenchu 2** contains the original JP mission selector, integration
 diagnostics and return to the quick launcher. These controls are disabled with

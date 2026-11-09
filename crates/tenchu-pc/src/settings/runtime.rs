@@ -31,6 +31,8 @@ impl Runtime {
             | InspectActor | Xray | Sight | SightStance | Patrols | Events | Collision
             | CollisionOnly | Target(_) | PlayerPosition | CameraPosition | SnapFloor
             | Teleport | PickTeleport | ClickTeleport => None,
+            FollowActor | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
+            | StickDeadzone | InvertCameraY => None,
             GodMode | Armor | GiveItems | ClearItems | Inventory(_) => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,

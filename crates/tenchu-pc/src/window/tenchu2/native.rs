@@ -157,9 +157,10 @@ impl Application {
             .tools
             .sync(&native.playback.content, native.playback.generation);
         native.menu.tools.advance(
-            &self.controls,
+            &mut self.controls,
             elapsed.as_secs_f32(),
             self.focused && !native.menu.panel.open,
+            &self.settings.navigation,
         );
         if update.quit {
             return self.leave_native_tenchu2();
@@ -243,6 +244,13 @@ impl Application {
             self.clock.discard_host_backlog();
         }
         let drawing = native.drawing.as_mut().unwrap();
+        native.menu.tools.update_camera(
+            &native.playback.content,
+            drawing,
+            &self.settings.navigation,
+            elapsed.as_secs_f32(),
+            &mut view.renderer,
+        );
         drawing.update(
             &native.playback.content,
             &mut view.renderer,
@@ -435,7 +443,9 @@ impl Application {
                 {
                     native.menu.tools.debug.click_teleport = false;
                     native.menu.tools.debug.teleport_armed = false;
-                } else if native.menu.tools.debug.camera.is_some() {
+                } else if native.menu.tools.debug.camera.is_some()
+                    || native.menu.tools.debug.camera_actor.is_some()
+                {
                     native.menu.tools.debug.return_camera();
                     self.controls.clear();
                 } else {
@@ -501,10 +511,11 @@ impl Application {
             native.menu.tools.debug.teleport_armed = false;
             return Ok(());
         }
-        native
-            .menu
-            .tools
-            .event(&event, self.focused && !native.menu.panel.open);
+        native.menu.tools.event(
+            &event,
+            self.focused && !native.menu.panel.open,
+            &self.settings.navigation,
+        );
         if let Some(view) = &mut self.view {
             view.overlay.event(&view.window, &event);
         }

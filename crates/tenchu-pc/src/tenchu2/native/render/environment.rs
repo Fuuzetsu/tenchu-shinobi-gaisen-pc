@@ -18,7 +18,7 @@ use tenchu_core::{
 pub(super) struct Environment {
     pub caster: Mesh,
     pub stale: bool,
-    surfaces: Surfaces,
+    pub surfaces: Surfaces,
     weather: Weather,
     footprints: Footprints,
     tick: Option<u64>,
@@ -78,8 +78,14 @@ impl Environment {
         }
     }
 
-    pub fn rebuild(&mut self, frame: &Frame<'_>, renderer: &mut Renderer) {
-        let mut replacement = Self::new(frame.level, frame.meshes, frame.math, renderer);
+    pub fn rebuild(
+        &mut self,
+        level: &Level,
+        meshes: &Meshes,
+        math: &Math,
+        renderer: &mut Renderer,
+    ) {
+        let mut replacement = Self::new(level, meshes, math, renderer);
         replacement.weather = std::mem::take(&mut self.weather);
         replacement.tick = self.tick;
         *self = replacement;
