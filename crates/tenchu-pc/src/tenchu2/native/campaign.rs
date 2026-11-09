@@ -44,7 +44,7 @@ pub enum Action {
 
 #[derive(Default)]
 pub struct Update {
-    pub sounds: Vec<Sound>,
+    pub sounds: Vec<tenchu_assets::audio::voice::Sourced<Sound>>,
     pub stop_music: bool,
     pub music: Option<Arc<Clip>>,
     pub quit: bool,
@@ -274,7 +274,11 @@ impl<S: ReadAt> Playback<S> {
                         }
                     }
                 } else {
-                    update.sounds = selection.step(buttons, action)?;
+                    update.sounds = selection
+                        .step(buttons, action)?
+                        .into_iter()
+                        .map(Into::into)
+                        .collect();
                     None
                 }
             }
@@ -293,7 +297,11 @@ impl<S: ReadAt> Playback<S> {
                         Some(Destination::Sequence(self.run.sequence))
                     }
                 } else {
-                    update.sounds = selection.step(buttons, action);
+                    update.sounds = selection
+                        .step(buttons, action)
+                        .into_iter()
+                        .map(Into::into)
+                        .collect();
                     None
                 }
             }
@@ -413,12 +421,15 @@ impl<S: ReadAt> Playback<S> {
                         });
                     if let Some(action) = selected {
                         results.exit = Some((action, 30));
-                        update.sounds.push(Sound {
-                            id: 2,
-                            slot: 0,
-                            note: 36,
-                            volume: [127; 2],
-                        });
+                        update.sounds.push(
+                            Sound {
+                                id: 2,
+                                slot: 0,
+                                note: 36,
+                                volume: [127; 2],
+                            }
+                            .into(),
+                        );
                     }
                     None
                 }

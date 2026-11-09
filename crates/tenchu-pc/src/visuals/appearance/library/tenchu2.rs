@@ -80,6 +80,7 @@ impl Library {
                 clips: Arc::new(clips),
                 idle,
                 think: behavior.think,
+                voice_set: None,
                 voice: crate::tenchu2::voices::donor_kind(&model.name)
                     .and_then(|kind| self.get(&format!("disc:{kind}")))
                     .and_then(|body| body.voice)

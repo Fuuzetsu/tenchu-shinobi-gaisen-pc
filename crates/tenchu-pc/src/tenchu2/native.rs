@@ -1,4 +1,5 @@
 use std::{collections::BTreeSet, path::Path, sync::Arc};
+use tenchu_assets::audio::voice::{Dialect, Sourced, VoiceSet};
 use tenchu_assets::{
     ReadAt, Result,
     disc::Disc,
@@ -115,7 +116,7 @@ impl Session {
         })
     }
 
-    pub fn step(&mut self, buttons: u16) -> Result<Vec<Sound>> {
+    pub fn step(&mut self, buttons: u16) -> Result<Vec<Sourced<Sound>>> {
         if matches!(
             self.world.mission.phase,
             tenchu_core::tenchu2::mission::Phase::Finished { .. }
@@ -123,6 +124,11 @@ impl Session {
             return Ok(Vec::new());
         }
         let mut events = Output {
+            player: self.world.player,
+            #[cfg(not(target_arch = "wasm32"))]
+            voice: self.models.voice.as_ref(),
+            #[cfg(target_arch = "wasm32")]
+            voice: None,
             listener: self.world.listener(),
             requests: Vec::new(),
             pending: &mut self.pending,
@@ -133,13 +139,14 @@ impl Session {
             .step([buttons, 0], &mut self.assets, &mut events)?;
         for &position in &self.frame.effects.blood_sounds {
             events.requests.push(SoundRequest {
+                source: None,
                 id: 29,
                 listener: self.world.listener(),
                 position: Some(position),
                 volume: None,
             });
         }
-        let mut sounds: Vec<_> = self.frame.ambience.into_iter().collect();
+        let mut sounds: Vec<_> = self.frame.ambience.into_iter().map(Sourced::from).collect();
         for request in events.requests {
             if let Some((direction, volume)) = request
                 .listener
@@ -152,22 +159,37 @@ impl Session {
                     &self.assets.resources.math,
                 )
             {
-                sounds.push(sound);
+                let mut sound = sound;
+                if let Some((_, id)) = &request.source {
+                    sound.id = *id;
+                }
+                sounds.push(Sourced {
+                    sound,
+                    bank: request.source.map(|(bank, _)| bank),
+                });
             }
         }
-        sounds.extend(self.world.advance_mission(&self.assets)?);
+        sounds.extend(
+            self.world
+                .advance_mission(&self.assets)?
+                .into_iter()
+                .map(Sourced::from),
+        );
         self.frame.transition_fade = self.world.mission.fade;
         Ok(sounds)
     }
 }
 
 struct Output<'a> {
+    player: usize,
+    voice: Option<&'a Arc<VoiceSet>>,
     listener: Listener,
     requests: Vec<SoundRequest>,
     pending: &'a mut BTreeSet<String>,
 }
 
 struct SoundRequest {
+    source: Option<(Arc<tenchu_assets::audio::bank::Bank>, u8)>,
     id: u8,
     listener: Listener,
     position: Option<Position>,
@@ -189,8 +211,18 @@ impl Events for Output<'_> {
         self.listener = source.listener;
         let position = (source.index != source.listener.actor).then_some(source.actor.position);
         let mut volume = None;
+        let mut bank = None;
         let (id, position) = match event {
             Event::Voice(id) | Event::Combat(CombatCue::Voice(id)) => {
+                if id < 16
+                    && source.index == self.player
+                    && let Some(voice) = self.voice
+                {
+                    bank = Some((
+                        voice.bank.clone(),
+                        voice.cue(Dialect::Tenchu2, id, source.actor.health == 0) as u8,
+                    ));
+                }
                 (if id < 16 { id | source.voice << 4 } else { id }, position)
             }
             Event::Sound(id) => (id, None),
@@ -217,6 +249,7 @@ impl Events for Output<'_> {
             }
         };
         self.requests.push(SoundRequest {
+            source: bank,
             id,
             listener: source.listener,
             position,
@@ -230,6 +263,7 @@ impl environment::Events for Output<'_> {
     fn emit(&mut self, event: environment::Event, _: &mut Random) -> Result<()> {
         if let environment::Event::Sound { position, id } = event {
             self.requests.push(SoundRequest {
+                source: None,
                 id,
                 listener: self.listener,
                 position: Some(position),

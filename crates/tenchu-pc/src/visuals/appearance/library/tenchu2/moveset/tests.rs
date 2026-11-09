@@ -404,3 +404,93 @@ fn imported_models_present_native_attacks_in_gaisen() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and TENCHU2_DISC; mixes imported hero cues with host sounds and restores save/rewind audio"]
+fn imported_voices_follow_the_moveset_and_survive_restore() {
+    use tenchu_assets::audio::{bank::Bank, voice::Dialect};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let movesets = load(&disc).unwrap();
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    for kind in 0..3 {
+        let source = &movesets[&kind];
+        let voice = source.voice.as_ref().expect("hero source bank");
+        assert_eq!(voice.dialect, Dialect::Tenchu2);
+        assert!(
+            voice
+                .bank
+                .samples
+                .iter()
+                .any(|s| s.frames.iter().any(|&f| f != 0))
+        );
+        let mut game = crate::session::Options {
+            character: 1,
+            ..Default::default()
+        }
+        .load(&gaisen)
+        .unwrap();
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        game.set_imported_player_moveset(source, Default::default())
+            .unwrap();
+        game.step(SQUARE).unwrap();
+        let mut personal = std::collections::BTreeSet::new();
+        let mut pcm = tenchu_audio::Mixer::new(48000);
+        pcm.set_bank(Arc::new(
+            Bank::load(&gaisen, 0, 1, tenchu_assets::script::Language::Japanese).unwrap(),
+        ));
+        let mut audible = false;
+        for _ in 0..90 {
+            game.step(0).unwrap();
+            let rng = game.random;
+            let sounds = game
+                .audio_with_burning([(game.player().position, 0x39)], None)
+                .unwrap();
+            assert!(
+                sounds
+                    .iter()
+                    .any(|s| s.bank.is_none() && s.sound.id == 0x39)
+            );
+            for event in sounds {
+                let s = event.sound;
+                if let Some(bank) = event.bank {
+                    assert!(Arc::ptr_eq(&voice.bank, &bank));
+                    personal.insert(s.id);
+                    pcm.play_from(&bank, s.id, s.volume, s.pan);
+                }
+            }
+            for _ in 0..1600 {
+                audible |= pcm.frame().iter().any(|v| v.abs() > 0.001);
+            }
+            assert_eq!(game.random, rng);
+        }
+        assert!(
+            personal.contains(&2),
+            "hero {kind}: attack effect {personal:?}"
+        );
+        assert!(
+            personal.contains(&10) || personal.contains(&11),
+            "hero {kind}: attack voice {personal:?}"
+        );
+        assert!(audible, "hero {kind}: silent source");
+        let bytes = postcard::to_allocvec(&game).unwrap();
+        let mut restored: tenchu_core::game::Game = postcard::from_bytes(&bytes).unwrap();
+        restored.intelligence.voices = vec![(restored.player_id, 9)];
+        let events = restored.audio_with_burning([], None).unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].sound.id, 10);
+        let restored_bank = events[0].bank.as_ref().unwrap();
+        assert_eq!(
+            postcard::to_allocvec(restored_bank).unwrap(),
+            postcard::to_allocvec(&voice.bank).unwrap()
+        );
+        restored
+            .set_player_moveset(None, &[], Default::default())
+            .unwrap();
+        let events = restored.audio_with_burning([], None).unwrap();
+        assert!(events[0].bank.is_none());
+        assert_eq!(events[0].sound.id, 0x59);
+    }
+}

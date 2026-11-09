@@ -24,8 +24,8 @@ impl Update {
         if let Some(music) = &self.music {
             output.send(Command::Music(Some(music.clone()), false));
         }
-        for &sound in &self.sounds {
-            output.send(Command::Tenchu2Effect(sound));
+        for sound in &self.sounds {
+            output.send(Command::Tenchu2Effect(sound.clone()));
         }
     }
 }

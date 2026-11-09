@@ -42,7 +42,8 @@ fn native_guards_fight_and_speak_from_mission_start() {
         } else {
             0
         };
-        for sound in session.step(held).unwrap() {
+        for event in session.step(held).unwrap() {
+            let sound = event.sound;
             if sound.id >> 4 == voice {
                 voiced += 1;
                 mixer.play_at(
@@ -206,8 +207,18 @@ fn native_frame_controls_and_audio_continue_after_restoring_a_world() {
         for tick in 0..120 {
             let held = if tick == 0 { ATTACK } else { 0 };
             assert_eq!(
-                session.step(held).unwrap(),
-                restored.step(held).unwrap(),
+                session
+                    .step(held)
+                    .unwrap()
+                    .into_iter()
+                    .map(|s| s.sound)
+                    .collect::<Vec<_>>(),
+                restored
+                    .step(held)
+                    .unwrap()
+                    .into_iter()
+                    .map(|s| s.sound)
+                    .collect::<Vec<_>>(),
                 "hero {hero} sound continuation {tick}"
             );
         }
@@ -388,7 +399,20 @@ fn native_mission_exit_stops_input_and_survives_restoring_mid_fade() {
         .clips
         .clone_from(&session.assets.resources.clips);
     for _ in 0..60 {
-        assert_eq!(session.step(UP).unwrap(), restored.step(UP).unwrap());
+        assert_eq!(
+            session
+                .step(UP)
+                .unwrap()
+                .into_iter()
+                .map(|s| s.sound)
+                .collect::<Vec<_>>(),
+            restored
+                .step(UP)
+                .unwrap()
+                .into_iter()
+                .map(|s| s.sound)
+                .collect::<Vec<_>>()
+        );
         assert_eq!(session.world.mission.phase, restored.world.mission.phase);
     }
     assert!(matches!(

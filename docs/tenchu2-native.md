@@ -59,7 +59,9 @@ moveset override and select **Original** to return to the native hero.
 
 Movement and melee use source registrations, timing, combos and contacts. The
 host still supplies collision, damage rules, mission identity, inventory,
-voices, paired stealth kills and unmapped actions. Movesets carry their source
+paired stealth kills and unmapped actions. Character-local voice/weapon cues use
+the selected moveset’s own disc bank, with translations between the games’ cue
+slots; global world effects and event scheduling still follow the host. Movesets carry their source
 weapon models, textures, handles and sheaths, including T2 HD-pack replacements
 and source draw/holster attachment rules. Scripted/projectile-only moves and custom-folder
 bodies are not connected to the native runtime yet. A body without a supported

@@ -67,6 +67,15 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
             "swap {id}"
         );
         assert_eq!(rng, session.world.random);
+        let voice = library
+            .get(id)
+            .unwrap()
+            .moveset_voice()
+            .expect("moveset voice");
+        assert!(std::sync::Arc::ptr_eq(
+            session.models.voice.as_ref().unwrap(),
+            voice
+        ));
         assert_eq!(session.world.actors[owner].actor.kind, original);
         if id.starts_with("tenchu2-jp:") {
             for source in session.assets.weapon_imports.values() {
@@ -93,6 +102,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
         for _ in 0..30 {
             session.step(0).unwrap();
         }
+        let mut heard_voice = false;
         let mut seen = BTreeSet::new();
         let mut contacts = BTreeSet::new();
         let yaw = session.world.actors[owner].actor.rotation.y;
@@ -111,7 +121,13 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
             } else {
                 0
             };
-            session.step(input).unwrap();
+            for event in session.step(input).unwrap() {
+                if let Some(bank) = event.bank {
+                    assert!(std::sync::Arc::ptr_eq(&bank, &voice.bank));
+                    assert!(event.sound.id < 16);
+                    heard_voice = true;
+                }
+            }
             let player = &session.world.actors[owner].actor;
             if player.imported_attack().is_some() {
                 seen.insert(player.motion.action);
@@ -122,6 +138,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
         }
         assert!(seen.contains(&0x900), "{id}: {seen:?}");
         assert!(contacts.contains(&0x900), "{id}: no contacts: {contacts:?}");
+        assert!(heard_voice, "no imported voice for {id}");
         let turn =
             (session.world.actors[owner].actor.rotation.y - yaw + 2048).rem_euclid(4096) - 2048;
         // Gaisen commits authored root turns; T2's forward chain preserves yaw.
@@ -222,6 +239,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
             .unwrap()
     );
     assert!(session.world.actors[owner].actor.moveset.is_none());
+    assert!(session.models.voice.is_none());
     for _ in 0..30 {
         session.step(UP).unwrap();
     }

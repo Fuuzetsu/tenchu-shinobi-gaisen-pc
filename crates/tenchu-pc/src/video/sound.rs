@@ -75,11 +75,17 @@ impl Sound {
         burning: tenchu_core::audio::BurningSound,
         extra: impl IntoIterator<Item = (tenchu_core::math::Position, i16)>,
     ) -> Result<()> {
-        for sound in game.sounds_with_burning(
+        for event in game.audio_with_burning(
             crate::visuals::death::blood::sounds(&game.effects, frame).chain(extra),
             Some(burning),
         )? {
-            self.mixer.play(sound.id, sound.volume, sound.pan);
+            let sound = event.sound;
+            if let Some(bank) = event.bank {
+                self.mixer
+                    .play_from(&bank, sound.id, sound.volume, sound.pan);
+            } else {
+                self.mixer.play(sound.id, sound.volume, sound.pan);
+            }
         }
         for cue in &game.music {
             let track = cue.and_then(|id| self.catalog.as_ref()?.event(id)).cloned();

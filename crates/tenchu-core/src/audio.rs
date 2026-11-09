@@ -1,5 +1,6 @@
 use crate::math::Position;
 use crate::{Result, camera::Mode, game::Game, ids::ATTR_SUSPEND, math::Math};
+use tenchu_assets::audio::voice::{Dialect, Sourced};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Sound {
@@ -134,6 +135,18 @@ impl Game {
         effects: impl IntoIterator<Item = (Position, i16)>,
         burning: Option<BurningSound>,
     ) -> Result<Vec<Sound>> {
+        Ok(self
+            .audio_with_burning(effects, burning)?
+            .into_iter()
+            .map(|event| event.sound)
+            .collect())
+    }
+
+    pub fn audio_with_burning(
+        &self,
+        effects: impl IntoIterator<Item = (Position, i16)>,
+        burning: Option<BurningSound>,
+    ) -> Result<Vec<Sourced<Sound>>> {
         let listener = Listener {
             position: self.player().position,
             yaw: self.player().rotation[1],
@@ -144,6 +157,11 @@ impl Game {
             let Some(actor) = self.roster.actors.get(id).and_then(Option::as_ref) else {
                 continue;
             };
+            let voice = (id == self.player_id)
+                .then_some(self.moveset.kind)
+                .flatten()
+                .and_then(|kind| self.mission.moveset_voices.get(&kind))
+                .filter(|_| sound & 0xf0 == 0);
             if sound & 0xf0 == 0 {
                 if sound > 5 && (self.cinematic.frame || actor.attribute & ATTR_SUSPEND != 0) {
                     continue;
@@ -170,21 +188,28 @@ impl Game {
                         .position(|&kind| kind == actor.kind)
                         .unwrap_or(self.sound_appearance.len()) as i16
                 };
-                sound |= program << 4;
+                sound = if let Some(voice) = voice {
+                    voice.cue(Dialect::Gaisen, sound as u8, actor.health == 0)
+                } else {
+                    sound | program << 4
+                };
             }
             if let Some(sound) = listener.sound(
                 &self.math,
                 (id != self.player_id).then_some(actor.position),
                 sound,
             )? {
-                sounds.push(sound);
+                sounds.push(Sourced {
+                    sound,
+                    bank: voice.map(|v| v.bank.clone()),
+                });
             }
         }
         for (position, sound) in effects {
             let position =
                 (!matches!(sound, 0x0b | 0x0e | 0x27 | 0x39 | 0x41 | 0x43)).then_some(position);
             if let Some(sound) = listener.sound(&self.math, position, sound)? {
-                sounds.push(sound);
+                sounds.push(sound.into());
             }
         }
         for &position in &self.effects.burning_sounds {
@@ -194,7 +219,7 @@ impl Game {
                 listener.sound(&self.math, Some(position), 0x39)?
             };
             if let Some(sound) = sound {
-                sounds.push(sound);
+                sounds.push(sound.into());
             }
         }
         Ok(sounds)

@@ -47,8 +47,19 @@ as specified by `tenchu-decomp/src/main.exe/APPEAR.C`, with the additional T2
 accessory slot used only by imports. `tenchu-viewer/src/weapons.rs` also provides
 the Gaisen attachment reference. No original assets are bundled.
 
+Character-local audio follows the selected moveset. The library extracts the
+character program from its source disc into an owned VoiceSet; edition and cast
+selection happen at load time, never in the audio thread. Both hosts translate
+local cue meanings and retain their own spatialization, voice allocation and
+scheduling. Sourced sounds carry optional bank ownership to the common mixer,
+so imported voices coexist with mission sounds and cannot replace stage ambience
+or other actors' samples. The mixer retains the bank for each active voice.
+Gaisen stores selected voice resources with its shared mission assets so rewind
+checkpoints do not serialize PCM every tick, and saves restore them independently
+of the currently selected model. No additional gameplay RNG is consumed.
+
 Remaining work includes further checked gameplay commands, more effect adapters,
-and source motion audio. The existing cross-game melee bridge still converts
+and complete source motion-event timing. The existing cross-game melee bridge still converts
 motion data through Gaisen's representation; this refactor does not make every
 move, item or weapon interchangeable. Preserve original action semantics at that
 boundary rather than making a universal AI/controller or silently substituting

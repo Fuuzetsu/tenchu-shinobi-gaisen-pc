@@ -37,6 +37,7 @@ struct Selection {
 #[derive(Default)]
 pub struct Override {
     applied: Selection,
+    pub voice: Option<std::sync::Arc<tenchu_assets::audio::voice::VoiceSet>>,
     original: Option<Original>,
     weapon_pool: Vec<Vec<usize>>,
 }
@@ -275,6 +276,7 @@ impl Override {
         world.instances[owner].model_height = actor::model_bounds(parts)?[1];
         world.publish(owner, assets);
         world.scene.finish_tick();
+        self.voice = moveset.and_then(|body| body.moveset_voice()).cloned();
         self.applied = selection;
         Ok(true)
     }

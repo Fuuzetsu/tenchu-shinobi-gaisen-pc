@@ -24,6 +24,7 @@ impl MissionAssets {
             models,
             imported_models,
             imported_voices,
+            moveset_voices,
             clips,
             common_motions,
             weapons,
@@ -66,6 +67,7 @@ impl MissionAssets {
         out.shared_arc(models, true)?;
         out.shared_arc(imported_models, true)?;
         out.value(imported_voices)?;
+        out.shared_arc(moveset_voices, true)?;
         out.shared_arc(clips, true)?;
         out.value(common_motions)?;
         weapons.capture(out)?;

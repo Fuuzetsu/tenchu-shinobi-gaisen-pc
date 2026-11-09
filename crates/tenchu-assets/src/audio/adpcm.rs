@@ -74,7 +74,7 @@ impl Xa {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Sample {
     pub frames: Vec<i16>,
     pub loop_start: Option<usize>,

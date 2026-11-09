@@ -175,7 +175,8 @@ fn native_equipment_supplies_the_campaign_inventory() {
     mixer.set_bank(selection.bank.clone());
     let sounds = playback.step(0x2000).unwrap().sounds;
     assert_eq!(sounds.len(), 1);
-    for sound in sounds {
+    for event in sounds {
+        let sound = event.sound;
         mixer.play_at(0, i16::from(sound.id), sound.volume, sound.note);
     }
     assert!(
@@ -500,7 +501,7 @@ fn native_results_buttons_follow_the_printed_legend() {
         playback.step(0).unwrap();
         let update = playback.step(buttons).unwrap();
         assert_eq!(
-            update.sounds,
+            update.sounds.iter().map(|s| s.sound).collect::<Vec<_>>(),
             [Sound {
                 id: 2,
                 slot: 0,

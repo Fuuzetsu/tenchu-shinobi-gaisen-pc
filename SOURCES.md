@@ -2881,3 +2881,23 @@ silently flattening it. Source-qualified resource identities keep EU/JP textures
 separate, while the original HD-pack IDs stay usable. No executable, motion,
 texture, mesh or audio data is added to the source
 tree. Swaps reuse scene joints and weapon slots and do not consume gameplay RNG.
+
+
+### Cross-game character audio
+
+The moveset library reads Gaisen character programs using the existing VAB loader
+and stage appearance tables. T2 actor programs follow native JP `8001ec68` /
+`8001ecb4`: program 4 for the selected hero, then programs 5+ for the map's cast.
+Both editions supply their own `R_E_*.vab`, `A_E_*.vab` and `T_E_*.vab` banks.
+Only the selected program and its referenced decoded samples are retained; all
+sample/pitch/envelope/volume data still comes from the user's disc.
+
+Character-local cue translation uses Gaisen's `src/main.exe/sound.h`, `SEMNG.C`
+and attack/damage/AI call sites in the read-only `tenchu-decomp` reference, and
+the already verified JP `control/attack`, `control/damage`, `control/special`
+and `ai/perception` implementations. T1 attack voices 9/10 become T2 10/11;
+T2 hurt/death 13/14/15 become Gaisen hurt/heavy variants, rather than interpreting
+those numbers as Gaisen alert barks. The presentation adapter leaves source
+simulation event timing, audio allocation and RNG calls intact; it does not claim
+that every imported motion has acquired its original game's event script.
+Global world effects and paired-kill event scheduling remain host-owned.

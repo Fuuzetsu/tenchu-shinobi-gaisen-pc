@@ -43,3 +43,46 @@ impl Audio {
         })
     }
 }
+
+pub fn voices(
+    disc: &Disc<impl ReadAt>,
+    registry: &super::registry::Registry,
+) -> Result<std::collections::BTreeMap<i16, std::sync::Arc<crate::audio::voice::VoiceSet>>> {
+    use crate::audio::voice::{Dialect, VoiceSet};
+    use std::{collections::BTreeMap, sync::Arc};
+    let volume = Volume::open(disc)?;
+    let mut groups: BTreeMap<(usize, usize), Vec<(i16, usize)>> = BTreeMap::new();
+    for actor in &registry.actors {
+        let source = if actor.kind < 3 {
+            Some((actor.kind as usize, 0, 4))
+        } else {
+            (0..24).find_map(|map| {
+                (0..3).find_map(|hero| {
+                    registry
+                        .cast(hero, map)?
+                        .iter()
+                        .position(|&kind| kind == actor.kind)
+                        .map(|slot| (hero, map, slot + 5))
+                })
+            })
+        };
+        if let Some((hero, map, program)) = source {
+            groups
+                .entry((hero, map))
+                .or_default()
+                .push((actor.kind, program));
+        }
+    }
+    let mut voices = BTreeMap::new();
+    for ((hero, map), actors) in groups {
+        let name = format!("{}_E_{map:02}.vab", ['R', 'A', 'T'][hero]);
+        let bank = Bank::parse(&volume.read(r"o:\cdimage\game\sound", &name)?)?;
+        for (kind, program) in actors {
+            voices.insert(
+                kind,
+                Arc::new(VoiceSet::extract(&bank, program, Dialect::Tenchu2)?),
+            );
+        }
+    }
+    Ok(voices)
+}

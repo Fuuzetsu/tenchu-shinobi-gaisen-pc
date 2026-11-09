@@ -4,7 +4,7 @@ use crate::{
     u16_le, u32_le,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Tone {
     pub mode: u8,
     pub volume: u8,
@@ -15,13 +15,14 @@ pub struct Tone {
     pub sample: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Program {
     pub volume: u8,
     pub pan: u8,
     pub tones: Vec<Tone>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Bank {
     pub volume: u8,
     pub pan: u8,

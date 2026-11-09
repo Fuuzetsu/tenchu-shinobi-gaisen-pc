@@ -238,7 +238,8 @@ impl Audio {
     }
 
     pub fn effect(&self, id: i16) {
-        self.output.send(output::Command::Effect(Sound::local(id)));
+        self.output
+            .send(output::Command::Effect(Sound::local(id).into()));
     }
 
     pub fn pause_effect(&self, paused: bool) {
@@ -272,7 +273,7 @@ impl Audio {
         extra: impl IntoIterator<Item = (tenchu_core::math::Position, i16)>,
     ) -> Result<()> {
         if !self.fast_forward {
-            for sound in game.sounds_with_burning(
+            for sound in game.audio_with_burning(
                 crate::visuals::death::blood::sounds(&game.effects, frame).chain(extra),
                 Some(burning),
             )? {

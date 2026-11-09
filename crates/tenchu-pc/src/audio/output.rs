@@ -18,8 +18,8 @@ mod pulse;
 
 pub enum Command {
     Bank(Arc<Bank>),
-    Effect(Sound),
-    Tenchu2Effect(tenchu_core::tenchu2::audio::Sound),
+    Effect(tenchu_assets::audio::voice::Sourced<Sound>),
+    Tenchu2Effect(tenchu_assets::audio::voice::Sourced<tenchu_core::tenchu2::audio::Sound>),
     UiEffect(i16),
     Music(Option<Arc<Clip>>, bool),
     SeekMusic(f64),
@@ -131,13 +131,34 @@ impl Playback {
         while let Ok(command) = self.commands.try_recv() {
             match command {
                 Command::Bank(bank) => self.mixer.set_bank(bank),
-                Command::Effect(sound) => self.mixer.play(sound.id, sound.volume, sound.pan),
-                Command::Tenchu2Effect(sound) => self.mixer.play_at(
-                    usize::from(sound.slot),
-                    i16::from(sound.id),
-                    sound.volume,
-                    sound.note,
-                ),
+                Command::Effect(event) => {
+                    let sound = event.sound;
+                    if let Some(bank) = event.bank {
+                        self.mixer
+                            .play_from(&bank, sound.id, sound.volume, sound.pan);
+                    } else {
+                        self.mixer.play(sound.id, sound.volume, sound.pan);
+                    }
+                }
+                Command::Tenchu2Effect(event) => {
+                    let sound = event.sound;
+                    if let Some(bank) = event.bank {
+                        self.mixer.play_at_from(
+                            &bank,
+                            usize::from(sound.slot),
+                            i16::from(sound.id),
+                            sound.volume,
+                            sound.note,
+                        );
+                    } else {
+                        self.mixer.play_at(
+                            usize::from(sound.slot),
+                            i16::from(sound.id),
+                            sound.volume,
+                            sound.note,
+                        );
+                    }
+                }
                 Command::UiEffect(id) => self.mixer.play_ui(id, 127, 64),
                 Command::Music(clip, repeat) => self.mixer.music(clip, repeat),
                 Command::SeekMusic(seconds) => self.mixer.seek_music(seconds),

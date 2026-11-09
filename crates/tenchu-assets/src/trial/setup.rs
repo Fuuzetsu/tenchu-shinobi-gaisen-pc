@@ -155,6 +155,7 @@ impl MissionAssets {
             models: models.into(),
             imported_models: Default::default(),
             imported_voices: vec![],
+            moveset_voices: Default::default(),
             clips: clips.into(),
             common_motions: tables.common_motions.clone(),
             weapons: crate::weapon::Weapons::load_trial(assets, &exe)?,

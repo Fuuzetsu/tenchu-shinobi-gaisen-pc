@@ -3,6 +3,7 @@ use crate::{Result, actor::Context, ids::*, motion::Motion, scene::ModelId};
 use tenchu_assets::{executable::Character, motion::Clip};
 
 pub struct Imported {
+    pub voice: Option<std::sync::Arc<tenchu_assets::audio::voice::VoiceSet>>,
     pub character: Character,
     pub clips: Vec<Clip>,
     pub attacks: Vec<(
@@ -57,6 +58,10 @@ impl Game {
                 .insert(attack.clip, contacts.clone());
         }
         self.import_player_weapons(&source.equipment)?;
+        if let Some(voice) = &source.voice {
+            std::sync::Arc::make_mut(&mut self.mission.moveset_voices)
+                .insert(source.character.kind, voice.clone());
+        }
         Ok(())
     }
 

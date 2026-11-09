@@ -26,6 +26,7 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
     // Both discs store authored 30 Hz tracks. PAL's 25 Hz load-time patch is
     // inappropriate for Gaisen's 30 Hz controller (as in the Tatsumaru importer).
     let weapons = Weapons::load(disc)?;
+    let voices = tenchu2::audio::voices(disc, &registry)?;
     let registry_ref = &registry;
     let clips = motions::collect(
         disc,
@@ -206,6 +207,7 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
         out.insert(
             kind,
             Arc::new(Imported {
+                voice: voices.get(&kind).cloned(),
                 character,
                 clips: converted.into_values().collect(),
                 attacks,

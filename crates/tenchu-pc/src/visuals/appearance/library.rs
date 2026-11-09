@@ -1,6 +1,7 @@
 mod import;
 #[cfg(not(target_arch = "wasm32"))]
 mod tenchu2;
+mod voices;
 pub use import::{Imported, import_actor};
 
 use crate::visuals::catalog;
@@ -29,6 +30,7 @@ pub struct Body {
     pub idle: Option<usize>,
     pub think: i16,
     pub voice: Option<tenchu_assets::stage::imports::Voice>,
+    pub voice_set: Option<Arc<tenchu_assets::audio::voice::VoiceSet>>,
 }
 
 #[derive(Default)]
@@ -187,6 +189,7 @@ impl Library {
                 idle,
                 think,
                 voice,
+                voice_set: None,
             });
         }
         let mut extra_clips = BTreeMap::new();
@@ -226,6 +229,7 @@ impl Library {
                 .and_then(|c| idle(&c.motions, &[], &body.clips))
                 .or_else(|| idle_id.and_then(|id| body.clips.iter().position(|c| c.id == id)));
         }
+        library.load_voices(assets)?;
         library.bodies.sort_by(|a, b| a.name.cmp(&b.name));
         for (index, body) in library.bodies.iter().enumerate() {
             library.aliases.insert(body.id.clone(), index);
@@ -327,7 +331,13 @@ impl Body {
         if let Some(source) = &self.imported_moveset {
             game.set_imported_player_moveset(source, options)
         } else {
-            game.set_player_moveset(self.moveset_character(), &self.clips, options)
+            game.set_player_moveset(self.moveset_character(), &self.clips, options)?;
+            if let Some(kind) = game.moveset.kind
+                && let Some(voice) = self.moveset_voice()
+            {
+                Arc::make_mut(&mut game.mission.moveset_voices).insert(kind, voice.clone());
+            }
+            Ok(())
         }
     }
 
