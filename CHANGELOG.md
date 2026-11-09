@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.22.0 — 2026-11-09
+
 - Expand native Japanese Tenchu 2's F1 menu with display/HUD controls, visual
   presets and custom preset management, retro comparison, texture filtering and
   artwork, post-processing, keyboard/controller remapping and touch settings.
