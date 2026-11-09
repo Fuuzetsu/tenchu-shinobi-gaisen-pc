@@ -529,7 +529,14 @@ impl Application {
                 self.debug.click_teleport = !self.debug.click_teleport;
             }
             Item::Inventory(slot) => {
-                let count = (i32::from(self.debug.inventory[slot]) + direction).clamp(0, 255) as u8;
+                let count = self
+                    .debug
+                    .inventory
+                    .iter()
+                    .find(|entry| entry.id == slot)
+                    .ok_or("Invalid inventory slot")?
+                    .count;
+                let count = (i32::from(count) + direction).clamp(0, 255) as u8;
                 self.set_inventory(slot, count)?;
             }
             Item::GiveItems | Item::ClearItems => {

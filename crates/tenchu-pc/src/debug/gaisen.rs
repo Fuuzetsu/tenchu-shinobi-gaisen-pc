@@ -28,19 +28,20 @@ impl Scene for Game {
 
 impl Debug {
     pub fn new(game: &Game) -> Result<Self> {
-        Ok(Self {
+        let mut debug = Self {
             selected_actor: game.player_id,
             target: game.player().position,
             god_mode: game.player().invulnerable,
             stealth: game.intelligence.ignore_player,
-            inventory: game.player().inventory[..19].try_into().unwrap(),
             bandages: game.player().bleeding.as_ref().map(|s| s.bandages),
             armor: game.combat.armor,
             sight_percent: game.intelligence.sight_percent,
             surfaces: terrain::surfaces(&game.mission.terrain)?,
             last_tick: game.tick,
             ..Self::default()
-        })
+        };
+        debug.inventory(game);
+        Ok(debug)
     }
 
     pub fn reload(&mut self, game: &Game) -> Result<()> {
@@ -172,8 +173,7 @@ impl Debug {
             .map(|a| game.intelligence.profiles.combat(a));
         self.god_mode = game.player().invulnerable;
         self.stealth = game.intelligence.ignore_player;
-        self.inventory
-            .copy_from_slice(&game.player().inventory[..19]);
+        self.inventory(game);
         self.bandages = game.player().bleeding.as_ref().map(|s| s.bandages);
         self.armor = game.combat.armor;
         if self.last_tick != game.tick {
@@ -192,6 +192,22 @@ impl Debug {
 
     pub fn overlay(&self, game: &Game, aspect: f32) -> Overlay {
         overlay::build(self, game, aspect)
+    }
+
+    fn inventory(&mut self, game: &Game) {
+        self.inventory.clear();
+        self.inventory
+            .extend(
+                game.player().inventory[..19]
+                    .iter()
+                    .enumerate()
+                    .map(|(id, &count)| super::InventorySlot {
+                        id,
+                        name: crate::ui::ITEMS[id],
+                        count,
+                    }),
+            );
+        self.inventory_unlimited = true;
     }
 }
 

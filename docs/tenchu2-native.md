@@ -44,7 +44,7 @@ Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
 Presets remain shared, with only the supported graphics applied in native JP.
 Texture-based lamp discovery, combat-effect lights, blood/water enhancements, hair/cloth physics,
-camera-relative controls, rewind, randomizer, gameplay cheats
+camera-relative controls, rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
 
@@ -85,6 +85,15 @@ snapping to a collision floor. **Experiment → Click to teleport** also works i
 the normal camera. Escape / Back cancels picking. Teleports require a living player
 outside attacks, damage, item use, paired kills and scripted transitions; blocked
 or out-of-map destinations are rejected. Collision and camera state update together.
+
+**F1 → Experiment** also provides god mode, armour protection, give/clear equipment
+and individual quantities for T2's carried items. God mode blocks combat, poison,
+drowning and fall damage; hit reactions still happen and enabling it does not
+refill health or revive a dead player. Armour changes damage protection, not the
+already loaded outfit. God mode and armour overrides reset with a new area. Equipment edits change
+the current loadout without changing campaign stock or interrupting active items.
+Unlike Gaisen, a T2 quantity of 255 is still consumed normally (the grappling hook
+is never consumed). Armour has its own checkbox; unused item slots are omitted.
 
 **F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
 wind-directed shelter on terrain and static props, accumulation, runoff, tracks,

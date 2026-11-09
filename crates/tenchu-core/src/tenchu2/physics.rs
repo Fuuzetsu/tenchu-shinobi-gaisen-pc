@@ -117,6 +117,7 @@ impl Actor {
         } else {
             None
         };
+        let death = death.filter(|_| !self.invulnerable);
         if death.is_some() {
             self.health = 0;
             self.previous = Position::new(query.x, self.terrain.floor.unwrap_or(i32::MIN), query.z);

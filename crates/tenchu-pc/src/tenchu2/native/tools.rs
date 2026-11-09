@@ -7,6 +7,8 @@ use crate::{
 use tenchu_assets::Result;
 use winit::event::{ElementState, MouseButton, TouchPhase, WindowEvent};
 
+mod experiment;
+
 #[derive(Default)]
 pub struct Tools {
     pub debug: Debug,
@@ -15,6 +17,7 @@ pub struct Tools {
     cursor: Option<(f64, f64)>,
     click: Option<(f64, f64)>,
     teleport: Option<(tenchu_core::math::Position, bool)>,
+    edits: Vec<experiment::Edit>,
 }
 
 impl Tools {
@@ -28,9 +31,11 @@ impl Tools {
             self.cursor = None;
             self.click = None;
             self.teleport = None;
+            self.edits.clear();
             self.debug.click_teleport = false;
         }
         self.scene.actors.clear();
+        experiment::sync(&mut self.debug, content);
         let view = match content {
             Content::Gameplay(session) => {
                 self.scene.player = session.world.player;
@@ -109,6 +114,9 @@ impl Tools {
     }
 
     pub fn change(&mut self, item: Item, delta: i32) -> Result<()> {
+        if experiment::change(&mut self.debug, &mut self.edits, item, delta, false)? {
+            return Ok(());
+        }
         match item {
             Item::Teleport | Item::PickTeleport | Item::ClickTeleport => {
                 if self.scene.actors.is_empty() {
@@ -136,6 +144,9 @@ impl Tools {
     }
 
     pub fn reset(&mut self, item: Item) -> Result<()> {
+        if experiment::change(&mut self.debug, &mut self.edits, item, 0, true)? {
+            return Ok(());
+        }
         if item == Item::ClickTeleport {
             self.debug.click_teleport = false;
             return Ok(());
@@ -148,6 +159,13 @@ impl Tools {
     }
 
     pub fn apply(&mut self, content: &mut Content, size: [u32; 2]) -> Result<()> {
+        if !self.edits.is_empty() {
+            let edits = self.edits.drain(..);
+            let Content::Gameplay(session) = content else {
+                return Err("Start a mission before editing the player or equipment.".into());
+            };
+            experiment::apply(&mut session.world, edits)?;
+        }
         if let Some((x, y)) = self.click.take()
             && let Content::Gameplay(session) = content
             && let Some(camera) = self.debug.camera.or(self.scene.camera)

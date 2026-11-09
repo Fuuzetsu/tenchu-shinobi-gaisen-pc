@@ -567,8 +567,10 @@ impl Damage<'_, '_> {
         if power > 0 {
             self.emit(DamageCue::Alert)?;
         }
-        self.actor.health = self.actor.health.wrapping_sub(power);
-        if self.actor.health <= 0 || power < 0 {
+        if !self.actor.invulnerable {
+            self.actor.health = self.actor.health.wrapping_sub(power);
+        }
+        if self.actor.health <= 0 || (power < 0 && !self.actor.invulnerable) {
             self.actor.health = 0;
             if power < 0 {
                 power = if power == -1 {

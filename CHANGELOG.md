@@ -5,6 +5,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Enable native JP god mode, armour protection and mission inventory editing in the shared F1 Experiment tab. The inventory lists T2's own items; edits preserve active effects and leave campaign stock unchanged. God mode prevents combat, poison, drowning and fall damage without refilling health or removing hit reactions.
 - Native Tenchu 2 JP gains collision, patrol, mission-destination and surface-trigger overlays. Guard sight overlays use JP terrain checks, show obstruction points and explain the selected guard's next perception check without changing gameplay.
 - Enable coordinate and click/tap teleporting in native JP through the shared F1 tools, with floor/wall checks and camera/collision updates. Free-camera clicks can select actors for inspection.
 - Native Tenchu 2 JP stage flames can use the existing dynamic lighting and model/terrain shadows, with shared F1 quality controls and Modern preset settings.

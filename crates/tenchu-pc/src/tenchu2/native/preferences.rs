@@ -515,6 +515,8 @@ mod tests {
                         row.item,
                         Item::FreeCamera
                             | Item::ClickTeleport
+                            | Item::GodMode
+                            | Item::Armor
                             | Item::FlightSpeed
                             | Item::Fov
                             | Item::Actor

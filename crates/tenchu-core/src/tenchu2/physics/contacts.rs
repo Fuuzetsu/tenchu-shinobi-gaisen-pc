@@ -73,7 +73,9 @@ impl Actor {
                             .velocity(self.rotation.y, if front { -100 } else { 100 }, 0);
                     self.velocity.x = x;
                     self.velocity.z = z;
-                    self.health = self.health.wrapping_sub(5).max(0);
+                    if !self.invulnerable {
+                        self.health = self.health.wrapping_sub(5).max(0);
+                    }
                 }
                 if self.velocity.x != 0 || self.velocity.z != 0 {
                     self.update_velocity(Velocity::Motion, resources)?;

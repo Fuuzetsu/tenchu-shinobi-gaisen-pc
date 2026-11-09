@@ -2,6 +2,67 @@ use super::*;
 use winit::keyboard::KeyCode;
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; shared Experiment commands edit the native inventory without interrupting items"]
+fn experiment_edits_native_quantities_and_protection_without_refilling_health() {
+    use tenchu_core::tenchu2::inventory::Item as NativeItem;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = crate::tenchu2::native::Session::load(&disc, 9, 1).unwrap();
+    session.world.actors[0].actor.health = 21;
+    let mut content = Content::Gameplay(Box::new(session));
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    let rows = crate::settings::menu::rows(17, &Default::default(), &tools.debug, false);
+    assert!(
+        rows.iter()
+            .any(|r| r.item == Item::Inventory(4) && r.label == "Shuriken")
+    );
+    assert!(!tools.debug.inventory_unlimited);
+    tools.change(Item::GodMode, 1).unwrap();
+    tools.change(Item::Armor, 1).unwrap();
+    tools.change(Item::GiveItems, 1).unwrap();
+    tools.apply(&mut content, [1280, 720]).unwrap();
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    let actor = &mut session.world.actors[0].actor;
+    assert_eq!(actor.health, 21);
+    assert!(actor.invulnerable && session.world.controls.armor);
+    assert_eq!(actor.inventory.counts[4], 10);
+    assert_eq!(actor.inventory.counts[3], 0);
+    assert_eq!(actor.inventory.counts[19], 0);
+    assert_eq!(actor.inventory.resurrections, 10);
+    let shuriken = NativeItem::try_from(4).unwrap();
+    actor.inventory.selected = Some(shuriken);
+    assert_eq!(actor.inventory.take().unwrap(), shuriken);
+    tools.sync(&content, 0);
+    tools.change(Item::ClearItems, 1).unwrap();
+    tools.apply(&mut content, [1280, 720]).unwrap();
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    let inventory = &session.world.actors[0].actor.inventory;
+    assert_eq!(inventory.amounts(), [0; 21]);
+    assert_eq!(inventory.active, shuriken);
+    assert_eq!(inventory.selected, None);
+    tools.sync(&content, 0);
+    tools.change(Item::Inventory(4), 255).unwrap();
+    tools.reset(Item::GodMode).unwrap();
+    tools.reset(Item::Armor).unwrap();
+    tools.apply(&mut content, [1280, 720]).unwrap();
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    let actor = &mut session.world.actors[0].actor;
+    assert_eq!(actor.health, 21);
+    assert!(!actor.invulnerable && !session.world.controls.armor);
+    assert_eq!(actor.inventory.selected, Some(shuriken));
+    assert_eq!(actor.inventory.counts[4], 255);
+    assert_eq!(actor.inventory.take().unwrap(), shuriken);
+    assert_eq!(actor.inventory.counts[4], 254);
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; debug teleport must repair the live native world"]
 fn teleport_repairs_pose_contacts_and_camera_without_advancing_gameplay() {
     use tenchu_core::{math::Position, tenchu2::actor::State};

@@ -24,7 +24,7 @@ use tenchu_core::{
 };
 
 #[derive(Default)]
-struct Recorded(Vec<Event>, Vec<tenchu_core::tenchu2::environment::Event>);
+pub(super) struct Recorded(Vec<Event>, Vec<tenchu_core::tenchu2::environment::Event>);
 impl tenchu_core::tenchu2::environment::Events for Recorded {
     fn emit(
         &mut self,
@@ -48,7 +48,7 @@ impl Events for Recorded {
     }
 }
 
-fn fixture() -> (World, Assets, usize) {
+pub(super) fn fixture() -> (World, Assets, usize) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let layout = Layout::available(&disc)

@@ -811,9 +811,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Toggle the armour damage reduction. The equipped outfit is chosen when the mission loads.",
                 ),
             ];
-            rows.extend(d.inventory.iter().enumerate().map(|(slot, count)| (
-                Item::Inventory(slot), crate::ui::ITEMS[slot], format!("{count}"),
-                "Edit the mission quantity: 0 removes the item, 255 is unlimited. Internal item timers are preserved.",
+            rows.extend(d.inventory.iter().map(|slot| (
+                Item::Inventory(slot.id), slot.name, format!("{}", slot.count),
+                if d.inventory_unlimited {
+                    "Edit the mission quantity: 0 removes the item, 255 is unlimited. Internal item timers are preserved."
+                } else {
+                    "Edit the mission quantity: 0 removes the item, up to 255 carried. Active items and timers are preserved; the grappling hook is not consumed."
+                },
             )));
             rows
         }

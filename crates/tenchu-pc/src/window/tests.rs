@@ -906,7 +906,7 @@ fn remake_presets_keep_graphics_inventory_and_gameplay_separate() {
         .set_visual_preset(settings::presets::MODERN_HIGH);
     let graphics = app.settings.graphics.clone();
     app.set_inventory(1, 17).unwrap();
-    let inventory = app.debug.inventory;
+    let inventory = app.debug.inventory.clone();
     for index in 0..settings::gameplay::PRESETS.len() {
         app.set_gameplay_preset(index).unwrap();
         assert_eq!(

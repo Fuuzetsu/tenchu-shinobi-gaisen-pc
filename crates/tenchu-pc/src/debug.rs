@@ -14,6 +14,13 @@ use camera::Camera;
 use glam::Vec3;
 use std::collections::VecDeque;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct InventorySlot {
+    pub id: usize,
+    pub name: &'static str,
+    pub count: u8,
+}
+
 pub struct Debug {
     pub state_slot: u8,
     pub rewind: Option<crate::rewind::Timeline>,
@@ -50,7 +57,8 @@ pub struct Debug {
     pub click_teleport: bool,
     pub god_mode: bool,
     pub stealth: bool,
-    pub inventory: [u8; 19],
+    pub inventory: Vec<InventorySlot>,
+    pub inventory_unlimited: bool,
     pub bandages: Option<u16>,
     pub armor: bool,
     pub speed: u16,
@@ -102,7 +110,8 @@ impl Default for Debug {
             click_teleport: false,
             god_mode: false,
             stealth: false,
-            inventory: [0; 19],
+            inventory: Vec::new(),
+            inventory_unlimited: true,
             bandages: None,
             armor: false,
             speed: 100,

@@ -515,7 +515,9 @@ impl<E: Events> Context<'_, E> {
     fn sync_attacker(&mut self, damage: &DamageInput) -> Result<()> {
         if let Some(attacker) = &damage.attacker {
             let other = &mut self.others.get_mut(attacker.actor)?.actor;
-            other.health = attacker.health;
+            if !other.invulnerable || attacker.health > other.health {
+                other.health = attacker.health;
+            }
             if attacker.recoil != 0 {
                 other.motion.loops = attacker.recoil;
             }

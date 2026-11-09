@@ -113,6 +113,16 @@ impl Inventory {
         }
     }
 
+    pub fn set_amount(&mut self, item: Item, amount: u8) {
+        *self.count_mut(item) = amount;
+        if self
+            .selected
+            .is_none_or(|selected| self.count(selected) == 0)
+        {
+            self.selected = (0..=20).map(Item).find(|&id| self.count(id) != 0);
+        }
+    }
+
     pub fn select(&mut self, previous: bool) {
         let Some(selected) = self.selected else {
             return;

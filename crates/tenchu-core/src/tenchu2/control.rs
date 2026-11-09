@@ -78,7 +78,9 @@ impl Actor {
             if random.next15() % 10 <= i32::from(self.skill) {
                 self.flags &= !0x100;
             }
-            self.health = self.health.wrapping_sub(5);
+            if !self.invulnerable {
+                self.health = self.health.wrapping_sub(5);
+            }
             if self.health <= 0 {
                 self.health = 0;
                 request.action = 0xb07;

@@ -288,7 +288,9 @@ impl Actor {
                     ControlCue::DrowningRumble(strength),
                     resources,
                 )?;
-                self.health = self.health.wrapping_sub(1);
+                if !self.invulnerable {
+                    self.health = self.health.wrapping_sub(1);
+                }
                 if self.health <= 0 {
                     self.health = 0;
                     request.action = 0xb08;

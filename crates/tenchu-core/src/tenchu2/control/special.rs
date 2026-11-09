@@ -116,7 +116,9 @@ impl Actor {
                     return Ok(());
                 }
                 if input.difficulty == 1 {
-                    self.health = self.health.wrapping_sub(10).max(0);
+                    if !self.invulnerable {
+                        self.health = self.health.wrapping_sub(10).max(0);
+                    }
                     if !input.player {
                         cue(self, request, random, SpecialCue::ShowHealth)?;
                     }

@@ -93,6 +93,8 @@ pub struct Actor {
     pub flags: u32,
     pub health: i16,
     pub max_health: i16,
+    #[serde(default)]
+    pub invulnerable: bool,
     pub breath: u8,
     pub width: i16,
     pub height: i16,
@@ -155,6 +157,7 @@ impl Actor {
             flags: 0,
             health,
             max_health: health,
+            invulnerable: false,
             width,
             breath: 100,
             height,
