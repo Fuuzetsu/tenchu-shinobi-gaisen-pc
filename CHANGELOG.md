@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.24.0 — 2026-11-09
+
 - Enable the shared F1 player-model gallery in native Japanese Tenchu 2.
   Select Gaisen or imported T2 bodies and optionally use their locomotion and
   melee movesets, independently of appearance. Player-movement and idle-taunt
