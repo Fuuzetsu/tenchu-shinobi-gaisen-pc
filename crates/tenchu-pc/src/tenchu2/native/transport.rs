@@ -1,4 +1,4 @@
-use super::campaign::Playback;
+use super::campaign::{Content, Playback};
 use crate::audio::output::{Command, Output};
 use std::time::{Duration, Instant};
 use tenchu_assets::{ReadAt, Result};
@@ -14,9 +14,31 @@ pub struct Transport {
 #[derive(Clone, Copy)]
 pub struct Input {
     pub buttons: u16,
-    pub speed: u16,
+    pub cutscene_speed: u16,
+    pub simulation_speed: u16,
     pub fast_forward: bool,
     pub paused: bool,
+}
+
+impl Input {
+    pub fn pacing(self, content: &Content) -> (f64, bool) {
+        if !content.cutscene() && !matches!(content, Content::Gameplay(_)) {
+            return (1.0, false);
+        }
+        let cutscene = if content.cutscene() {
+            if self.fast_forward {
+                0
+            } else {
+                self.cutscene_speed
+            }
+        } else {
+            1
+        };
+        (
+            f64::from(self.simulation_speed) * f64::from(cutscene) / 100.0,
+            self.simulation_speed == 0 || cutscene != 1,
+        )
+    }
 }
 
 #[derive(Default)]
@@ -89,32 +111,27 @@ impl Transport {
         input: Input,
         output: Option<&Output>,
     ) -> Result<Update> {
-        let speed = if playback.content.cutscene() {
-            if input.fast_forward { 0 } else { input.speed }
-        } else {
-            1
-        };
-        self.audio(playback, speed != 1 && !input.paused, output);
+        let (speed, muted) = input.pacing(&playback.content);
+        self.audio(playback, muted && !input.paused, output);
         if input.paused {
             self.clock.discard_host_backlog();
             return Ok(Update::default());
         }
-        if speed == 0 {
+        if speed == 0.0 {
             self.clock.discard_host_backlog();
         } else {
             self.clock
-                .elapse(elapsed.min(Duration::from_millis(250)) * u32::from(speed));
+                .elapse(elapsed.min(Duration::from_millis(250)).mul_f64(speed));
         }
         let deadline = Instant::now() + Duration::from_millis(8);
         for _ in 0..2048 {
-            if speed != 0 && self.clock.step().is_none() {
+            if speed != 0.0 && self.clock.step().is_none() {
                 break;
             }
             let update = self.step(playback, input.buttons, output)?;
             if update.changed || update.quit {
-                // Stop at each content boundary so accelerated time never enters gameplay or menus.
-                let accelerated =
-                    playback.content.cutscene() && (input.fast_forward || input.speed != 1);
+                // Discard accumulated time at scene boundaries; the next scene chooses its own rate.
+                let (_, accelerated) = input.pacing(&playback.content);
                 self.audio(playback, accelerated, output);
                 return Ok(update);
             }

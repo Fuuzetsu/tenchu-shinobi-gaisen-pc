@@ -123,13 +123,12 @@ impl Debug {
         Ok(())
     }
 
-    pub fn change_inspection(
-        &mut self,
-        scene: &impl Scene,
-        item: Item,
-        delta: i32,
-    ) -> Result<bool> {
+    pub fn change_tool(&mut self, scene: &impl Scene, item: Item, delta: i32) -> Result<bool> {
         match item {
+            Item::Speed => {
+                self.speed =
+                    crate::settings::edit::cycle(self.speed, &[25, 50, 100, 200, 400, 0], delta);
+            }
             Item::Target(axis) => {
                 self.target[axis] = self.target[axis]
                     .saturating_add(delta * 100)
@@ -213,8 +212,9 @@ impl Debug {
         Ok(true)
     }
 
-    pub fn reset_inspection(&mut self, scene: &impl Scene, item: Item) -> Result<bool> {
+    pub fn reset_tool(&mut self, scene: &impl Scene, item: Item) -> Result<bool> {
         match item {
+            Item::Speed => self.speed = Self::default().speed,
             Item::Target(axis) => {
                 self.target[axis] = scene
                     .actor(scene.player())

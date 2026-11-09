@@ -26,8 +26,8 @@ impl Runtime {
             | Magnification | SurfaceDetail | SurfaceStrength | Antialiasing | AssetPack
             | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion | OcclusionRadius
             | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed
-            | Pause | Step | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor
-            | Overhead | SaveCamera | RestoreCamera | PhotoMode | Hitboxes | Labels
+            | Pause | Step | Speed | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor
+            | Actor | Overhead | SaveCamera | RestoreCamera | PhotoMode | Hitboxes | Labels
             | InspectActor | Xray | Sight | SightStance | Patrols | Events | Collision
             | CollisionOnly | Target(_) | PlayerPosition | CameraPosition | SnapFloor
             | Teleport | PickTeleport | ClickTeleport => None,

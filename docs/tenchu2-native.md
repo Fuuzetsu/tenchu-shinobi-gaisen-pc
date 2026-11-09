@@ -124,13 +124,17 @@ or change the simulation camera; F2/Back restores the original view.
 **F1 → Tenchu 2** contains the original JP mission selector, integration
 diagnostics and return to the quick launcher. These controls are disabled with
 an explanation outside native JP play. **F1 → Simulation** contains pause,
-single-step and automatic cutscene speed.
+single-step, simulation speed (25%–400% or Unlimited) and automatic cutscene speed.
+Simulation speed changes host pacing while retaining every source update. Unlimited
+mutes audio and yields regularly to input/rendering; menu navigation stays at its
+normal rate. Reset the value with R to return to 100%.
 
 Hold Backspace during a cutscene to fast-forward, or choose an automatic speed
 in F1 (2×–16× or Unlimited). This includes prologues, chapter narration, disc
 movies and in-engine scenes. Acceleration mutes audio; releasing it resumes
 dialogue at the current position. An on-screen Fast-forward button is also
-available for mouse/touch. Menus and gameplay remain at normal speed.
+available for mouse/touch. Cutscene acceleration does not change the chosen gameplay
+speed or speed up menus.
 The JP game uses Triangle for items and Circle for guarding (E and `/` with
 default keyboard bindings); Z/C cycle inventory. These follow Tenchu 2's controls.
 Before missions, the original equipment screen draws from your saved JP supplies.

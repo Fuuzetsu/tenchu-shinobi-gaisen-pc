@@ -26,7 +26,7 @@ impl Application {
         if item.reset_setting(&mut self.settings) {
             return Ok(());
         }
-        if self.debug.reset_inspection(&self.campaign.game, item)? {
+        if self.debug.reset_tool(&self.campaign.game, item)? {
             return Ok(());
         }
         let s = Settings::default();
@@ -72,7 +72,6 @@ impl Application {
             Item::GameplayPreset => self.set_gameplay_preset(0)?,
             Item::Preset => self.settings.set_visual_preset(0),
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
-            Item::Speed => self.debug.speed = d.speed,
             Item::SightDistance => self.set_sight(d.sight_percent),
             Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),
             Item::IndependentAttacks => self.set_independent_attacks(s.independent_attacks),

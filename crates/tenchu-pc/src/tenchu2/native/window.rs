@@ -240,24 +240,23 @@ impl Application {
             || self.menu.panel.open && self.settings.pause_in_menu
             || self.controls.editor.open
             || self.presets.open;
-        let update = self.transport.advance(
-            &mut self.session,
-            elapsed,
-            PlaybackInput {
-                buttons: if self.menu.panel.open
-                    || self.menu.tools.debug.camera.is_some()
-                    || !self.focused
-                {
-                    0
-                } else {
-                    self.controls.buttons().swap_bytes()
-                },
-                speed: self.settings.cutscene_speed,
-                fast_forward: self.controls.held(KeyCode::Backspace) || self.menu.fast_forward,
-                paused,
+        let input = PlaybackInput {
+            buttons: if self.menu.panel.open
+                || self.menu.tools.debug.camera.is_some()
+                || !self.focused
+            {
+                0
+            } else {
+                self.controls.buttons().swap_bytes()
             },
-            self.audio.as_ref(),
-        )?;
+            cutscene_speed: self.settings.cutscene_speed,
+            simulation_speed: self.menu.tools.debug.speed,
+            fast_forward: self.controls.held(KeyCode::Backspace) || self.menu.fast_forward,
+            paused,
+        };
+        let update =
+            self.transport
+                .advance(&mut self.session, elapsed, input, self.audio.as_ref())?;
         self.menu
             .tools
             .sync(&self.session.content, self.session.generation);
@@ -403,10 +402,7 @@ impl Application {
             );
             if let Some(audio) = &self.audio {
                 let (ambience, thunder) = view.drawing.weather_audio(&graphics.weather);
-                let accelerated = self.session.content.cutscene()
-                    && (self.menu.fast_forward
-                        || self.controls.held(KeyCode::Backspace)
-                        || self.settings.cutscene_speed != 1);
+                let (_, accelerated) = input.pacing(&self.session.content);
                 audio.send(Command::Ambience(if accelerated {
                     Default::default()
                 } else {

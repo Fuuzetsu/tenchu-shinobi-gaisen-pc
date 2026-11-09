@@ -140,7 +140,8 @@ impl Application {
             } else {
                 self.controls.buttons().swap_bytes()
             },
-            speed: self.settings.cutscene_speed,
+            cutscene_speed: self.settings.cutscene_speed,
+            simulation_speed: self.native_tenchu2.as_ref().unwrap().menu.tools.debug.speed,
             fast_forward: self.controls.held(KeyCode::Backspace)
                 || self.native_tenchu2.as_ref().unwrap().menu.fast_forward,
             paused: self.is_suspended(),
@@ -363,8 +364,7 @@ impl Application {
                 .as_mut()
                 .unwrap()
                 .weather_audio(&graphics.weather);
-            let accelerated =
-                native.playback.content.cutscene() && (input.fast_forward || input.speed != 1);
+            let (_, accelerated) = input.pacing(&native.playback.content);
             audio
                 .output()
                 .send(crate::audio::output::Command::Ambience(if accelerated {

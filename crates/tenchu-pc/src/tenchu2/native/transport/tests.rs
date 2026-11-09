@@ -15,7 +15,8 @@ fn start(sequence: usize, prologue: bool) -> Playback<crate::source::DiscSource>
 fn input(speed: u16) -> Input {
     Input {
         buttons: 0,
-        speed,
+        cutscene_speed: speed,
+        simulation_speed: 100,
         fast_forward: false,
         paused: false,
     }
@@ -166,4 +167,94 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
         .advance(&mut gameplay, Duration::ZERO, input(1), None)
         .unwrap();
     assert_eq!(gameplay.content.tick(), tick + 1);
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; host pacing changes tick counts, never update order or RNG, and respects pause/step/menu boundaries"]
+fn simulation_speed_preserves_native_updates_pause_and_single_step() {
+    for speed in [25, 50, 100, 200, 400, 0] {
+        let mut playback = start(9, false);
+        let mut reference = start(9, false);
+        let mut transport = Transport::default();
+        let input = Input {
+            simulation_speed: speed,
+            ..input(1)
+        };
+        if speed == 0 {
+            transport
+                .advance(&mut playback, Duration::ZERO, input, None)
+                .unwrap();
+            assert!(playback.content.tick() > 0);
+        } else {
+            for _ in 0..10 {
+                transport
+                    .advance(&mut playback, Duration::from_millis(100), input, None)
+                    .unwrap();
+                while transport.clock.interpolation() >= 1.0 {
+                    transport
+                        .advance(&mut playback, Duration::ZERO, input, None)
+                        .unwrap();
+                }
+            }
+            assert_eq!(playback.content.tick(), 30 * i64::from(speed) / 100);
+        }
+        let tick = playback.content.tick();
+        transport
+            .advance(
+                &mut playback,
+                Duration::from_secs(10),
+                Input {
+                    paused: true,
+                    ..input
+                },
+                None,
+            )
+            .unwrap();
+        assert_eq!(playback.content.tick(), tick);
+        transport.frame_step(&mut playback, 0, None).unwrap();
+        assert_eq!(playback.content.tick(), tick + 1);
+        assert!(transport.clock.step().is_none());
+        for _ in 0..playback.content.tick() {
+            reference.step(0).unwrap();
+        }
+        let (Content::Gameplay(actual), Content::Gameplay(expected)) =
+            (&playback.content, &reference.content)
+        else {
+            panic!("unexpected mission transition");
+        };
+        assert_eq!(
+            postcard::to_allocvec(&actual.world).unwrap(),
+            postcard::to_allocvec(&expected.world).unwrap(),
+            "{speed}% changed source state"
+        );
+
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let mut menu = Playback::menu(disc, 2, 17, None).unwrap();
+        let mut reference = Playback::menu(
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap(),
+            2,
+            17,
+            None,
+        )
+        .unwrap();
+        transport
+            .advance(&mut menu, Duration::from_nanos(33_333_334), input, None)
+            .unwrap();
+        while transport.clock.interpolation() >= 1.0 {
+            transport
+                .advance(&mut menu, Duration::ZERO, input, None)
+                .unwrap();
+        }
+        reference.step(0).unwrap();
+        let (Content::MissionSelection(actual), Content::MissionSelection(expected)) =
+            (&menu.content, &reference.content)
+        else {
+            unreachable!()
+        };
+        assert_eq!(
+            serde_json::to_value(&actual.state).unwrap(),
+            serde_json::to_value(&expected.state).unwrap()
+        );
+    }
 }

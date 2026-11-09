@@ -196,7 +196,7 @@ impl Tools {
             }
             _ => {}
         }
-        if self.debug.change_inspection(&self.scene, item, delta)? {
+        if self.debug.change_tool(&self.scene, item, delta)? {
             Ok(())
         } else {
             Err("This control is not connected to native Tenchu 2 JP yet.".into())
@@ -211,7 +211,7 @@ impl Tools {
             self.debug.click_teleport = false;
             return Ok(());
         }
-        if self.debug.reset_inspection(&self.scene, item)? {
+        if self.debug.reset_tool(&self.scene, item)? {
             Ok(())
         } else {
             Err("This action has no default value.".into())

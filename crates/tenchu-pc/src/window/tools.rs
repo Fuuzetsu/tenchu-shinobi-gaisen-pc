@@ -1,7 +1,5 @@
 use super::*;
 
-use crate::settings::edit::cycle;
-
 impl Application {
     pub(super) fn pick_debug_target(&mut self) {
         let Some(view) = &self.view else {
@@ -479,7 +477,7 @@ impl Application {
         }
         if self
             .debug
-            .change_inspection(&self.campaign.game, item, direction)?
+            .change_tool(&self.campaign.game, item, direction)?
         {
             if item == Item::SaveCamera {
                 self.menu.notice = "Camera bookmark saved".into();
@@ -841,9 +839,6 @@ impl Application {
                 self.debug.pause_view = true;
                 self.debug.frame_step = true;
                 self.menu.open = false;
-            }
-            Item::Speed => {
-                self.debug.speed = cycle(self.debug.speed, &[25, 50, 100, 200, 400, 0], direction)
             }
             Item::SightDistance => {
                 let value =

@@ -5,6 +5,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Enable native Tenchu 2 JP simulation-speed controls: 25%, 50%, normal, 2×, 4× and Unlimited. Every original update still runs; pause and frame-step remain exact, and menus keep their normal input rate.
 - Enable native Tenchu 2 JP Follow Actor with the shared orbit camera, terrain avoidance, mouse/right-stick controls, distance and sensitivity settings. Following a guard survives player death; switching actors, recentering and returning to the original view leave gameplay unchanged.
 - Player moveset overrides now use the selected character’s disc-backed voice and weapon sounds in both Gaisen and native Tenchu 2 JP, including JP/EU T2 banks and Gaisen characters from other missions. Other actors, world effects and ambience keep their own sounds. Imported audio also works in recordings and restored Gaisen savestates.
 
