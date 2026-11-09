@@ -30,6 +30,7 @@ impl Actor {
             ctx.scene.models[model].flags = 0;
         }
         self.weapons.fill(None);
+        self.imported_holster = false;
         self.weapon_hitbox.fill(None);
         self.attribute &= !ATTR_WEAPON_DRAWN;
         let start = ctx.scene.models.len();
@@ -145,6 +146,10 @@ impl Actor {
     }
 
     pub(crate) fn equip(&mut self, ctx: &Context, drawn: bool) {
+        if self.imported_holster {
+            self.weapons.swap(0, 2);
+            self.imported_holster = false;
+        }
         if (self.attribute & ATTR_WEAPON_DRAWN != 0) == drawn {
             return;
         }

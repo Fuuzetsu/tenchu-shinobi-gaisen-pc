@@ -405,7 +405,7 @@ impl Application {
             .map(|library| library.moveset(&self.settings))
             .transpose()?
             .flatten();
-        let character = body.and_then(|b| b.character.as_ref());
+        let character = body.and_then(|b| b.moveset_character());
         let options = self.settings.model_moveset_options;
         if self
             .campaign
@@ -415,11 +415,11 @@ impl Application {
         {
             return Ok(());
         }
-        self.campaign.game.set_player_moveset(
-            character,
-            body.map_or(&[], |b| &b.clips),
-            options,
-        )?;
+        if let Some(body) = body {
+            body.apply_moveset(&mut self.campaign.game, options)?;
+        } else {
+            self.campaign.game.set_player_moveset(None, &[], options)?;
+        }
         view.reset_interpolation(&self.campaign.game);
         self.stop_edited_recording();
         Ok(())

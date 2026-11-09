@@ -1450,7 +1450,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::MovesetModel,
                 "Moveset source",
                 s.moveset_model.clone(),
-                "Choose any actor's moves while keeping your current body. Selected player body follows the model gallery, as before. Original/custom bodies without a moveset retain player moves.",
+                "Choose an available actor's moves while keeping your current body. Imported T2 Rikimaru, Ayame and Tatsumaru include their locomotion and melee combos; paired kills, items and unmapped actions use Gaisen motions. Other T2 actors and custom bodies currently retain player moves.",
             ),
             (
                 Item::ModelPlayerMovement,

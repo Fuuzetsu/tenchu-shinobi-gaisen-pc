@@ -67,6 +67,21 @@ pub struct Attack {
     pub trail_end: i16,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Contact {
+    pub part: usize,
+    pub hitbox: Hitbox,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ImportedAttack {
+    pub contacts: [Option<Contact>; 2],
+    /// Next action with no horizontal direction, right, or left held.
+    pub combo: [Option<i16>; 3],
+    pub turn_on_exit: bool,
+    pub holster: Option<[i16; 2]>,
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Weapons {
     pub models: Arc<BTreeMap<i16, Vec<Geometry>>>,
@@ -75,6 +90,8 @@ pub struct Weapons {
     pub hitboxes: Vec<Hitbox>,
     pub attacks: Vec<Attack>,
     pub bow_timing: [[i16; 2]; 2],
+    #[serde(default)]
+    pub imported_attacks: BTreeMap<i16, ImportedAttack>,
 }
 
 impl Weapons {
@@ -89,13 +106,15 @@ impl Weapons {
             hitboxes,
             attacks,
             bow_timing,
+            imported_attacks,
         } = self;
         out.shared_arc(models, true)?;
         out.shared_arc(grips, true)?;
         out.value(names)?;
         out.value(hitboxes)?;
         out.value(attacks)?;
-        out.value(bow_timing)
+        out.value(bow_timing)?;
+        out.value(imported_attacks)
     }
 
     pub fn load<S: ReadAt>(game: &GameAssets<S>, exe: &Executable) -> Result<Self> {
@@ -178,6 +197,7 @@ impl Weapons {
                     models: models.into(),
                     hitboxes,
                     attacks,
+                    imported_attacks: BTreeMap::new(),
                     bow_timing: [
                         [
                             i16_le(exe.bytes(tables[3], 4)?, 0)?,

@@ -232,7 +232,8 @@ mod tests {
             let eu = library.get(&format!("tenchu2:{name}")).unwrap();
             let jp = library.get(&format!("tenchu2-jp:{name}")).unwrap();
             assert!(!std::ptr::eq(eu, jp));
-            assert!(!eu.has_moveset() && !jp.has_moveset());
+            assert_eq!(eu.has_moveset(), name != "tatu2_m");
+            assert_eq!(jp.has_moveset(), name != "tatu2_m");
         }
         assert!(
             library.get("tenchu2:rikimaru").unwrap().vram

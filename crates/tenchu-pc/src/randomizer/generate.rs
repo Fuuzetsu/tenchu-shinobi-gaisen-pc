@@ -203,9 +203,8 @@ impl Run {
         if rules.model_moveset
             && let Some(body) = plan.player_model.as_ref().and_then(|id| library.get(id))
         {
-            game.set_player_moveset(
-                body.character.as_ref(),
-                &body.clips,
+            body.apply_moveset(
+                &mut game,
                 tenchu_core::game::moveset::Options {
                     player_movement: rules.player_movement,
                     no_idle_taunts: rules.no_idle_taunts,

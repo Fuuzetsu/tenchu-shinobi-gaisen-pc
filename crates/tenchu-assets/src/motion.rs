@@ -11,8 +11,8 @@ pub struct Clip {
     pub id: i16,
     pub duration: i16,
     pub sweep: i8,
-    pub forward_speed: i8,
-    pub side_speed: i8,
+    pub forward_speed: i16,
+    pub side_speed: i16,
     pub root: Vec<Key>,
     pub bones: Vec<Vec<Key>>,
 }
@@ -68,8 +68,8 @@ pub fn parse(data: &[u8]) -> Result<Vec<Clip>> {
             id: i16_le(header, 6)?,
             duration,
             sweep: header[1] as i8,
-            forward_speed: header[2] as i8,
-            side_speed: header[3] as i8,
+            forward_speed: i16::from(header[2] as i8),
+            side_speed: i16::from(header[3] as i8),
             root,
             bones: rotations,
         });

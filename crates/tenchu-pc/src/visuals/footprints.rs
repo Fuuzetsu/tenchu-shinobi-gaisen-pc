@@ -207,6 +207,7 @@ impl Footprints {
         self.contacts(contacts, surfaces, settings, snow);
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn tick_contacts(
         &mut self,
         tick: u64,

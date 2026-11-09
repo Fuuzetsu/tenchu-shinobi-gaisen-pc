@@ -105,6 +105,8 @@ pub struct Actor {
     pub bleeding: Option<crate::game::bleeding::State>,
     pub severed: Option<crate::game::dismemberment::Part>,
     pub(crate) suppress_idle_taunts: bool,
+    #[serde(default)]
+    pub(crate) imported_holster: bool,
     pub max_health: i16,
     pub attribute: u16,
     pub status: State,
@@ -223,6 +225,7 @@ impl Actor {
             bleeding: None,
             severed: None,
             suppress_idle_taunts: false,
+            imported_holster: false,
             map,
             pad: Pad::default(),
             motion,
@@ -515,6 +518,9 @@ impl Actor {
             self.sheathing.as_ref().and_then(|s| s.clip(action))
         };
         let entered = self.enter_definition(ctx, self.definition, action, movement, optional);
+        if entered && self.imported_attack(ctx).is_some() {
+            self.attack = self.attack_id(ctx, action);
+        }
         if entered
             && self.sheathing.is_some()
             && State::from_motion(action) == State::Attack

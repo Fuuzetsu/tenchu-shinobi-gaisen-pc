@@ -1,9 +1,11 @@
 use super::*;
+mod moveset;
 
 impl Library {
     pub fn load_tenchu2(&mut self, disc: &tenchu_assets::disc::Disc<impl ReadAt>) -> Result<()> {
         let edition = tenchu_assets::tenchu2::Edition::detect(disc)?;
         let models = tenchu_assets::tenchu2::characters::load(disc, None)?;
+        let movesets = moveset::load(disc)?;
         for model in models {
             let id = format!("{}{}", edition.model_prefix(), model.name);
             if self.aliases.contains_key(&id) {
@@ -60,6 +62,9 @@ impl Library {
                 parts: model.parts,
                 vram: Arc::new(model.vram),
                 character: behavior.character.clone(),
+                imported_moveset: moveset::hero(&model.name)
+                    .and_then(|kind| movesets.get(&kind))
+                    .cloned(),
                 clips: Arc::new(clips),
                 idle,
                 think: behavior.think,

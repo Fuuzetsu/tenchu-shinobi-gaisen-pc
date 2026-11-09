@@ -24,11 +24,9 @@ fn kill(game: &mut Game, action: i16) {
         &game.mission.clips,
     );
     let clip = &game.mission.clips[player.motion.clip.unwrap()];
-    player.velocity = game.math.velocity(
-        player.rotation[1],
-        i16::from(clip.forward_speed),
-        i16::from(clip.side_speed),
-    );
+    player.velocity = game
+        .math
+        .velocity(player.rotation[1], clip.forward_speed, clip.side_speed);
 }
 
 #[test]

@@ -151,8 +151,8 @@ impl Deaths {
         if advance && death.settled.is_none() {
             let velocity = game.math.velocity(
                 actor.rotation[1],
-                i16::from(alternate.forward_speed),
-                i16::from(alternate.side_speed),
+                alternate.forward_speed,
+                alternate.side_speed,
             );
             let mut position = death.pose.translation;
             position.x += i32::from(velocity[0]);

@@ -43,6 +43,20 @@ impl Actor {
     }
 
     fn hands(&self, ctx: &Context) -> Result<[Option<ModelId>; 2]> {
+        if let Some(attack) = self.imported_attack(ctx) {
+            let hand = |contact: &Option<tenchu_assets::weapon::Contact>| {
+                contact
+                    .as_ref()
+                    .map(|c| {
+                        self.parts
+                            .get(c.part)
+                            .copied()
+                            .ok_or("Missing imported attack part")
+                    })
+                    .transpose()
+            };
+            return Ok([hand(&attack.contacts[0])?, hand(&attack.contacts[1])?]);
+        }
         if let Some(parts) = self.unarmed_contact() {
             let part = |index: Option<usize>| {
                 index
@@ -91,8 +105,25 @@ impl Actor {
         }
     }
 
-    fn attack_hitboxes(&self, ctx: &Context) -> [Option<usize>; 2] {
-        if self.unarmed_attack() {
+    pub(super) fn imported_attack<'a>(
+        &self,
+        ctx: &'a Context,
+    ) -> Option<&'a tenchu_assets::weapon::ImportedAttack> {
+        let clip = ctx.mission.clips.get(self.motion.clip?)?;
+        ctx.mission.weapons.imported_attacks.get(&clip.id)
+    }
+
+    fn attack_hitboxes<'a>(
+        &self,
+        ctx: &'a Context,
+    ) -> [Option<&'a tenchu_assets::weapon::Hitbox>; 2] {
+        if let Some(attack) = self.imported_attack(ctx) {
+            return attack
+                .contacts
+                .each_ref()
+                .map(|c| c.as_ref().map(|c| &c.hitbox));
+        }
+        let indices = if self.unarmed_attack() {
             [ctx.mission
                 .weapons
                 .hitboxes
@@ -100,7 +131,8 @@ impl Actor {
                 .position(|h| h.kind == FIST); 2]
         } else {
             self.weapon_hitbox
-        }
+        };
+        indices.map(|i| i.and_then(|i| ctx.mission.weapons.hitboxes.get(i)))
     }
 
     pub(crate) fn clear_attack(&mut self, ctx: &mut Context, mode: u8) -> Result<()> {
@@ -121,6 +153,22 @@ impl Actor {
                 .iter()
                 .filter_map(|&i| self.parts.get(i))
             {
+                ctx.collision.remove(ctx.scene, part);
+            }
+        }
+        if mode & 1 != 0
+            && let Some(attack) = ctx
+                .mission
+                .weapons
+                .attacks
+                .get(self.attack)
+                .and_then(|a| ctx.mission.weapons.imported_attacks.get(&a.clip))
+        {
+            let parts = attack
+                .contacts
+                .each_ref()
+                .map(|c| c.as_ref().and_then(|c| self.parts.get(c.part).copied()));
+            for part in parts.into_iter().flatten() {
                 ctx.collision.remove(ctx.scene, part);
             }
         }
@@ -498,35 +546,45 @@ impl Actor {
         }
         let tatsumaru =
             self.unarmed_attack() && self.sheathing.as_ref().is_some_and(|s| s.tatsumaru());
-        let combo = match action {
-            MOT_ATTACK => Some(if held & RIGHT != 0 {
-                MOT_ATTACK_SLASH2_RIGHT
+        let combo = if let Some(attack) = self.imported_attack(ctx) {
+            attack.combo[if held & RIGHT != 0 {
+                1
             } else if held & LEFT != 0 {
-                MOT_ATTACK_SLASH2_LEFT
+                2
             } else {
-                MOT_ATTACK_SLASH2
-            }),
-            MOT_ATTACK_SLASH2 => Some(MOT_ATTACK_SLASH3),
-            MOT_ATTACK_SLASH2_RIGHT | MOT_ATTACK_SLASH2_LEFT if tatsumaru => {
-                Some(MOT_ATTACK_SLASH3)
-            }
-            MOT_ATTACK_SLASH3 => Some(MOT_ATTACK_SLASH4),
-            MOT_ATTACK_SLASH4 if tatsumaru => Some(MOT_UNARMED_FINISH),
-            MOT_ATTACK_RIGHT1 if !tatsumaru && held & (LEFT | RIGHT) != 0 => {
-                Some(if held & LEFT != 0 {
-                    MOT_ATTACK_RIGHT2_LEFT
+                0
+            }]
+        } else {
+            match action {
+                MOT_ATTACK => Some(if held & RIGHT != 0 {
+                    MOT_ATTACK_SLASH2_RIGHT
+                } else if held & LEFT != 0 {
+                    MOT_ATTACK_SLASH2_LEFT
                 } else {
-                    MOT_ATTACK_RIGHT2
-                })
+                    MOT_ATTACK_SLASH2
+                }),
+                MOT_ATTACK_SLASH2 => Some(MOT_ATTACK_SLASH3),
+                MOT_ATTACK_SLASH2_RIGHT | MOT_ATTACK_SLASH2_LEFT if tatsumaru => {
+                    Some(MOT_ATTACK_SLASH3)
+                }
+                MOT_ATTACK_SLASH3 => Some(MOT_ATTACK_SLASH4),
+                MOT_ATTACK_SLASH4 if tatsumaru => Some(MOT_UNARMED_FINISH),
+                MOT_ATTACK_RIGHT1 if !tatsumaru && held & (LEFT | RIGHT) != 0 => {
+                    Some(if held & LEFT != 0 {
+                        MOT_ATTACK_RIGHT2_LEFT
+                    } else {
+                        MOT_ATTACK_RIGHT2
+                    })
+                }
+                MOT_ATTACK_LEFT1 if !tatsumaru && held & (LEFT | RIGHT) != 0 => {
+                    Some(if held & RIGHT != 0 {
+                        MOT_ATTACK_LEFT2_RIGHT
+                    } else {
+                        MOT_ATTACK_LEFT2
+                    })
+                }
+                _ => None,
             }
-            MOT_ATTACK_LEFT1 if !tatsumaru && held & (LEFT | RIGHT) != 0 => {
-                Some(if held & RIGHT != 0 {
-                    MOT_ATTACK_LEFT2_RIGHT
-                } else {
-                    MOT_ATTACK_LEFT2
-                })
-            }
-            _ => None,
         };
         if let Some(next) = combo
             && self.pad.trigger & SQUARE != 0
@@ -535,8 +593,17 @@ impl Actor {
         {
             self.pad.time = 0;
             self.clear_attack(ctx, 3)?;
+            let imported_turn = self.imported_attack(ctx).map(|a| a.turn_on_exit);
             if self.enter_unless_scripted(ctx, next, true) {
                 self.snap_attack(ctx);
+                if let Some(turn) = imported_turn {
+                    let base = ctx.mission.clips[self.motion.clip.unwrap()].bones[0][0].value[1];
+                    if turn {
+                        self.rotation[1] = self.rotation[1]
+                            .wrapping_add(self.motion.pose.rotation[0][1].wrapping_sub(base));
+                    }
+                    self.motion.pose.rotation[0][1] = base;
+                }
                 if assisted {
                     self.target = self.select_melee_target(ctx, world.roster, true)?;
                 }
@@ -551,6 +618,7 @@ impl Actor {
         }
         if self.motion.count == 0 && self.motion.loops == 1 {
             self.clear_attack(ctx, 3)?;
+            let turn_on_exit = self.imported_attack(ctx).is_none_or(|a| a.turn_on_exit);
             let attack_rest_yaw = self
                 .unarmed_attack()
                 .then(|| self.sheathing.as_ref().and_then(|s| s.attack_rest_yaw))
@@ -562,9 +630,11 @@ impl Actor {
             };
             self.enter_unless_scripted(ctx, stance, true);
             let base = ctx.mission.clips[self.motion.clip.unwrap()].bones[0][0].value[1];
-            self.rotation[1] = self.rotation[1].wrapping_add(
-                self.motion.pose.rotation[0][1].wrapping_sub(attack_rest_yaw.unwrap_or(base)),
-            );
+            if turn_on_exit {
+                self.rotation[1] = self.rotation[1].wrapping_add(
+                    self.motion.pose.rotation[0][1].wrapping_sub(attack_rest_yaw.unwrap_or(base)),
+                );
+            }
             self.motion.pose.rotation[0][1] = base;
             if self.id == world.player {
                 ctx.camera.normal(self, ctx.math)?;
@@ -582,9 +652,8 @@ impl Actor {
         if self.motion.count == battle.start {
             for (hand, &model) in hands.iter().enumerate() {
                 if let Some(model) = model
-                    && let Some(index) = self.attack_hitboxes(ctx)[hand]
+                    && let Some(hitbox) = self.attack_hitboxes(ctx)[hand].cloned()
                 {
-                    let hitbox = &ctx.mission.weapons.hitboxes[index];
                     let slot = ctx.collision.insert(ctx.scene, model)?;
                     ctx.collision.slots[slot].owner = Some(crate::collision::Owner::Actor(self.id));
                     ctx.collision.slots[slot].offset = if self.unarmed_contact().is_some() {
@@ -619,12 +688,9 @@ impl Actor {
         if self.motion.count == battle.trail_start {
             for (hand, &parent) in hands.iter().enumerate() {
                 if let Some(parent) = parent
-                    && let Some(index) = self.attack_hitboxes(ctx)[hand]
+                    && let Some(hitbox) = self.attack_hitboxes(ctx)[hand]
                 {
-                    self.trails[hand] = Some(trail::Trail::new(
-                        parent,
-                        ctx.mission.weapons.hitboxes[index].trail,
-                    ));
+                    self.trails[hand] = Some(trail::Trail::new(parent, hitbox.trail));
                 }
             }
         } else if self.motion.count == battle.trail_end {
@@ -634,6 +700,14 @@ impl Actor {
     }
 
     pub(crate) fn play_pose(&mut self, ctx: &mut Context) -> Result<()> {
+        let holster = self
+            .imported_attack(ctx)
+            .and_then(|a| a.holster)
+            .is_some_and(|[start, end]| (start..end).contains(&self.motion.count));
+        if self.imported_holster != holster {
+            self.weapons.swap(0, 2);
+            self.imported_holster = holster;
+        }
         let animate = self.motion.loops >= 0;
         self.motion
             .play(&ctx.mission.clips, &ctx.math.tables.hermite, true)?;

@@ -45,7 +45,7 @@ fn executable(disc: &Disc<impl ReadAt>) -> Result<(Edition, Vec<u8>)> {
 }
 
 // Gaisen's waist/torso/head, arms, legs and weapon anchors in T2 bone order.
-const BONES: [usize; 15] = [0, 1, 2, 3, 4, 9, 10, 6, 7, 8, 12, 13, 14, 5, 11];
+pub const BONES: [usize; 15] = [0, 1, 2, 3, 4, 9, 10, 6, 7, 8, 12, 13, 14, 5, 11];
 pub const CLIPS: [i16; 12] = [
     0xb8, 0xb9, 0x4bd, 0x4be, 0xba, 0xbb, 0x4bf, 0x4c0, 0xbc, 0xbd, 0x4c1, 0xbe,
 ];
@@ -140,17 +140,12 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
             return Err("Unexpected Tatsumaru skeleton or duration".into());
         }
         let track = |field| motion::track(motion, u32_le(motion, field)? as usize, duration);
-        let speed = |offset| {
-            i16_le(motion, at + offset)?
-                .try_into()
-                .map_err(|_| "Tatsumaru motion exceeds Gaisen velocity range".to_owned())
-        };
         let clip = motion::Clip {
             id,
             duration,
             sweep: sweep(motion, at)?,
-            forward_speed: speed(8)?,
-            side_speed: speed(10)?,
+            forward_speed: i16_le(motion, at + 8)?,
+            side_speed: i16_le(motion, at + 10)?,
             root: track(at + 12)?,
             bones: BONES
                 .iter()

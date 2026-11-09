@@ -679,7 +679,21 @@ fn imported_character_models_animate_with_isolated_textures() {
             review.configure(graphics.clone());
         }
         for body in &bodies {
-            assert!(!body.has_moveset());
+            assert_eq!(
+                body.has_moveset(),
+                matches!(
+                    body.id.strip_prefix(prefix),
+                    Some(
+                        "rikimaru"
+                            | "rikia"
+                            | "ayame"
+                            | "ayamea"
+                            | "tatumaru"
+                            | "tatua"
+                            | "tatua_m"
+                    )
+                )
+            );
             let mut models = Models::default()
                 .with_player(
                     &poses[0],

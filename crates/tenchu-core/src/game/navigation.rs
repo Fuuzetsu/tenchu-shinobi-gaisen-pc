@@ -71,11 +71,9 @@ impl Game {
             )
             && let Some(clip) = player.motion.clip.map(|id| &self.mission.clips[id])
         {
-            let velocity = self.math.velocity(
-                heading,
-                i16::from(clip.forward_speed),
-                i16::from(clip.side_speed),
-            );
+            let velocity = self
+                .math
+                .velocity(heading, clip.forward_speed, clip.side_speed);
             player.velocity[0] = velocity[0];
             player.velocity[2] = velocity[2];
         } else {

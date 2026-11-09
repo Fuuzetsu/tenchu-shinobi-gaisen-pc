@@ -24,6 +24,7 @@ pub struct Body {
     pub parts: Vec<Part>,
     pub vram: Arc<Vram>,
     pub character: Option<Character>,
+    pub imported_moveset: Option<Arc<tenchu_core::game::moveset::Imported>>,
     pub clips: Arc<Vec<Clip>>,
     pub idle: Option<usize>,
     pub think: i16,
@@ -181,6 +182,7 @@ impl Library {
                 parts,
                 vram,
                 character,
+                imported_moveset: None,
                 clips,
                 idle,
                 think,
@@ -307,7 +309,26 @@ impl Body {
     }
 
     pub fn has_moveset(&self) -> bool {
-        self.character.is_some() && !self.is_tenchu2()
+        self.moveset_character().is_some()
+    }
+
+    pub fn moveset_character(&self) -> Option<&Character> {
+        self.imported_moveset
+            .as_ref()
+            .map(|m| &m.character)
+            .or_else(|| self.character.as_ref().filter(|_| !self.is_tenchu2()))
+    }
+
+    pub fn apply_moveset(
+        &self,
+        game: &mut tenchu_core::game::Game,
+        options: tenchu_core::game::moveset::Options,
+    ) -> Result<()> {
+        if let Some(source) = &self.imported_moveset {
+            game.set_imported_player_moveset(source, options)
+        } else {
+            game.set_player_moveset(self.moveset_character(), &self.clips, options)
+        }
     }
 
     pub fn sources(&self) -> Vec<catalog::ModelSource<'_>> {

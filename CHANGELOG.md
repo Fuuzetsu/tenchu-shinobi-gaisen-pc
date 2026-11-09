@@ -5,6 +5,17 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Enable imported Tenchu 2 Rikimaru, Ayame and Tatsumaru movesets in Gaisen:
+  choose either installed edition in F1 → Player model → Moveset source, or
+  follow the selected hero/costume. Import locomotion and melee combos, including
+  blade/fist/foot hitboxes, attack timing, temporary weapon holstering and recovery
+  facing. The existing player-movement override remains available. Paired stealth
+  kills, items and unmapped actions retain Gaisen behavior; guard/boss movesets
+  and T2 weapon/voice imports remain separate work.
+- Update the mid-mission savestate format for imported motion/contact data.
+  Earlier mid-mission states require their original build; campaign progress
+  and settings are unaffected.
+
 - Connect the shared rain, snow, blizzard and storm effects to native Japanese
   Tenchu 2 gameplay and 3D cutscenes. F1 weather settings now control wind,
   roof/wall shelter, surface wetness and snow, rain haze/reflections, runoff,

@@ -2,6 +2,15 @@ use super::Game;
 use crate::{Result, actor::Context, ids::*, motion::Motion, scene::ModelId};
 use tenchu_assets::{executable::Character, motion::Clip};
 
+pub struct Imported {
+    pub character: Character,
+    pub clips: Vec<Clip>,
+    pub attacks: Vec<(
+        tenchu_assets::weapon::Attack,
+        tenchu_assets::weapon::ImportedAttack,
+    )>,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct Options {
@@ -25,6 +34,30 @@ impl State {
 }
 
 impl Game {
+    pub fn set_imported_player_moveset(
+        &mut self,
+        source: &Imported,
+        options: Options,
+    ) -> Result<()> {
+        if self.moveset.matches(Some(source.character.kind), options) {
+            return Ok(());
+        }
+        self.set_player_moveset(Some(&source.character), &source.clips, options)?;
+        for (attack, contacts) in &source.attacks {
+            let attacks = &mut self.mission.weapons.attacks;
+            if let Some(existing) = attacks.iter_mut().find(|a| a.clip == attack.clip) {
+                *existing = attack.clone();
+            } else {
+                attacks.push(attack.clone());
+            }
+            self.mission
+                .weapons
+                .imported_attacks
+                .insert(attack.clip, contacts.clone());
+        }
+        Ok(())
+    }
+
     pub fn set_player_moveset(
         &mut self,
         character: Option<&Character>,

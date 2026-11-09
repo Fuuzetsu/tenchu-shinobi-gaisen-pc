@@ -2823,3 +2823,28 @@ fog bypasses the distance reduction and far rejection. GPU checks cover the
 training opening, backgrounds, opaque night geometry, animated facial materials
 and original/HD water. Triangle subdivision and interpolation use the PC renderer;
 the mode2 subtractive ordering-table fog overlay is not reproduced pixel-for-pixel.
+
+### Cross-game hero movesets
+
+The optional Gaisen moveset adapter reads each installed T2 edition's hero
+registrations, motion bundles, weapon attachments and atktbl.dat through the
+existing verified tenchu_assets::tenchu2 parsers. Bone order uses the same
+BONES mapping as the earlier Tatsumaru import and model gallery. Action mapping,
+combo edges, temporary grips and selective recovery turns follow the native JP
+controllers in tenchu-core/src/tenchu2/control (standing, crouch, wall, jump,
+sequence and attack). Both editions store authored 30 Hz motion/attack data.
+Gaisen uses that directly, as in the existing Tatsumaru importer, without PAL's
+25 Hz load-time retiming. This adds no EU-native AI. Imported clip IDs are isolated
+by edition and hero, and full signed source movement speeds are preserved.
+Source Gaisen speeds still decode signed bytes unchanged.
+
+This is an explicit cross-game option: Gaisen still supplies its input controller,
+collision, damage, voices and weapon geometry. Paired kills and item/ledge/grapple
+scripts retain host motions. Imported attacks carry their own contact shapes,
+combo targets and recovery rule; original attacks use the untouched host rules.
+The attack table is selected on entering the imported action, before blend frames
+can accidentally consult the previous attack's combo window. No disc data or
+animation exports are compiled into the port. Disc-backed tests exercise contacts,
+actual hits, full forward combos, heading recovery, mid-attack save/rewind restore,
+movement overrides and weapon restoration on both Gaisen heroes; optional GPU
+captures verify imported bodies/costumes with their own animations.
