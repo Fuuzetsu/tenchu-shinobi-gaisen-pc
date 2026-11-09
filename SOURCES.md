@@ -2839,7 +2839,7 @@ by edition and hero, and full signed source movement speeds are preserved.
 Source Gaisen speeds still decode signed bytes unchanged.
 
 This is an explicit cross-game option: Gaisen still supplies its input controller,
-collision, damage, voices and weapon geometry. Paired kills and item/ledge/grapple
+collision, damage and voices. Paired kills and item/ledge/grapple
 scripts retain host motions. Imported attacks carry their own contact shapes,
 combo targets and recovery rule; original attacks use the untouched host rules.
 The attack table is selected on entering the imported action, before blend frames
@@ -2871,7 +2871,13 @@ the native source's clip-specific event dispatch. The default path is unchanged.
 
 This remains a player override, not a cross-game AI replacement: source scripts,
 paired kills, items and voices remain host behavior. Native T2 projectile/extra
-boss-script adapters and actual T2 weapon geometry imports remain separate work.
-T2 source melee contacts/timing are retained even when Gaisen supplies a weapon
-mesh. No executable, motion, texture, mesh or audio data is added to the source
+boss-script adapters remain separate work. Both runtimes now carry imported T2
+weapon geometry and its VRAM through the same moveset adapter. Each edition's
+weapon registry specifies bones, contact eligibility, draw rules and the three
+visible/two stowed slots. Gaisen's original four slots retain their meaning; an
+extra accessory slot holds T2's permanent sheath. Weapon models are single rigid
+parts on the supported discs; the importer rejects articulated data rather than
+silently flattening it. Source-qualified resource identities keep EU/JP textures
+separate, while the original HD-pack IDs stay usable. No executable, motion,
+texture, mesh or audio data is added to the source
 tree. Swaps reuse scene joints and weapon slots and do not consume gameplay RNG.

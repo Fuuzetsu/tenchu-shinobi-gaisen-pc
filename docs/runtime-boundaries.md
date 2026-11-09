@@ -15,6 +15,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Texture-based emitter discovery | `visuals/lights.rs` accepts a model catalog, VRAM and rules | `visuals/lights/gaisen.rs` supplies source meshes and instances |
 | GPU shading, shadows, materials and post effects | `renderer` | Source scene preparation, including native palette/fog decoding |
 | Weather and footprints | `visuals/weather`, `visuals/footprints`, `visuals/surfaces` | Source terrain and sole-contact adapters |
+| Imported weapon resources | `tenchu-assets::weapon::Equipment` and `ImportedModel`; shared model/material preparation | T2 disc tables supply attachments, contact eligibility and draw rules; each runtime maps its rig slots |
 
 Paths above are relative to `crates/tenchu-pc/src`. The small inspection interface
 borrows live actor facts in Gaisen. Native UI retains only camera and actor facts,
@@ -38,9 +39,16 @@ before adding another renderer or menu implementation. Enable a control only whe
 its edit, reset and live application all work. Unsupported values must survive a
 round trip between games without being applied to the wrong engine.
 
+Weapon imports retain disc-qualified identities, source VRAM and artwork IDs.
+They reuse the existing moveset rig pool and shared mesh/material pipeline, rather
+than baking source pixels into host texture pages. The T2 weapon-table parser is
+the attachment specification; Gaisen's original slots and equip semantics remain
+as specified by `tenchu-decomp/src/main.exe/APPEAR.C`, with the additional T2
+accessory slot used only by imports. `tenchu-viewer/src/weapons.rs` also provides
+the Gaisen attachment reference. No original assets are bundled.
+
 Remaining work includes further checked gameplay commands, more effect adapters,
-and character resources with source-qualified
-weapons and motion audio. The existing cross-game melee bridge still converts
+and source motion audio. The existing cross-game melee bridge still converts
 motion data through Gaisen's representation; this refactor does not make every
 move, item or weapon interchangeable. Preserve original action semantics at that
 boundary rather than making a universal AI/controller or silently substituting

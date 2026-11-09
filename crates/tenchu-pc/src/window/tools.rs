@@ -415,12 +415,20 @@ impl Application {
         {
             return Ok(());
         }
+        let weapons = self.campaign.game.mission.weapons.imported_models.clone();
         if let Some(body) = body {
             body.apply_moveset(&mut self.campaign.game, options)?;
         } else {
             self.campaign.game.set_player_moveset(None, &[], options)?;
         }
-        view.reset_interpolation(&self.campaign.game);
+        if !std::sync::Arc::ptr_eq(
+            &weapons,
+            &self.campaign.game.mission.weapons.imported_models,
+        ) {
+            view.refresh_actor_assets(&self.campaign.game, &self.settings)?;
+        } else {
+            view.reset_interpolation(&self.campaign.game);
+        }
         self.stop_edited_recording();
         Ok(())
     }

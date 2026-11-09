@@ -36,6 +36,8 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
         "disc:0".into(),
         "disc:1".into(),
         onikage,
+        "tenchu2-jp:rikimaru".into(),
+        "tenchu2-jp:ayame".into(),
         "tenchu2-jp:tatumaru".into(),
     ];
     choices.extend(guard);
@@ -66,6 +68,16 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
         );
         assert_eq!(rng, session.world.random);
         assert_eq!(session.world.actors[owner].actor.kind, original);
+        if id.starts_with("tenchu2-jp:") {
+            for source in session.assets.weapon_imports.values() {
+                assert!(
+                    source.id.starts_with("tenchu2-jp:weapons/"),
+                    "{id}: {}",
+                    source.id
+                );
+                assert!(source.source_id.starts_with("tenchu2/weapons/"));
+            }
+        }
         assert_eq!(
             postcard::to_allocvec(&session.world.actors[owner].actor.inventory).unwrap(),
             postcard::to_allocvec(&inventory).unwrap()
@@ -151,9 +163,50 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
             "recovery {id}"
         );
         if let Some(dir) = std::env::var_os("TENCHU_MODEL_REVIEW") {
+            use glam::{Mat4, Vec3};
             let path =
                 std::path::Path::new(&dir).join(format!("native-{}.png", id.replace(':', "-")));
-            super::super::render::capture(&session, &Default::default(), &path).unwrap();
+            std::fs::create_dir_all(&dir).unwrap();
+            let graphics = crate::settings::Graphics {
+                fog: false,
+                ..Default::default()
+            };
+            let mut review = crate::capture::review::Review::new(&donor.mission).unwrap();
+            review.configure(graphics.clone());
+            let models = super::super::render::Models::new(
+                &session.assets,
+                &session.world,
+                &graphics,
+                &mut review.renderer,
+            )
+            .unwrap();
+            let geometry = models
+                .geometry(
+                    &session.world,
+                    &session.assets,
+                    &session.frame,
+                    &graphics,
+                    false,
+                    None,
+                )
+                .unwrap();
+            let center = Vec3::from(
+                session.world.actors[owner]
+                    .actor
+                    .position
+                    .to_array()
+                    .map(|v| v as f32),
+            ) + Vec3::new(0.0, -900.0, 0.0);
+            let camera = Mat4::perspective_rh(42f32.to_radians(), 16.0 / 9.0, 10.0, 20000.0)
+                * Mat4::look_at_rh(
+                    center + Vec3::new(3300.0, -250.0, 1800.0),
+                    center,
+                    Vec3::NEG_Y,
+                );
+            let mesh = review.renderer.upload(&geometry.actors);
+            review
+                .capture(camera, &[&mesh], None, false, &path)
+                .unwrap();
         }
     }
     assert!(

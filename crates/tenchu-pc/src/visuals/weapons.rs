@@ -3,9 +3,11 @@ use tenchu_assets::texture::Vram;
 
 pub fn metal_weapon(id: &str) -> bool {
     use tenchu_assets::weapon::kind::{CLAW, FIST, JAW};
-    id.strip_prefix("weapons/")
-        .and_then(|id| i16::from_str_radix(id, 16).ok())
-        .is_some_and(|kind| !matches!(kind, CLAW | FIST | JAW))
+    id.starts_with("tenchu2/weapons/")
+        || id
+            .strip_prefix("weapons/")
+            .and_then(|id| i16::from_str_radix(id, 16).ok())
+            .is_some_and(|kind| !matches!(kind, CLAW | FIST | JAW))
 }
 
 pub fn mark_metal(vertices: &mut [Vertex], vram: &Vram, materials: &[super::models::Material]) {

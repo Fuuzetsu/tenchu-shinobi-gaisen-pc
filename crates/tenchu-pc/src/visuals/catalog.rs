@@ -224,6 +224,9 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
         }
     }
     for (&kind, geometry) in mission.weapons.models.iter() {
+        if mission.weapons.imported_models.contains_key(&kind) {
+            continue;
+        }
         out.push(ModelSource {
             id: format!("weapons/{kind:04x}"),
             label: mission.weapons.names[&kind].clone(),

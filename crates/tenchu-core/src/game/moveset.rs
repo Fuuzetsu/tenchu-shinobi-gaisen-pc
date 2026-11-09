@@ -9,6 +9,7 @@ pub struct Imported {
         tenchu_assets::weapon::Attack,
         tenchu_assets::weapon::ImportedAttack,
     )>,
+    pub equipment: tenchu_assets::weapon::Equipment,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -55,6 +56,61 @@ impl Game {
                 .imported_attacks
                 .insert(attack.clip, contacts.clone());
         }
+        self.import_player_weapons(&source.equipment)?;
+        Ok(())
+    }
+
+    fn import_player_weapons(
+        &mut self,
+        equipment: &tenchu_assets::weapon::Equipment,
+    ) -> Result<()> {
+        use crate::actor::Weapon;
+        use crate::math::Matrix;
+        use std::sync::Arc;
+        let actor = self.roster.get_mut(self.player_id);
+        actor.weapons.fill(None);
+        actor.imported_weapon_draw = Some(equipment.draw);
+        for attachment in &equipment.attachments {
+            let model = &attachment.model;
+            let weapons = &mut self.mission.weapons;
+            let kind = if let Some((&id, _)) = weapons
+                .imported_models
+                .iter()
+                .find(|(_, m)| m.id == model.id)
+            {
+                id
+            } else {
+                let id = (i16::MIN..0)
+                    .find(|id| !weapons.models.contains_key(id))
+                    .ok_or("Too many imported weapons")?;
+                Arc::make_mut(&mut weapons.models).insert(id, model.geometry.clone());
+                weapons.names.insert(id, model.id.clone());
+                Arc::make_mut(&mut weapons.imported_models).insert(id, model.clone());
+                id
+            };
+            let parent = *actor
+                .parts
+                .get(attachment.part)
+                .ok_or("Missing imported weapon attachment")?;
+            let slot = attachment.slot;
+            let model = *self
+                .moveset
+                .weapons
+                .get(slot)
+                .ok_or("Invalid imported weapon slot")?;
+            self.scene.models[model].parent = Some(parent);
+            self.scene.update(model, Matrix::default());
+            actor.weapons[slot] = Some(Weapon {
+                kind,
+                model,
+                rendered: Matrix::default(),
+                imported_contact: Some(attachment.melee),
+            });
+        }
+        if actor.attribute & ATTR_WEAPON_DRAWN != 0 {
+            equipment.draw.swap(&mut actor.weapons);
+        }
+        actor.initialize_rendered(&self.scene, &self.math);
         Ok(())
     }
 

@@ -82,6 +82,46 @@ pub struct ImportedAttack {
     pub holster: Option<[i16; 2]>,
 }
 
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub enum Draw {
+    Fixed,
+    Single,
+    Dual,
+}
+
+impl Draw {
+    pub fn swap<T>(self, slots: &mut [T; 5]) {
+        if matches!(self, Self::Single | Self::Dual) {
+            slots.swap(0, 2);
+        }
+        if matches!(self, Self::Dual) {
+            slots.swap(1, 3);
+        }
+    }
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct ImportedModel {
+    /// Disc-qualified identity; artwork packs use `source_id` independently.
+    pub id: String,
+    pub source_id: String,
+    pub geometry: Vec<Geometry>,
+    pub vram: Arc<crate::texture::Vram>,
+}
+
+pub struct Attachment {
+    pub part: usize,
+    pub melee: bool,
+    /// Held right/left, stowed right/left, and always-visible accessory.
+    pub slot: usize,
+    pub model: Arc<ImportedModel>,
+}
+
+pub struct Equipment {
+    pub draw: Draw,
+    pub attachments: Vec<Attachment>,
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Weapons {
     pub models: Arc<BTreeMap<i16, Vec<Geometry>>>,
@@ -92,6 +132,7 @@ pub struct Weapons {
     pub bow_timing: [[i16; 2]; 2],
     #[serde(default)]
     pub imported_attacks: BTreeMap<i16, ImportedAttack>,
+    pub imported_models: Arc<BTreeMap<i16, Arc<ImportedModel>>>,
 }
 
 impl Weapons {
@@ -107,6 +148,7 @@ impl Weapons {
             attacks,
             bow_timing,
             imported_attacks,
+            imported_models,
         } = self;
         out.shared_arc(models, true)?;
         out.shared_arc(grips, true)?;
@@ -114,7 +156,8 @@ impl Weapons {
         out.value(hitboxes)?;
         out.value(attacks)?;
         out.value(bow_timing)?;
-        out.value(imported_attacks)
+        out.value(imported_attacks)?;
+        out.shared_arc(imported_models, true)
     }
 
     pub fn load<S: ReadAt>(game: &GameAssets<S>, exe: &Executable) -> Result<Self> {
@@ -198,6 +241,7 @@ impl Weapons {
                     hitboxes,
                     attacks,
                     imported_attacks: BTreeMap::new(),
+                    imported_models: Arc::default(),
                     bow_timing: [
                         [
                             i16_le(exe.bytes(tables[3], 4)?, 0)?,

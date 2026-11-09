@@ -71,11 +71,13 @@ impl Weapons {
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
             for weapon in actor.weapons[..2].iter().flatten().filter(|weapon| {
-                actor
-                    .weapon_hitbox
-                    .iter()
-                    .flatten()
-                    .any(|&index| game.mission.weapons.hitboxes[index].kind == weapon.kind)
+                weapon.imported_contact.unwrap_or_else(|| {
+                    actor
+                        .weapon_hitbox
+                        .iter()
+                        .flatten()
+                        .any(|&index| game.mission.weapons.hitboxes[index].kind == weapon.kind)
+                })
             }) {
                 let key = Part::Actor {
                     root: actor.root_model,
@@ -277,6 +279,77 @@ impl Weapons {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC and TENCHU2_DISC; imported blades accept coatings without staining sheaths or unarmed accessories"]
+    fn imported_weapon_contacts_select_blades_for_blood() {
+        let assets =
+            crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let edition = tenchu_assets::tenchu2::Edition::detect(&disc).unwrap();
+        let mut library = appearance::library::Library::load(&assets).unwrap();
+        library.load_tenchu2(&disc).unwrap();
+        for (name, blades) in [("rikimaru", 1), ("ayame", 2), ("tatumaru", 0)] {
+            let mut game = crate::session::Options::default().load(&assets).unwrap();
+            for _ in 0..30 {
+                game.step(0).unwrap();
+            }
+            library
+                .get(&format!("{}{name}", edition.model_prefix()))
+                .unwrap()
+                .apply_moveset(&mut game, Default::default())
+                .unwrap();
+            game.step(tenchu_core::input::SQUARE).unwrap();
+            for _ in 0..150 {
+                game.step(0).unwrap();
+            }
+            let graphics = settings::Graphics {
+                blood: settings::Blood::modern(),
+                ..Default::default()
+            };
+            let models = Models::build(
+                &game.mission,
+                &crate::visuals::pack::Pack::default(),
+                &graphics,
+            )
+            .unwrap();
+            let player = game.player();
+            let parts = player
+                .weapons
+                .iter()
+                .flatten()
+                .map(|w| Part::Actor {
+                    root: player.root_model,
+                    model: w.model,
+                    kind: w.kind,
+                    inspection: false,
+                })
+                .collect();
+            let transforms = transforms(&game, &models, None, true, &parts);
+            let mut weapons = Weapons::default();
+            weapons.tick(
+                &game,
+                &models,
+                &transforms,
+                &BTreeSet::from([player.id]),
+                &mut Vec::new(),
+                &graphics.blood,
+            );
+            assert_eq!(weapons.coatings.len(), blades, "{name}");
+            for part in weapons.parts() {
+                let Part::Actor { model, .. } = part else {
+                    unreachable!()
+                };
+                assert!(
+                    player.weapons[..2]
+                        .iter()
+                        .flatten()
+                        .any(|w| w.model == model && w.imported_contact == Some(true))
+                );
+            }
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; successful Kunoichi melee hits must coat both weapons with original and replacement artwork"]

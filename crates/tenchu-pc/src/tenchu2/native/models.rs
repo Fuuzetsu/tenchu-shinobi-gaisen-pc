@@ -143,8 +143,8 @@ impl Override {
         if weapon_parts.is_none() {
             assets
                 .weapons
-                .retain(|name, _| !assets.weapon_textures.contains_key(name));
-            assets.weapon_textures.clear();
+                .retain(|name, _| !assets.weapon_imports.contains_key(name));
+            assets.weapon_imports.clear();
         }
         let parts = &assets.models[&definition.model].parts;
         let mut motion = Motion::new(parts)?;

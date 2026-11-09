@@ -467,24 +467,19 @@ impl Models {
         let weapon_sources = assets
             .weapons
             .iter()
-            .filter(|(name, _)| !assets.weapon_textures.contains_key(*name))
+            .filter(|(name, _)| !assets.weapon_imports.contains_key(*name))
             .flat_map(|(name, parts)| sources(&format!("weapons/{name}"), parts))
             .collect();
         let mut weapons = build(&assets.weapon_vram, weapon_sources, graphics)?;
         renderer.bind_meshes(&mut weapons);
         let mut imported_weapons = BTreeMap::new();
-        for (name, vram) in &assets.weapon_textures {
+        for (name, source) in &assets.weapon_imports {
             let parts = &assets.weapons[name];
             let mut model_sources = sources(&format!("weapons/{name}"), parts);
-            if let Some(kind) = name
-                .strip_prefix("gaisen-weapon-")
-                .and_then(|k| k.parse::<i16>().ok())
-            {
-                for source in &mut model_sources {
-                    source.id = format!("weapons/{kind:04x}");
-                }
+            for model in &mut model_sources {
+                model.id.clone_from(&source.source_id);
             }
-            let mut meshes = build(vram, model_sources, graphics)?;
+            let mut meshes = build(&source.vram, model_sources, graphics)?;
             renderer.bind_meshes(&mut meshes);
             imported_weapons.insert(name.clone(), meshes);
         }
@@ -622,7 +617,11 @@ impl Models {
                         self.imported_weapons.get(name).unwrap_or(&self.weapons),
                         part,
                         scene.world(root + 1 + index)?,
-                        if assets.weapon_textures.contains_key(name) {
+                        if assets
+                            .weapon_imports
+                            .get(name)
+                            .is_some_and(|m| !m.source_id.starts_with("tenchu2/"))
+                        {
                             ModelStyle::Imported {
                                 concealed: instance.translucent,
                             }

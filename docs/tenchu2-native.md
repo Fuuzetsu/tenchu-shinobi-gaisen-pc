@@ -59,8 +59,9 @@ moveset override and select **Original** to return to the native hero.
 
 Movement and melee use source registrations, timing, combos and contacts. The
 host still supplies collision, damage rules, mission identity, inventory,
-voices, paired stealth kills and unmapped actions. Imported T2 moves currently
-use Gaisen weapon geometry. Scripted/projectile-only moves and custom-folder
+voices, paired stealth kills and unmapped actions. Movesets carry their source
+weapon models, textures, handles and sheaths, including T2 HD-pack replacements
+and source draw/holster attachment rules. Scripted/projectile-only moves and custom-folder
 bodies are not connected to the native runtime yet. A body without a supported
 moveset keeps the host's moves. The standalone `play-t2-jp` preview needs a
 remembered Gaisen disc; open it once through `play` to connect the gallery.

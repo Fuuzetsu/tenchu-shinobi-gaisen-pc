@@ -4,7 +4,9 @@ use tenchu_assets::{
     disc::Disc,
     executable::{Character, MotionRegistration},
     tenchu2::{self, Edition, motions, registry::Registry, weapons::Weapons},
-    weapon::{Attack, Contact, Hitbox, ImportedAttack, kind},
+    weapon::{
+        Attachment, Attack, Contact, Draw, Equipment, Hitbox, ImportedAttack, ImportedModel, kind,
+    },
 };
 use tenchu_core::{game::moveset::Imported, ids::*};
 
@@ -45,6 +47,8 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
         Edition::Europe => 0x7400,
     };
     let mut next_id = base_npc;
+    let vram = Arc::new(tenchu2::weapons::textures(disc)?);
+    let mut models = BTreeMap::new();
     for actor in &registry.actors {
         let kind = actor.kind;
         let base: i16 = match registry.edition {
@@ -205,10 +209,57 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
                 character,
                 clips: converted.into_values().collect(),
                 attacks,
+                equipment: equipment(disc, &weapons, actor.weapon, &vram, &mut models)?,
             }),
         );
     }
     Ok(out)
+}
+
+fn equipment(
+    disc: &Disc<impl ReadAt>,
+    weapons: &Weapons,
+    kind: i16,
+    vram: &Arc<tenchu_assets::texture::Vram>,
+    models: &mut BTreeMap<String, Arc<ImportedModel>>,
+) -> Result<Equipment> {
+    let mut attachments = Vec::new();
+    for part in weapons.parts(kind) {
+        let Some(name) = &part.model else { continue };
+        let model = if let Some(model) = models.get(name) {
+            model.clone()
+        } else {
+            let mut parts = tenchu2::weapons::model(disc, name)?;
+            if parts.len() != 1 || parts[0].parent != -1 || parts[0].position != [0; 3] {
+                return Err(format!("Unsupported articulated imported weapon: {name}"));
+            }
+            let model = Arc::new(ImportedModel {
+                id: format!("{}weapons/{name}", weapons.edition.model_prefix()),
+                source_id: format!("tenchu2/weapons/{name}/0"),
+                geometry: parts.remove(0).geometry,
+                vram: vram.clone(),
+            });
+            models.insert(name.clone(), model.clone());
+            model
+        };
+        attachments.push(Attachment {
+            melee: part.radius > 0,
+            part: tenchu2::BONES
+                .iter()
+                .position(|&bone| bone == part.bone)
+                .ok_or("Unsupported imported weapon attachment bone")?,
+            slot: [0, 1, 4, 2, 3][part.slot],
+            model,
+        });
+    }
+    Ok(Equipment {
+        draw: match kind & 0xf00 {
+            0x100 => Draw::Single,
+            0x200 => Draw::Dual,
+            _ => Draw::Fixed,
+        },
+        attachments,
+    })
 }
 
 fn character_action_exists(registry: &Registry, kind: i16, action: i16) -> bool {

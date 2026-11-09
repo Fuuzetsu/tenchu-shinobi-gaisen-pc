@@ -23,6 +23,11 @@ fn imported_heroes_move_fight_and_restore_in_gaisen() {
             }
             let definition = game.player().definition;
             let original_motions = game.mission.characters[definition].motions.clone();
+            let original_weapons = game
+                .player()
+                .weapons
+                .each_ref()
+                .map(|w| w.as_ref().map(|w| w.kind));
             let random = game.random;
             let options = tenchu_core::game::moveset::Options {
                 no_idle_taunts: true,
@@ -31,6 +36,27 @@ fn imported_heroes_move_fight_and_restore_in_gaisen() {
             game.set_imported_player_moveset(source, options).unwrap();
             assert_eq!(random, game.random);
             assert_eq!(game.player().kind, character);
+            let mut slots = game.player().weapons.clone();
+            if game.player().attribute & ATTR_WEAPON_DRAWN != 0 {
+                source.equipment.draw.swap(&mut slots);
+            }
+            for attachment in &source.equipment.attachments {
+                let weapon = slots[attachment.slot].as_ref().unwrap();
+                let imported = &game.mission.weapons.imported_models[&weapon.kind];
+                assert_eq!(imported.id, attachment.model.id);
+                assert_eq!(weapon.imported_contact, Some(attachment.melee));
+                assert_eq!(
+                    game.scene.models[weapon.model].parent,
+                    Some(game.player().parts[attachment.part])
+                );
+                assert_eq!(
+                    postcard::to_allocvec(&game.mission.weapons.models[&weapon.kind]).unwrap(),
+                    postcard::to_allocvec(&imported.geometry).unwrap()
+                );
+            }
+            assert!(slots[4].is_some(), "hero {kind}: permanent sheath");
+            let scene_size = game.scene.models.len();
+            let resource_size = game.mission.weapons.models.len();
             let start = game.player().position;
             for _ in 0..12 {
                 game.step(UP).unwrap();
@@ -149,6 +175,28 @@ fn imported_heroes_move_fight_and_restore_in_gaisen() {
                 .unwrap();
             assert_eq!(game.player().definition, definition);
             assert_eq!(game.player().kind, character);
+            for _ in 0..4 {
+                game.set_imported_player_moveset(source, options).unwrap();
+                game.set_player_moveset(None, &[], Default::default())
+                    .unwrap();
+            }
+            assert_eq!(
+                game.scene.models.len(),
+                scene_size,
+                "repeated swaps leak scene slots"
+            );
+            assert_eq!(
+                game.mission.weapons.models.len(),
+                resource_size,
+                "repeated swaps duplicate weapon assets"
+            );
+            assert_eq!(
+                game.player()
+                    .weapons
+                    .each_ref()
+                    .map(|w| w.as_ref().map(|w| w.kind)),
+                original_weapons
+            );
         }
     }
 }
@@ -294,7 +342,8 @@ fn imported_models_present_native_attacks_in_gaisen() {
         let body = library.get(&id).unwrap();
         assert!(body.has_moveset());
         body.apply_moveset(&mut game, Default::default()).unwrap();
-        let mut models = Models::default()
+        let mut models = Models::build(&game.mission, &Pack::default(), &graphics)
+            .unwrap()
             .with_player(
                 &game,
                 &id,

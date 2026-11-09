@@ -19,6 +19,7 @@ mod tests;
 mod tracking;
 pub mod trail;
 mod weapon;
+pub(crate) use weapon::Weapon;
 
 use crate::{
     Result,
@@ -131,7 +132,8 @@ pub struct Actor {
     pub aiming: bool,
     pub attack: usize,
     pub patrol: Option<patrol::Patrol>,
-    pub weapons: [Option<weapon::Weapon>; 4],
+    pub weapons: [Option<weapon::Weapon>; 5],
+    pub imported_weapon_draw: Option<tenchu_assets::weapon::Draw>,
     pub weapon_hitbox: [Option<usize>; 2],
     pub trails: [Option<trail::Trail>; 2],
 }
@@ -246,6 +248,7 @@ impl Actor {
             attack: 0,
             patrol: None,
             weapons: std::array::from_fn(|_| None),
+            imported_weapon_draw: None,
             weapon_hitbox: [None; 2],
             trails: std::array::from_fn(|_| None),
         };
@@ -365,7 +368,16 @@ impl Actor {
                 }
             }
         }
-        for weapon in self.weapons[..2].iter_mut().flatten() {
+        for weapon in self
+            .weapons
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(slot, weapon)| {
+                (!matches!(slot, 2 | 3))
+                    .then_some(weapon.as_mut())
+                    .flatten()
+            })
+        {
             weapon.rendered = scene.world(weapon.model)?;
             if let Some(mesh) = mission.weapons.models[&weapon.kind].first() {
                 drawing.bytes +=

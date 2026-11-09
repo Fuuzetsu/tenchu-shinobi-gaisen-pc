@@ -145,6 +145,27 @@ impl Models {
             }
             imported.push(meshes);
         }
+        for (&kind, source) in mission.weapons.imported_models.iter() {
+            let geometry = &mission.weapons.models[&kind];
+            let sources = vec![catalog::ModelSource {
+                id: source.source_id.clone(),
+                label: source.id.clone(),
+                geometry,
+            }];
+            let pack = if graphics.asset_pack {
+                Pack::for_models(&source.vram, &sources)?
+            } else {
+                Pack::default()
+            };
+            let mut meshes = Meshes::build(&source.vram, &pack, graphics, sources, true)?;
+            meshes.inherit_palette_blending(&source.vram);
+            meshes.detach_textures();
+            if graphics.asset_pack {
+                meshes.replace_textures(&pack);
+            }
+            imported_geometry.insert(geometry.as_ptr() as usize, imported.len());
+            imported.push(meshes);
+        }
         Ok(Self {
             pose_generation: Arc::default(),
             replacements: world.replacements

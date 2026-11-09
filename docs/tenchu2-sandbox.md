@@ -101,7 +101,10 @@ and melee combos with source attack timing, striking joints and recovery turns.
 The Gaisen controller, collision and damage rules remain in charge. Paired
 stealth kills, items, grapple, ledges, special deaths and unmapped actions still
 use Gaisen motions. Projectile-only attacks and extra source controllers are not
-yet selectable. Gaisen weapon models and voices remain in use. This is an
+yet selectable. Imported movesets carry their own weapon models, textures,
+handles and sheaths from the selected disc, with its HD pack when enabled.
+Source draw/holster rules control the attachments; weapon blood and reflections
+remain available. Voices still use the host game. This is an
 optional moveset adapter, not a T2-native simulation in a Gaisen map.
 The same gallery also supports Gaisen bodies and movesets in
 [native Japanese T2 missions](tenchu2-native.md).

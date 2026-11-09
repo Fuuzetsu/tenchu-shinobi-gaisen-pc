@@ -229,7 +229,16 @@ fn visit_actor(
             );
         }
     }
-    for weapon in actor.weapons[..2].iter().flatten() {
+    for weapon in actor
+        .weapons
+        .iter()
+        .enumerate()
+        .filter_map(|(slot, weapon)| {
+            (!matches!(slot, 2 | 3))
+                .then_some(weapon.as_ref())
+                .flatten()
+        })
+    {
         visit(
             Part::Actor {
                 root: actor.root_model,

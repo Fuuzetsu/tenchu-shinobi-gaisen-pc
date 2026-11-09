@@ -8,6 +8,7 @@ pub struct Weapon {
     pub kind: i16,
     pub model: ModelId,
     pub rendered: Matrix,
+    pub imported_contact: Option<bool>,
 }
 
 impl Actor {
@@ -22,7 +23,7 @@ impl Actor {
                 pool.push(weapon.model);
             }
         }
-        while pool.len() < 4 {
+        while pool.len() < self.weapons.len() {
             pool.push(ctx.scene.add(None, Matrix::default()));
         }
         for &model in pool.iter() {
@@ -30,6 +31,7 @@ impl Actor {
             ctx.scene.models[model].flags = 0;
         }
         self.weapons.fill(None);
+        self.imported_weapon_draw = None;
         self.imported_holster = false;
         self.weapon_hitbox.fill(None);
         self.attribute &= !ATTR_WEAPON_DRAWN;
@@ -71,6 +73,7 @@ impl Actor {
                 kind,
                 model: ctx.scene.add(Some(parent), Matrix::default()),
                 rendered: Matrix::default(),
+                imported_contact: None,
             });
         }
         Ok(())
@@ -154,6 +157,10 @@ impl Actor {
             return;
         }
         self.attribute ^= ATTR_WEAPON_DRAWN;
+        if let Some(draw) = self.imported_weapon_draw {
+            draw.swap(&mut self.weapons);
+            return;
+        }
         match ctx.mission.characters[self.definition].weapon {
             KODATI | JYUTE | EN | KATANA_2 => {
                 self.weapons.swap(0, 2);

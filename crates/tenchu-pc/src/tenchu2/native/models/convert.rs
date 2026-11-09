@@ -59,15 +59,23 @@ pub(super) fn convert_moves(
         .iter()
         .any(|m| m.action == tenchu_core::ids::MOT_ATTACK);
     if owns_attack {
-        definition.weapon = match weapon_kind {
-            kind::KODATI | kind::JYUTE | kind::EN | kind::KATANA_2 => i16::MIN + 0x200,
-            kind::KOZUKA
-            | kind::NINJA
-            | kind::KEITOU
-            | kind::KATANA_0
-            | kind::HOUTOU
-            | kind::KATANA_1 => i16::MIN + 0x100,
-            _ => i16::MIN,
+        definition.weapon = if let Some(source) = &body.imported_moveset {
+            match source.equipment.draw {
+                tenchu_assets::weapon::Draw::Fixed => i16::MIN,
+                tenchu_assets::weapon::Draw::Single => i16::MIN + 0x100,
+                tenchu_assets::weapon::Draw::Dual => i16::MIN + 0x200,
+            }
+        } else {
+            match weapon_kind {
+                kind::KODATI | kind::JYUTE | kind::EN | kind::KATANA_2 => i16::MIN + 0x200,
+                kind::KOZUKA
+                | kind::NINJA
+                | kind::KEITOU
+                | kind::KATANA_0
+                | kind::HOUTOU
+                | kind::KATANA_1 => i16::MIN + 0x100,
+                _ => i16::MIN,
+            }
         };
         definition
             .motions
@@ -209,19 +217,24 @@ pub(super) fn convert_weapons(
 ) -> Result<Vec<weapons::Part>> {
     assets
         .weapons
-        .retain(|name, _| !assets.weapon_textures.contains_key(name));
-    assets.weapon_textures.clear();
+        .retain(|name, _| !assets.weapon_imports.contains_key(name));
+    assets.weapon_imports.clear();
     let actor = donor.player();
     let mut slots = actor.weapons.clone();
     if actor.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN != 0 {
-        if kind & 0xf00 == 0x200 {
-            slots.swap(1, 3);
-        }
-        if matches!(kind & 0xf00, 0x100 | 0x200) {
-            slots.swap(0, 2);
+        if let Some(draw) = actor.imported_weapon_draw {
+            draw.swap(&mut slots);
+        } else {
+            if kind & 0xf00 == 0x200 {
+                slots.swap(1, 3);
+            }
+            if matches!(kind & 0xf00, 0x100 | 0x200) {
+                slots.swap(0, 2);
+            }
         }
     }
     let mut parts = Vec::new();
+    let vram = std::sync::Arc::new(donor.mission.vram.clone());
     for (slot, weapon) in slots
         .iter()
         .enumerate()
@@ -233,7 +246,21 @@ pub(super) fn convert_weapons(
             .iter()
             .position(|&p| Some(p) == model.parent)
             .ok_or("Missing Gaisen weapon bone")?;
-        let name = format!("gaisen-weapon-{}", weapon.kind);
+        let name = format!("imported-weapon-{}", weapon.kind);
+        let source = donor
+            .mission
+            .weapons
+            .imported_models
+            .get(&weapon.kind)
+            .cloned()
+            .unwrap_or_else(|| {
+                std::sync::Arc::new(tenchu_assets::weapon::ImportedModel {
+                    id: format!("gaisen:weapons/{}", weapon.kind),
+                    source_id: format!("weapons/{:04x}", weapon.kind),
+                    geometry: donor.mission.weapons.models[&weapon.kind].clone(),
+                    vram: vram.clone(),
+                })
+            });
         assets.weapons.insert(
             name.clone(),
             vec![Part {
@@ -243,15 +270,12 @@ pub(super) fn convert_weapons(
                 geometry: donor.mission.weapons.models[&weapon.kind].clone(),
             }],
         );
-        assets.weapon_textures.insert(
-            name.clone(),
-            std::sync::Arc::new(donor.mission.vram.clone()),
-        );
+        assets.weapon_imports.insert(name.clone(), source);
         parts.push(weapons::Part {
             kind,
             model: Some(name),
             bone: BONES[bone],
-            slot: [0, 1, 3, 4][slot],
+            slot: [0, 1, 3, 4, 2][slot],
             trail: [[0; 3]; 2],
             center: [0; 3],
             radius: 0,
