@@ -31,6 +31,12 @@ impl Application {
                 }
             }
             Event::Options(options) => self.campaign.options = options,
+            Event::MissionSelection => {
+                #[cfg(not(target_arch = "wasm32"))]
+                if self.tenchu2.native() && self.tenchu2.path == self.tenchu2.connected {
+                    return self.start_native_tenchu2(true);
+                }
+            }
             Event::Gaisen(continue_save) => {
                 self.campaign.cursor = usize::from(!continue_save);
                 self.campaign_action(Action::Confirm);
@@ -131,7 +137,7 @@ impl Application {
                         return Err("Load the selected disc first".into());
                     }
                     if self.tenchu2.native() {
-                        return self.start_native_tenchu2();
+                        return self.start_native_tenchu2(false);
                     }
                     let guard = self.tenchu2.sequence.and(self.tenchu2.guard);
                     let mut sandbox = crate::tenchu2::Sandbox::open(

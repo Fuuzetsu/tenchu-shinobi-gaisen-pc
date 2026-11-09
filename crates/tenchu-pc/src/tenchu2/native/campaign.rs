@@ -17,6 +17,7 @@ use tenchu_core::tenchu2::{
 mod tests;
 
 pub enum Content {
+    MissionSelection(Box<super::selection::Selection>),
     Equipment(Box<super::equipment::Selection>),
     Gameplay(Box<Session>),
     Introduction(Box<super::film::Introduction>),
@@ -36,6 +37,8 @@ pub enum Action {
     Retry,
     Quit,
     Equipment(super::equipment::Edit),
+    MissionSelection(super::selection::Edit),
+    SelectMission,
 }
 
 #[derive(Default)]
@@ -57,6 +60,7 @@ pub struct Playback<S> {
     previous_buttons: u16,
     blank: Vram,
     save: Option<super::save::SaveFile>,
+    from_menu: bool,
 }
 
 impl<S: ReadAt> Playback<S> {
@@ -68,7 +72,33 @@ impl<S: ReadAt> Playback<S> {
         loadout: Option<[u8; 21]>,
         save: Option<super::save::SaveFile>,
     ) -> Result<Self> {
+        let mut playback = Self::new(disc, Some(sequence), difficulty, seed, loadout, save)?;
+        playback.load_current()?;
+        Ok(playback)
+    }
+
+    pub fn menu(
+        disc: Disc<S>,
+        difficulty: u8,
+        seed: u32,
+        save: Option<super::save::SaveFile>,
+    ) -> Result<Self> {
+        let mut playback = Self::new(disc, None, difficulty, seed, None, save)?;
+        playback.select_mission()?;
+        Ok(playback)
+    }
+
+    fn new(
+        disc: Disc<S>,
+        sequence: Option<usize>,
+        difficulty: u8,
+        seed: u32,
+        loadout: Option<[u8; 21]>,
+        save: Option<super::save::SaveFile>,
+    ) -> Result<Self> {
         let campaign = Campaign::load(&disc)?;
+        let sequence =
+            sequence.unwrap_or(campaign.starts[0][0].ok_or("Missing Japanese training mission")?);
         let hero = (0..3)
             .find(|&hero| campaign.mission(hero, sequence).is_some())
             .ok_or("Sequence is not part of a Japanese Tenchu 2 campaign")?;
@@ -76,7 +106,7 @@ impl<S: ReadAt> Playback<S> {
         if let Some(save) = &save {
             run.progress = save.load()?;
         }
-        let mut playback = Self {
+        Ok(Self {
             disc,
             campaign,
             run,
@@ -87,9 +117,19 @@ impl<S: ReadAt> Playback<S> {
             previous_buttons: 0,
             blank: Vram::default(),
             save,
-        };
-        playback.load_current()?;
-        Ok(playback)
+            from_menu: false,
+        })
+    }
+
+    fn select_mission(&mut self) -> Result<()> {
+        self.from_menu = true;
+        self.loadout = None;
+        self.content = Content::MissionSelection(Box::new(super::selection::Selection::load(
+            &self.disc,
+            self.run.progress.clone(),
+        )?));
+        self.generation += 1;
+        Ok(())
     }
 
     pub fn vram(&self) -> &Vram {
@@ -188,16 +228,54 @@ impl<S: ReadAt> Playback<S> {
         let pressed = buttons & !previous;
         self.previous_buttons = buttons;
         let action = self.action.take();
+        if matches!(action, Some(Action::SelectMission)) {
+            self.select_mission()?;
+            return Ok(Update {
+                stop_music: true,
+                ..Default::default()
+            });
+        }
         let retry_on_confirm = matches!(self.content, Content::Failed | Content::Complete);
         let mut update = Update::default();
+        let mut choose_mission = false;
         let destination = match &mut self.content {
+            Content::MissionSelection(selection) => {
+                if selection.state.finished {
+                    self.run.progress.clone_from(&selection.state.progress);
+                    if selection.state.outcome
+                        == Some(tenchu_core::tenchu2::selection::Outcome::Cancel)
+                    {
+                        update.quit = true;
+                        None
+                    } else {
+                        let hero = selection.state.hero;
+                        let sequence = self.campaign.starts[hero][selection.state.mission]
+                            .ok_or("Missing Japanese mission start")?;
+                        let mut run = Run::new(
+                            &self.campaign,
+                            hero,
+                            sequence,
+                            self.run.difficulty,
+                            self.run.random.seed,
+                        )?;
+                        run.progress.clone_from(&self.run.progress);
+                        run.random = self.run.random;
+                        self.run = run;
+                        Some(Destination::Sequence(sequence))
+                    }
+                } else {
+                    update.sounds = selection.step(buttons, action)?;
+                    None
+                }
+            }
             Content::Equipment(selection) => {
                 if selection.state.finished {
                     self.run.progress.stock[self.run.hero].clone_from(&selection.state.stock);
                     if selection.state.outcome
                         == Some(tenchu_core::tenchu2::equipment::Outcome::Cancel)
                     {
-                        update.quit = true;
+                        choose_mission = self.from_menu;
+                        update.quit = !choose_mission;
                         None
                     } else {
                         self.run.carry.inventory = selection.state.inventory();
@@ -292,15 +370,18 @@ impl<S: ReadAt> Playback<S> {
                             Action::Continue => Some(self.run.advance(&self.campaign, false)?),
                             Action::Retry => Some(self.run.retry(&self.campaign)?),
                             Action::Quit => {
-                                update.quit = true;
+                                choose_mission = self.from_menu;
+                                update.quit = !choose_mission;
                                 None
                             }
-                            Action::Equipment(_) => None,
+                            Action::Equipment(_)
+                            | Action::MissionSelection(_)
+                            | Action::SelectMission => None,
                         }
                     }
                 } else {
                     let selected = action
-                        .filter(|a| !matches!(a, Action::Equipment(_)))
+                        .filter(|a| matches!(a, Action::Continue | Action::Retry | Action::Quit))
                         .or_else(|| {
                             if previous != 0 {
                                 return None;
@@ -332,7 +413,10 @@ impl<S: ReadAt> Playback<S> {
             }
             _ => None,
         };
-        if let Some(destination) = destination {
+        if choose_mission {
+            update.stop_music = true;
+            self.select_mission()?;
+        } else if let Some(destination) = destination {
             update.stop_music = true;
             self.arrive(destination)?;
         }

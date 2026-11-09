@@ -56,6 +56,7 @@ pub enum Event {
     Browse,
     Connect,
     Play,
+    MissionSelection,
     Select(Option<Edition>),
     Options(crate::session::Options),
     Gaisen(bool),

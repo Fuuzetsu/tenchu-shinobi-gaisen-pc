@@ -1709,7 +1709,7 @@ pub fn run(
             .iter()
             .find(|layout| layout.sequence == sequence)
             .map_or(0, |layout| layout.map);
-        application.start_native_tenchu2()?;
+        application.start_native_tenchu2(false)?;
     }
     if application.exporting_video() {
         println!(

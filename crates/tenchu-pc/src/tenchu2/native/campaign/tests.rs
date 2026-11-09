@@ -38,6 +38,81 @@ fn next(playback: &mut Playback<crate::source::DiscSource>) {
 }
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; disc mission menu, all three campaigns, music, saved supplies and equipment cancellation"]
+fn native_mission_menu_enters_each_campaign_from_its_opening_scene() {
+    use super::super::selection::Edit;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut playback = Playback::menu(disc, 3, 17, None).unwrap();
+    for hero in 0..3 {
+        for _ in 0..15 {
+            playback.step(0).unwrap();
+        }
+        for _ in 0..hero {
+            playback.action = Some(Action::MissionSelection(Edit::Hero(true)));
+            playback.step(0).unwrap();
+            for _ in 0..11 {
+                playback.step(0).unwrap();
+            }
+        }
+        let Content::MissionSelection(selection) = &mut playback.content else {
+            panic!("not mission menu")
+        };
+        assert_eq!(selection.state.hero, hero);
+        assert_eq!(selection.state.displayed, hero);
+        assert!(!selection.music.frames.is_empty());
+        assert!(selection.music.frames.iter().flatten().any(|&s| s != 0));
+        assert!(selection.motions[hero].frame >= 0);
+        assert_eq!(selection.resources.names.size, [208, 240]);
+        for mission in 0..11 {
+            assert_eq!(
+                selection
+                    .state
+                    .available(mission, &selection.resources.rules),
+                playback.campaign.starts[hero][mission].is_some()
+            );
+        }
+        selection.state.progress.stock[hero].items[4] = Some(23);
+        playback.action = Some(Action::MissionSelection(Edit::Mission(1)));
+        playback.step(0).unwrap();
+        playback.action = Some(Action::Continue);
+        playback.step(0).unwrap();
+        next(&mut playback);
+        assert_eq!(playback.run.hero, hero);
+        assert_eq!(playback.run.mission, 1);
+        assert_eq!(playback.run.difficulty, 3);
+        assert_eq!(
+            playback.run.sequence,
+            playback.campaign.starts[hero][1].unwrap()
+        );
+        assert!(matches!(playback.content, Content::Story { .. }));
+        for tick in 0..1500 {
+            if matches!(playback.content, Content::Equipment(_)) {
+                break;
+            }
+            assert!(
+                !playback
+                    .step(if tick % 60 == 0 { 0x4000 } else { 0 })
+                    .unwrap()
+                    .quit
+            );
+        }
+        let Content::Equipment(selection) = &playback.content else {
+            panic!("opening did not reach equipment")
+        };
+        assert_eq!(selection.state.stock.items[4], Some(23));
+        for _ in 0..15 {
+            playback.step(0).unwrap();
+        }
+        playback.action = Some(Action::Quit);
+        playback.step(0).unwrap();
+        next(&mut playback);
+        assert!(matches!(playback.content, Content::MissionSelection(_)));
+        assert_eq!(playback.run.progress.stock[hero].items[4], Some(23));
+    }
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; original equipment, stock, menu audio, training bypass and boss-area carry"]
 fn native_equipment_supplies_the_campaign_inventory() {
     use super::super::equipment::Edit;

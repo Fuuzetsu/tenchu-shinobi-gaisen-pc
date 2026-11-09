@@ -6,6 +6,15 @@ now use the native JP runtime. The sequence determines the original player and
 cast. EU selections still use the Gaisen scenery sandbox; JP can also opt into
 that mode with **Use Gaisen scenery sandbox**.
 
+Choose **Original JP mission selection…** in F6 for the original mission screen,
+with all 29 missions available across Rikimaru, Ayame and Tatsumaru. Left/right
+changes hero; up/down chooses a mission; Circle or Enter starts and Cross returns.
+The portraits, mission rows and arrows also accept mouse/touch input. Selection
+starts at the mission's opening scene. F1 can return to this screen during JP
+play; leaving equipment or results returns here when the mission began here.
+Saved ranks and supplies are retained; making missions available does not grant
+items or change your recorded results.
+
 The same route is available from the command line:
 
 ```sh
@@ -39,6 +48,7 @@ For development, the standalone preview is also available:
 ./dev.sh cargo run -p tenchu-pc --bin tenchu-pc -- play-t2-jp /path/to/tenchu2-japan.cue --sequence 9
 ```
 
+Add `--menu` to open the original JP mission screen in this standalone preview.
 Disc folders and supported archives work here too. Use `inspect-t2 DISC` to
 list sequences and their areas. The sequence selects its campaign hero.
 Keyboard/controller bindings are shared with the main game. F1 shows actors,

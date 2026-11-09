@@ -14,6 +14,7 @@ use tenchu_core::tenchu2::campaign::Run;
 mod equipment;
 mod film;
 mod results;
+mod selection;
 
 impl Update {
     pub fn play_audio(&self, output: &Output) {
@@ -32,6 +33,7 @@ impl Update {
 impl Content {
     pub fn tick(&self) -> i64 {
         match self {
+            Self::MissionSelection(selection) => i64::from(selection.state.tick),
             Self::Gameplay(session) => session.world.tick as i64,
             Self::Equipment(selection) => i64::from(selection.state.tick),
             Self::Story { story, .. } => i64::from(story.state.frame),
@@ -44,6 +46,10 @@ impl Content {
     pub fn start_audio(&self, output: &Output) {
         output.send(Command::Clear);
         match self {
+            Self::MissionSelection(selection) => {
+                output.send(Command::Bank(selection.bank.clone()));
+                output.send(Command::Music(Some(selection.music.clone()), false));
+            }
             Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
             Self::Equipment(selection) => output.send(Command::Bank(selection.bank.clone())),
             Self::Results(results) => output.send(Command::Bank(results.bank.clone())),
@@ -62,7 +68,9 @@ impl Content {
         error: Option<&str>,
     ) -> Option<Action> {
         let mut action = None;
-        if let Self::Equipment(selection) = self {
+        if let Self::MissionSelection(selection) = self {
+            action = selection::controls(selection, ctx);
+        } else if let Self::Equipment(selection) = self {
             action = equipment::controls(selection, ctx);
         } else if let Self::Results(results) = self {
             egui::Area::new("jp-results-actions".into())
@@ -102,6 +110,9 @@ impl Content {
             .show(ctx, |ui| {
                 if ui.button("Retry mission").clicked() {
                     action = Some(Action::Retry);
+                }
+                if ui.button("Mission selection").clicked() {
+                    action = Some(Action::SelectMission);
                 }
                 ui.label("Esc: leave preview");
             });
@@ -198,6 +209,7 @@ impl Content {
 }
 
 pub(crate) enum ContentDrawing {
+    MissionSelection(selection::Drawing),
     Equipment(equipment::Drawing),
     Gameplay(Box<Drawing>),
     Story(Box<StoryDrawing>),
@@ -213,6 +225,9 @@ pub(crate) enum ContentDrawing {
 impl ContentDrawing {
     pub fn new(content: &Content, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         match content {
+            Content::MissionSelection(selection) => Ok(Self::MissionSelection(
+                selection::Drawing::new(selection, graphics)?,
+            )),
             Content::Equipment(selection) => {
                 Ok(Self::Equipment(equipment::Drawing::new(selection)))
             }
@@ -255,6 +270,9 @@ impl ContentDrawing {
 
     pub fn update(&mut self, content: &Content, renderer: &mut Renderer) -> Result<()> {
         match (self, content) {
+            (Self::MissionSelection(drawing), Content::MissionSelection(selection)) => {
+                drawing.update(selection)
+            }
             (Self::Equipment(drawing), Content::Equipment(selection)) => {
                 drawing.update(selection);
                 Ok(())
@@ -284,6 +302,7 @@ impl ContentDrawing {
             (Self::Gameplay(drawing), Content::Gameplay(_)) => drawing.draw(target, renderer),
             (Self::Story(drawing), Content::Story { .. }) => drawing.draw(target, renderer),
             (Self::Results(_), Content::Results(_))
+            | (Self::MissionSelection(_), Content::MissionSelection(_))
             | (Self::Equipment(_), Content::Equipment(_))
             | (Self::Empty, Content::Failed | Content::Complete)
             | (Self::Introduction(_), Content::Introduction(_))
@@ -312,6 +331,15 @@ impl ContentDrawing {
 
     pub fn paint(&mut self, content: &Content, ctx: &egui::Context) {
         match (self, content) {
+            (Self::MissionSelection(drawing), _) => {
+                ctx.layer_painter(egui::LayerId::background()).add(
+                    egui_wgpu::Callback::new_paint_callback(
+                        film::rect(ctx),
+                        crate::frontend::gpu::Paint::Frontend(drawing.frame.clone()),
+                    ),
+                );
+                crate::fonts::paint(ctx, film::rect(ctx), &drawing.text);
+            }
             (Self::Equipment(drawing), _) => {
                 ctx.layer_painter(egui::LayerId::background()).add(
                     egui_wgpu::Callback::new_paint_callback(

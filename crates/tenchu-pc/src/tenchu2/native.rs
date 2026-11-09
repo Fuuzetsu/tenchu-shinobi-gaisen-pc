@@ -33,6 +33,8 @@ mod render;
 mod results;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod save;
+#[cfg(not(target_arch = "wasm32"))]
+mod selection;
 mod story;
 #[cfg(test)]
 mod tests;
@@ -233,7 +235,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Modern lighting and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Modern lighting and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }
@@ -242,7 +244,9 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let mut ticks = 30;
     let mut buttons = 0;
     let mut loadout = Vec::new();
-    for pair in args[first..].chunks(2) {
+    let menu = args[first..].iter().any(|a| a == "--menu");
+    let options: Vec<_> = args[first..].iter().filter(|a| *a != "--menu").collect();
+    for pair in options.chunks(2) {
         if pair.len() != 2 {
             return Err("Native JP options require a value".into());
         }
@@ -292,6 +296,9 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
             }
         }
     }
+    if menu && (capture || !loadout.is_empty() || options.chunks(2).any(|p| p[0] == "--sequence")) {
+        return Err("Use --menu with play-t2-jp, without --sequence or --loadout".into());
+    }
     let disc = crate::source::open_disc(args[1].as_ref())?;
     let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
         crate::settings::Store::new()?.load()?
@@ -315,14 +322,18 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                 items[item] = count;
             }
             return window::run(
-                campaign::Playback::load(
-                    disc,
-                    sequence,
-                    2,
-                    seed,
-                    specified.then_some(items),
-                    None,
-                )?,
+                if menu {
+                    campaign::Playback::menu(disc, 2, seed, None)?
+                } else {
+                    campaign::Playback::load(
+                        disc,
+                        sequence,
+                        2,
+                        seed,
+                        specified.then_some(items),
+                        None,
+                    )?
+                },
                 settings.graphics,
             );
         }

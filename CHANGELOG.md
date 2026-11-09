@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add the original Japanese Tenchu 2 mission selector to F6 and the JP F1 menu,
+  with all three heroes and 29 missions available, animated portraits, original
+  music/artwork and readable Japanese descriptions. Support mouse/touch alongside
+  the original controls, enter each mission at its opening scene, and retain saved
+  ranks and supplies when returning from equipment or results.
+
 - Restore Japanese Tenchu 2 equipment selection before missions: original disc
   artwork, supply counts, six-slot loadouts, item limits and sounds, with mouse
   and touch buttons alongside the original controls. Carry supplies into boss

@@ -2788,3 +2788,14 @@ The original uninitialized input/history slots are initialized to zero for the
 oracle and port. Instruction inspection corrects a misleading decompiler store
 ordering: both cheats compare after updating history[0]. Menu preview clips can
 now use the same native motion sampler without a fabricated actor registry.
+
+The JP selector is connected to the native campaign in F6/F1 and the standalone
+`--menu` preview. It runs two source menu updates per nominal gameplay tick,
+uses the source menu VAB/music and six preview clips, and sorts the turning panel
+between front/back portrait geometry. Portrait projection is fitted to the right
+panel; this is not a pixel-identical PS1 framebuffer recreation. Descriptions
+use the bundled Japanese outline font. Mouse/touch/Enter are additions. All 29
+missions are available without modifying saved ranks, stocks or unlock flags.
+Disc integration checks enter each hero's opening story, reach equipment, preserve
+supplies and cancel back to selection; the main launcher check covers returning
+to Gaisen without changing its progress.

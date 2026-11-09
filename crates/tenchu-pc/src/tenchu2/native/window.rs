@@ -305,9 +305,9 @@ impl ApplicationHandler for Application {
                             }
                             KeyCode::Enter => {
                                 self.session.action = match self.session.content {
-                                    Content::Equipment(_) | Content::Results(_) => {
-                                        Some(Action::Continue)
-                                    }
+                                    Content::MissionSelection(_)
+                                    | Content::Equipment(_)
+                                    | Content::Results(_) => Some(Action::Continue),
                                     Content::Failed | Content::Complete => Some(Action::Retry),
                                     _ => None,
                                 }

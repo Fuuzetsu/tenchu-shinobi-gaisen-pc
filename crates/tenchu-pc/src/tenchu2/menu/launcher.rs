@@ -20,7 +20,7 @@ impl Menu {
             self.refresh_discs();
         }
         let rows: &[usize] = if self.native() {
-            &[7, 4, 5, 3, 11, 1, 8]
+            &[7, 4, 5, 3, 11, 1, 12, 8]
         } else if self.selected == Some(Edition::Japan) {
             &[7, 4, 5, 2, 3, 6, 9, 10, 11, 1, 8]
         } else if self.selected.is_some() {
@@ -56,6 +56,9 @@ impl Menu {
                         return (true, Some(Event::Select(selected)));
                     }
                     8 => return (true, Some(Event::Open)),
+                    12 if self.native() && matches!(action, Action::Confirm | Action::Start) => {
+                        return (true, Some(Event::MissionSelection));
+                    }
                     1 if self.selected.is_some()
                         && matches!(action, Action::Confirm | Action::Start) =>
                     {
@@ -147,7 +150,8 @@ impl Menu {
                         }
                         if self.native() {
                             ui.label("Japanese gameplay, actors, voices and campaign progression");
-                            ui.small("The selected sequence determines the original player character. Equipment presentation is still in development.");
+                            ui.small("The quick start sequence determines the player character. Use the original mission selector to start from each mission's opening scene.");
+                            if ui.button(selected(12, "Original JP mission selection…")).clicked() { event = Some(Event::MissionSelection); }
                         } else {
                             ui.label("Scenery sandbox · Gaisen gameplay and AI");
                             ui.small("Story events, cutscenes and mission objectives are not simulated here.");

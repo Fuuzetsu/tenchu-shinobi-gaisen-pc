@@ -15,7 +15,7 @@ pub(in crate::window) struct Native {
 }
 
 impl Application {
-    pub(in crate::window) fn start_native_tenchu2(&mut self) -> Result<()> {
+    pub(in crate::window) fn start_native_tenchu2(&mut self, selection: bool) -> Result<()> {
         let sequence = self
             .tenchu2
             .sequence
@@ -26,14 +26,12 @@ impl Application {
             tenchu_core::ai::Difficulty::Normal => 2,
             tenchu_core::ai::Difficulty::Hard => 3,
         };
-        let playback = Playback::load(
-            disc,
-            sequence,
-            difficulty,
-            self.campaign.seed,
-            None,
-            Some(crate::tenchu2::native::save::SaveFile::new()?),
-        )?;
+        let save = Some(crate::tenchu2::native::save::SaveFile::new()?);
+        let playback = if selection {
+            Playback::menu(disc, difficulty, self.campaign.seed, save)?
+        } else {
+            Playback::load(disc, sequence, difficulty, self.campaign.seed, None, save)?
+        };
         self.finish_recording();
         self.release_pointer();
         if let Some(frontend) = &mut self.frontend {
@@ -178,6 +176,7 @@ impl Application {
                 ctx, &native.playback.run, &mut native.diagnostics, &mut self.paused,
                 native.error.as_deref(),
             ).or(native.playback.action);
+            let mut choose_mission = false;
             egui::Window::new("Tenchu 2 settings · F1")
                 .open(&mut native.open).default_size([440.0, 400.0]).vscroll(true)
                 .show(ctx, |ui| {
@@ -206,8 +205,14 @@ impl Application {
                     });
                     ui.separator();
                     ui.checkbox(&mut native.diagnostics, "Show integration diagnostics");
+                    choose_mission = ui.button("Original mission selection").clicked();
                     leave |= ui.button("Return to quick launcher · F6").clicked();
                 });
+            if choose_mission {
+                native.playback.action = Some(NativeAction::SelectMission);
+                native.open = false;
+                self.paused = false;
+            }
             if self.settings.show_fps {
                 egui::Area::new("native-fps".into()).anchor(egui::Align2::RIGHT_TOP, [-12.0, 12.0])
                     .show(ctx, |ui| { ui.label(format!("{:.0} FPS", self.fps)); });
@@ -382,9 +387,9 @@ impl Application {
                         KeyCode::Enter => {
                             let native = self.native_tenchu2.as_mut().unwrap();
                             native.playback.action = match native.playback.content {
-                                Content::Equipment(_) | Content::Results(_) => {
-                                    Some(NativeAction::Continue)
-                                }
+                                Content::MissionSelection(_)
+                                | Content::Equipment(_)
+                                | Content::Results(_) => Some(NativeAction::Continue),
                                 Content::Failed | Content::Complete => Some(NativeAction::Retry),
                                 _ => None,
                             };
@@ -502,6 +507,14 @@ mod tests {
         assert_eq!(app.campaign.saved.as_ref().unwrap().encode(), save);
         assert!(app.campaign.save_request.is_none());
         assert_eq!(app.campaign.game.tick, 0);
+        app.apply_tenchu2(Event::MissionSelection).unwrap();
+        assert!(matches!(
+            app.native_tenchu2.as_ref().unwrap().playback.content,
+            Content::MissionSelection(_)
+        ));
+        app.native_tenchu2_touch(crate::touch::Action::QuickMenu)
+            .unwrap();
+        assert_eq!(app.campaign.saved.as_ref().unwrap().encode(), save);
         // The old cross-game sandbox remains an explicit choice, not the JP default.
         app.tenchu2.sandbox = true;
         app.apply_tenchu2(Event::Play).unwrap();
