@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::tenchu2::native::{
     campaign::{Action as NativeAction, Content, Playback},
+    preferences,
     presentation::ContentDrawing,
     transport::{Input as PlaybackInput, Transport},
 };
@@ -10,8 +11,7 @@ pub(in crate::window) struct Native {
     drawing: Option<ContentDrawing>,
     generation: Option<u64>,
     graphics: settings::Graphics,
-    pub open: bool,
-    diagnostics: bool,
+    pub menu: preferences::Menu,
     transport: Transport,
     pub error: Option<String>,
 }
@@ -47,9 +47,8 @@ impl Application {
             playback,
             drawing: None,
             generation: None,
-            graphics: self.settings.graphics.clone(),
-            open: false,
-            diagnostics: false,
+            graphics: preferences::graphics(&self.settings),
+            menu: preferences::Menu::default(),
             transport: Transport::default(),
             error: None,
         });
@@ -65,6 +64,8 @@ impl Application {
 
     fn leave_native_tenchu2(&mut self) -> Result<()> {
         self.native_tenchu2 = None;
+        self.controls.close_editor();
+        self.presets.open = false;
         self.touch.clear();
         self.campaign.screen = Screen::Launcher;
         self.campaign.quick_launcher = true;
@@ -110,13 +111,14 @@ impl Application {
         self.last_frame = now;
         self.sync_audio_pause();
         let input = PlaybackInput {
-            buttons: if self.native_tenchu2.as_ref().unwrap().open || !self.focused {
+            buttons: if self.native_tenchu2.as_ref().unwrap().menu.open || !self.focused {
                 0
             } else {
                 self.controls.buttons().swap_bytes()
             },
             speed: self.settings.cutscene_speed,
-            fast_forward: self.controls.held(KeyCode::Backspace),
+            fast_forward: self.controls.held(KeyCode::Backspace)
+                || self.native_tenchu2.as_ref().unwrap().menu.fast_forward,
             paused: self.is_suspended(),
         };
         let native = self.native_tenchu2.as_mut().unwrap();
@@ -139,35 +141,45 @@ impl Application {
             self.fps_frames = 0;
         }
         let suspended = self.is_suspended();
+        let graphics = preferences::graphics(&self.settings);
         let Some(view) = &mut self.view else {
             return Ok(());
         };
+        view.presentation_settings(&self.settings);
         let native = self.native_tenchu2.as_mut().unwrap();
-        if native.generation != Some(native.playback.generation)
-            || native.graphics != self.settings.graphics
-        {
+        if native.generation != Some(native.playback.generation) || native.graphics != graphics {
             #[cfg(target_os = "android")]
             {
                 view.renderer
-                    .prepare(&self.settings.graphics, view.size.map(|n| n.max(1)))?;
+                    .prepare(&graphics, view.size.map(|n| n.max(1)))?;
                 if view.preparing() {
                     crate::android::preparing_graphics(true);
                     return Ok(());
                 }
             }
             #[cfg(not(target_os = "android"))]
-            view.renderer.configure(&self.settings.graphics);
-            native
-                .drawing
-                .get_or_insert(ContentDrawing::Empty)
-                .replace(
-                    &native.playback.content,
-                    native.playback.vram(),
-                    &self.settings.graphics,
-                    &mut view.renderer,
-                )?;
+            view.renderer.configure(&graphics);
+            if native.generation != Some(native.playback.generation)
+                || native.graphics.asset_pack != graphics.asset_pack
+            {
+                native
+                    .drawing
+                    .get_or_insert(ContentDrawing::Empty)
+                    .replace(
+                        &native.playback.content,
+                        native.playback.vram(),
+                        &graphics,
+                        &mut view.renderer,
+                    )?;
+            } else {
+                native
+                    .drawing
+                    .as_mut()
+                    .unwrap()
+                    .update(&native.playback.content, &mut view.renderer)?;
+            }
             native.generation = Some(native.playback.generation);
-            native.graphics.clone_from(&self.settings.graphics);
+            native.graphics.clone_from(&graphics);
             self.last_frame = Instant::now();
             self.clock.discard_host_backlog();
         } else {
@@ -177,62 +189,70 @@ impl Application {
                 .unwrap()
                 .update(&native.playback.content, &mut view.renderer)?;
         }
+        native.drawing.as_mut().unwrap().set_hud(
+            &native.playback.content,
+            self.settings.show_hud,
+            &mut view.renderer,
+        )?;
         let mut leave = false;
-        let was_open = native.open;
+        let was_open = native.menu.open;
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
         view.overlay.custom(&view.window, &view.renderer, |ctx| {
-            native.drawing.as_mut().unwrap().paint(&native.playback.content, ctx);
-            native.playback.action = native.playback.content.inspect(
-                ctx, &native.playback.run, &mut native.diagnostics, &mut self.paused,
-                native.error.as_deref(),
-            ).or(native.playback.action);
-            let mut choose_mission = false;
-            egui::Window::new("Tenchu 2 settings · F1")
-                .open(&mut native.open).default_size([440.0, 400.0]).vscroll(true)
-                .show(ctx, |ui| {
-                    ui.label("Japanese gameplay, voices, swimming and campaign progression");
-                    ui.small("Modern lighting and some effects are still being connected.");
-                    ui.checkbox(&mut self.paused, "Pause");
-                    ui.checkbox(&mut self.settings.pause_in_menu, "Pause while this menu is open");
-                    ui.checkbox(&mut self.settings.pause_on_defocus, "Pause when unfocused");
-                    ui.checkbox(&mut self.settings.show_fps, "Show FPS");
-                    crate::tenchu2::native::transport::speed_control(ui, &mut self.settings.cutscene_speed);
-                    ui.add(egui::Slider::new(&mut self.settings.volume, 0..=100).text("Volume"));
-                    ui.separator();
-                    ui.checkbox(&mut self.settings.graphics.fog, "Distance fog");
-                    ui.checkbox(&mut self.settings.graphics.asset_pack, "Replacement artwork");
-                    if let Some(path) = crate::visuals::pack::configured_tenchu2_root() {
-                        ui.small(format!("Tenchu 2 artwork: {}", path.display()));
-                    } else {
-                        ui.small("No Tenchu 2 artwork pack found. Install tenchu2-hd.tar.zst beside the game, or import it in the Android launcher.");
-                    }
-                    ui.checkbox(&mut self.settings.graphics.bilinear, "Texture filtering");
-                    ui.checkbox(&mut self.settings.graphics.mipmaps, "Texture mipmaps");
-                    ui.horizontal(|ui| {
-                        ui.label("Edge anti-aliasing");
-                        for &samples in &view.renderer.sample_counts {
-                            ui.selectable_value(&mut self.settings.graphics.samples, samples, format!("{samples}×"));
-                        }
-                    });
-                    ui.separator();
-                    ui.checkbox(&mut native.diagnostics, "Show integration diagnostics");
-                    choose_mission = ui.button("Original mission selection").clicked();
-                    leave |= ui.button("Return to quick launcher · F6").clicked();
-                });
-            if choose_mission {
+            native
+                .drawing
+                .as_mut()
+                .unwrap()
+                .paint(&native.playback.content, ctx);
+            native.playback.action = native
+                .playback
+                .content
+                .inspect(
+                    ctx,
+                    &native.playback.run,
+                    &mut native.menu.diagnostics,
+                    &mut self.paused,
+                    native.error.as_deref(),
+                )
+                .or(native.playback.action);
+            native
+                .menu
+                .cutscene_controls(ctx, native.playback.content.cutscene());
+            let actions = native.menu.show(
+                ctx,
+                &mut preferences::State {
+                    settings: &mut self.settings,
+                    paused: &mut self.paused,
+                    controls: &mut self.controls,
+                    presets: &mut self.presets,
+                    samples: &view.renderer.sample_counts,
+                },
+            );
+            leave |= actions.leave;
+            if actions.select_mission {
                 native.playback.action = Some(NativeAction::SelectMission);
-                native.open = false;
+                native.menu.open = false;
                 self.paused = false;
             }
             if self.settings.show_fps {
-                egui::Area::new("native-fps".into()).anchor(egui::Align2::RIGHT_TOP, [-12.0, 12.0])
-                    .show(ctx, |ui| { ui.label(format!("{:.0} FPS", self.fps)); });
+                egui::Area::new("native-fps".into())
+                    .anchor(egui::Align2::RIGHT_TOP, [-12.0, 12.0])
+                    .show(ctx, |ui| {
+                        ui.label(format!("{:.0} FPS", self.fps));
+                    });
             }
-            let mode = if native.open || native.diagnostics || !matches!(native.playback.content, Content::Gameplay(_)) {
+            let mode = if native.menu.open
+                || native.menu.diagnostics
+                || !matches!(native.playback.content, Content::Gameplay(_))
+            {
                 crate::touch::Mode::Menus
-            } else if suspended { crate::touch::Mode::Paused } else { crate::touch::Mode::Gameplay };
-            self.touch.layout(ctx.screen_rect(), self.settings.touch, mode, false, false);
+            } else if suspended {
+                crate::touch::Mode::Paused
+            } else {
+                crate::touch::Mode::Gameplay
+            };
+            self.touch
+                .layout(ctx.screen_rect(), self.settings.touch, mode, false, false);
             self.touch.paint(ctx, self.settings.touch);
         });
         view.window.set_title(&format!(
@@ -254,7 +274,16 @@ impl Application {
         {
             self.fps_frames += 1;
         }
-        if was_open != native.open || was_paused != self.paused {
+        if was_open != native.menu.open
+            || was_paused != self.paused
+            || previous_settings.pause_in_menu != self.settings.pause_in_menu
+            || previous_settings.pause_on_defocus != self.settings.pause_on_defocus
+            || previous_settings.music_while_paused != self.settings.music_while_paused
+        {
+            if !native.menu.open {
+                self.controls.close_editor();
+                self.presets.open = false;
+            }
             self.sync_pause();
         }
         if previous_settings != self.settings {
@@ -273,20 +302,24 @@ impl Application {
         match action {
             crate::touch::Action::Settings => {
                 let native = self.native_tenchu2.as_mut().unwrap();
-                native.open = !native.open;
+                native.menu.open = !native.menu.open;
             }
             crate::touch::Action::Pause => self.paused = !self.paused,
             crate::touch::Action::Back => {
                 let native = self.native_tenchu2.as_mut().unwrap();
-                if native.open || native.diagnostics {
-                    native.open = false;
-                    native.diagnostics = false;
+                if native.menu.open || native.menu.diagnostics {
+                    native.menu.open = false;
+                    native.menu.diagnostics = false;
                 } else {
                     return self.leave_native_tenchu2();
                 }
             }
             crate::touch::Action::QuickMenu => return self.leave_native_tenchu2(),
             crate::touch::Action::Recenter => {}
+        }
+        if !self.native_tenchu2.as_ref().unwrap().menu.open {
+            self.controls.close_editor();
+            self.presets.open = false;
         }
         self.sync_pause();
         Ok(())
@@ -363,6 +396,12 @@ impl Application {
                     _ => return Ok(()),
                 };
                 let pressed = event.state == ElementState::Pressed;
+                if self.controls.editor.open {
+                    if pressed {
+                        self.controls.editor_key(code);
+                    }
+                    return Ok(());
+                }
                 if pressed
                     && matches!(
                         self.native_tenchu2.as_ref().unwrap().playback.content,
@@ -381,6 +420,10 @@ impl Application {
                             return self.native_tenchu2_touch(crate::touch::Action::Back);
                         }
                         KeyCode::F6 => return self.leave_native_tenchu2(),
+                        KeyCode::F8 => {
+                            self.settings.retro = !self.settings.retro;
+                            self.settings_store.write(&self.settings)?;
+                        }
                         KeyCode::F1 => {
                             return self.native_tenchu2_touch(crate::touch::Action::Settings);
                         }

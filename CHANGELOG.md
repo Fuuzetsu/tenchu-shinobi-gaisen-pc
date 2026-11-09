@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Expand native Japanese Tenchu 2's F1 menu with display/HUD controls, visual
+  presets and custom preset management, retro comparison, texture filtering and
+  artwork, post-processing, keyboard/controller remapping and touch settings.
+  Use the same resizable panel in the main launcher and standalone JP mode;
+  expose cutscene fast-forward on screen for mouse/touch. Clearly list Gaisen
+  enhancements still unavailable in native JP rather than presenting no-op switches.
+
 - Support cutscene fast-forward in native Japanese Tenchu 2: hold Backspace or
   choose 2×–16×/Unlimited in F1. Narration, movies and in-engine scenes retain
   every logic update, stop acceleration at menus/gameplay, and resume dialogue

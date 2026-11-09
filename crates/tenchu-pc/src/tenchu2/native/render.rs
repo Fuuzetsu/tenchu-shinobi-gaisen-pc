@@ -32,6 +32,7 @@ pub struct Drawing {
     models: Models,
     scene: SceneDrawing,
     view: Matrix,
+    pub show_hud: bool,
 }
 
 struct SceneDrawing {
@@ -49,12 +50,18 @@ impl Drawing {
     ) -> Result<Self> {
         let models = Models::new(&session.assets, &session.world, graphics, renderer)?;
         renderer.visual_time = session.world.tick as f32 / 30.0;
-        let geometry =
-            models.geometry(&session.world, &session.assets, &session.frame, graphics)?;
+        let geometry = models.geometry(
+            &session.world,
+            &session.assets,
+            &session.frame,
+            graphics,
+            true,
+        )?;
         Ok(Self {
             models,
             scene: SceneDrawing::new(geometry, renderer),
             view: session.world.camera.view,
+            show_hud: true,
         })
     }
 
@@ -64,6 +71,7 @@ impl Drawing {
             &session.assets,
             &session.frame,
             renderer.graphics(),
+            self.show_hud,
         )?;
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
@@ -320,6 +328,7 @@ impl Models {
         assets: &Assets,
         frame: &Frame,
         graphics: &Graphics,
+        show_hud: bool,
     ) -> Result<Geometry> {
         let mut output = Builder::new(world.camera.view, &assets.level, graphics);
         let math = &assets.resources.math;
@@ -594,7 +603,9 @@ impl Models {
             }
             output.surface(vertices, blend);
         }
-        hud::append(&mut output, &assets.sprites, &world.controls.hud.frame);
+        if show_hud {
+            hud::append(&mut output, &assets.sprites, &world.controls.hud.frame);
+        }
         if let Some(fade) = frame.fade {
             output.screen_sprite(
                 [0.0, 0.0, 64.0],

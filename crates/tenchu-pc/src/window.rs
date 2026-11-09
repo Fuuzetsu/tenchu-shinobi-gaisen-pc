@@ -272,7 +272,9 @@ impl Application {
                 || self.view.as_ref().is_some_and(View::preparing)
                 || self.paused
                 || native.error.is_some()
-                || native.open && self.settings.pause_in_menu
+                || native.menu.open && self.settings.pause_in_menu
+                || self.controls.editor.open
+                || self.presets.open
                 || !self.focused && self.settings.pause_on_defocus;
         }
         self.backgrounded()
@@ -307,12 +309,19 @@ impl Application {
         let paused = self.is_suspended();
         let backgrounded = self.backgrounded();
         let scene_visible = self.campaign.scene_visible();
+        let music_while_paused = self.settings.music_while_paused;
         #[cfg(not(target_arch = "wasm32"))]
         let scene_visible = scene_visible || self.native_tenchu2.is_some();
+        #[cfg(not(target_arch = "wasm32"))]
+        let music_while_paused = music_while_paused
+            && !self
+                .native_tenchu2
+                .as_ref()
+                .is_some_and(|native| native.playback.content.cutscene());
         if let Some(audio) = &mut self.audio {
             audio.pause(
                 paused,
-                self.settings.music_while_paused
+                music_while_paused
                     && !backgrounded
                     && scene_visible
                     && !self.faulted

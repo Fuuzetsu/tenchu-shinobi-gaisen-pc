@@ -902,6 +902,11 @@ impl View {
                 crate::android::preparing_graphics(true);
             }
         }
+        self.presentation_settings(settings);
+        Ok(())
+    }
+
+    pub(super) fn presentation_settings(&mut self, settings: &Settings) {
         if self.window.fullscreen().is_some() != settings.fullscreen {
             self.window
                 .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
@@ -919,7 +924,6 @@ impl View {
                 surface.configure(&self.renderer.device, &self.config);
             }
         }
-        Ok(())
     }
 
     pub(super) fn update(&mut self, frame: Frame<'_>) {

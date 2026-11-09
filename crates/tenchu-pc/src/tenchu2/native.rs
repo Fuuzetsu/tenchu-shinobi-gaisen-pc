@@ -27,6 +27,8 @@ mod equipment;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
 #[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod preferences;
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod presentation;
 mod render;
 #[cfg(not(target_arch = "wasm32"))]

@@ -4,8 +4,9 @@ Download `tenchu2-hd.tar.zst` from
 [tenchu2-artwork-v2](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v2).
 Use game v0.20.1 or newer. Put the archive beside the executable or Linux
 launcher, or import it with **Import Tenchu 2 HD artwork** in the Android launcher.
-Enable **F1 → Visual assets → Replacement artwork**. The Gaisen artwork pack is
-independent; either or both can be installed.
+Enable **F1 → Textures → Replacement artwork** in native JP, or
+**F1 → Visual assets → Replacement artwork** in the Gaisen scenery sandbox.
+The Gaisen artwork pack is independent; either or both can be installed.
 
 Version 2 contains 4,576 replacements. It retains version 1's Europe coverage
 and adds all 981 missing identities from the Japanese mission-resource audit:

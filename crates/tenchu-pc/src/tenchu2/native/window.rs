@@ -1,5 +1,6 @@
 use super::{
     campaign::{Action, Content, Playback},
+    preferences,
     presentation::ContentDrawing,
     transport::{Input as PlaybackInput, Transport},
 };
@@ -28,6 +29,7 @@ struct View {
     renderer: Renderer,
     drawing: ContentDrawing,
     generation: u64,
+    graphics: Graphics,
     context: egui::Context,
     state: egui_winit::State,
     overlay: egui_wgpu::Renderer,
@@ -93,6 +95,7 @@ impl View {
             renderer,
             drawing,
             generation: session.generation,
+            graphics: graphics.clone(),
             context,
             state,
             overlay,
@@ -103,36 +106,47 @@ impl View {
     fn draw(
         &mut self,
         session: &mut Playback<DiscSource>,
-        open: &mut bool,
-        paused: &mut bool,
+        menu: &mut preferences::Menu,
+        state: &mut preferences::State<'_>,
         error: Option<&str>,
-        settings: &mut Settings,
-    ) -> Result<()> {
+        fps: f32,
+    ) -> Result<preferences::Action> {
         let frame = match self.surface.get_current_texture() {
             Ok(frame) => frame,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                 self.surface.configure(&self.renderer.device, &self.config);
-                return Ok(());
+                return Ok(preferences::Action::default());
             }
-            Err(wgpu::SurfaceError::Timeout) => return Ok(()),
+            Err(wgpu::SurfaceError::Timeout) => return Ok(preferences::Action::default()),
             Err(error) => return Err(error.to_string()),
         };
         let target = frame.texture.create_view(&Default::default());
         self.drawing
             .draw(&session.content, &target, &mut self.renderer)?;
+        let mut action = preferences::Action::default();
         let output = self
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
                 self.drawing.paint(&session.content, ctx);
-                if *open {
-                    egui::Window::new("Cutscene playback").show(ctx, |ui| {
-                        super::transport::speed_control(ui, &mut settings.cutscene_speed);
-                    });
-                }
                 session.action = session
                     .content
-                    .inspect(ctx, &session.run, open, paused, error)
+                    .inspect(
+                        ctx,
+                        &session.run,
+                        &mut menu.diagnostics,
+                        state.paused,
+                        error,
+                    )
                     .or(session.action);
+                menu.cutscene_controls(ctx, session.content.cutscene());
+                action = menu.show(ctx, state);
+                if state.settings.show_fps {
+                    egui::Area::new("native-fps".into())
+                        .anchor(egui::Align2::RIGHT_TOP, [-12.0, 12.0])
+                        .show(ctx, |ui| {
+                            ui.label(format!("{fps:.0} FPS"));
+                        });
+                }
             });
         self.state
             .handle_platform_output(&self.window, output.platform_output);
@@ -155,7 +169,7 @@ impl View {
         );
         self.window.pre_present_notify();
         frame.present();
-        Ok(())
+        Ok(action)
     }
 }
 
@@ -170,7 +184,11 @@ struct Application {
     last: Instant,
     paused: bool,
     focused: bool,
-    open: bool,
+    menu: preferences::Menu,
+    presets: crate::settings::library::Manager,
+    fps: f32,
+    fps_time: f32,
+    fps_frames: u32,
     error: Option<String>,
     quit: bool,
 }
@@ -193,15 +211,33 @@ impl Application {
         let now = Instant::now();
         let elapsed = now.duration_since(self.last);
         self.last = now;
-        let _ = self.controls.poll(self.focused);
-        let paused = self.paused || !self.focused || self.error.is_some();
+        let polled = self.controls.poll(self.focused);
+        if polled.disconnected {
+            self.paused = true;
+        }
+        if matches!(self.session.content, Content::Gameplay(_))
+            && polled.menu_pressed & tenchu_core::input::START != 0
+            && !self.menu.open
+        {
+            self.paused = !self.paused;
+        }
+        let paused = self.paused
+            || !self.focused && self.settings.pause_on_defocus
+            || self.error.is_some()
+            || self.menu.open && self.settings.pause_in_menu
+            || self.controls.editor.open
+            || self.presets.open;
         let update = self.transport.advance(
             &mut self.session,
             elapsed,
             PlaybackInput {
-                buttons: self.controls.buttons().swap_bytes(),
+                buttons: if self.menu.open || !self.focused {
+                    0
+                } else {
+                    self.controls.buttons().swap_bytes()
+                },
                 speed: self.settings.cutscene_speed,
-                fast_forward: self.controls.held(KeyCode::Backspace),
+                fast_forward: self.controls.held(KeyCode::Backspace) || self.menu.fast_forward,
                 paused,
             },
             self.audio.as_ref(),
@@ -213,33 +249,91 @@ impl Application {
         if let Some(audio) = &self.audio {
             audio.send(Command::Pause {
                 paused,
-                music_while_paused: false,
+                music_while_paused: self.settings.music_while_paused
+                    && !self.session.content.cutscene(),
             });
         }
+        self.fps_time += elapsed.as_secs_f32();
+        self.fps_frames += 1;
+        if self.fps_time >= 0.5 {
+            self.fps = self.fps_frames as f32 / self.fps_time;
+            self.fps_frames = 0;
+            self.fps_time = 0.0;
+        }
         let previous = self.settings.clone();
+        let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
-            if view.generation != self.session.generation {
-                view.drawing.replace(
-                    &self.session.content,
-                    self.session.vram(),
-                    &self.settings.graphics,
-                    &mut view.renderer,
-                )?;
+            if view.window.fullscreen().is_some() != self.settings.fullscreen {
+                view.window.set_fullscreen(
+                    self.settings
+                        .fullscreen
+                        .then_some(winit::window::Fullscreen::Borderless(None)),
+                );
+            }
+            let present_mode = if self.settings.vsync {
+                wgpu::PresentMode::AutoVsync
+            } else {
+                wgpu::PresentMode::AutoNoVsync
+            };
+            if view.config.present_mode != present_mode {
+                view.config.present_mode = present_mode;
+                view.surface.configure(&view.renderer.device, &view.config);
+            }
+            if view.generation != self.session.generation || view.graphics != graphics {
+                view.renderer.configure(&graphics);
+                if view.generation != self.session.generation
+                    || view.graphics.asset_pack != graphics.asset_pack
+                {
+                    view.drawing.replace(
+                        &self.session.content,
+                        self.session.vram(),
+                        &graphics,
+                        &mut view.renderer,
+                    )?;
+                } else {
+                    view.drawing
+                        .update(&self.session.content, &mut view.renderer)?;
+                }
                 view.generation = self.session.generation;
+                view.graphics = graphics;
                 self.last = Instant::now();
             } else {
                 view.drawing
                     .update(&self.session.content, &mut view.renderer)?;
             }
-            view.draw(
-                &mut self.session,
-                &mut self.open,
-                &mut self.paused,
-                self.error.as_deref(),
-                &mut self.settings,
+            view.drawing.set_hud(
+                &self.session.content,
+                self.settings.show_hud,
+                &mut view.renderer,
             )?;
+            let action = view.draw(
+                &mut self.session,
+                &mut self.menu,
+                &mut preferences::State {
+                    settings: &mut self.settings,
+                    paused: &mut self.paused,
+                    controls: &mut self.controls,
+                    presets: &mut self.presets,
+                    samples: &view.renderer.sample_counts.clone(),
+                },
+                self.error.as_deref(),
+                self.fps,
+            )?;
+            self.quit |= action.leave;
+            if action.select_mission {
+                self.session.action = Some(Action::SelectMission);
+                self.menu.open = false;
+                self.paused = false;
+            }
+            if !self.menu.open {
+                self.controls.close_editor();
+                self.presets.open = false;
+            }
         }
         if previous != self.settings {
+            if let Some(audio) = &self.audio {
+                audio.send(Command::Volume(self.settings.volume));
+            }
             self.store.write(&self.settings)?;
         }
         Ok(())
@@ -272,7 +366,7 @@ impl ApplicationHandler for Application {
                 pollster::block_on(View::new(
                     Arc::new(window),
                     &self.session,
-                    &self.settings.graphics,
+                    &preferences::graphics(&self.settings),
                 ))
             });
         match result {
@@ -312,10 +406,32 @@ impl ApplicationHandler for Application {
             WindowEvent::KeyboardInput { event, .. } => {
                 if let PhysicalKey::Code(code) = event.physical_key {
                     let pressed = event.state == ElementState::Pressed;
+                    if self.controls.editor.open {
+                        if pressed {
+                            self.controls.editor_key(code);
+                        }
+                        return;
+                    }
                     if pressed && !event.repeat {
                         match code {
+                            KeyCode::Escape if self.menu.open || self.menu.diagnostics => {
+                                self.menu.open = false;
+                                self.menu.diagnostics = false;
+                                self.controls.close_editor();
+                                self.presets.open = false;
+                            }
                             KeyCode::Escape => events.exit(),
-                            KeyCode::F1 => self.open = !self.open,
+                            KeyCode::F6 => events.exit(),
+                            KeyCode::F1 => {
+                                self.menu.open = !self.menu.open;
+                                self.controls.clear();
+                            }
+                            KeyCode::F8 => {
+                                self.settings.retro = !self.settings.retro;
+                                if let Err(error) = self.store.write(&self.settings) {
+                                    self.fail(error);
+                                }
+                            }
                             KeyCode::F3 => self.paused = !self.paused,
                             KeyCode::F4 if self.paused && self.error.is_none() => {
                                 if let Err(error) = self.step() {
@@ -363,6 +479,9 @@ pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
     let audio = Output::new()
         .map_err(|error| eprintln!("Audio unavailable: {error}"))
         .ok();
+    if let Some(audio) = &audio {
+        audio.send(Command::Volume(settings.volume));
+    }
     let mut application = Application {
         session,
         settings,
@@ -374,7 +493,11 @@ pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
         last: Instant::now(),
         paused: false,
         focused: true,
-        open: false,
+        menu: preferences::Menu::default(),
+        presets: crate::settings::library::Manager::new(crate::storage::UserFile::Presets.path()?),
+        fps: 0.0,
+        fps_time: 0.0,
+        fps_frames: 0,
         error: None,
         quit: false,
     };

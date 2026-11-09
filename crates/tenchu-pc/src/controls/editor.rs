@@ -78,11 +78,20 @@ impl Controls {
     }
 
     pub fn show_bindings(&mut self, ctx: &egui::Context) {
+        self.bindings_ui(ctx, false);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn show_tenchu2_bindings(&mut self, ctx: &egui::Context) {
+        self.bindings_ui(ctx, true);
+    }
+
+    fn bindings_ui(&mut self, ctx: &egui::Context, tenchu2: bool) {
         if !self.editor.open {
             return;
         }
         let capture = self.editor.capture;
-        let changed = self.editor.show(ctx, &mut self.bindings);
+        let changed = self.editor.show(ctx, &mut self.bindings, tenchu2);
         if changed {
             self.save_bindings();
         }
@@ -93,7 +102,7 @@ impl Controls {
 }
 
 impl Editor {
-    fn show(&mut self, ctx: &egui::Context, bindings: &mut Bindings) -> bool {
+    fn show(&mut self, ctx: &egui::Context, bindings: &mut Bindings, tenchu2: bool) -> bool {
         let mut changed = false;
         egui::Modal::new(egui::Id::new("control-bindings")).show(ctx, |ui| {
             ui.set_width(580.0_f32.min(ctx.screen_rect().width() - 48.0));
@@ -106,9 +115,14 @@ impl Editor {
                 });
             });
             ui.label("Click a binding, then press a key, button or stick direction. Changes save automatically. × clears a binding; Escape cancels capture.");
+            if tenchu2 {
+                ui.weak("Bindings are shared with Gaisen. Actions below describe the native Japanese Tenchu 2 controls. Assigning an input moves it from its previous action.");
+                ui.weak("Original menus: Circle confirms, Cross cancels. Camera-relative controls and the optional Gaisen actions are not connected here yet.");
+            } else {
             ui.weak("Actions shown for original layout 1. Other original layouts still apply. Assigning an input moves it from its previous action.");
             ui.weak("Camera-relative controls: R1 + backward guards; R1 + left/right + attack selects side slashes. Left Ctrl also acts as this modifier. Optional R1 guard mode (F1 > Movement) instead holds guard, with a fresh direction press to dash; hold crouch to roll.");
             ui.weak("Menu buttons stay at their physical positions. F1 → General → Circle confirms in menus selects Japanese or Western confirmation.");
+            }
             ui.horizontal(|ui| {
                 for (device, label) in [(Device::Keyboard, "Keyboard"), (Device::Controller, "Controller")] {
                     if ui.selectable_value(&mut self.device, device, label).clicked() {
@@ -121,7 +135,12 @@ impl Editor {
                 egui::Grid::new("binding-rows").striped(true).spacing([8.0, 5.0]).show(ui, |ui| {
                     ui.strong("Action"); ui.strong("Primary"); ui.strong("Alternate"); ui.end_row();
                     for target in Target::ALL {
-                        ui.label(target.description().0);
+                        if tenchu2 && matches!(target, Target::Walk | Target::Sheathe | Target::Bandage) { continue; }
+                        ui.label(match target {
+                            Target::Circle if tenchu2 => "Guard · Circle",
+                            Target::R1 if tenchu2 => "Crouch · R1",
+                            _ => target.description().0,
+                        });
                         for slot in 0..2 {
                             let capture = Capture { target, slot, device: self.device };
                             let row = bindings.0.get_mut(&target).unwrap();

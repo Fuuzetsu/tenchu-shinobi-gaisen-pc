@@ -202,7 +202,7 @@ impl Content {
                                 ui.label(format!("JP sequence {}", run.sequence));
                             }
                         }
-                        ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
+                        ui.label("F1: settings · F3: pause · F4: step · Backspace: fast-forward cutscenes");
                         if *paused {
                             ui.label("PAUSED");
                         }
@@ -262,6 +262,21 @@ pub(crate) enum ContentDrawing {
 }
 
 impl ContentDrawing {
+    pub fn set_hud(
+        &mut self,
+        content: &Content,
+        show_hud: bool,
+        renderer: &mut Renderer,
+    ) -> Result<()> {
+        if let (Self::Gameplay(drawing), Content::Gameplay(session)) = (self, content)
+            && drawing.show_hud != show_hud
+        {
+            drawing.show_hud = show_hud;
+            drawing.update(session, renderer)?;
+        }
+        Ok(())
+    }
+
     pub fn new(content: &Content, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         match content {
             Content::MissionSelection(selection) => Ok(Self::MissionSelection(
