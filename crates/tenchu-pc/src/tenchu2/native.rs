@@ -38,6 +38,8 @@ mod selection;
 mod story;
 #[cfg(test)]
 mod tests;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod transport;
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 mod window;
 
@@ -300,7 +302,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         return Err("Use --menu with play-t2-jp, without --sequence or --loadout".into());
     }
     let disc = crate::source::open_disc(args[1].as_ref())?;
-    let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
+    let settings = if !capture || std::env::var_os("TENCHU_SETTINGS").is_some() {
         crate::settings::Store::new()?.load()?
     } else {
         crate::settings::Settings::default()
@@ -334,7 +336,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                         None,
                     )?
                 },
-                settings.graphics,
+                settings,
             );
         }
     }

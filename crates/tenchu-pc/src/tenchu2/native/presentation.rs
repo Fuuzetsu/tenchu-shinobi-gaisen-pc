@@ -31,6 +31,25 @@ impl Update {
 }
 
 impl Content {
+    pub fn cutscene(&self) -> bool {
+        matches!(
+            self,
+            Self::Prologue(_) | Self::Introduction(_) | Self::Movie(_) | Self::Story { .. }
+        )
+    }
+
+    pub fn resume_audio(&self, output: &Output) {
+        self.start_audio(output);
+        let seconds = match self {
+            Self::Prologue(intro) => f64::from(intro.state.tick) / 15.0,
+            Self::Introduction(intro) => f64::from(intro.state.tick) / 15.0,
+            Self::Movie(movie) => movie.seconds(),
+            Self::Story { story, .. } => f64::from(story.state.frame.max(0)) / 30.0,
+            _ => return,
+        };
+        output.send(Command::SeekMusic(seconds));
+    }
+
     pub fn tick(&self) -> i64 {
         match self {
             Self::MissionSelection(selection) => i64::from(selection.state.tick),
@@ -46,6 +65,7 @@ impl Content {
 
     pub fn start_audio(&self, output: &Output) {
         output.send(Command::Clear);
+        output.send(Command::Music(None, false));
         match self {
             Self::MissionSelection(selection) => {
                 output.send(Command::Bank(selection.bank.clone()));
@@ -55,9 +75,16 @@ impl Content {
             Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
             Self::Equipment(selection) => output.send(Command::Bank(selection.bank.clone())),
             Self::Results(results) => output.send(Command::Bank(results.bank.clone())),
-            Self::Story { audio, .. } => output.send(Command::Music(audio.clone(), false)),
+            Self::Story { story, audio } if story.state.ending.is_none() => {
+                output.send(Command::Music(audio.clone(), false));
+            }
             Self::Movie(movie) => output.send(Command::Music(movie.audio.clone(), false)),
-            _ => output.send(Command::Music(None, false)),
+            Self::Introduction(intro)
+                if intro.state.phase == tenchu_core::tenchu2::introduction::Phase::Narration =>
+            {
+                output.send(Command::Music(intro.audio.clone(), false));
+            }
+            _ => {}
         }
     }
 

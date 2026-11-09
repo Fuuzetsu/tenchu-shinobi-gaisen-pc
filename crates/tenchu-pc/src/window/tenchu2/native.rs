@@ -2,6 +2,7 @@ use super::super::*;
 use crate::tenchu2::native::{
     campaign::{Action as NativeAction, Content, Playback},
     presentation::ContentDrawing,
+    transport::{Input as PlaybackInput, Transport},
 };
 
 pub(in crate::window) struct Native {
@@ -11,6 +12,7 @@ pub(in crate::window) struct Native {
     graphics: settings::Graphics,
     pub open: bool,
     diagnostics: bool,
+    transport: Transport,
     pub error: Option<String>,
 }
 
@@ -48,6 +50,7 @@ impl Application {
             graphics: self.settings.graphics.clone(),
             open: false,
             diagnostics: false,
+            transport: Transport::default(),
             error: None,
         });
         self.tenchu2.open = false;
@@ -74,16 +77,12 @@ impl Application {
 
     pub(in crate::window) fn step_native_tenchu2(&mut self) -> Result<bool> {
         let native = self.native_tenchu2.as_mut().unwrap();
-        let generation = native.playback.generation;
-        let update = native.playback.step(self.controls.buttons().swap_bytes())?;
-        if let Some(audio) = &self.audio {
-            update.play_audio(audio.output());
-        }
-        if generation != native.playback.generation {
-            if let Some(audio) = &self.audio {
-                native.playback.content.start_audio(audio.output());
-            }
-            self.clock.discard_host_backlog();
+        let update = native.transport.frame_step(
+            &mut native.playback,
+            self.controls.buttons().swap_bytes(),
+            self.audio.as_ref().map(|audio| audio.output()),
+        )?;
+        if update.changed {
             self.last_frame = Instant::now();
         }
         Ok(update.quit)
@@ -110,16 +109,28 @@ impl Application {
         let elapsed = now.duration_since(self.last_frame);
         self.last_frame = now;
         self.sync_audio_pause();
-        if self.is_suspended() {
-            self.clock.discard_host_backlog();
-        } else {
-            self.clock
-                .elapse(elapsed.min(std::time::Duration::from_millis(250)));
-            while self.clock.step().is_some() {
-                if self.step_native_tenchu2()? {
-                    return self.leave_native_tenchu2();
-                }
-            }
+        let input = PlaybackInput {
+            buttons: if self.native_tenchu2.as_ref().unwrap().open || !self.focused {
+                0
+            } else {
+                self.controls.buttons().swap_bytes()
+            },
+            speed: self.settings.cutscene_speed,
+            fast_forward: self.controls.held(KeyCode::Backspace),
+            paused: self.is_suspended(),
+        };
+        let native = self.native_tenchu2.as_mut().unwrap();
+        let update = native.transport.advance(
+            &mut native.playback,
+            elapsed,
+            input,
+            self.audio.as_ref().map(|audio| audio.output()),
+        )?;
+        if update.quit {
+            return self.leave_native_tenchu2();
+        }
+        if update.changed {
+            self.last_frame = Instant::now();
         }
         self.fps_elapsed += elapsed.as_secs_f32();
         if self.fps_elapsed >= 0.5 {
@@ -186,6 +197,7 @@ impl Application {
                     ui.checkbox(&mut self.settings.pause_in_menu, "Pause while this menu is open");
                     ui.checkbox(&mut self.settings.pause_on_defocus, "Pause when unfocused");
                     ui.checkbox(&mut self.settings.show_fps, "Show FPS");
+                    crate::tenchu2::native::transport::speed_control(ui, &mut self.settings.cutscene_speed);
                     ui.add(egui::Slider::new(&mut self.settings.volume, 0..=100).text("Volume"));
                     ui.separator();
                     ui.checkbox(&mut self.settings.graphics.fog, "Distance fog");

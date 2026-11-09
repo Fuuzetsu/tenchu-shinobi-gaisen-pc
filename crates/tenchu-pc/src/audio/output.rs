@@ -55,7 +55,7 @@ enum Stream {
 
 impl Output {
     #[cfg(test)]
-    pub(super) fn recording() -> (Self, Receiver<Command>) {
+    pub(crate) fn recording() -> (Self, Receiver<Command>) {
         let (commands, receiver) = mpsc::channel();
         (
             Self {

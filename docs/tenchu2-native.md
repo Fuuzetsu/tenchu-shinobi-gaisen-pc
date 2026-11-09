@@ -32,6 +32,10 @@ JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
 desktop. A damaged or newer-format file reports an error instead of being reset.
 The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
+Hold Backspace during a cutscene to fast-forward, or choose an automatic speed
+in F1 (2×–16× or Unlimited). This includes prologues, chapter narration, disc
+movies and in-engine scenes. Acceleration mutes audio; releasing it resumes
+dialogue at the current position. Menus and gameplay remain at normal speed.
 The JP game uses Triangle for items and Circle for guarding (E and `/` with
 default keyboard bindings); Z/C cycle inventory. These follow Tenchu 2's controls.
 Before missions, the original equipment screen draws from your saved JP supplies.
@@ -55,8 +59,8 @@ Disc folders and supported archives work here too. Use `inspect-t2 DISC` to
 list sequences and their areas. The sequence selects its campaign hero.
 Keyboard/controller bindings are shared with the main game. F1 shows actors,
 health, water state and unconnected events; F3 pauses, F4 advances one logic
-tick, and Escape closes the preview. This mode does not write campaign saves
-or change saved graphics settings.
+tick, and Escape closes the preview. This mode does not write campaign saves;
+it loads and saves the shared settings, including cutscene speed.
 
 Add `--loadout 4:20` to bypass the equipment screen with twenty shuriken. The normal item-selection and item-use
 bindings apply; the original item carousel shows the selected item and quantity.

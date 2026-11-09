@@ -54,6 +54,10 @@ pub struct Movie {
 }
 
 impl Movie {
+    pub fn seconds(&self) -> f64 {
+        f64::from(self.ticks) / 30.0
+    }
+
     pub fn load(disc: &Disc<impl ReadAt>, resource: u16) -> Result<Self> {
         let descriptor = frontend::Movie::load(disc, resource)?;
         let mut movie = Self {

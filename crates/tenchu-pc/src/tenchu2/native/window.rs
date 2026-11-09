@@ -1,21 +1,18 @@
 use super::{
     campaign::{Action, Content, Playback},
     presentation::ContentDrawing,
+    transport::{Input as PlaybackInput, Transport},
 };
 use crate::{
     audio::output::{Command, Output},
     controls::Controls,
     renderer::Renderer,
-    settings::Graphics,
+    settings::{Graphics, Settings, Store},
     source::DiscSource,
 };
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{sync::Arc, time::Instant};
 use tenchu_assets::Result;
 
-use tenchu_core::clock::GameClock;
 use winit::{
     application::ApplicationHandler,
     event::{ElementState, WindowEvent},
@@ -109,6 +106,7 @@ impl View {
         open: &mut bool,
         paused: &mut bool,
         error: Option<&str>,
+        settings: &mut Settings,
     ) -> Result<()> {
         let frame = match self.surface.get_current_texture() {
             Ok(frame) => frame,
@@ -126,6 +124,11 @@ impl View {
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
                 self.drawing.paint(&session.content, ctx);
+                if *open {
+                    egui::Window::new("Cutscene playback").show(ctx, |ui| {
+                        super::transport::speed_control(ui, &mut settings.cutscene_speed);
+                    });
+                }
                 session.action = session
                     .content
                     .inspect(ctx, &session.run, open, paused, error)
@@ -158,11 +161,12 @@ impl View {
 
 struct Application {
     session: Playback<DiscSource>,
-    graphics: Graphics,
+    settings: Settings,
+    store: Store,
     view: Option<View>,
     controls: Controls,
     audio: Option<Output>,
-    clock: GameClock,
+    transport: Transport,
     last: Instant,
     paused: bool,
     focused: bool,
@@ -173,29 +177,14 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
-        let update = self.session.step(self.controls.buttons().swap_bytes())?;
+        let update = self.transport.frame_step(
+            &mut self.session,
+            self.controls.buttons().swap_bytes(),
+            self.audio.as_ref(),
+        )?;
         self.quit |= update.quit;
-        if let Some(audio) = &self.audio {
-            update.play_audio(audio);
-        }
-        if let Some(view) = &mut self.view {
-            if view.generation != self.session.generation {
-                view.drawing.replace(
-                    &self.session.content,
-                    self.session.vram(),
-                    &self.graphics,
-                    &mut view.renderer,
-                )?;
-                view.generation = self.session.generation;
-                if let Some(audio) = &self.audio {
-                    self.session.content.start_audio(audio);
-                }
-                self.clock.discard_host_backlog();
-                self.last = Instant::now();
-            } else {
-                view.drawing
-                    .update(&self.session.content, &mut view.renderer)?;
-            }
+        if update.changed {
+            self.last = Instant::now();
         }
         Ok(())
     }
@@ -205,27 +194,53 @@ impl Application {
         let elapsed = now.duration_since(self.last);
         self.last = now;
         let _ = self.controls.poll(self.focused);
-        if self.paused || !self.focused || self.error.is_some() {
-            self.clock.discard_host_backlog();
-        } else {
-            self.clock.elapse(elapsed.min(Duration::from_millis(250)));
-            while self.clock.step().is_some() {
-                self.step()?;
-            }
+        let paused = self.paused || !self.focused || self.error.is_some();
+        let update = self.transport.advance(
+            &mut self.session,
+            elapsed,
+            PlaybackInput {
+                buttons: self.controls.buttons().swap_bytes(),
+                speed: self.settings.cutscene_speed,
+                fast_forward: self.controls.held(KeyCode::Backspace),
+                paused,
+            },
+            self.audio.as_ref(),
+        )?;
+        self.quit |= update.quit;
+        if update.changed {
+            self.last = Instant::now();
         }
         if let Some(audio) = &self.audio {
             audio.send(Command::Pause {
-                paused: self.paused || !self.focused || self.error.is_some(),
+                paused,
                 music_while_paused: false,
             });
         }
+        let previous = self.settings.clone();
         if let Some(view) = &mut self.view {
+            if view.generation != self.session.generation {
+                view.drawing.replace(
+                    &self.session.content,
+                    self.session.vram(),
+                    &self.settings.graphics,
+                    &mut view.renderer,
+                )?;
+                view.generation = self.session.generation;
+                self.last = Instant::now();
+            } else {
+                view.drawing
+                    .update(&self.session.content, &mut view.renderer)?;
+            }
             view.draw(
                 &mut self.session,
                 &mut self.open,
                 &mut self.paused,
                 self.error.as_deref(),
+                &mut self.settings,
             )?;
+        }
+        if previous != self.settings {
+            self.store.write(&self.settings)?;
         }
         Ok(())
     }
@@ -254,7 +269,11 @@ impl ApplicationHandler for Application {
             )
             .map_err(|e| e.to_string())
             .and_then(|window| {
-                pollster::block_on(View::new(Arc::new(window), &self.session, &self.graphics))
+                pollster::block_on(View::new(
+                    Arc::new(window),
+                    &self.session,
+                    &self.settings.graphics,
+                ))
             });
         match result {
             Ok(view) => {
@@ -340,17 +359,18 @@ impl ApplicationHandler for Application {
     }
 }
 
-pub fn run(session: Playback<DiscSource>, graphics: Graphics) -> Result<()> {
+pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
     let audio = Output::new()
         .map_err(|error| eprintln!("Audio unavailable: {error}"))
         .ok();
     let mut application = Application {
         session,
-        graphics,
+        settings,
+        store: Store::new()?,
         view: None,
         controls: Controls::new(),
         audio,
-        clock: GameClock::default(),
+        transport: Transport::default(),
         last: Instant::now(),
         paused: false,
         focused: true,

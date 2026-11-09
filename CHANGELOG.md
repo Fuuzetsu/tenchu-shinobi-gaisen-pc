@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Support cutscene fast-forward in native Japanese Tenchu 2: hold Backspace or
+  choose 2×–16×/Unlimited in F1. Narration, movies and in-engine scenes retain
+  every logic update, stop acceleration at menus/gameplay, and resume dialogue
+  at the current scene position. Standalone JP play uses saved preferences too.
+
 - Use Tenchu 2's stage palettes and draw distances in native JP missions and
   cutscenes instead of applying Gaisen's black fog. Remove distant black terrain
   silhouettes over the sky; disabling fog still extends the view.
