@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use tenchu_assets::{
     Result,
     model::Part,
+    tenchu2::level::{Level, Shading},
     texture::{Image, Vram},
 };
 use tenchu_core::{
@@ -48,7 +49,8 @@ impl Drawing {
     ) -> Result<Self> {
         let models = Models::new(&session.assets, &session.world, graphics, renderer)?;
         renderer.visual_time = session.world.tick as f32 / 30.0;
-        let geometry = models.geometry(&session.world, &session.assets, &session.frame)?;
+        let geometry =
+            models.geometry(&session.world, &session.assets, &session.frame, graphics)?;
         Ok(Self {
             models,
             scene: SceneDrawing::new(geometry, renderer),
@@ -57,9 +59,12 @@ impl Drawing {
     }
 
     pub fn update(&mut self, session: &super::Session, renderer: &mut Renderer) -> Result<()> {
-        let geometry = self
-            .models
-            .geometry(&session.world, &session.assets, &session.frame)?;
+        let geometry = self.models.geometry(
+            &session.world,
+            &session.assets,
+            &session.frame,
+            renderer.graphics(),
+        )?;
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
         self.view = session.world.camera.view;
@@ -309,13 +314,14 @@ impl Models {
         })
     }
 
-    pub fn geometry(&self, world: &World, assets: &Assets, frame: &Frame) -> Result<Geometry> {
-        let mut output = Builder {
-            view: world.camera.view,
-            surfaces: Vec::new(),
-            terrain: Vec::new(),
-            actors: Vec::new(),
-        };
+    pub fn geometry(
+        &self,
+        world: &World,
+        assets: &Assets,
+        frame: &Frame,
+        graphics: &Graphics,
+    ) -> Result<Geometry> {
+        let mut output = Builder::new(world.camera.view, &assets.level, graphics);
         let math = &assets.resources.math;
         for part in &assets.level.map {
             output.model(
@@ -584,7 +590,7 @@ impl Models {
             );
             for vertex in &mut vertices {
                 vertex.flags &= !render_mesh::SCREEN;
-                vertex.flags |= render_mesh::FOG | render_mesh::UNLIT;
+                vertex.flags |= render_mesh::UNLIT;
             }
             output.surface(vertices, blend);
         }
@@ -620,6 +626,7 @@ impl Models {
         Ok(Geometry {
             backgrounds: background::geometry(
                 &assets.level.background,
+                &assets.level.shading,
                 &self.scenery,
                 world.camera.view,
                 math,
@@ -649,6 +656,8 @@ fn blend(blend: Blend, image: u8) -> u8 {
 
 struct Builder {
     view: Matrix,
+    shading: Shading,
+    fog_start: Option<i32>,
     surfaces: Vec<Surface>,
     terrain: Vec<Vertex>,
     actors: Vec<Vertex>,
@@ -662,6 +671,26 @@ enum ModelStyle {
 }
 
 impl Builder {
+    fn new(view: Matrix, level: &Level, graphics: &Graphics) -> Self {
+        Self {
+            view,
+            shading: level.shading.clone(),
+            fog_start: graphics.fog.then(|| {
+                ((level.draw_distance * i32::from(graphics.fog_distance) / 100) >> 4) - 256
+            }),
+            surfaces: Vec::new(),
+            terrain: Vec::new(),
+            actors: Vec::new(),
+        }
+    }
+
+    fn depth(&self, position: [f32; 3]) -> f32 {
+        self.view.translation.z as f32
+            + (0..3)
+                .map(|i| f32::from(self.view.rotation[2][i]) * position[i] / 4096.0)
+                .sum::<f32>()
+    }
+
     fn project(&self, point: Position) -> [f32; 3] {
         let point = point.map(|v| v as f32).to_array();
         let v: [f32; 3] = std::array::from_fn(|axis| {
@@ -693,8 +722,27 @@ impl Builder {
 
     fn model(&mut self, meshes: &Meshes, part: &Part, matrix: Matrix, style: ModelStyle) {
         let terrain = matches!(style, ModelStyle::Terrain);
-        meshes.visit(&part.geometry, matrix, true, 0, None, |triangle| {
+        meshes.visit(&part.geometry, matrix, false, 0, None, |triangle| {
             let mut triangle = triangle.map(|v| *v);
+            let depths = triangle.map(|v| self.depth(v.position).max(0.0) as i32 >> 4);
+            if self
+                .fog_start
+                .is_some_and(|start| depths.iter().all(|&z| z >= start + 256))
+            {
+                return;
+            }
+            let depth = if terrain {
+                *depths.iter().max().unwrap()
+            } else {
+                depths.iter().sum::<i32>() / 3
+            };
+            for (vertex, z) in triangle.iter_mut().zip(depths) {
+                let fade = self
+                    .fog_start
+                    .filter(|&start| depth > start)
+                    .map_or(0, |start| (z - start).max(0));
+                palette_color(vertex, &self.shading, fade);
+            }
             if matches!(style, ModelStyle::Concealed) {
                 for vertex in &mut triangle {
                     vertex.flags |= render_mesh::TRANSLUCENT;
@@ -825,4 +873,16 @@ impl Builder {
             vertices: render_effects::quad(points, [[0.3, 0.26, 0.2]; 4], None, 0),
         });
     }
+}
+
+fn palette_color(vertex: &mut Vertex, shading: &Shading, fade: i32) {
+    let scale = if vertex.flags & render_mesh::TEXTURED != 0 {
+        128.0
+    } else {
+        255.0
+    };
+    let index = (vertex.color[0] * scale).round() as i32;
+    vertex.color = shading
+        .color((index - fade).clamp(0, 255) as u8)
+        .map(|v| f32::from(v) / scale);
 }

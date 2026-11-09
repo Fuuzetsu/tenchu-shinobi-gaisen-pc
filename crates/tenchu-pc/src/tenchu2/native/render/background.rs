@@ -22,6 +22,7 @@ pub(super) fn sources(level: &Level) -> Vec<catalog::ModelSource<'_>> {
 
 pub(super) fn geometry(
     background: &Background,
+    shading: &tenchu_assets::tenchu2::level::Shading,
     meshes: &Meshes,
     view: Matrix,
     math: &Math,
@@ -52,6 +53,11 @@ pub(super) fn geometry(
             glam::Vec3::ZERO,
             view,
         ));
+    }
+    for layer in &mut layers {
+        for vertex in &mut layer.vertices {
+            super::palette_color(vertex, shading, 0);
+        }
     }
     layers
 }

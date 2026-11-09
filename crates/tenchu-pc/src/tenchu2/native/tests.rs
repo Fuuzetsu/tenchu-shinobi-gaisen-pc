@@ -97,9 +97,11 @@ fn native_character_shading_matches_the_retail_color_table() {
                 for (face, shaded) in geometry.faces.iter().zip(&shaded.faces) {
                     for (corner, shaded) in face.corners.iter().zip(&shaded.corners) {
                         let at = 0x81544 + usize::from(corner.color[0]) * 4;
-                        assert_eq!(shaded.color, ram[at..at + 3], "{name}");
+                        assert_eq!(shaded.color, corner.color, "{name}: retained shade index");
+                        let color = session.assets.level.shading.color(shaded.color[0]);
+                        assert_eq!(color, ram[at..at + 3], "{name}");
                         assert_eq!(shaded.uv, corner.uv);
-                        tinted += usize::from(shaded.color[0] != shaded.color[2]);
+                        tinted += usize::from(color[0] != color[2]);
                         corners += 1;
                     }
                 }

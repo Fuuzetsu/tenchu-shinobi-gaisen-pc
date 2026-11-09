@@ -4,6 +4,10 @@ use crate::{ReadAt, Result, model::Part, tenchu2::volume::Volume};
 pub struct Shading([[u8; 3]; 256]);
 
 impl Shading {
+    pub fn color(&self, index: u8) -> [u8; 3] {
+        self.0[usize::from(index)]
+    }
+
     pub(super) fn load(volume: &Volume<'_, impl ReadAt>, directory: &str) -> Result<Self> {
         let Some(data) = volume.optional(directory, "mapfog.tim")? else {
             return Ok(Self(std::array::from_fn(|i| [i as u8; 3])));

@@ -21,7 +21,8 @@ fn native_night_scenery_does_not_depend_on_the_effect_pass() {
         let path = output.join(format!("jp-night-effects-{effects}.png"));
         capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
             let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
-            let mut geometry = models.geometry(&session.world, &session.assets, &session.frame)?;
+            let mut geometry =
+                models.geometry(&session.world, &session.assets, &session.frame, &graphics)?;
             if !effects {
                 geometry.effects.vertices.clear();
                 geometry.effects.batches.clear();
@@ -70,7 +71,7 @@ fn native_backgrounds_stay_behind_the_scene() {
             capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
                 let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
                 let mut geometry =
-                    models.geometry(&session.world, &session.assets, &session.frame)?;
+                    models.geometry(&session.world, &session.assets, &session.frame, &graphics)?;
                 assert_eq!(geometry.backgrounds.len(), 3);
                 if mode == "scene" {
                     geometry.backgrounds.clear();

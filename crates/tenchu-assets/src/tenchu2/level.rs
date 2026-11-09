@@ -11,7 +11,9 @@ pub use shading::Shading;
 #[derive(Clone)]
 pub struct Level {
     pub id: usize,
+    pub draw_distance: i32,
     pub grid: grid::Grid,
+    /// MDL corner colors retain shade indices for the stage's distance palette.
     pub map: Vec<Part>,
     pub objects: Vec<Part>,
     pub object_sizes: Vec<i32>,
@@ -88,7 +90,7 @@ impl Level {
         variant: Variant,
         sequence: Option<usize>,
     ) -> Result<Self> {
-        let (_, flags) = Self::parameters(disc, id)?;
+        let (draw_distance, flags) = Self::parameters(disc, id)?;
         let volume = Volume::open(disc)?;
         let directory = directory(id);
         let shading = Shading::load(&volume, &directory)?;
@@ -120,7 +122,7 @@ impl Level {
         }
         let mut vram = Vram::default();
         upload_textures(&read("mapTEX.arc")?, &mut vram)?;
-        let mut background = background::Background::load(&volume, id, sequence, flags, &mut vram)?;
+        let background = background::Background::load(&volume, id, sequence, flags, &mut vram)?;
         initialize_water(id, &mut vram)?;
         let (layout, archive) = variant.files();
         let archive = read(archive)?;
@@ -163,13 +165,6 @@ impl Level {
             }
         }
         model::resolve_transparency(stumps.values_mut(), &vram);
-        shading.apply(
-            map.iter_mut()
-                .chain(&mut objects)
-                .chain(stumps.values_mut())
-                .chain(background.sky.iter_mut().map(|sky| &mut sky.model))
-                .chain(background.landscape.iter_mut()),
-        );
         let collision = match sequence {
             Some(179 | 216) => "map2.mcd",
             Some(245) => "map3.mcd",
@@ -177,6 +172,7 @@ impl Level {
         };
         Ok(Self {
             id,
+            draw_distance,
             grid,
             map,
             objects,

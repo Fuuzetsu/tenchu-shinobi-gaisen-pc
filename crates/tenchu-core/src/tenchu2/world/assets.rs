@@ -115,14 +115,7 @@ impl Assets {
             }
         }
         let level = Level::japanese_sequence(disc, layout, false)?;
-        level.shading.apply(
-            models
-                .values_mut()
-                .flat_map(|model| &mut model.parts)
-                .chain(weapon_models.values_mut().flatten()),
-        );
-        let mut items = tenchu_assets::tenchu2::items::Items::load(disc)?;
-        items.apply_shading(&level.shading);
+        let items = tenchu_assets::tenchu2::items::Items::load(disc)?;
         Ok(Self {
             campaign: tenchu_assets::tenchu2::campaign::Campaign::load(disc)?,
             ambient_interval: tenchu_assets::tenchu2::audio::interval(disc, map)?,
@@ -132,7 +125,7 @@ impl Assets {
             camera: tenchu_assets::tenchu2::camera::Tables::load(disc)?,
             hero,
             sequence: layout.sequence,
-            draw_distance: Level::draw_distance(disc, map)?,
+            draw_distance: level.draw_distance,
             resources: Resources {
                 registry,
                 clips: motions::for_map(disc, hero, map)?,

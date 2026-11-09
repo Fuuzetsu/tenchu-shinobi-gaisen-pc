@@ -120,8 +120,10 @@ impl Sandbox {
         let math = Math {
             tables: executable.math_tables()?,
         };
-        mission.map = Arc::new(self.level.map.clone());
+        let mut map = self.level.map.clone();
         let mut objects = self.level.objects.clone();
+        self.level.shading.apply(map.iter_mut().chain(&mut objects));
+        mission.map = Arc::new(map);
         let mut tilted = BTreeMap::new();
         mission.placements.clear();
         for source in &self.level.scene.statics {

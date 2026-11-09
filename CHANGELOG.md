@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Use Tenchu 2's stage palettes and draw distances in native JP missions and
+  cutscenes instead of applying Gaisen's black fog. Remove distant black terrain
+  silhouettes over the sky; disabling fog still extends the view.
+
 - Restore the Japanese Tenchu 2 menu's narrated prologue before Rikimaru or
   Ayame's campaign while training is incomplete, including the original scrolling
   text, audio and fades. Start/Circle, Enter or the touch button can skip it.

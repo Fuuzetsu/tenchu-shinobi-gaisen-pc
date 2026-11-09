@@ -136,12 +136,7 @@ impl Models {
                 }
             }
         }
-        let mut output = Builder {
-            view: story.state.view,
-            surfaces: Vec::new(),
-            terrain: Vec::new(),
-            actors: Vec::new(),
-        };
+        let mut output = Builder::new(story.state.view, level, renderer.graphics());
         for part in &level.map {
             output.model(
                 &self.terrain,
@@ -219,6 +214,7 @@ impl Models {
             Geometry {
                 backgrounds: super::super::background::geometry(
                     &level.background,
+                    &level.shading,
                     &self.terrain,
                     story.state.view,
                     math,

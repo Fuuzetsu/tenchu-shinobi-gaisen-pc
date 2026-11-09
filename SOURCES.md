@@ -2811,3 +2811,15 @@ held inputs and early audio completion. The ignored Rust check also restores
 snapshots. Native campaign coverage verifies narration audio, skip and arrival
 at the selected sequence without consuming its opening story. The on-screen
 skip request is retained until the next 15 Hz update.
+
+Native JP distance shading follows GAME.EXE `80018e6c` modes1/3: subtract
+camera-depth units beyond `(stage_distance >> 4) - 256` from the MDL shade
+index, then look up the stage RGB palette. `80018688` / `80018b34` reject
+polygons whose vertices are all beyond the stage limit. MDL indices now survive
+asset loading; the Gaisen sandbox resolves them to RGB at its conversion boundary.
+Native rendering clears the Gaisen fog flag and resolves palette colors after
+posing. Original sky/landscape shading remains independent of distance. Disabling
+fog bypasses the distance reduction and far rejection. GPU checks cover the
+training opening, backgrounds, opaque night geometry, animated facial materials
+and original/HD water. Triangle subdivision and interpolation use the PC renderer;
+the mode2 subtractive ordering-table fog overlay is not reproduced pixel-for-pixel.
