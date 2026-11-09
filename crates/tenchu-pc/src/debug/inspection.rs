@@ -7,6 +7,10 @@ use tenchu_assets::Result;
 pub struct Actor {
     pub id: usize,
     pub position: Vec3,
+    pub kind: i16,
+    pub health: i16,
+    pub height: f32,
+    pub suspended: bool,
 }
 
 /// Read-only facts needed by inspection tools, independent of either simulation.

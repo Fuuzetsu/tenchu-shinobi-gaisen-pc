@@ -35,6 +35,7 @@ pub struct Drawing {
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
     pub show_hud: bool,
+    pub labels: Vec<crate::debug::Label>,
 }
 
 struct SceneDrawing {
@@ -83,10 +84,16 @@ impl Drawing {
             view: session.world.camera.view,
             show_hud: true,
             camera: None,
+            labels: Vec::new(),
         })
     }
 
-    pub fn update(&mut self, session: &super::Session, renderer: &mut Renderer) -> Result<()> {
+    pub fn update(
+        &mut self,
+        session: &super::Session,
+        renderer: &mut Renderer,
+        debug: Option<&crate::debug::Debug>,
+    ) -> Result<()> {
         let mut geometry = self.models.geometry(
             &session.world,
             &session.assets,
@@ -107,6 +114,18 @@ impl Drawing {
             },
             renderer,
         );
+        self.labels.clear();
+        if let Some(debug) = debug {
+            let size = renderer.size();
+            let overlay = super::inspection::overlay(
+                session,
+                debug,
+                camera_matrix(session.world.camera.view, self.camera, size),
+                size[0] as f32 / size[1] as f32,
+            );
+            geometry.effects.append(overlay.geometry);
+            self.labels = overlay.labels;
+        }
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
         self.view = session.world.camera.view;

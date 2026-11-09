@@ -350,13 +350,11 @@ impl Application {
                 view.graphics.clone_from(&graphics);
                 self.last = Instant::now();
             }
-            view.drawing.set_camera(self.menu.tools.debug.camera);
-            view.drawing
-                .update(&self.session.content, &mut view.renderer)?;
-            view.drawing.set_hud(
+            view.drawing.update(
                 &self.session.content,
-                self.settings.show_hud && !self.menu.tools.debug.photo_mode,
                 &mut view.renderer,
+                &self.menu.tools.debug,
+                self.settings.show_hud,
             )?;
             let original_model = if let Content::Gameplay(session) = &self.session.content {
                 session

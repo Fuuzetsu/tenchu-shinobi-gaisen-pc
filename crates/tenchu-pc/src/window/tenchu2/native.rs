@@ -243,12 +243,11 @@ impl Application {
             self.clock.discard_host_backlog();
         }
         let drawing = native.drawing.as_mut().unwrap();
-        drawing.set_camera(native.menu.tools.debug.camera);
-        drawing.update(&native.playback.content, &mut view.renderer)?;
-        native.drawing.as_mut().unwrap().set_hud(
+        drawing.update(
             &native.playback.content,
-            self.settings.show_hud && !native.menu.tools.debug.photo_mode,
             &mut view.renderer,
+            &native.menu.tools.debug,
+            self.settings.show_hud,
         )?;
         let mut leave = false;
         let mut step = false;

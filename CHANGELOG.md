@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP now uses the shared F1 hitbox, actor-label and actor-inspection overlays, including X-ray and photo-mode handling.
+
 ## 0.24.0 — 2026-11-09
 
 - Enable the shared F1 player-model gallery in native Japanese Tenchu 2.

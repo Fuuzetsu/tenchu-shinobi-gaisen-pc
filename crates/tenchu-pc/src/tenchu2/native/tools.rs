@@ -1,14 +1,9 @@
 use super::campaign::Content;
 use crate::{
     controls::Controls,
-    debug::{
-        Debug,
-        camera::Camera,
-        inspection::{Actor, Snapshot},
-    },
+    debug::{Debug, camera::Camera, inspection::Snapshot},
     settings::menu::Item,
 };
-use glam::Vec3;
 use tenchu_assets::Result;
 use winit::event::{ElementState, MouseButton, WindowEvent};
 
@@ -33,19 +28,7 @@ impl Tools {
         let view = match content {
             Content::Gameplay(session) => {
                 self.scene.player = session.world.player;
-                self.scene
-                    .actors
-                    .extend(
-                        session
-                            .world
-                            .actors
-                            .iter()
-                            .enumerate()
-                            .map(|(id, a)| Actor {
-                                id,
-                                position: Vec3::from(a.actor.position.map(|v| v as f32).to_array()),
-                            }),
-                    );
+                self.scene.actors.extend(super::inspection::actors(session));
                 Some(session.world.camera.view)
             }
             Content::Story { story, .. } => {
@@ -171,6 +154,24 @@ mod tests {
             tools.debug.camera.unwrap().fov,
             tools.debug.bookmark.unwrap().fov
         );
+        for item in [Item::Hitboxes, Item::Labels, Item::InspectActor] {
+            tools.change(item, 1).unwrap();
+        }
+        let matrix = tools.debug.camera.unwrap().matrix(16.0 / 9.0);
+        let overlay = super::super::inspection::overlay(session, &tools.debug, matrix, 16.0 / 9.0);
+        assert!(!overlay.geometry.vertices.is_empty());
+        assert!(overlay.labels.iter().any(|label| label.1.contains("HP")));
+        assert!(
+            overlay
+                .geometry
+                .vertices
+                .iter()
+                .all(|vertex| vertex.position.iter().all(|v| v.is_finite()))
+        );
+        tools.change(Item::PhotoMode, 1).unwrap();
+        let hidden = super::super::inspection::overlay(session, &tools.debug, matrix, 16.0 / 9.0);
+        assert!(hidden.geometry.vertices.is_empty() && hidden.labels.is_empty());
+        tools.reset(Item::PhotoMode).unwrap();
         assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
         tools.change(Item::FreeCamera, 1).unwrap();
         assert!(tools.debug.camera.is_none());

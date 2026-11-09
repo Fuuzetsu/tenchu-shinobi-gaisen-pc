@@ -281,29 +281,6 @@ impl ContentDrawing {
         }
     }
 
-    pub fn set_camera(&mut self, camera: Option<crate::debug::camera::Camera>) {
-        match self {
-            Self::Gameplay(drawing) => drawing.camera = camera,
-            Self::Story(drawing) => drawing.camera = camera,
-            _ => {}
-        }
-    }
-
-    pub fn set_hud(
-        &mut self,
-        content: &Content,
-        show_hud: bool,
-        renderer: &mut Renderer,
-    ) -> Result<()> {
-        if let (Self::Gameplay(drawing), Content::Gameplay(session)) = (self, content)
-            && drawing.show_hud != show_hud
-        {
-            drawing.show_hud = show_hud;
-            drawing.update(session, renderer)?;
-        }
-        Ok(())
-    }
-
     pub fn new(content: &Content, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         match content {
             Content::MissionSelection(selection) => Ok(Self::MissionSelection(
@@ -359,7 +336,13 @@ impl ContentDrawing {
         Ok(())
     }
 
-    pub fn update(&mut self, content: &Content, renderer: &mut Renderer) -> Result<()> {
+    pub fn update(
+        &mut self,
+        content: &Content,
+        renderer: &mut Renderer,
+        debug: &crate::debug::Debug,
+        show_hud: bool,
+    ) -> Result<()> {
         match (self, content) {
             (Self::MissionSelection(drawing), Content::MissionSelection(selection)) => {
                 drawing.update(selection)
@@ -373,9 +356,14 @@ impl ContentDrawing {
                 Ok(())
             }
             (Self::Gameplay(drawing), Content::Gameplay(session)) => {
-                drawing.update(session, renderer)
+                drawing.camera = debug.camera;
+                drawing.show_hud = show_hud && !debug.photo_mode;
+                drawing.update(session, renderer, Some(debug))
             }
-            (Self::Story(drawing), Content::Story { story, .. }) => drawing.update(story, renderer),
+            (Self::Story(drawing), Content::Story { story, .. }) => {
+                drawing.camera = debug.camera;
+                drawing.update(story, renderer)
+            }
             (Self::Introduction(frame), Content::Introduction(intro)) => {
                 *frame = film::introduction(intro);
                 Ok(())
@@ -427,6 +415,9 @@ impl ContentDrawing {
 
     pub fn paint(&mut self, content: &Content, ctx: &egui::Context) {
         match (self, content) {
+            (Self::Gameplay(drawing), _) => {
+                crate::debug::overlay::paint_labels(ctx, &drawing.labels)
+            }
             (Self::MissionSelection(drawing), _) => {
                 ctx.layer_painter(egui::LayerId::background()).add(
                     egui_wgpu::Callback::new_paint_callback(

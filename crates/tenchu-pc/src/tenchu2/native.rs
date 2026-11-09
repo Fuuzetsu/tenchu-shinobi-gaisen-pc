@@ -26,6 +26,7 @@ pub(crate) mod campaign;
 mod equipment;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
+mod inspection;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod models;
 #[cfg(not(target_arch = "wasm32"))]

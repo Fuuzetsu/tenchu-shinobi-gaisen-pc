@@ -223,7 +223,7 @@ mod tests {
                 &path,
                 |renderer| {
                     let mut drawing = super::super::Drawing::new(&session, &graphics, renderer)?;
-                    drawing.update(&session, renderer)?;
+                    drawing.update(&session, renderer, None)?;
                     if mode != WeatherMode::Original {
                         let e = drawing.scene.environment.as_mut().unwrap();
                         let eye = crate::debug::camera::Camera::from_view(
@@ -263,9 +263,9 @@ mod tests {
                                 "native soles did not leave tracks"
                             );
                         }
-                        drawing.update(&session, renderer)?;
+                        drawing.update(&session, renderer, None)?;
                         let sample = renderer.weather;
-                        drawing.update(&session, renderer)?;
+                        drawing.update(&session, renderer, None)?;
                         assert_eq!(
                             renderer.weather.snow, sample.snow,
                             "pause must freeze accumulation"

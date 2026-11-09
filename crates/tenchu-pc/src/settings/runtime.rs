@@ -27,7 +27,8 @@ impl Runtime {
             | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion | OcclusionRadius
             | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed
             | Pause | Step | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor
-            | Overhead | SaveCamera | RestoreCamera | PhotoMode => None,
+            | Overhead | SaveCamera | RestoreCamera | PhotoMode | Hitboxes | Labels
+            | InspectActor | Xray => None,
             Weather | WeatherAmount | WeatherWind | WeatherHeading | WeatherQuality
             | WeatherDistance | Wetness | RainReflections | PuddleCoverage | PoolingSpeed
             | RainHaze | RainStreaks | SnowCover | SnowDrift | Footprints | FootprintSeconds

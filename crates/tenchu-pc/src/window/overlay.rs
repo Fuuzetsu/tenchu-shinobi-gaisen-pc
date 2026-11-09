@@ -218,7 +218,7 @@ impl Overlay {
             }
             if !self.opaque {
                 crate::fonts::paint(ctx, ctx.screen_rect(), extras.text);
-                paint_labels(ctx, extras.labels);
+                crate::debug::overlay::paint_labels(ctx, extras.labels);
             }
             let mut show_performance = state.settings.show_performance;
             let profiling = show_performance;
@@ -703,33 +703,5 @@ impl super::Application {
         self.release_pointer();
         self.sync_pause();
         self.update_view();
-    }
-}
-
-fn paint_labels(ctx: &egui::Context, labels: &[crate::debug::Label]) {
-    use crate::debug::{Anchor, Label};
-    let screen = ctx.screen_rect();
-    let painter = ctx.layer_painter(egui::LayerId::background());
-    for Label(anchor, text, color) in labels {
-        let origin = match *anchor {
-            Anchor::Projected([x, y]) => {
-                screen.min + egui::vec2(x * screen.width(), y * screen.height())
-            }
-            Anchor::TopLeft([x, y]) => screen.min + egui::vec2(x, y),
-            Anchor::BottomLeft([x, y]) => screen.left_bottom() + egui::vec2(x, -y),
-        };
-        let color = color.map(|v| (v * 255.0).clamp(0.0, 255.0) as u8);
-        let color = egui::Color32::from_rgb(color[0], color[1], color[2]);
-        let text = painter.layout_no_wrap(text.clone(), egui::FontId::monospace(15.0), color);
-        let origin = egui::pos2(
-            origin.x.min(screen.right() - text.size().x - 5.0).max(5.0),
-            origin.y,
-        );
-        painter.rect_filled(
-            egui::Rect::from_min_size(origin, text.size()).expand(3.0),
-            3.0,
-            egui::Color32::from_black_alpha(175),
-        );
-        painter.galley(origin, text, color);
     }
 }

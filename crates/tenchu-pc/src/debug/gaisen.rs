@@ -1,4 +1,5 @@
-use super::{Debug, Overlay, overlay, ray_box, terrain};
+pub(super) mod overlay;
+use super::{Debug, Overlay, ray_box, terrain};
 use super::{
     camera::{self, Camera},
     inspection::{Actor, Scene},
@@ -18,13 +19,10 @@ impl Scene for Game {
     }
 
     fn actors(&self) -> impl Iterator<Item = Actor> {
-        self.roster.order.iter().map(|&id| {
-            let actor = self.roster.get(id);
-            Actor {
-                id,
-                position: Vec3::from(actor.position.to_array().map(|v| v as f32)),
-            }
-        })
+        self.roster
+            .order
+            .iter()
+            .map(|&id| actor(self, self.roster.get(id)))
     }
 }
 
@@ -203,5 +201,16 @@ impl Camera {
             game.rendered_view,
             f32::from(tenchu_core::projection::DISTANCE),
         )
+    }
+}
+
+fn actor(game: &Game, actor: &tenchu_core::actor::Actor) -> Actor {
+    Actor {
+        id: actor.id,
+        position: Vec3::from(actor.position.to_array().map(|v| v as f32)),
+        kind: actor.kind,
+        health: actor.health,
+        height: f32::from(game.mission.characters[actor.definition].height),
+        suspended: actor.attribute & tenchu_core::ids::ATTR_SUSPEND != 0,
     }
 }
