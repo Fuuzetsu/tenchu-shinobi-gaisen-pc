@@ -29,6 +29,62 @@ fn bank(loop_start: Option<usize>) -> Arc<Bank> {
 }
 
 #[test]
+fn imported_voices_keep_their_samples_without_replacing_the_mission_bank() {
+    for rate in [44100, 48000] {
+        let host = bank(Some(14));
+        let mut imported = bank(Some(0));
+        Arc::get_mut(&mut imported).unwrap().samples[0].frames = vec![8000; 17];
+        let weak = Arc::downgrade(&imported);
+        let mut mixer = Mixer::new(rate);
+        mixer.set_bank(host.clone());
+        mixer.play(0, 80, 0);
+        mixer.play_from(&imported, 0, 60, 127);
+        let mut left = Mixer::new(rate);
+        left.set_bank(host.clone());
+        left.play(0, 80, 0);
+        let mut right = Mixer::new(rate);
+        right.set_bank(imported.clone());
+        right.play(0, 60, 127);
+        drop(imported);
+        for _ in 0..500 {
+            mixer.paused = true;
+            assert_eq!(mixer.frame(), [0.0; 2]);
+            mixer.paused = false;
+            assert_eq!(mixer.frame(), [left.frame()[0], right.frame()[1]]);
+        }
+        drop(right);
+        assert!(weak.upgrade().is_some());
+        mixer.clear_effects();
+        assert!(weak.upgrade().is_none());
+        left.clear_effects();
+        mixer.play(0, 100, 64);
+        left.play(0, 100, 64);
+        for _ in 0..500 {
+            assert_eq!(mixer.frame(), left.frame());
+        }
+    }
+}
+
+#[test]
+fn source_banks_share_voice_slots_and_work_without_a_default_bank() {
+    let mut host = Mixer::new(48000);
+    let bank = bank(Some(0));
+    host.set_bank(bank.clone());
+    let mut imported = Mixer::new(48000);
+    host.play_at(4, 0, [17, 91], 48);
+    imported.play_at_from(&bank, 4, 0, [17, 91], 48);
+    for _ in 0..500 {
+        assert_eq!(host.frame(), imported.frame());
+    }
+    imported.set_bank(bank.clone());
+    imported.play_at_from(&bank, 4, 0, [127, 127], 36);
+    imported.play_at(4, 0, [0, 0], 36);
+    for _ in 0..500 {
+        assert_eq!(imported.frame(), [0.0; 2]);
+    }
+}
+
+#[test]
 fn fixed_voice_replacement_keeps_independent_stereo_levels() {
     for rate in [44100, 48000] {
         let mut mixer = Mixer::new(rate);

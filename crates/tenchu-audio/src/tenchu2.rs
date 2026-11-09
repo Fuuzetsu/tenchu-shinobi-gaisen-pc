@@ -81,7 +81,7 @@ impl Soundscape {
         let mut output = [0.0; 2];
         for slot in &mut self.voices {
             if let Some(voice) = slot {
-                if let Some(frame) = voice.frame(&self.source.bank, envelope_ticks) {
+                if let Some(frame) = voice.frame(envelope_ticks) {
                     for (out, sample) in output.iter_mut().zip(frame) {
                         *out += sample;
                     }

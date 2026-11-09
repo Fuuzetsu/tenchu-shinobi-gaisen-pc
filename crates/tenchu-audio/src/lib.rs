@@ -100,6 +100,13 @@ impl Mixer {
         self.play_note(id, volume, pan, 36);
     }
 
+    pub fn play_from(&mut self, bank: &Arc<Bank>, id: i16, volume: u8, pan: u8) {
+        self.next_voice = (self.next_voice + 1) % self.voices.len();
+        if let Some(voice) = Voice::new(bank, id, volume, pan, 36, self.rate, false) {
+            self.voices[self.next_voice] = Some(voice);
+        }
+    }
+
     pub fn play_ui(&mut self, id: i16, volume: u8, pan: u8) {
         self.play_note_inner(id, volume, pan, 36, true);
     }
@@ -114,6 +121,21 @@ impl Mixer {
                 .bank
                 .as_ref()
                 .and_then(|bank| Voice::stereo(bank, id, volume, note, self.rate))
+        {
+            *slot = Some(voice);
+        }
+    }
+
+    pub fn play_at_from(
+        &mut self,
+        bank: &Arc<Bank>,
+        slot: usize,
+        id: i16,
+        volume: [u8; 2],
+        note: u8,
+    ) {
+        if let Some(slot) = self.voices.get_mut(slot)
+            && let Some(voice) = Voice::stereo(bank, id, volume, note, self.rate)
         {
             *slot = Some(voice);
         }
@@ -158,21 +180,19 @@ impl Mixer {
         let ticks = *clock / u64::from(self.rate);
         *clock %= u64::from(self.rate);
         let mut output = [0.0; 2];
-        if let Some(bank) = &self.bank {
-            for slot in &mut self.voices {
-                let Some(voice) = slot else {
-                    continue;
-                };
-                if self.paused && !voice.during_pause {
-                    continue;
+        for slot in &mut self.voices {
+            let Some(voice) = slot else {
+                continue;
+            };
+            if self.paused && !voice.during_pause {
+                continue;
+            }
+            if let Some(frame) = voice.frame(ticks) {
+                for (out, sample) in output.iter_mut().zip(frame) {
+                    *out += sample;
                 }
-                if let Some(frame) = voice.frame(bank, ticks) {
-                    for (out, sample) in output.iter_mut().zip(frame) {
-                        *out += sample;
-                    }
-                } else {
-                    *slot = None;
-                }
+            } else {
+                *slot = None;
             }
         }
         if !self.paused {

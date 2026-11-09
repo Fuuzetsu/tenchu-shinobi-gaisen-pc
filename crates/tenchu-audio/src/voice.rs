@@ -1,7 +1,9 @@
 use super::envelope::Envelope;
+use std::sync::Arc;
 use tenchu_assets::audio::bank::Bank;
 
 pub(super) struct Voice {
+    bank: Arc<Bank>,
     sample: usize,
     pub position: f64,
     step: f64,
@@ -11,7 +13,7 @@ pub(super) struct Voice {
 }
 
 impl Voice {
-    pub fn stereo(bank: &Bank, id: i16, volume: [u8; 2], note: u8, rate: u32) -> Option<Self> {
+    pub fn stereo(bank: &Arc<Bank>, id: i16, volume: [u8; 2], note: u8, rate: u32) -> Option<Self> {
         let mut voice = Self::new(bank, id, 127, 64, note, rate, false)?;
         for (gain, volume) in voice.volume.iter_mut().zip(volume) {
             *gain *= f32::from(volume) / 127.0;
@@ -20,7 +22,7 @@ impl Voice {
     }
 
     pub fn new(
-        bank: &Bank,
+        bank: &Arc<Bank>,
         id: i16,
         volume: u8,
         pan: u8,
@@ -45,6 +47,7 @@ impl Voice {
         let pitch =
             (f64::from(note) - f64::from(tone.center) - f64::from(tone.fine) / 128.0) / 12.0;
         Some(Self {
+            bank: bank.clone(),
             sample: tone.sample,
             position: 0.0,
             step: 44100.0 * pitch.exp2() / f64::from(rate),
@@ -57,8 +60,8 @@ impl Voice {
         })
     }
 
-    pub fn frame(&mut self, bank: &Bank, ticks: u64) -> Option<[f32; 2]> {
-        let sample = &bank.samples[self.sample];
+    pub fn frame(&mut self, ticks: u64) -> Option<[f32; 2]> {
+        let sample = &self.bank.samples[self.sample];
         let length = sample.frames.len();
         if self.position >= length as f64 {
             let start = sample.loop_start.filter(|&start| start < length)?;
