@@ -17,8 +17,11 @@ maintaining a second live `Game` just to satisfy a renderer API.
 Paths above are relative to `crates/tenchu-pc/src`. The small inspection interface
 borrows live actor facts in Gaisen. Native UI retains only camera and actor facts,
 not a cloned world. The overlay builder accepts positions, bounds and labels;
-source adapters retain collision filters and event arithmetic. Gaisen's sight
-bounds are visualizations, not a substitute for querying native T2's AI.
+source adapters retain collision filters and event arithmetic. Native T2's sight
+diagnostics call its own perception routine on local query state; eye-height
+envelopes are illustrative and separate from the actual target ray. Teleport UI
+is shared, with a checked native command that repairs pose, collision and camera
+state without advancing simulation or RNG.
 
 Both runtimes use the same light selection and GPU shadow code. Native T2 maps
 its explicit static flame emitters; its texture-based lamp metadata and transient
@@ -31,8 +34,8 @@ before adding another renderer or menu implementation. Enable a control only whe
 its edit, reset and live application all work. Unsupported values must survive a
 round trip between games without being applied to the wrong engine.
 
-Remaining work includes source-specific sight/event queries and checked gameplay
-commands, more effect adapters, and character resources with source-qualified
+Remaining work includes further checked gameplay commands, more effect adapters,
+and character resources with source-qualified
 weapons and motion audio. The existing cross-game melee bridge still converts
 motion data through Gaisen's representation; this refactor does not make every
 move, item or weapon interchangeable. Preserve original action semantics at that

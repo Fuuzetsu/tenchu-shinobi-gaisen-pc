@@ -132,6 +132,18 @@ impl Drawing {
         );
         self.labels.clear();
         if let Some(debug) = debug {
+            if debug.collision_only && !debug.photo_mode {
+                geometry.terrain.clear();
+                geometry.actors.clear();
+                geometry.effects = render_effects::Geometry {
+                    vertices: Vec::new(),
+                    batches: Vec::new(),
+                };
+                for background in &mut geometry.backgrounds {
+                    background.vertices.clear();
+                    background.batches.clear();
+                }
+            }
             let size = renderer.size();
             let overlay = super::inspection::overlay(
                 session,

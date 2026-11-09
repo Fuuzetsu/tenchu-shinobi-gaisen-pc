@@ -78,6 +78,12 @@ pub struct Action {
 }
 
 impl Menu {
+    pub fn apply_tools(&mut self, content: &mut super::campaign::Content, size: [u32; 2]) {
+        if let Err(error) = self.tools.apply(content, size) {
+            self.panel.notice = error.clone();
+            self.tools.debug.notice = Some((error, web_time::Instant::now()));
+        }
+    }
     pub fn cutscene_controls(&mut self, ctx: &egui::Context, cinematic: bool) {
         if !cinematic {
             self.fast_forward = false;
@@ -268,6 +274,14 @@ impl Menu {
                 state.settings.touch = value;
                 Ok(())
             }
+            Edit::Coordinate(axis, value) => {
+                if axis < 3 {
+                    self.tools.debug.target[axis] = value.clamp(-320_000, 320_000);
+                    Ok(())
+                } else {
+                    Err("Invalid coordinate".into())
+                }
+            }
             Edit::Preset(choice) => state.presets.library.apply(choice, state.settings),
             Edit::PresetLibrary => {
                 state.presets.open = true;
@@ -387,7 +401,11 @@ impl Menu {
                             self.panel.open = false;
                             Ok(())
                         }
-                        _ => self.tools.change(item, delta),
+                        _ => self.tools.change(item, delta).map(|()| {
+                            if item == Item::PickTeleport {
+                                self.panel.open = false;
+                            }
+                        }),
                     }
                 }
             }
@@ -496,6 +514,7 @@ mod tests {
                     && !matches!(
                         row.item,
                         Item::FreeCamera
+                            | Item::ClickTeleport
                             | Item::FlightSpeed
                             | Item::Fov
                             | Item::Actor

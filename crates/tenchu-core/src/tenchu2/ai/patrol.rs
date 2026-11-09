@@ -46,6 +46,10 @@ pub struct Patrol {
 }
 
 impl Patrol {
+    pub fn waypoints(&self) -> impl Iterator<Item = [i32; 2]> + '_ {
+        self.route.iter().map(|point| [point.x, point.z])
+    }
+
     pub fn new(route: &[layout::Waypoint], home: Position) -> Self {
         let mut points: Vec<_> = route
             .iter()

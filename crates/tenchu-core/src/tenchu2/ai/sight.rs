@@ -96,6 +96,28 @@ pub struct Sight {
     pub destination: Position,
 }
 
+pub struct Ray {
+    pub eye: Position,
+    pub target: Position,
+    pub obstruction: Option<Position>,
+}
+
+pub struct Observation {
+    pub visibility: Visibility,
+    pub reason: &'static str,
+    pub ray: Option<Ray>,
+}
+
+impl Observation {
+    fn new(visibility: Visibility, reason: &'static str) -> Self {
+        Self {
+            visibility,
+            reason,
+            ray: None,
+        }
+    }
+}
+
 impl Sight {
     pub fn check(
         &mut self,
@@ -105,8 +127,20 @@ impl Sight {
         ranges: &mut Ranges,
         cursor: &mut terrain::Cursor,
     ) -> Result<Visibility> {
+        self.observe(observer, target, world, ranges, cursor)
+            .map(|query| query.visibility)
+    }
+
+    pub fn observe(
+        &mut self,
+        observer: &Observer,
+        target: Option<&Body>,
+        world: &mut Context<'_>,
+        ranges: &mut Ranges,
+        cursor: &mut terrain::Cursor,
+    ) -> Result<Observation> {
         let Some(target) = target else {
-            return Ok(Visibility::Unchanged);
+            return Ok(Observation::new(Visibility::Unchanged, "No target"));
         };
         let from = observer.body.position;
         let delta = target.position.wrapping_sub(from);
@@ -127,18 +161,27 @@ impl Sight {
             || matches!(target.action, 0x804 | 0x400)
             || (target.action == 0x702 && delta.y > 0)
         {
-            return Ok(Visibility::Unchanged);
+            return Ok(Observation::new(
+                Visibility::Unchanged,
+                "Not a perception update / excluded motion",
+            ));
         }
         let crouched = matches!(target.state, State::Crouched | State::Wall);
         if target.state == State::Ledge && delta.y >= 0 {
-            return Ok(Visibility::Hidden);
+            return Ok(Observation::new(
+                Visibility::Hidden,
+                "Target hanging above observer",
+            ));
         }
         let archer = observer.weapon >> 12 == 4;
         if !archer {
             let vertical_limit = self.distance.wrapping_mul(3) / 5;
             let height = delta.y.wrapping_abs();
             if vertical_limit <= height || (height <= vertical_limit && delta.y < -3500) {
-                return Ok(Visibility::Hidden);
+                return Ok(Observation::new(
+                    Visibility::Hidden,
+                    "Height outside sight range",
+                ));
             }
         }
         let forget = if crouched {
@@ -147,14 +190,20 @@ impl Sight {
             ranges.standing.forget
         };
         if forget <= self.distance {
-            return Ok(Visibility::Hidden);
+            return Ok(Observation::new(
+                Visibility::Hidden,
+                "Beyond forget distance",
+            ));
         }
         let angle = i32::from(self.angle).abs();
         if angle >= 700 || (crouched && angle >= 350) {
-            return Ok(Visibility::Unnoticed);
+            return Ok(Observation::new(
+                Visibility::Unnoticed,
+                "Outside sight angle",
+            ));
         }
         if target.action == 0x536 && observer.body.state != State::Swimming {
-            return Ok(Visibility::Hidden);
+            return Ok(Observation::new(Visibility::Hidden, "Target submerged"));
         }
         ranges.standing.notice = i32::from(observer.range);
         ranges.crouched.notice = ranges.standing.notice * 7 / 10;
@@ -168,7 +217,10 @@ impl Sight {
             &ranges.standing
         };
         if thresholds.notice <= self.distance {
-            return Ok(Visibility::Unnoticed);
+            return Ok(Observation::new(
+                Visibility::Unnoticed,
+                "Beyond notice distance",
+            ));
         }
         let mut eye = from;
         eye.y = eye.y.wrapping_sub(i32::from(observer.body.height));
@@ -186,8 +238,17 @@ impl Sight {
         let mut delta = target.position.wrapping_sub(eye);
         delta.y = delta.y.wrapping_sub(i32::from(target_height));
         cursor.current = None;
-        if terrain::segment(world.terrain, cursor, eye, delta, world.math)?.is_some() {
-            return Ok(Visibility::Hidden);
+        let ray = Ray {
+            eye,
+            target: eye.wrapping_add(delta),
+            obstruction: terrain::segment(world.terrain, cursor, eye, delta, world.math)?,
+        };
+        if ray.obstruction.is_some() {
+            return Ok(Observation {
+                visibility: Visibility::Hidden,
+                reason: "Terrain blocks sight",
+                ray: Some(ray),
+            });
         }
         if world.script_mode < 3 && (world.script_mode < 2 || observer.kind & 0xe0 == 0xe0) {
             self.destination = target.position;
@@ -200,10 +261,15 @@ impl Sight {
         } else {
             (self.distance, thresholds.recognize)
         };
-        Ok(if distance < recognize {
+        let visibility = if distance < recognize {
             Visibility::Recognized
         } else {
             Visibility::Suspicious
+        };
+        Ok(Observation {
+            visibility,
+            reason: "Clear sight ray",
+            ray: Some(ray),
         })
     }
 }

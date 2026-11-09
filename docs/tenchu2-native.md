@@ -72,9 +72,19 @@ Original keeps these effects off. Moon/sun lighting and other emitters remain
 unavailable. These sources are independent of the source camera's draw culling.
 
 **F1 → Overlays** provides hitboxes, actor labels and the actor inspector, with
-X-ray and photo-mode handling. The boxes come from native collision slots. Sight,
-patrol and event overlays still need their native queries. Both games share the
+X-ray and photo-mode handling. The boxes come from native collision slots.
+Terrain/collision, patrol routes, mission destinations and surface triggers also
+use native data. Sight envelopes are clipped at eye height; actual target rays
+use the JP sight routine and stop at its obstruction point. The selected guard's
+label explains the result of its next perception update. These queries do not
+advance AI or change the world. Free-camera clicks select actors. Both games share the
 [inspection and presentation boundaries](runtime-boundaries.md).
+
+**F1 → Teleport / actor** supports coordinate and click/tap destinations, optionally
+snapping to a collision floor. **Experiment → Click to teleport** also works in
+the normal camera. Escape / Back cancels picking. Teleports require a living player
+outside attacks, damage, item use, paired kills and scripted transitions; blocked
+or out-of-map destinations are rejected. Collision and camera state update together.
 
 **F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
 wind-directed shelter on terrain and static props, accumulation, runoff, tracks,

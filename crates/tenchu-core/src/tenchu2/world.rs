@@ -22,6 +22,7 @@ mod assets;
 mod camera;
 pub mod controls;
 mod effects;
+mod experiment;
 mod frame;
 mod items;
 mod mission;

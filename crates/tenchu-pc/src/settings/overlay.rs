@@ -800,13 +800,13 @@ mod tests {
         let mut edits = Vec::new();
         let paint = |ctx: &egui::Context, rect: &mut egui::Rect, edits: &mut Vec<Edit>| {
             egui::CentralPanel::default().show(ctx, |ui| {
-                available_ui(ui, Runtime::Tenchu2, Item::Sight, |ui| {
-                    *rect = ui.button("Guard sight bounds").rect;
+                available_ui(ui, Runtime::Tenchu2, Item::Rewind, |ui| {
+                    *rect = ui.button("Rewind").rect;
                 });
                 action_button(
                     ui,
                     "Reset",
-                    Edit::Reset(Item::Sight),
+                    Edit::Reset(Item::Rewind),
                     Runtime::Tenchu2,
                     edits,
                 );
@@ -833,7 +833,7 @@ mod tests {
                     .galley
                     .job
                     .text
-                    .contains("Not implemented in native Tenchu 2 JP yet"),
+                    .contains("does not yet support mid-mission saves or rewind"),
                 egui::Shape::Vec(shapes) => shapes.iter().any(has_reason),
                 _ => false,
             }

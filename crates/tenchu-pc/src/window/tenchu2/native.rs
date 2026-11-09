@@ -316,6 +316,9 @@ impl Application {
                     .unwrap()
                     .clear_weather(!actions.clear_weather);
             }
+            native
+                .menu
+                .apply_tools(&mut native.playback.content, view.size);
             leave |= actions.leave;
             step |= actions.step;
             if actions.select_mission {
@@ -427,6 +430,11 @@ impl Application {
                 let native = self.native_tenchu2.as_mut().unwrap();
                 if native.menu.panel.open || native.menu.diagnostics {
                     native.menu.back(&mut self.controls, &mut self.presets);
+                } else if native.menu.tools.debug.click_teleport
+                    || native.menu.tools.debug.teleport_armed
+                {
+                    native.menu.tools.debug.click_teleport = false;
+                    native.menu.tools.debug.teleport_armed = false;
                 } else if native.menu.tools.debug.camera.is_some() {
                     native.menu.tools.debug.return_camera();
                     self.controls.clear();
@@ -485,6 +493,14 @@ impl Application {
             }
         }
         let native = self.native_tenchu2.as_mut().unwrap();
+        if matches!(event, WindowEvent::KeyboardInput { ref event, .. } if event.state == ElementState::Pressed && event.physical_key == PhysicalKey::Code(KeyCode::Escape))
+            && (native.menu.tools.debug.click_teleport || native.menu.tools.debug.teleport_armed)
+            && !native.menu.panel.open
+        {
+            native.menu.tools.debug.click_teleport = false;
+            native.menu.tools.debug.teleport_armed = false;
+            return Ok(());
+        }
         native
             .menu
             .tools

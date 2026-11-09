@@ -820,22 +820,6 @@ impl Application {
                     return Err("Start a mission before following an actor".into());
                 }
             }
-            Item::Target(axis) => {
-                self.debug.target[axis] =
-                    (self.debug.target[axis] + direction * 100).clamp(-320_000, 320_000)
-            }
-            Item::PlayerPosition => self.debug.target = self.campaign.game.player().position,
-            Item::CameraPosition => {
-                self.debug.target = self
-                    .debug
-                    .camera
-                    .ok_or("Enable free camera first")?
-                    .position
-                    .to_array()
-                    .map(|v| v.round() as i32)
-                    .into()
-            }
-            Item::SnapFloor => self.debug.snap_to_floor = !self.debug.snap_to_floor,
             Item::Teleport => self.teleport()?,
             Item::PickTeleport => {
                 if !self.campaign.playing() {

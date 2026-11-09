@@ -98,6 +98,30 @@ impl Debug {
         delta: i32,
     ) -> Result<bool> {
         match item {
+            Item::Target(axis) => {
+                self.target[axis] = self.target[axis]
+                    .saturating_add(delta * 100)
+                    .clamp(-320_000, 320_000);
+            }
+            Item::PlayerPosition => {
+                self.target = scene
+                    .actor(scene.player())
+                    .ok_or("No player in this scene")?
+                    .position
+                    .to_array()
+                    .map(|v| v.round() as i32)
+                    .into();
+            }
+            Item::CameraPosition => {
+                self.target = self
+                    .camera
+                    .ok_or("Enable free camera first")?
+                    .position
+                    .to_array()
+                    .map(|v| v.round() as i32)
+                    .into();
+            }
+            Item::SnapFloor => self.snap_to_floor = !self.snap_to_floor,
             Item::FreeCamera => self.toggle_inspection_camera(scene)?,
             Item::FlightSpeed => {
                 self.flight_speed = (i32::from(self.flight_speed) + delta * 2).clamp(2, 100) as u16;
@@ -147,6 +171,12 @@ impl Debug {
 
     pub fn reset_inspection(&mut self, scene: &impl Scene, item: Item) -> Result<bool> {
         match item {
+            Item::Target(axis) => {
+                self.target[axis] = scene
+                    .actor(scene.player())
+                    .map_or(0, |actor| actor.position[axis].round() as i32);
+            }
+            Item::SnapFloor => self.snap_to_floor = true,
             Item::FreeCamera | Item::FollowActor => self.return_camera(),
             Item::FlightSpeed => self.flight_speed = Self::default().flight_speed,
             Item::Fov => {

@@ -147,7 +147,7 @@ impl Debug {
     }
 }
 
-fn ray_box(origin: Vec3, direction: Vec3, low: Vec3, high: Vec3) -> Option<f32> {
+pub(crate) fn ray_box(origin: Vec3, direction: Vec3, low: Vec3, high: Vec3) -> Option<f32> {
     let mut near = 0.0f32;
     let mut far = f32::INFINITY;
     for axis in 0..3 {

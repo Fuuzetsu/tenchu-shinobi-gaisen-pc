@@ -389,6 +389,10 @@ impl Application {
             if action.clear_weather || action.clear_footprints {
                 view.drawing.clear_weather(!action.clear_weather);
             }
+            self.menu.apply_tools(
+                &mut self.session.content,
+                [view.config.width, view.config.height],
+            );
             if let Some(audio) = &self.audio {
                 let (ambience, thunder) = view.drawing.weather_audio(&graphics.weather);
                 let accelerated = self.session.content.cutscene()
@@ -503,6 +507,14 @@ impl ApplicationHandler for Application {
                     }
                     if pressed && !event.repeat {
                         match code {
+                            KeyCode::Escape
+                                if !self.menu.panel.open
+                                    && (self.menu.tools.debug.click_teleport
+                                        || self.menu.tools.debug.teleport_armed) =>
+                            {
+                                self.menu.tools.debug.click_teleport = false;
+                                self.menu.tools.debug.teleport_armed = false;
+                            }
                             KeyCode::Escape if self.menu.panel.open || self.menu.diagnostics => {
                                 self.menu.back(&mut self.controls, &mut self.presets);
                             }

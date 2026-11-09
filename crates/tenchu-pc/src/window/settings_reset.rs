@@ -84,8 +84,6 @@ impl Application {
                     s.graphics.lighting.directional.resolution
             }
 
-            Item::Target(axis) => self.debug.target[axis] = d.target[axis],
-            Item::SnapFloor => self.debug.snap_to_floor = d.snap_to_floor,
             Item::Speed => self.debug.speed = d.speed,
             Item::SightDistance => self.set_sight(d.sight_percent),
             Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),

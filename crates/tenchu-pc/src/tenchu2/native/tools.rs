@@ -5,7 +5,7 @@ use crate::{
     settings::menu::Item,
 };
 use tenchu_assets::Result;
-use winit::event::{ElementState, MouseButton, WindowEvent};
+use winit::event::{ElementState, MouseButton, TouchPhase, WindowEvent};
 
 #[derive(Default)]
 pub struct Tools {
@@ -13,21 +13,30 @@ pub struct Tools {
     scene: Snapshot,
     generation: Option<u64>,
     cursor: Option<(f64, f64)>,
+    click: Option<(f64, f64)>,
+    teleport: Option<(tenchu_core::math::Position, bool)>,
 }
 
 impl Tools {
     pub fn sync(&mut self, content: &Content, generation: u64) {
-        if self.generation != Some(generation) {
+        let changed = self.generation != Some(generation);
+        if changed {
             self.debug.return_camera();
             self.debug.bookmark = None;
             self.debug.selected_actor = 0;
             self.generation = Some(generation);
             self.cursor = None;
+            self.click = None;
+            self.teleport = None;
+            self.debug.click_teleport = false;
         }
         self.scene.actors.clear();
         let view = match content {
             Content::Gameplay(session) => {
                 self.scene.player = session.world.player;
+                if changed {
+                    self.debug.target = session.world.actors[session.world.player].actor.position;
+                }
                 self.scene.actors.extend(super::inspection::actors(session));
                 Some(session.world.camera.view)
             }
@@ -60,6 +69,20 @@ impl Tools {
 
     pub fn event(&mut self, event: &WindowEvent, active: bool) {
         match event {
+            WindowEvent::MouseInput {
+                button: MouseButton::Left,
+                state: ElementState::Pressed,
+                ..
+            } if active => {
+                self.click = self.cursor;
+            }
+            WindowEvent::Touch(touch)
+                if active
+                    && touch.phase == TouchPhase::Started
+                    && (self.debug.teleport_armed || self.debug.click_teleport) =>
+            {
+                self.click = Some((touch.location.x, touch.location.y));
+            }
             WindowEvent::Focused(false) | WindowEvent::CursorLeft { .. } => {
                 self.debug.looking = false;
                 self.cursor = None;
@@ -86,6 +109,25 @@ impl Tools {
     }
 
     pub fn change(&mut self, item: Item, delta: i32) -> Result<()> {
+        match item {
+            Item::Teleport | Item::PickTeleport | Item::ClickTeleport => {
+                if self.scene.actors.is_empty() {
+                    return Err("Start a mission before teleporting".into());
+                }
+                match item {
+                    Item::Teleport => {
+                        self.teleport = Some((self.debug.target, self.debug.snap_to_floor))
+                    }
+                    Item::PickTeleport => {
+                        self.debug.inspection_camera(&self.scene)?;
+                        self.debug.teleport_armed = true;
+                    }
+                    _ => self.debug.click_teleport = !self.debug.click_teleport,
+                }
+                return Ok(());
+            }
+            _ => {}
+        }
         if self.debug.change_inspection(&self.scene, item, delta)? {
             Ok(())
         } else {
@@ -94,6 +136,10 @@ impl Tools {
     }
 
     pub fn reset(&mut self, item: Item) -> Result<()> {
+        if item == Item::ClickTeleport {
+            self.debug.click_teleport = false;
+            return Ok(());
+        }
         if self.debug.reset_inspection(&self.scene, item)? {
             Ok(())
         } else {
@@ -101,7 +147,87 @@ impl Tools {
         }
     }
 
+    pub fn apply(&mut self, content: &mut Content, size: [u32; 2]) -> Result<()> {
+        if let Some((x, y)) = self.click.take()
+            && let Content::Gameplay(session) = content
+            && let Some(camera) = self.debug.camera.or(self.scene.camera)
+        {
+            let matrix = camera.matrix(size[0].max(1) as f32 / size[1].max(1) as f32);
+            let ndc = [
+                (x / f64::from(size[0].max(1)) * 2.0 - 1.0) as f32,
+                (1.0 - y / f64::from(size[1].max(1)) * 2.0) as f32,
+            ];
+            let (origin, direction) = crate::debug::camera::ray(matrix, ndc);
+            if self.debug.teleport_armed || self.debug.click_teleport {
+                let point = super::inspection::pick(&session.world.terrain, origin, direction)
+                    .ok_or("No collision floor at that point")?;
+                self.debug.target = point;
+                self.teleport = Some((point, false));
+            } else if self.debug.camera.is_some() {
+                use tenchu_core::tenchu2::collision::{BODY, DISABLED, REMOVED};
+                if let Some((_, actor)) = session
+                    .world
+                    .collision
+                    .slots()
+                    .iter()
+                    .filter_map(|slot| {
+                        if slot.flags & (BODY | DISABLED | REMOVED) != BODY {
+                            return None;
+                        }
+                        let p = glam::Vec3::from(slot.position.to_array().map(|v| v as f32));
+                        let h = glam::Vec3::from(slot.size.to_array().map(f32::from));
+                        Some((
+                            crate::debug::ray_box(origin, direction, p - h, p + h)?,
+                            slot.owner?,
+                        ))
+                    })
+                    .min_by(|a, b| a.0.total_cmp(&b.0))
+                {
+                    self.debug.selected_actor = actor;
+                    self.debug.inspect_actor = true;
+                }
+            }
+        }
+        if let Some((position, snap)) = self.teleport.take() {
+            let Content::Gameplay(session) = content else {
+                return Err("Start a mission before teleporting".into());
+            };
+            session
+                .world
+                .teleport_player(position, snap, &session.assets)?;
+            self.debug.teleport_armed = false;
+        }
+        Ok(())
+    }
+
     pub fn hint(&self, ctx: &egui::Context, menu_open: bool) {
+        if (self.debug.teleport_armed || self.debug.click_teleport)
+            && !menu_open
+            && !self.debug.photo_mode
+        {
+            crate::debug::overlay::paint_labels(
+                ctx,
+                &[crate::debug::Label(
+                    crate::debug::Anchor::BottomLeft([12.0, 96.0]),
+                    "TELEPORT · click/tap a floor · Esc/Back: cancel".into(),
+                    [1.0, 0.85, 0.2],
+                )],
+            );
+        }
+        if let Some((message, at)) = &self.debug.notice
+            && at.elapsed().as_secs() < 5
+            && !menu_open
+            && !self.debug.photo_mode
+        {
+            crate::debug::overlay::paint_labels(
+                ctx,
+                &[crate::debug::Label(
+                    crate::debug::Anchor::BottomLeft([12.0, 72.0]),
+                    message.clone(),
+                    [1.0, 0.85, 0.2],
+                )],
+            );
+        }
         if self.debug.camera.is_some() && !self.debug.photo_mode && !menu_open {
             egui::Area::new("native-camera-help".into())
                 .anchor(egui::Align2::LEFT_BOTTOM, [12.0, -12.0])
@@ -119,70 +245,4 @@ impl Tools {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use winit::keyboard::KeyCode;
-
-    #[test]
-    #[ignore = "requires Japanese TENCHU2_DISC; camera input must not change native simulation"]
-    fn inspection_is_independent_of_native_gameplay_and_scene_transitions() {
-        let disc =
-            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-        let session = crate::tenchu2::native::Session::load(&disc, 9, 1).unwrap();
-        let mut content = Content::Gameplay(Box::new(session));
-        let mut tools = Tools::default();
-        tools.sync(&content, 0);
-        let Content::Gameplay(session) = &content else {
-            unreachable!()
-        };
-        let before = serde_json::to_vec(&session.world).unwrap();
-        tools.change(Item::FreeCamera, 1).unwrap();
-        let start = tools.debug.camera.unwrap().position;
-        let mut controls = Controls::default();
-        controls.key(KeyCode::KeyW, true);
-        for _ in 0..60 {
-            tools.advance(&controls, 1.0 / 60.0, true);
-        }
-        assert!(tools.debug.camera.unwrap().position.distance(start) > 11000.0);
-        tools.advance(&controls, 1.0, false);
-        tools.change(Item::Actor, 1).unwrap();
-        tools.change(Item::FocusActor, 1).unwrap();
-        tools.change(Item::SaveCamera, 1).unwrap();
-        tools.change(Item::Fov, 1).unwrap();
-        tools.change(Item::RestoreCamera, 1).unwrap();
-        assert_eq!(
-            tools.debug.camera.unwrap().fov,
-            tools.debug.bookmark.unwrap().fov
-        );
-        for item in [Item::Hitboxes, Item::Labels, Item::InspectActor] {
-            tools.change(item, 1).unwrap();
-        }
-        let matrix = tools.debug.camera.unwrap().matrix(16.0 / 9.0);
-        let overlay = super::super::inspection::overlay(session, &tools.debug, matrix, 16.0 / 9.0);
-        assert!(!overlay.geometry.vertices.is_empty());
-        assert!(overlay.labels.iter().any(|label| label.1.contains("HP")));
-        assert!(
-            overlay
-                .geometry
-                .vertices
-                .iter()
-                .all(|vertex| vertex.position.iter().all(|v| v.is_finite()))
-        );
-        tools.change(Item::PhotoMode, 1).unwrap();
-        let hidden = super::super::inspection::overlay(session, &tools.debug, matrix, 16.0 / 9.0);
-        assert!(hidden.geometry.vertices.is_empty() && hidden.labels.is_empty());
-        tools.reset(Item::PhotoMode).unwrap();
-        assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
-        tools.change(Item::FreeCamera, 1).unwrap();
-        assert!(tools.debug.camera.is_none());
-        let Content::Gameplay(session) = &mut content else {
-            unreachable!()
-        };
-        session.step(0).unwrap();
-        tools.sync(&content, 0);
-        tools.change(Item::FreeCamera, 1).unwrap();
-        tools.sync(&Content::Failed, 1);
-        assert!(tools.debug.camera.is_none() && tools.debug.bookmark.is_none());
-        assert!(tools.change(Item::FreeCamera, 1).is_err());
-    }
-}
+mod tests;

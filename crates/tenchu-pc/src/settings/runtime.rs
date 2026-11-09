@@ -28,7 +28,9 @@ impl Runtime {
             | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed
             | Pause | Step | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor
             | Overhead | SaveCamera | RestoreCamera | PhotoMode | Hitboxes | Labels
-            | InspectActor | Xray => None,
+            | InspectActor | Xray | Sight | SightStance | Patrols | Events | Collision
+            | CollisionOnly | Target(_) | PlayerPosition | CameraPosition | SnapFloor
+            | Teleport | PickTeleport | ClickTeleport => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LampLights => Some(
@@ -64,6 +66,7 @@ impl Runtime {
             _ if self == Self::Gaisen => None,
             Edit::Touch(_) | Edit::Preset(_) | Edit::PresetLibrary | Edit::Controls => None,
             Edit::PlayerModel(_) | Edit::MovesetModel(_) => self.unavailable(Item::PlayerModel),
+            Edit::Coordinate(axis, _) => self.unavailable(Item::Target(*axis)),
             Edit::Benchmark => {
                 Some("Performance benchmarks are not connected to native Tenchu 2 JP yet.")
             }
