@@ -2775,3 +2775,16 @@ checks cover fixed training loadouts, picking/removing items, audible menu cues,
 stock/cancellation, boss-area carry and four armored-costume variants. The normal
 F6 launcher check confirms entry through equipment and isolation from Gaisen
 progress. Live native-window selection/confirmation and JP gameplay were reviewed.
+
+JP mission selection follows `MENU.EXE` `8010ff30`, names at `80130800`,
+descriptions at `80130cb0`, sprite layout at `80130e54` and preview motion
+registrations at `80130f14`. The supported MENU.EXE is SHA-256 verified before
+reading those tables. Assets (`stage.arc`, `dai.tim`, `demo.mot`, actor rigs and
+music cue1) come from the user's disc. The scalar state preserves scrolling,
+held-input edges, 16-vblank hero turns, fades, retail locks and unlock codes.
+An ignored regression compares 42 original-instruction traces / 25,348 updates,
+including locked and unlocked progress, both cheats and snapshot continuation.
+The original uninitialized input/history slots are initialized to zero for the
+oracle and port. Instruction inspection corrects a misleading decompiler store
+ordering: both cheats compare after updating history[0]. Menu preview clips can
+now use the same native motion sampler without a fabricated actor registry.

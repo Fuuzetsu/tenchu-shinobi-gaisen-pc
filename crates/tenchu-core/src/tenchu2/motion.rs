@@ -63,9 +63,14 @@ impl Motion {
         let Some(id) = id else {
             return Ok(None);
         };
+        self.select_clip(action, id, clips)?;
+        Ok(Some(id))
+    }
+
+    pub fn select_clip(&mut self, action: i16, id: i16, clips: &BTreeMap<i16, Clip>) -> Result<()> {
         let clip = clips
             .get(&id)
-            .ok_or_else(|| format!("Missing Tenchu 2 motion {id} for actor {kind}"))?;
+            .ok_or_else(|| format!("Missing Tenchu 2 motion {id}"))?;
         let count = clip.bones.len().min(self.pose.rotation.len());
         self.action = action;
         self.clip = Some(id);
@@ -91,7 +96,7 @@ impl Motion {
                 } % 4096) as i16;
             }
         }
-        Ok(Some(id))
+        Ok(())
     }
 
     pub fn overlay(

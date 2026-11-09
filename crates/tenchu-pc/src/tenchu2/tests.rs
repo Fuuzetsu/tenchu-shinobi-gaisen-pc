@@ -37,6 +37,7 @@ mod source_item_geometry;
 mod source_jump;
 mod source_ledge;
 mod source_math;
+mod source_menu_selection;
 mod source_mission;
 mod source_motion;
 mod source_navigation;

@@ -18,6 +18,7 @@ pub mod motion;
 pub mod physics;
 pub mod progress;
 pub mod rig;
+pub mod selection;
 pub mod story;
 pub mod terrain;
 pub mod visibility;
