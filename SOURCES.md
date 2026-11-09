@@ -2746,3 +2746,18 @@ VAB bank with nonzero output. No actor state is injected. This exercises ordinar
 session combat/audio, not a synchronized emulator replay. Weapon clashes already
 create their source flash and opponent recoil in the core; they no longer leak
 through as a falsely reported unconnected host event.
+
+JP equipment selection follows `datamng.bin` `800d0c90`, its grid at `800d8c04`,
+Shift-JIS descriptions at `800d8bac`, and input sequences at `800d8d34/800d8d58`.
+Resources remain disc-backed (`game/image/items.arc`, the item icons and effect
+numerals). Owned slots/stock replace the original stack/global arrays; original
+six-slot, 12/24-count, per-item limits, input edges, fades, stock cheats and
+confirmation/cancellation rules are preserved. Maps0/1 bypass the menu with their
+source training loadouts. The armor selection is returned separately from items.
+An ignored regression compares 88 original-instruction traces (26,100 updates),
+including every selectable item, both capacities, held/mixed inputs, locked/empty
+stock, removal/compaction, cancellation, cheats and resulting inventories. It also
+checks portable serialization/continuation. Oracle inputs initialize the original
+uninitialized previous-input register and history to zero; no shipped BIOS or
+captured RAM is required. The UI uses the bundled outline font for descriptions
+in place of the source BIOS glyph lookup.

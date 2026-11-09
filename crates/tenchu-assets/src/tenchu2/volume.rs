@@ -65,6 +65,18 @@ impl<'a, S: ReadAt> Volume<'a, S> {
         self.optional(directory, name)?
             .ok_or_else(|| format!("Missing Tenchu 2 resource {directory}/{name}"))
     }
+
+    pub fn game_module(&self) -> Result<Vec<u8>> {
+        use sha2::{Digest, Sha256};
+        let data = self.read(r"o:\cdimage\game\module", "datamng.bin")?;
+        if format!("{:x}", Sha256::digest(&data)) != self.edition.addresses().module_hash {
+            return Err(format!(
+                "Unsupported {} character module revision",
+                self.edition.name()
+            ));
+        }
+        Ok(data)
+    }
 }
 
 pub(super) fn hash(name: &str) -> u32 {

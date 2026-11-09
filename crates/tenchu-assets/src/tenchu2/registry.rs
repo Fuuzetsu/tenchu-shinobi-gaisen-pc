@@ -1,7 +1,6 @@
 use super::{Edition, volume::Volume};
 use crate::{ReadAt, Result, disc::Disc, i16_le, slice, u32_le};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 mod stealth;
@@ -41,13 +40,7 @@ impl Registry {
     }
 
     pub(super) fn read(volume: &Volume<'_, impl ReadAt>) -> Result<Self> {
-        let data = volume.read(r"o:\cdimage\game\module", "datamng.bin")?;
-        if format!("{:x}", Sha256::digest(&data)) != volume.edition.addresses().module_hash {
-            return Err(format!(
-                "Unsupported {} character module revision",
-                volume.edition.name()
-            ));
-        }
+        let data = volume.game_module()?;
         Self::parse(&data, volume.edition)
     }
 

@@ -24,6 +24,7 @@ mod source_death;
 mod source_dispatch;
 mod source_effects;
 mod source_entry;
+mod source_equipment;
 mod source_explosives;
 mod source_hud;
 mod source_hurt;
