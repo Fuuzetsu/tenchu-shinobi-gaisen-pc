@@ -1,9 +1,6 @@
 use super::*;
 
-fn cycle(value: u16, choices: &[u16], direction: i32) -> u16 {
-    let index = choices.iter().position(|&v| v == value).unwrap_or(0);
-    choices[(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
-}
+use crate::settings::edit::cycle;
 
 impl Application {
     pub(super) fn pick_debug_target(&mut self) {
@@ -463,10 +460,16 @@ impl Application {
     }
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
+        if let Some(reason) = settings::runtime::Runtime::Gaisen.unavailable(item) {
+            return Err(reason.into());
+        }
         if item.change_setting(&mut self.settings, direction) {
             return Ok(());
         }
         match item {
+            Item::Tenchu2Missions | Item::Tenchu2Diagnostics | Item::Tenchu2Launcher => {
+                unreachable!("checked runtime availability")
+            }
             Item::UseBandage => {
                 self.state_tools_available()?;
                 let state = self
@@ -675,37 +678,6 @@ impl Application {
                     .library
                     .apply(choices[index].0, &mut self.settings)?;
             }
-            Item::FogTint => {
-                self.settings.graphics.post.fog_tint = cycle(
-                    self.settings.graphics.post.fog_tint,
-                    &[0, 1, 2, 3],
-                    direction,
-                )
-            }
-            Item::Temperature => {
-                self.settings.graphics.post.temperature =
-                    (i32::from(self.settings.graphics.post.temperature) + direction * 5)
-                        .clamp(-50, 50) as i16
-            }
-            Item::ModelDetail => {
-                self.settings.graphics.model_detail =
-                    cycle(self.settings.graphics.model_detail, &[0, 1, 2], direction)
-            }
-            Item::Upscale => {
-                self.settings.graphics.upscale =
-                    cycle(self.settings.graphics.upscale, &[1, 2, 4], direction)
-            }
-            Item::SurfaceDetail => {
-                self.settings.graphics.surface_detail =
-                    cycle(self.settings.graphics.surface_detail, &[0, 1, 2], direction)
-            }
-            Item::Magnification => {
-                self.settings.graphics.magnification = cycle(
-                    self.settings.graphics.magnification,
-                    &[0, 1, 2, 3],
-                    direction,
-                )
-            }
             Item::ReloadAssets => {
                 let pack = crate::visuals::pack::Pack::from_env(&self.campaign.game.mission)?;
                 let textures = pack.textures.len();
@@ -859,14 +831,6 @@ impl Application {
                 self.campaign.game.intelligence.sight_percent = 100;
                 self.debug = crate::debug::Debug::new(&self.campaign.game)?;
             }
-            Item::Filtering => {
-                let next = cycle(
-                    self.settings.graphics.filtering(),
-                    &[0, 1, 2, 3, 4, 5, 6],
-                    direction,
-                );
-                self.settings.graphics.set_filtering(next);
-            }
             Item::Antialiasing => {
                 if let Some(view) = &self.view {
                     let counts = &view.renderer.sample_counts;
@@ -987,13 +951,6 @@ impl Application {
             }
             Item::Speed => {
                 self.debug.speed = cycle(self.debug.speed, &[25, 50, 100, 200, 400, 0], direction)
-            }
-            Item::CutsceneSpeed => {
-                self.settings.cutscene_speed = cycle(
-                    self.settings.cutscene_speed,
-                    &[1, 2, 4, 8, 16, 0],
-                    direction,
-                )
             }
             Item::SightDistance => {
                 let value =

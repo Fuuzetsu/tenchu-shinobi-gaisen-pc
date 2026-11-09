@@ -64,9 +64,9 @@ pub struct Debug {
     last_tick: u64,
 }
 
-impl Debug {
-    pub fn new(game: &Game) -> Result<Self> {
-        Ok(Self {
+impl Default for Debug {
+    fn default() -> Self {
+        Self {
             state_slot: 0,
             rewind: None,
             rewind_bytes: 0,
@@ -89,31 +89,49 @@ impl Debug {
             xray: false,
             show_trail: false,
             inspect_actor: false,
-            selected_actor: game.player_id,
+            selected_actor: 0,
             actor_behavior: None,
             actor_combat: None,
-            target: game.player().position,
+            target: Default::default(),
             snap_to_floor: true,
             teleport_armed: false,
             pick_actor_position: false,
             actor_imports: Default::default(),
             actors_edited: false,
             click_teleport: false,
-            god_mode: game.player().invulnerable,
-            stealth: game.intelligence.ignore_player,
-            inventory: game.player().inventory[..19].try_into().unwrap(),
-            bandages: game.player().bleeding.as_ref().map(|s| s.bandages),
-            armor: game.combat.armor,
+            god_mode: false,
+            stealth: false,
+            inventory: [0; 19],
+            bandages: None,
+            armor: false,
             speed: 100,
-            sight_percent: game.intelligence.sight_percent,
+            sight_percent: 100,
             frame_step: false,
             pause_view: false,
             photo_mode: false,
             light: None,
             light_follow: false,
-            surfaces: terrain::surfaces(&game.mission.terrain)?,
+            surfaces: Vec::new(),
             trail: VecDeque::new(),
+            last_tick: 0,
+        }
+    }
+}
+
+impl Debug {
+    pub fn new(game: &Game) -> Result<Self> {
+        Ok(Self {
+            selected_actor: game.player_id,
+            target: game.player().position,
+            god_mode: game.player().invulnerable,
+            stealth: game.intelligence.ignore_player,
+            inventory: game.player().inventory[..19].try_into().unwrap(),
+            bandages: game.player().bleeding.as_ref().map(|s| s.bandages),
+            armor: game.combat.armor,
+            sight_percent: game.intelligence.sight_percent,
+            surfaces: terrain::surfaces(&game.mission.terrain)?,
             last_tick: game.tick,
+            ..Self::default()
         })
     }
 

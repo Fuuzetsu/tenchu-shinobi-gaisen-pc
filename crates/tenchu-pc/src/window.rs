@@ -272,7 +272,7 @@ impl Application {
                 || self.view.as_ref().is_some_and(View::preparing)
                 || self.paused
                 || native.error.is_some()
-                || native.menu.open && self.settings.pause_in_menu
+                || native.menu.panel.open && self.settings.pause_in_menu
                 || self.controls.editor.open
                 || self.presets.open
                 || !self.focused && self.settings.pause_on_defocus;

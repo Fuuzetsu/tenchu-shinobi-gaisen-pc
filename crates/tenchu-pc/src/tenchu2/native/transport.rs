@@ -4,29 +4,6 @@ use std::time::{Duration, Instant};
 use tenchu_assets::{ReadAt, Result};
 use tenchu_core::clock::GameClock;
 
-pub fn speed_control(ui: &mut egui::Ui, speed: &mut u16) {
-    egui::ComboBox::from_label("Auto cutscene speed")
-        .selected_text(if *speed == 0 {
-            "Unlimited".into()
-        } else {
-            format!("{speed}×")
-        })
-        .show_ui(ui, |ui| {
-            for value in [1, 2, 4, 8, 16, 0] {
-                ui.selectable_value(
-                    speed,
-                    value,
-                    if value == 0 {
-                        "Unlimited".into()
-                    } else {
-                        format!("{value}×")
-                    },
-                );
-            }
-        });
-    ui.small("Hold Backspace to fast-forward cutscenes. Audio is muted while accelerated and resumes at the matching position. Gameplay and menus stay at normal speed.");
-}
-
 #[derive(Default)]
 pub struct Transport {
     clock: GameClock,

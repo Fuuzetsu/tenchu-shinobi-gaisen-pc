@@ -324,7 +324,46 @@ impl Item {
                 _ => next.clamp(slider.min, slider.max),
             } as u16;
         } else {
-            return false;
+            match self {
+                Item::FogTint => {
+                    settings.graphics.post.fog_tint =
+                        cycle(settings.graphics.post.fog_tint, &[0, 1, 2, 3], direction)
+                }
+                Item::Temperature => {
+                    settings.graphics.post.temperature =
+                        (i32::from(settings.graphics.post.temperature) + direction * 5)
+                            .clamp(-50, 50) as i16
+                }
+                Item::ModelDetail => {
+                    settings.graphics.model_detail =
+                        cycle(settings.graphics.model_detail, &[0, 1, 2], direction)
+                }
+                Item::Upscale => {
+                    settings.graphics.upscale =
+                        cycle(settings.graphics.upscale, &[1, 2, 4], direction)
+                }
+                Item::SurfaceDetail => {
+                    settings.graphics.surface_detail =
+                        cycle(settings.graphics.surface_detail, &[0, 1, 2], direction)
+                }
+                Item::Magnification => {
+                    settings.graphics.magnification =
+                        cycle(settings.graphics.magnification, &[0, 1, 2, 3], direction)
+                }
+                Item::Filtering => {
+                    let next = cycle(
+                        settings.graphics.filtering(),
+                        &[0, 1, 2, 3, 4, 5, 6],
+                        direction,
+                    );
+                    settings.graphics.set_filtering(next);
+                }
+                Item::CutsceneSpeed => {
+                    settings.cutscene_speed =
+                        cycle(settings.cutscene_speed, &[1, 2, 4, 8, 16, 0], direction)
+                }
+                _ => return false,
+            }
         }
         true
     }
@@ -338,7 +377,27 @@ impl Item {
         } else if let Some(value) = self.number(settings) {
             *value = *self.number(&mut defaults).unwrap();
         } else {
-            return false;
+            match self {
+                Item::FogTint => settings.graphics.post.fog_tint = defaults.graphics.post.fog_tint,
+                Item::Temperature => {
+                    settings.graphics.post.temperature = defaults.graphics.post.temperature
+                }
+                Item::ModelDetail => {
+                    settings.graphics.model_detail = defaults.graphics.model_detail
+                }
+                Item::Upscale => settings.graphics.upscale = defaults.graphics.upscale,
+                Item::SurfaceDetail => {
+                    settings.graphics.surface_detail = defaults.graphics.surface_detail
+                }
+                Item::Magnification => {
+                    settings.graphics.magnification = defaults.graphics.magnification
+                }
+                Item::Filtering => settings
+                    .graphics
+                    .set_filtering(defaults.graphics.filtering()),
+                Item::CutsceneSpeed => settings.cutscene_speed = defaults.cutscene_speed,
+                _ => return false,
+            }
         }
         true
     }
@@ -355,4 +414,9 @@ impl Item {
             _ => return None,
         })
     }
+}
+
+pub(crate) fn cycle(value: u16, choices: &[u16], direction: i32) -> u16 {
+    let index = choices.iter().position(|&v| v == value).unwrap_or(0);
+    choices[(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
 }

@@ -493,6 +493,7 @@ impl super::Application {
             &view.renderer,
             &mut self.menu,
             crate::settings::overlay::State {
+                runtime: crate::settings::runtime::Runtime::Gaisen,
                 settings: &self.settings,
                 debug: &self.debug,
                 paused: self.paused,

@@ -128,16 +128,18 @@ impl View {
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
                 self.drawing.paint(&session.content, ctx);
-                session.action = session
-                    .content
-                    .inspect(
-                        ctx,
-                        &session.run,
-                        &mut menu.diagnostics,
-                        state.paused,
-                        error,
-                    )
-                    .or(session.action);
+                if !menu.panel.open {
+                    session.action = session
+                        .content
+                        .inspect(
+                            ctx,
+                            &session.run,
+                            &mut menu.diagnostics,
+                            state.paused,
+                            error,
+                        )
+                        .or(session.action);
+                }
                 menu.cutscene_controls(ctx, session.content.cutscene());
                 action = menu.show(ctx, state);
                 if state.settings.show_fps {
@@ -215,23 +217,24 @@ impl Application {
         if polled.disconnected {
             self.paused = true;
         }
+        self.menu.controller(polled.menu_pressed);
         if matches!(self.session.content, Content::Gameplay(_))
             && polled.menu_pressed & tenchu_core::input::START != 0
-            && !self.menu.open
+            && !self.menu.panel.open
         {
             self.paused = !self.paused;
         }
         let paused = self.paused
             || !self.focused && self.settings.pause_on_defocus
             || self.error.is_some()
-            || self.menu.open && self.settings.pause_in_menu
+            || self.menu.panel.open && self.settings.pause_in_menu
             || self.controls.editor.open
             || self.presets.open;
         let update = self.transport.advance(
             &mut self.session,
             elapsed,
             PlaybackInput {
-                buttons: if self.menu.open || !self.focused {
+                buttons: if self.menu.panel.open || !self.focused {
                     0
                 } else {
                     self.controls.buttons().swap_bytes()
@@ -320,12 +323,15 @@ impl Application {
                 self.fps,
             )?;
             self.quit |= action.leave;
+            if action.step && self.error.is_none() {
+                self.step()?;
+            }
             if action.select_mission {
                 self.session.action = Some(Action::SelectMission);
-                self.menu.open = false;
+                self.menu.panel.open = false;
                 self.paused = false;
             }
-            if !self.menu.open {
+            if !self.menu.panel.open {
                 self.controls.close_editor();
                 self.presets.open = false;
             }
@@ -414,16 +420,13 @@ impl ApplicationHandler for Application {
                     }
                     if pressed && !event.repeat {
                         match code {
-                            KeyCode::Escape if self.menu.open || self.menu.diagnostics => {
-                                self.menu.open = false;
-                                self.menu.diagnostics = false;
-                                self.controls.close_editor();
-                                self.presets.open = false;
+                            KeyCode::Escape if self.menu.panel.open || self.menu.diagnostics => {
+                                self.menu.back(&mut self.controls, &mut self.presets);
                             }
                             KeyCode::Escape => events.exit(),
                             KeyCode::F6 => events.exit(),
                             KeyCode::F1 => {
-                                self.menu.open = !self.menu.open;
+                                self.menu.panel.open = !self.menu.panel.open;
                                 self.controls.clear();
                             }
                             KeyCode::F8 => {
@@ -438,7 +441,7 @@ impl ApplicationHandler for Application {
                                     self.fail(error);
                                 }
                             }
-                            KeyCode::Enter => {
+                            KeyCode::Enter if !self.menu.panel.open && !consumed => {
                                 self.session.action = match self.session.content {
                                     Content::MissionSelection(_)
                                     | Content::Prologue(_)
@@ -451,7 +454,7 @@ impl ApplicationHandler for Application {
                             _ => {}
                         }
                     }
-                    if !consumed || !pressed {
+                    if !consumed && !self.menu.panel.open || !pressed {
                         self.controls.key(code, pressed);
                     }
                 }

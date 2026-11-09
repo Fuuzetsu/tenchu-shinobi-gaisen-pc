@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Use the full shared F1 settings menu in native Japanese Tenchu 2, with the
+  same categories, presets and controls as Gaisen. Unsupported features remain
+  visible but disabled, with explanations on hover and keyboard/controller
+  selection; disabled edits and resets preserve saved preferences. Add a
+  Tenchu 2 category for the JP mission selector, integration diagnostics and
+  quick launcher, and show the correct T2 artwork pack/download link.
+- Support shared F1 category navigation, value reset and nested menu back on
+  native JP's keyboard/controller path. Keep settings input from activating
+  the game menus underneath, and use a taller default panel on desktop.
+
 ## 0.22.0 — 2026-11-09
 
 - Expand native Japanese Tenchu 2's F1 menu with display/HUD controls, visual

@@ -515,6 +515,7 @@ mod tests {
                             ctx,
                             &mut menu,
                             crate::settings::overlay::State {
+                                runtime: crate::settings::runtime::Runtime::Gaisen,
                                 settings: &Settings::default(),
                                 debug: &debug,
                                 paused: true,

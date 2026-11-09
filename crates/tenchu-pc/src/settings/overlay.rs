@@ -3,6 +3,7 @@ mod rewind;
 use super::{
     Settings,
     menu::{self, Item, Menu, Row},
+    runtime::Runtime,
 };
 use crate::debug::Debug;
 use egui::{Color32, RichText, Ui};
@@ -34,6 +35,7 @@ pub enum Edit {
 
 #[derive(Clone, Copy)]
 pub struct State<'a> {
+    pub runtime: Runtime,
     pub settings: &'a Settings,
     pub debug: &'a Debug,
     pub paused: bool,
@@ -49,6 +51,7 @@ pub fn show(
     mut models: Option<&mut crate::visuals::appearance::picker::State<'_>>,
 ) -> Vec<Edit> {
     let State {
+        runtime,
         settings,
         debug,
         paused,
@@ -58,10 +61,12 @@ pub fn show(
     let mut edits = Vec::new();
     menu.hovered = None;
     if !menu.open {
-        rewind::overlay(ctx, debug, &mut edits);
+        if runtime.unavailable(Item::Rewind).is_none() {
+            rewind::overlay(ctx, debug, &mut edits);
+        }
         return edits;
     }
-    if menu.model_picker {
+    if menu.model_picker && runtime.unavailable(Item::PlayerModel).is_none() {
         egui::Modal::new("player-model-gallery".into()).show(ctx, |ui| {
             ui.set_width((ctx.screen_rect().width() - 48.0).min(640.0));
             ui.horizontal(|ui| {
@@ -89,7 +94,11 @@ pub fn show(
             ui.add(egui::Slider::new(&mut value.size, 70..=140).text("Size %"));
             ui.add(egui::Slider::new(&mut value.opacity, 15..=90).text("Opacity %"));
             ui.checkbox(&mut value.left_handed, "Mirror gameplay controls");
-            ui.label("Hold Move with one finger and actions with others. Enable camera-relative movement for the right camera stick. Settings remains accessible when controls are hidden.");
+            ui.label(if runtime == Runtime::Tenchu2 {
+                "Hold Move with one finger and actions with others. Native JP uses the original camera controls. Settings remains accessible when controls are hidden."
+            } else {
+                "Hold Move with one finger and actions with others. Enable camera-relative movement for the right camera stick. Settings remains accessible when controls are hidden."
+            });
             if ui.button("Reset touch controls").clicked() { value = Default::default(); }
             if ui.button("Done").clicked() { menu.touch_controls = false; }
         });
@@ -108,7 +117,7 @@ pub fn show(
         } else {
             [24.0, 24.0]
         })
-        .default_width(610.0)
+        .default_size([610.0, (screen.height() - 48.0).max(200.0)])
         .min_width(480.0_f32.min(screen.width() - 32.0))
         .max_height(
             screen.height()
@@ -140,6 +149,9 @@ pub fn show(
                     ui.weak(if cfg!(target_os = "android") { "Settings / Back: close · Swipe lists to scroll" } else { "F1 / Esc: close · Tab / Shift+Tab: category" });
                 });
             });
+            if runtime == Runtime::Tenchu2 {
+                ui.weak("Native Tenchu 2 JP · Dimmed controls are not connected yet; hover or select one for details.");
+            }
             if settings.retro {
                 ui.label("Retro comparison is on. F8 restores your selected graphics; edits below are kept for that view.");
             }
@@ -147,9 +159,13 @@ pub fn show(
             ui.horizontal_top(|ui| {
                 ui.vertical(|ui| {
                     ui.set_width(if compact { 110.0 } else { 126.0 });
-                    egui::ScrollArea::vertical().id_salt("settings-categories").max_height(if compact { body_height } else { (screen.height() - 140.0).max(100.0) }).show(ui, |ui| {
+                    egui::ScrollArea::vertical().id_salt("settings-categories").max_height(if compact { body_height } else { (screen.height() - 235.0).max(100.0) }).show(ui, |ui| {
                     for (page, title) in menu::PAGES.iter().enumerate() {
-                        if ui.selectable_label(menu.page == page, *title).clicked() {
+                        let response = ui.selectable_label(menu.page == page, *title);
+                        if menu.page == page && menu.reveal_row {
+                            response.scroll_to_me(Some(egui::Align::Center));
+                        }
+                        if response.clicked() {
                             menu.page(page as i32 - menu.page as i32);
                             ctx.memory_mut(|m| m.surrender_focus(ui.id()));
                         }
@@ -167,27 +183,38 @@ pub fn show(
                     ui.set_min_width(335.0);
                     if menu.page == 0 {
                         ui.horizontal_wrapped(|ui| {
-                            if ui.button("Benchmarks…").clicked() { edits.push(Edit::Benchmark); }
-                            if ui.button("Presets / save as…").clicked() { edits.push(Edit::PresetLibrary); }
-                            if ui.button("Controls…").clicked() { edits.push(Edit::Controls); }
+                            action_button(ui, "Benchmarks…", Edit::Benchmark, runtime, &mut edits);
+                            action_button(ui, "Presets / save as…", Edit::PresetLibrary, runtime, &mut edits);
+                            action_button(ui, "Controls…", Edit::Controls, runtime, &mut edits);
                             if ui.button("Touch controls…").clicked() { menu.touch_controls = true; }
-                            if ui.button("Randomizer… (F7)").clicked() { edits.push(Edit::Randomizer); }
-                            if ui.button("Save diagnostic report…")
-                                .on_hover_text("Save settings, version, hardware, recent inputs/timings and gameplay state as readable JSON. No game assets or raw memory. Personal paths are redacted; review before sharing.")
-                                .clicked() { edits.push(Edit::Diagnostics); }
-                            if ui.button("Import rewind recording…").clicked() { edits.push(Edit::ImportRewind); }
+                            action_button(ui, "Randomizer… (F7)", Edit::Randomizer, runtime, &mut edits);
+                            action_button(ui, "Save diagnostic report…", Edit::Diagnostics, runtime, &mut edits)
+                                .on_hover_text("Save settings, version, hardware, recent inputs/timings and gameplay state as readable JSON. No game assets or raw memory. Personal paths are redacted; review before sharing.");
+                            action_button(ui, "Import rewind recording…", Edit::ImportRewind, runtime, &mut edits);
                         });
+                        if runtime == Runtime::Tenchu2 {
+                            ui.weak("Presets are shared with Gaisen. Only available graphics apply here; disabled values are kept for Gaisen.");
+                        }
                         ui.separator();
+                    }
+                    if menu.page == 23 {
+                        ui.label("Native JP mission selection and integration tools.");
+                        ui.weak("Cutscene speed is in Simulation. Display, artwork, post-processing and controls use the shared categories.");
                     }
                     if menu.page == 7 {
                         ui.label(&menu.artwork_status);
                         ui.horizontal_wrapped(|ui| {
-                            ui.hyperlink_to("Download HD artwork", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3");
+                            if runtime == Runtime::Tenchu2 {
+                                ui.hyperlink_to("Download Tenchu 2 HD artwork", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v2");
+                            } else {
+                                ui.hyperlink_to("Download HD artwork", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3");
+                            }
                             ui.hyperlink_to("Installation / updates", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/blob/master/docs/install.md#add-hd-artwork");
                         });
                         ui.separator();
                     }
                     if menu.page == 10 {
+                        available_ui(ui, runtime, Item::PlayerModel, |ui| {
                         if ui.button("Choose player model…").clicked() {
                             menu.model_picker = true;
                         }
@@ -198,12 +225,13 @@ pub fn show(
                                 .hint_text("Path to an exported or custom model pack"),
                         );
                         ui.weak("Choose a body below. Folder edits apply on Load / reload.");
+                        });
                         ui.separator();
                     }
                     if menu.page == 20 {
                         ui.horizontal_wrapped(|ui| {
-                            if ui.button("Import Tatsumaru moves…").clicked() { edits.push(Edit::ImportUnarmed); }
-                            if ui.button("Export imported moves…").clicked() { edits.push(Edit::ExportUnarmed); }
+                            action_button(ui, "Import Tatsumaru moves…", Edit::ImportUnarmed, runtime, &mut edits);
+                            action_button(ui, "Export imported moves…", Edit::ExportUnarmed, runtime, &mut edits);
                         });
                         ui.weak(if cfg!(any(target_arch = "wasm32", target_os = "android")) {
                             "Import a .t2moves file exported from the desktop port."
@@ -213,7 +241,7 @@ pub fn show(
                         ui.separator();
                     }
                     let rows = menu::rows(menu.page, settings, debug, paused);
-                    if menu.page == 6 {
+                    if menu.page == 6 && runtime.unavailable(Item::Lighting).is_none() {
                         let light = &settings.graphics.lighting;
                         let shadowed = if light.enabled && light.shadows {
                             lights.min(light.shadow_count as usize)
@@ -237,11 +265,13 @@ pub fn show(
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
                                 if menu.page == 4 {
-                                    actors::show(ui, menu, models.as_deref(), &mut edits);
+                                    available_ui(ui, runtime, Item::SpawnActor, |ui| {
+                                        actors::show(ui, menu, models.as_deref(), &mut edits);
+                                    });
                                 }
                                 for (index, row) in rows.iter().enumerate() {
                                     ui.push_id(index, |ui| {
-                                        ui.horizontal(|ui| {
+                                        available_ui(ui, runtime, row.item, |ui| { ui.horizontal(|ui| {
                                             ui.set_min_height(25.0);
                                             let selected = menu.row == index;
                                             let text =
@@ -264,11 +294,11 @@ pub fn show(
                                                 widget(ui, row, menu, samples, &mut edits)
                                             };
                                             let rect = label.rect.union(response.rect);
-                                            if label.hovered() || response.hovered() {
+                                            if label.contains_pointer() || response.contains_pointer() {
                                                 menu.hovered = Some(row.item);
                                             }
                                             if ctx.input(|i| i.pointer.delta() != egui::Vec2::ZERO)
-                                                && (label.hovered() || response.hovered())
+                                                && (label.contains_pointer() || response.contains_pointer())
                                             {
                                                 menu.row = index;
                                             }
@@ -282,23 +312,25 @@ pub fn show(
                                                     row.help
                                                 ))
                                                 .context_menu(|ui| {
-                                                    if ui.button("Reset to default").clicked() {
+                                                    if ui.add_enabled(runtime.unavailable(row.item).is_none(), egui::Button::new("Reset to default")).clicked() {
                                                         edits.push(Edit::Reset(row.item));
                                                         ui.close_menu();
                                                     }
                                                 });
-                                        });
+                                        }); });
                                     });
                                 }
                             });
                         });
                     ui.separator();
+                    let selected = &rows[menu.row.min(rows.len() - 1)];
+                    let help = runtime.unavailable(selected.item).unwrap_or(selected.help);
                     ui.add(
-                        egui::Label::new(RichText::new(rows[menu.row.min(rows.len() - 1)].help)
+                        egui::Label::new(RichText::new(help)
                             .small()
                             .color(Color32::from_rgb(167, 188, 204))).wrap(),
                     );
-                    if menu.page == 5 && (settings.rewind_seconds > 0 || debug.rewind.is_some()) {
+                    if menu.page == 5 && runtime.unavailable(Item::Rewind).is_none() && (settings.rewind_seconds > 0 || debug.rewind.is_some()) {
                         if let Some(timeline) = debug.rewind {
                             rewind::timeline(ui, timeline, &mut edits);
                         } else {
@@ -306,7 +338,7 @@ pub fn show(
                         }
                         ui.weak(format!("{:.1} MiB stored", debug.rewind_bytes as f64 / 1048576.0));
                     }
-                    if menu.page == 10 && !compact {
+                    if menu.page == 10 && !compact && runtime.unavailable(Item::PlayerModel).is_none() {
                         ui.separator();
                         if let Some(models) = &mut models {
                             models.show(ui, menu, settings, &mut edits);
@@ -317,10 +349,8 @@ pub fn show(
             });
             ui.separator();
             ui.horizontal(|ui| {
-                if ui.small_button("Reset selected (R)").clicked() {
-                    let rows = menu::rows(menu.page, settings, debug, paused);
-                    edits.push(Edit::Reset(rows[menu.row].item));
-                }
+                let rows = menu::rows(menu.page, settings, debug, paused);
+                action_button(ui, "Reset selected (R)", Edit::Reset(rows[menu.row.min(rows.len()-1)].item), runtime, &mut edits);
                 ui.weak("Arrows / D-pad: select & change · Double-click numbers to type");
             });
             if !menu.notice.is_empty() {
@@ -332,7 +362,36 @@ pub fn show(
             }
         });
     menu.open &= open;
+    edits.retain(|edit| runtime.unavailable_edit(edit).is_none());
     edits
+}
+
+fn available_ui<R>(ui: &mut Ui, runtime: Runtime, item: Item, contents: impl FnOnce(&mut Ui) -> R) {
+    let reason = runtime.unavailable(item);
+    let response = ui.add_enabled_ui(reason.is_none(), contents).response;
+    if let Some(reason) = reason {
+        response
+            .on_hover_text(reason)
+            .on_disabled_hover_text(reason);
+    }
+}
+
+fn action_button(
+    ui: &mut Ui,
+    label: &str,
+    edit: Edit,
+    runtime: Runtime,
+    edits: &mut Vec<Edit>,
+) -> egui::Response {
+    let reason = runtime.unavailable_edit(&edit);
+    let mut response = ui.add_enabled(reason.is_none(), egui::Button::new(label));
+    if let Some(reason) = reason {
+        response = response.on_disabled_hover_text(reason);
+    }
+    if response.clicked() {
+        edits.push(edit);
+    }
+    response
 }
 
 fn preset_widget(
@@ -688,6 +747,98 @@ fn number(text: &str) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_menu_browsing_preserves_preferences_and_explains_disabled_controls() {
+        let ctx = egui::Context::default();
+        let settings = Settings::default();
+        let debug = Debug::default();
+        let mut menu = Menu {
+            open: true,
+            ..Default::default()
+        };
+        let input = |time, size, events| egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size)),
+            time: Some(time),
+            events,
+            ..Default::default()
+        };
+        for size in [egui::vec2(1280.0, 720.0), egui::vec2(640.0, 360.0)] {
+            for page in 0..menu::PAGES.len() {
+                menu.page = page;
+                let _ = ctx.run(input(page as f64, size, Vec::new()), |ctx| {
+                    let edits = show(
+                        ctx,
+                        &mut menu,
+                        State {
+                            runtime: Runtime::Tenchu2,
+                            settings: &settings,
+                            debug: &debug,
+                            paused: false,
+                            lights: 0,
+                            samples: &[1, 4],
+                        },
+                        None,
+                        None,
+                    );
+                    assert!(
+                        edits.is_empty(),
+                        "Opening {} changed a setting",
+                        menu::PAGES[page]
+                    );
+                });
+            }
+        }
+
+        let ctx = egui::Context::default();
+        let mut rect = egui::Rect::NOTHING;
+        let mut edits = Vec::new();
+        let paint = |ctx: &egui::Context, rect: &mut egui::Rect, edits: &mut Vec<Edit>| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                available_ui(ui, Runtime::Tenchu2, Item::Lighting, |ui| {
+                    *rect = ui.button("Dynamic lighting").rect;
+                });
+                action_button(
+                    ui,
+                    "Reset",
+                    Edit::Reset(Item::Lighting),
+                    Runtime::Tenchu2,
+                    edits,
+                );
+            });
+        };
+        let _ = ctx.run(input(0.0, egui::vec2(640.0, 360.0), Vec::new()), |ctx| {
+            paint(ctx, &mut rect, &mut edits)
+        });
+        let pos = rect.center();
+        let _ = ctx.run(
+            input(
+                0.1,
+                egui::vec2(640.0, 360.0),
+                vec![egui::Event::PointerMoved(pos)],
+            ),
+            |ctx| paint(ctx, &mut rect, &mut edits),
+        );
+        let output = ctx.run(input(2.0, egui::vec2(640.0, 360.0), Vec::new()), |ctx| {
+            paint(ctx, &mut rect, &mut edits)
+        });
+        fn has_reason(shape: &egui::Shape) -> bool {
+            match shape {
+                egui::Shape::Text(text) => text
+                    .galley
+                    .job
+                    .text
+                    .contains("Not implemented in native Tenchu 2 JP yet"),
+                egui::Shape::Vec(shapes) => shapes.iter().any(has_reason),
+                _ => false,
+            }
+        }
+        assert!(
+            output.shapes.iter().any(|s| has_reason(&s.shape)),
+            "Disabled controls must expose the unavailable reason on hover"
+        );
+        assert!(edits.is_empty());
+    }
 
     #[test]
     fn displaying_sliders_preserves_values_between_steps_or_outside_drag_range() {

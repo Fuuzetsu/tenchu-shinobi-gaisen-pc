@@ -98,10 +98,17 @@ impl Application {
             self.paused = true;
             self.sync_pause();
         }
-        if matches!(
-            self.native_tenchu2.as_ref().unwrap().playback.content,
-            Content::Gameplay(_)
-        ) && update.menu_pressed & tenchu_core::input::START != 0
+        self.native_tenchu2
+            .as_mut()
+            .unwrap()
+            .menu
+            .controller(update.menu_pressed);
+        if !self.native_tenchu2.as_ref().unwrap().menu.panel.open
+            && matches!(
+                self.native_tenchu2.as_ref().unwrap().playback.content,
+                Content::Gameplay(_)
+            )
+            && update.menu_pressed & tenchu_core::input::START != 0
         {
             self.paused = !self.paused;
             self.sync_pause();
@@ -111,7 +118,7 @@ impl Application {
         self.last_frame = now;
         self.sync_audio_pause();
         let input = PlaybackInput {
-            buttons: if self.native_tenchu2.as_ref().unwrap().menu.open || !self.focused {
+            buttons: if self.native_tenchu2.as_ref().unwrap().menu.panel.open || !self.focused {
                 0
             } else {
                 self.controls.buttons().swap_bytes()
@@ -195,7 +202,8 @@ impl Application {
             &mut view.renderer,
         )?;
         let mut leave = false;
-        let was_open = native.menu.open;
+        let mut step = false;
+        let was_open = native.menu.panel.open;
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
         view.overlay.custom(&view.window, &view.renderer, |ctx| {
@@ -204,17 +212,19 @@ impl Application {
                 .as_mut()
                 .unwrap()
                 .paint(&native.playback.content, ctx);
-            native.playback.action = native
-                .playback
-                .content
-                .inspect(
-                    ctx,
-                    &native.playback.run,
-                    &mut native.menu.diagnostics,
-                    &mut self.paused,
-                    native.error.as_deref(),
-                )
-                .or(native.playback.action);
+            if !native.menu.panel.open {
+                native.playback.action = native
+                    .playback
+                    .content
+                    .inspect(
+                        ctx,
+                        &native.playback.run,
+                        &mut native.menu.diagnostics,
+                        &mut self.paused,
+                        native.error.as_deref(),
+                    )
+                    .or(native.playback.action);
+            }
             native
                 .menu
                 .cutscene_controls(ctx, native.playback.content.cutscene());
@@ -229,9 +239,10 @@ impl Application {
                 },
             );
             leave |= actions.leave;
+            step |= actions.step;
             if actions.select_mission {
                 native.playback.action = Some(NativeAction::SelectMission);
-                native.menu.open = false;
+                native.menu.panel.open = false;
                 self.paused = false;
             }
             if self.settings.show_fps {
@@ -241,7 +252,7 @@ impl Application {
                         ui.label(format!("{:.0} FPS", self.fps));
                     });
             }
-            let mode = if native.menu.open
+            let mode = if native.menu.panel.open
                 || native.menu.diagnostics
                 || !matches!(native.playback.content, Content::Gameplay(_))
             {
@@ -274,13 +285,13 @@ impl Application {
         {
             self.fps_frames += 1;
         }
-        if was_open != native.menu.open
+        if was_open != native.menu.panel.open
             || was_paused != self.paused
             || previous_settings.pause_in_menu != self.settings.pause_in_menu
             || previous_settings.pause_on_defocus != self.settings.pause_on_defocus
             || previous_settings.music_while_paused != self.settings.music_while_paused
         {
-            if !native.menu.open {
+            if !native.menu.panel.open {
                 self.controls.close_editor();
                 self.presets.open = false;
             }
@@ -292,6 +303,9 @@ impl Application {
             }
             self.settings_store.write(&self.settings)?;
         }
+        if step && self.native_tenchu2.as_ref().unwrap().error.is_none() {
+            leave |= self.step_native_tenchu2()?;
+        }
         if leave {
             self.leave_native_tenchu2()?;
         }
@@ -302,14 +316,14 @@ impl Application {
         match action {
             crate::touch::Action::Settings => {
                 let native = self.native_tenchu2.as_mut().unwrap();
-                native.menu.open = !native.menu.open;
+                native.menu.panel.open = !native.menu.panel.open;
+                self.controls.clear();
             }
             crate::touch::Action::Pause => self.paused = !self.paused,
             crate::touch::Action::Back => {
                 let native = self.native_tenchu2.as_mut().unwrap();
-                if native.menu.open || native.menu.diagnostics {
-                    native.menu.open = false;
-                    native.menu.diagnostics = false;
+                if native.menu.panel.open || native.menu.diagnostics {
+                    native.menu.back(&mut self.controls, &mut self.presets);
                 } else {
                     return self.leave_native_tenchu2();
                 }
@@ -317,7 +331,7 @@ impl Application {
             crate::touch::Action::QuickMenu => return self.leave_native_tenchu2(),
             crate::touch::Action::Recenter => {}
         }
-        if !self.native_tenchu2.as_ref().unwrap().menu.open {
+        if !self.native_tenchu2.as_ref().unwrap().menu.panel.open {
             self.controls.close_editor();
             self.presets.open = false;
         }
@@ -402,7 +416,9 @@ impl Application {
                     }
                     return Ok(());
                 }
+                let menu_open = self.native_tenchu2.as_ref().unwrap().menu.panel.open;
                 if pressed
+                    && !menu_open
                     && matches!(
                         self.native_tenchu2.as_ref().unwrap().playback.content,
                         Content::Gameplay(_)
@@ -439,7 +455,7 @@ impl Application {
                             }
                             return Ok(());
                         }
-                        KeyCode::Enter => {
+                        KeyCode::Enter if !menu_open => {
                             let native = self.native_tenchu2.as_mut().unwrap();
                             native.playback.action = match native.playback.content {
                                 Content::MissionSelection(_)
@@ -453,7 +469,9 @@ impl Application {
                         _ => {}
                     }
                 }
-                if !pressed || !self.view.as_ref().is_some_and(|v| v.overlay.editing()) {
+                if !pressed
+                    || !menu_open && !self.view.as_ref().is_some_and(|v| v.overlay.editing())
+                {
                     self.controls.key(code, pressed);
                 }
             }

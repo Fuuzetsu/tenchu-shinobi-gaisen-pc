@@ -4,6 +4,9 @@ use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Tenchu2Missions,
+    Tenchu2Diagnostics,
+    Tenchu2Launcher,
     Dismemberment,
     HeadRest,
     SaExecutionScene,
@@ -306,7 +309,10 @@ impl Item {
     pub fn button(self) -> bool {
         matches!(
             self,
-            Self::UseBandage
+            Self::Tenchu2Missions
+                | Self::Tenchu2Diagnostics
+                | Self::Tenchu2Launcher
+                | Self::UseBandage
                 | Self::Reset
                 | Self::RecenterOrbit
                 | Self::Randomizer
@@ -373,7 +379,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 23] = [
+pub const PAGES: [&str; 24] = [
     "General",
     "Graphics",
     "Overlays",
@@ -397,6 +403,7 @@ pub const PAGES: [&str; 23] = [
     "Movement",
     "Enemy behavior",
     "Bleeding",
+    "Tenchu 2",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -406,6 +413,26 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
+        23 => vec![
+            (
+                Item::Tenchu2Missions,
+                "JP mission selection",
+                "Open".into(),
+                "Leave the current mission and open Tenchu 2 Japan's original mission selector.",
+            ),
+            (
+                Item::Tenchu2Diagnostics,
+                "Integration diagnostics",
+                "Open".into(),
+                "Inspect the native JP objective, actors, current scene and integration status.",
+            ),
+            (
+                Item::Tenchu2Launcher,
+                "Quick launcher · F6",
+                "Open".into(),
+                "Leave native JP play and return to the quick launcher. Closes the standalone JP player.",
+            ),
+        ],
         22 => vec![
             (
                 Item::Bleeding,
@@ -2093,7 +2120,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 } else {
                     format!("{}x", s.cutscene_speed)
                 },
-                "Hold Backspace for Max during cutscenes.",
+                "Hold Backspace for Max during cutscenes. Accelerated playback mutes audio, then resumes it at the matching position. Gameplay and menus stay at normal speed.",
             ),
             (
                 Item::SightDistance,

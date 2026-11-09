@@ -24,7 +24,7 @@ The same route is available from the command line:
 ```
 
 Saved controller/keyboard bindings and Android touch controls apply. F1 opens
-the currently supported JP settings, F3 pauses, F4 advances one logic tick, and
+the shared settings menu, F3 pauses, F4 advances one logic tick, and
 F6 returns to the quick launcher. JP play does not write Gaisen campaign saves.
 Mission results automatically save JP ranks, supplies and unlocks to
 `tenchu2-jp-progress.json` in the game's user-data directory. This is a portable
@@ -32,16 +32,27 @@ JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
 desktop. A damaged or newer-format file reports an error instead of being reset.
 The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
-The resizable F1 panel has General, Display, Textures, Post-processing, Controls
-and Integration tabs. Tab / Shift+Tab moves between them. Display includes the
-shared preset library, custom presets, fullscreen/vsync, HUD visibility and F8
-retro comparison. Texture filtering, artwork, surface relief and post-processing
-apply to the native renderer. Controls includes keyboard/controller remapping
-with JP action labels and touch layout settings.
+The resizable F1 panel uses the same categories and controls as Gaisen. Tab /
+Shift+Tab (or controller shoulders) changes category; arrows / D-pad selects and
+changes values. R resets the hovered or selected value. General contains the
+preset library, keyboard/controller remapping with JP action labels, and touch
+layout settings. Graphics, Visual assets and Image effects include the working
+native renderer controls. Visual assets shows the **Tenchu 2** pack and download
+link independently of the Gaisen pack.
+
+Unavailable controls stay visible but disabled. Hover or select a row to see
+why; keyboard/controller shortcuts and resets cannot change disabled values.
+Presets remain shared, with only the supported graphics applied in native JP.
 Modern lights/shadows, weather, blood/water enhancements, hair/cloth physics,
 model swapping, camera-relative controls, rewind, randomizer, gameplay cheats
-and benchmarks are **not connected to native JP yet**; Integration lists these
-boundaries. Gaisen and its scenery sandbox still provide those features.
+and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
+sandbox still provide those features.
+
+**F1 → Tenchu 2** contains the original JP mission selector, integration
+diagnostics and return to the quick launcher. These controls are disabled with
+an explanation outside native JP play. **F1 → Simulation** contains pause,
+single-step and automatic cutscene speed.
+
 Hold Backspace during a cutscene to fast-forward, or choose an automatic speed
 in F1 (2×–16× or Unlimited). This includes prologues, chapter narration, disc
 movies and in-engine scenes. Acceleration mutes audio; releasing it resumes
@@ -69,7 +80,8 @@ Add `--menu` to open the original JP mission screen in this standalone preview.
 Disc folders and supported archives work here too. Use `inspect-t2 DISC` to
 list sequences and their areas. The sequence selects its campaign hero.
 Keyboard/controller bindings and the F1 settings panel are shared with the main
-game. F1 → Integration shows actors, health, water state and unconnected events;
+game. F1 → Tenchu 2 → Integration diagnostics shows actors, health, water state
+and unconnected events;
 F3 pauses, F4 advances one logic
 tick, and Escape closes the preview. This mode does not write campaign saves;
 it loads and saves the shared settings, including cutscene speed.

@@ -20,12 +20,18 @@ impl Application {
     }
 
     pub(super) fn reset_item(&mut self, item: Item) -> Result<()> {
+        if let Some(reason) = settings::runtime::Runtime::Gaisen.unavailable(item) {
+            return Err(reason.into());
+        }
         if item.reset_setting(&mut self.settings) {
             return Ok(());
         }
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::Tenchu2Missions | Item::Tenchu2Diagnostics | Item::Tenchu2Launcher => {
+                unreachable!("checked runtime availability")
+            }
             Item::GodMode => self.set_god_mode(false)?,
             Item::Stealth => self.set_stealth(false)?,
             Item::ClickTeleport => self.debug.click_teleport = false,
@@ -70,17 +76,6 @@ impl Application {
             Item::GameplayPreset => self.set_gameplay_preset(0)?,
             Item::Preset => self.settings.set_visual_preset(0),
             Item::PhotoMode => self.debug.photo_mode = false,
-            Item::Temperature => {
-                self.settings.graphics.post.temperature = s.graphics.post.temperature
-            }
-            Item::FogTint => self.settings.graphics.post.fog_tint = s.graphics.post.fog_tint,
-            Item::ModelDetail => self.settings.graphics.model_detail = s.graphics.model_detail,
-            Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
-            Item::SurfaceDetail => {
-                self.settings.graphics.surface_detail = s.graphics.surface_detail
-            }
-            Item::Magnification => self.settings.graphics.magnification = s.graphics.magnification,
-            Item::Filtering => self.settings.graphics.set_filtering(s.graphics.filtering()),
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
             Item::DirectionalColor => {
                 self.settings.graphics.lighting.directional.color =
@@ -97,7 +92,6 @@ impl Application {
             Item::LightResolution => {
                 self.settings.graphics.lighting.resolution = s.graphics.lighting.resolution
             }
-            Item::CutsceneSpeed => self.settings.cutscene_speed = s.cutscene_speed,
             Item::Hitboxes => self.debug.hitboxes = d.hitboxes,
             Item::Sight => self.debug.sight = d.sight,
             Item::SightStance => self.debug.sight_stance = d.sight_stance,
