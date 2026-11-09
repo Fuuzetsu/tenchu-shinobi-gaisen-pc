@@ -122,6 +122,7 @@ impl Models {
         &mut self,
         story: &Story,
         renderer: &mut Renderer,
+        camera: Option<crate::debug::camera::Camera>,
     ) -> Result<(Geometry, Vec<fonts::Text>)> {
         let resources = &story.resources;
         let level = &story.level;
@@ -136,7 +137,11 @@ impl Models {
                 }
             }
         }
-        let mut output = Builder::new(story.state.view, level, renderer.graphics());
+        let view = camera.map_or(story.state.view, |c| c.source_view());
+        let mut output = Builder::new(view, level, renderer.graphics());
+        if let Some(camera) = camera {
+            output.distance = 120.0 / (camera.fov.to_radians() * 0.5).tan();
+        }
         for part in &level.map {
             output.model(
                 &self.terrain,
@@ -216,7 +221,7 @@ impl Models {
                     &level.background,
                     &level.shading,
                     &self.terrain,
-                    story.state.view,
+                    view,
                     math,
                     story.state.frame.max(0) as u32,
                 ),

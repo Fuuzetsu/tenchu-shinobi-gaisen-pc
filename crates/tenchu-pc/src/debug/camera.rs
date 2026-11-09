@@ -18,13 +18,20 @@ pub struct Camera {
 
 impl Camera {
     pub fn from_game(game: &tenchu_core::game::Game) -> Self {
-        let inverse = crate::renderer::view_matrix(game.rendered_view).inverse();
+        Self::from_view(
+            game.rendered_view,
+            f32::from(tenchu_core::projection::DISTANCE),
+        )
+    }
+
+    pub fn from_view(view: tenchu_core::math::Matrix, distance: f32) -> Self {
+        let inverse = crate::renderer::view_matrix(view).inverse();
         let forward = inverse.transform_vector3(Vec3::NEG_Z).normalize();
         Self {
             position: inverse.transform_point3(Vec3::ZERO),
             yaw: forward.x.atan2(forward.z),
             pitch: (-forward.y).asin(),
-            fov: (2.0 * (120.0 / f32::from(tenchu_core::projection::DISTANCE)).atan()).to_degrees(),
+            fov: (2.0 * (120.0 / distance).atan()).to_degrees(),
         }
     }
 

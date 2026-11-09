@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add native Tenchu 2 free camera in gameplay and 3D cutscenes: F2, mouse/stick
+  flight, adjustable speed/FOV, actor/player focus, overhead view and camera
+  bookmarks through the shared F1 menu. Touch controls support flying and
+  returning to the game camera. Photo mode hides the gameplay HUD and camera
+  help; inspection never changes the simulation camera or consumes player input.
+
 - Use the full shared F1 settings menu in native Japanese Tenchu 2, with the
   same categories, presets and controls as Gaisen. Unsupported features remain
   visible but disabled, with explanations on hover and keyboard/controller

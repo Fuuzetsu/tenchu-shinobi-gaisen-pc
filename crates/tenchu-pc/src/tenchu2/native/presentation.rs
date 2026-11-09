@@ -262,6 +262,14 @@ pub(crate) enum ContentDrawing {
 }
 
 impl ContentDrawing {
+    pub fn set_camera(&mut self, camera: Option<crate::debug::camera::Camera>) {
+        match self {
+            Self::Gameplay(drawing) => drawing.camera = camera,
+            Self::Story(drawing) => drawing.camera = camera,
+            _ => {}
+        }
+    }
+
     pub fn set_hud(
         &mut self,
         content: &Content,

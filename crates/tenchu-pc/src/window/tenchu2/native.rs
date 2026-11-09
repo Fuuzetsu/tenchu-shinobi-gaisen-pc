@@ -80,7 +80,11 @@ impl Application {
         let native = self.native_tenchu2.as_mut().unwrap();
         let update = native.transport.frame_step(
             &mut native.playback,
-            self.controls.buttons().swap_bytes(),
+            if native.menu.tools.debug.camera.is_some() {
+                0
+            } else {
+                self.controls.buttons().swap_bytes()
+            },
             self.audio.as_ref().map(|audio| audio.output()),
         )?;
         if update.changed {
@@ -118,7 +122,18 @@ impl Application {
         self.last_frame = now;
         self.sync_audio_pause();
         let input = PlaybackInput {
-            buttons: if self.native_tenchu2.as_ref().unwrap().menu.panel.open || !self.focused {
+            buttons: if self.native_tenchu2.as_ref().unwrap().menu.panel.open
+                || self
+                    .native_tenchu2
+                    .as_ref()
+                    .unwrap()
+                    .menu
+                    .tools
+                    .debug
+                    .camera
+                    .is_some()
+                || !self.focused
+            {
                 0
             } else {
                 self.controls.buttons().swap_bytes()
@@ -135,6 +150,15 @@ impl Application {
             input,
             self.audio.as_ref().map(|audio| audio.output()),
         )?;
+        native
+            .menu
+            .tools
+            .sync(&native.playback.content, native.playback.generation);
+        native.menu.tools.advance(
+            &self.controls,
+            elapsed.as_secs_f32(),
+            self.focused && !native.menu.panel.open,
+        );
         if update.quit {
             return self.leave_native_tenchu2();
         }
@@ -178,27 +202,18 @@ impl Application {
                         &graphics,
                         &mut view.renderer,
                     )?;
-            } else {
-                native
-                    .drawing
-                    .as_mut()
-                    .unwrap()
-                    .update(&native.playback.content, &mut view.renderer)?;
             }
             native.generation = Some(native.playback.generation);
             native.graphics.clone_from(&graphics);
             self.last_frame = Instant::now();
             self.clock.discard_host_backlog();
-        } else {
-            native
-                .drawing
-                .as_mut()
-                .unwrap()
-                .update(&native.playback.content, &mut view.renderer)?;
         }
+        let drawing = native.drawing.as_mut().unwrap();
+        drawing.set_camera(native.menu.tools.debug.camera);
+        drawing.update(&native.playback.content, &mut view.renderer)?;
         native.drawing.as_mut().unwrap().set_hud(
             &native.playback.content,
-            self.settings.show_hud,
+            self.settings.show_hud && !native.menu.tools.debug.photo_mode,
             &mut view.renderer,
         )?;
         let mut leave = false;
@@ -257,6 +272,8 @@ impl Application {
                 || !matches!(native.playback.content, Content::Gameplay(_))
             {
                 crate::touch::Mode::Menus
+            } else if native.menu.tools.debug.camera.is_some() {
+                crate::touch::Mode::FreeCamera
             } else if suspended {
                 crate::touch::Mode::Paused
             } else {
@@ -324,6 +341,9 @@ impl Application {
                 let native = self.native_tenchu2.as_mut().unwrap();
                 if native.menu.panel.open || native.menu.diagnostics {
                     native.menu.back(&mut self.controls, &mut self.presets);
+                } else if native.menu.tools.debug.camera.is_some() {
+                    native.menu.tools.debug.return_camera();
+                    self.controls.clear();
                 } else {
                     return self.leave_native_tenchu2();
                 }
@@ -378,6 +398,11 @@ impl Application {
                 return Ok(());
             }
         }
+        let native = self.native_tenchu2.as_mut().unwrap();
+        native
+            .menu
+            .tools
+            .event(&event, self.focused && !native.menu.panel.open);
         if let Some(view) = &mut self.view {
             view.overlay.event(&view.window, &event);
         }
@@ -434,6 +459,25 @@ impl Application {
                     match code {
                         KeyCode::Escape | KeyCode::BrowserBack => {
                             return self.native_tenchu2_touch(crate::touch::Action::Back);
+                        }
+                        KeyCode::F2 if !menu_open => {
+                            let menu = &mut self.native_tenchu2.as_mut().unwrap().menu;
+                            if let Err(error) =
+                                menu.tools.change(settings::menu::Item::FreeCamera, 1)
+                            {
+                                menu.panel.notice = error;
+                            }
+                            self.controls.clear();
+                            return Ok(());
+                        }
+                        KeyCode::F10 if !menu_open => {
+                            self.native_tenchu2
+                                .as_mut()
+                                .unwrap()
+                                .menu
+                                .tools
+                                .change(settings::menu::Item::PhotoMode, 1)?;
+                            return Ok(());
                         }
                         KeyCode::F6 => return self.leave_native_tenchu2(),
                         KeyCode::F8 => {

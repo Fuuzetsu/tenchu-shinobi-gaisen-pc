@@ -1,7 +1,6 @@
 use crate::{
     campaign::Action as MenuAction,
     controls::{self, Controls},
-    debug::Debug,
     settings::{
         self, Settings,
         library::Manager,
@@ -39,7 +38,7 @@ pub struct Menu {
     pub panel: SharedMenu,
     pub diagnostics: bool,
     pub fast_forward: bool,
-    debug: Debug,
+    pub tools: super::tools::Tools,
     pending: Option<Navigation>,
 }
 
@@ -122,8 +121,12 @@ impl Menu {
         if state.controls.editor.open || state.presets.open || self.panel.touch_controls {
             return None;
         }
-        let rows =
-            settings::menu::rows(self.panel.page, state.settings, &self.debug, *state.paused);
+        let rows = settings::menu::rows(
+            self.panel.page,
+            state.settings,
+            &self.tools.debug,
+            *state.paused,
+        );
         self.panel.row = self.panel.row.min(rows.len() - 1);
         match navigation {
             Navigation::Page(delta) => self.panel.page(delta),
@@ -146,6 +149,7 @@ impl Menu {
 
     pub fn show(&mut self, ctx: &egui::Context, state: &mut State<'_>) -> Action {
         let mut action = Action::default();
+        self.tools.hint(ctx, self.panel.open);
         if !self.panel.open {
             return action;
         }
@@ -195,7 +199,7 @@ impl Menu {
             overlay::State {
                 runtime: Runtime::Tenchu2,
                 settings: state.settings,
-                debug: &self.debug,
+                debug: &self.tools.debug,
                 paused: *state.paused,
                 lights: 0,
                 samples: state.samples,
@@ -247,7 +251,7 @@ impl Menu {
                             state.settings.graphics.samples = Settings::default().graphics.samples;
                             Ok(())
                         }
-                        _ => Err("This action has no default value.".into()),
+                        _ => self.tools.reset(item),
                     }
                 }
             }
@@ -312,7 +316,7 @@ impl Menu {
                             self.panel.open = false;
                             Ok(())
                         }
-                        _ => Err("This control is not connected to native Tenchu 2 JP yet.".into()),
+                        _ => self.tools.change(item, delta),
                     }
                 }
             }
@@ -327,6 +331,7 @@ impl Menu {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::debug::Debug;
 
     fn presets() -> Manager {
         Manager::new(std::env::temp_dir().join(format!(
@@ -413,7 +418,17 @@ mod tests {
         };
         for page in 0..settings::menu::PAGES.len() {
             for row in settings::menu::rows(page, &Settings::default(), &Debug::default(), false) {
-                if Runtime::Tenchu2.unavailable(row.item).is_none() && !row.item.button() {
+                if Runtime::Tenchu2.unavailable(row.item).is_none()
+                    && !row.item.button()
+                    && !matches!(
+                        row.item,
+                        Item::FreeCamera
+                            | Item::FlightSpeed
+                            | Item::Fov
+                            | Item::Actor
+                            | Item::PhotoMode
+                    )
+                {
                     let original = state.settings.clone();
                     menu.apply(Edit::Change(row.item, 1), &mut state, &mut action);
                     assert!(

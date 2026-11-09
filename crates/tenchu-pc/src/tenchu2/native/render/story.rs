@@ -15,22 +15,24 @@ pub(crate) struct Drawing {
     scene: SceneDrawing,
     pub texts: Vec<fonts::Text>,
     view: Matrix,
+    pub camera: Option<crate::debug::camera::Camera>,
 }
 
 impl Drawing {
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         let mut models = models::Models::new(story, graphics, renderer)?;
-        let (geometry, texts) = models.geometry(story, renderer)?;
+        let (geometry, texts) = models.geometry(story, renderer, None)?;
         Ok(Self {
             models,
             scene: SceneDrawing::new(geometry, renderer),
             texts,
             view: story.state.view,
+            camera: None,
         })
     }
 
     pub fn update(&mut self, story: &Story, renderer: &mut Renderer) -> Result<()> {
-        let (geometry, texts) = self.models.geometry(story, renderer)?;
+        let (geometry, texts) = self.models.geometry(story, renderer, self.camera)?;
         self.scene.update(geometry, renderer);
         self.texts = texts;
         self.view = story.state.view;
@@ -38,7 +40,13 @@ impl Drawing {
     }
 
     pub fn draw(&self, target: &wgpu::TextureView, renderer: &mut Renderer) -> Result<()> {
-        self.scene.draw(self.view, target, renderer)
+        if let Some(camera) = self.camera {
+            let [w, h] = renderer.size();
+            self.scene
+                .draw_camera(camera.matrix(w as f32 / h as f32), target, renderer)
+        } else {
+            self.scene.draw(self.view, target, renderer)
+        }
     }
 }
 

@@ -26,7 +26,8 @@ impl Runtime {
             | Magnification | SurfaceDetail | SurfaceStrength | Antialiasing | AssetPack
             | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion | OcclusionRadius
             | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed
-            | Pause | Step => None,
+            | Pause | Step | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor
+            | Overhead | SaveCamera | RestoreCamera | PhotoMode => None,
             PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts
             | ReloadModels => Some(
                 "Model and moveset swapping are not connected to native Tenchu 2 JP yet. Saved Gaisen choices are kept, but do not apply here.",

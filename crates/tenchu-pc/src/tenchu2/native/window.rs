@@ -199,9 +199,16 @@ impl Application {
     fn step(&mut self) -> Result<()> {
         let update = self.transport.frame_step(
             &mut self.session,
-            self.controls.buttons().swap_bytes(),
+            if self.menu.tools.debug.camera.is_some() {
+                0
+            } else {
+                self.controls.buttons().swap_bytes()
+            },
             self.audio.as_ref(),
         )?;
+        self.menu
+            .tools
+            .sync(&self.session.content, self.session.generation);
         self.quit |= update.quit;
         if update.changed {
             self.last = Instant::now();
@@ -234,7 +241,10 @@ impl Application {
             &mut self.session,
             elapsed,
             PlaybackInput {
-                buttons: if self.menu.panel.open || !self.focused {
+                buttons: if self.menu.panel.open
+                    || self.menu.tools.debug.camera.is_some()
+                    || !self.focused
+                {
                     0
                 } else {
                     self.controls.buttons().swap_bytes()
@@ -245,6 +255,9 @@ impl Application {
             },
             self.audio.as_ref(),
         )?;
+        self.menu
+            .tools
+            .sync(&self.session.content, self.session.generation);
         self.quit |= update.quit;
         if update.changed {
             self.last = Instant::now();
@@ -263,6 +276,11 @@ impl Application {
             self.fps_frames = 0;
             self.fps_time = 0.0;
         }
+        self.menu.tools.advance(
+            &self.controls,
+            elapsed.as_secs_f32(),
+            self.focused && !self.menu.panel.open,
+        );
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
@@ -293,20 +311,17 @@ impl Application {
                         &graphics,
                         &mut view.renderer,
                     )?;
-                } else {
-                    view.drawing
-                        .update(&self.session.content, &mut view.renderer)?;
                 }
                 view.generation = self.session.generation;
                 view.graphics = graphics;
                 self.last = Instant::now();
-            } else {
-                view.drawing
-                    .update(&self.session.content, &mut view.renderer)?;
             }
+            view.drawing.set_camera(self.menu.tools.debug.camera);
+            view.drawing
+                .update(&self.session.content, &mut view.renderer)?;
             view.drawing.set_hud(
                 &self.session.content,
-                self.settings.show_hud,
+                self.settings.show_hud && !self.menu.tools.debug.photo_mode,
                 &mut view.renderer,
             )?;
             let action = view.draw(
@@ -394,6 +409,9 @@ impl ApplicationHandler for Application {
         let Some(view) = &mut self.view else {
             return;
         };
+        self.menu
+            .tools
+            .event(&event, self.focused && !self.menu.panel.open);
         let consumed = view.state.on_window_event(&view.window, &event).consumed;
         match event {
             WindowEvent::CloseRequested => events.exit(),
@@ -423,10 +441,25 @@ impl ApplicationHandler for Application {
                             KeyCode::Escape if self.menu.panel.open || self.menu.diagnostics => {
                                 self.menu.back(&mut self.controls, &mut self.presets);
                             }
+                            KeyCode::Escape if self.menu.tools.debug.camera.is_some() => {
+                                self.menu.tools.debug.return_camera();
+                                self.controls.clear();
+                            }
                             KeyCode::Escape => events.exit(),
                             KeyCode::F6 => events.exit(),
                             KeyCode::F1 => {
                                 self.menu.panel.open = !self.menu.panel.open;
+                                self.controls.clear();
+                            }
+                            KeyCode::F2 | KeyCode::F10 if !self.menu.panel.open => {
+                                let item = if code == KeyCode::F2 {
+                                    crate::settings::menu::Item::FreeCamera
+                                } else {
+                                    crate::settings::menu::Item::PhotoMode
+                                };
+                                if let Err(error) = self.menu.tools.change(item, 1) {
+                                    self.menu.panel.notice = error;
+                                }
                                 self.controls.clear();
                             }
                             KeyCode::F8 => {

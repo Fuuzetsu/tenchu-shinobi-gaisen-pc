@@ -32,6 +32,7 @@ pub struct Drawing {
     models: Models,
     scene: SceneDrawing,
     view: Matrix,
+    pub camera: Option<crate::debug::camera::Camera>,
     pub show_hud: bool,
 }
 
@@ -56,12 +57,14 @@ impl Drawing {
             &session.frame,
             graphics,
             true,
+            None,
         )?;
         Ok(Self {
             models,
             scene: SceneDrawing::new(geometry, renderer),
             view: session.world.camera.view,
             show_hud: true,
+            camera: None,
         })
     }
 
@@ -72,6 +75,7 @@ impl Drawing {
             &session.frame,
             renderer.graphics(),
             self.show_hud,
+            self.camera,
         )?;
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
@@ -80,7 +84,13 @@ impl Drawing {
     }
 
     pub fn draw(&self, target: &wgpu::TextureView, renderer: &mut Renderer) -> Result<()> {
-        self.scene.draw(self.view, target, renderer)
+        if let Some(camera) = self.camera {
+            let [w, h] = renderer.size();
+            self.scene
+                .draw_camera(camera.matrix(w as f32 / h as f32), target, renderer)
+        } else {
+            self.scene.draw(self.view, target, renderer)
+        }
     }
 }
 
@@ -120,6 +130,15 @@ impl SceneDrawing {
             50.0,
             250_000.0,
         ) * crate::renderer::view_matrix(view);
+        self.draw_camera(camera, target, renderer)
+    }
+
+    fn draw_camera(
+        &self,
+        camera: glam::Mat4,
+        target: &wgpu::TextureView,
+        renderer: &mut Renderer,
+    ) -> Result<()> {
         renderer.draw_lit(
             target,
             camera,
@@ -329,8 +348,13 @@ impl Models {
         frame: &Frame,
         graphics: &Graphics,
         show_hud: bool,
+        camera: Option<crate::debug::camera::Camera>,
     ) -> Result<Geometry> {
-        let mut output = Builder::new(world.camera.view, &assets.level, graphics);
+        let view = camera.map_or(world.camera.view, |c| c.source_view());
+        let mut output = Builder::new(view, &assets.level, graphics);
+        if let Some(camera) = camera {
+            output.distance = 120.0 / (camera.fov.to_radians() * 0.5).tan();
+        }
         let math = &assets.resources.math;
         for part in &assets.level.map {
             output.model(
@@ -522,7 +546,15 @@ impl Models {
             if projected[2] <= 0.0 {
                 continue;
             }
-            let scale = sprite.scale.map(|v| f32::from(v) / 4096.0);
+            let adjustment = if camera.is_some() {
+                let source_depth = (world.camera.view.apply_large(sprite.position).z
+                    + world.camera.view.translation.z)
+                    .max(0) as f32;
+                source_depth / projected[2] * output.distance / 300.0
+            } else {
+                1.0
+            };
+            let scale = sprite.scale.map(|v| f32::from(v) / 4096.0 * adjustment);
             output.screen_sprite(
                 projected,
                 image.size.map(f32::from),
@@ -551,11 +583,26 @@ impl Models {
         for ribbon in &frame.effects.ribbons {
             let depth = (ribbon.depth * 16) as f32;
             let points = ribbon.corners.map(|p| {
-                [
-                    f32::from(p[0]),
-                    f32::from(p[1]),
-                    render_effects::depth(depth),
-                ]
+                if camera.is_some() {
+                    let inverse = crate::renderer::view_matrix(world.camera.view).inverse();
+                    let world = inverse.transform_point3(glam::Vec3::new(
+                        f32::from(p[0]) * depth / 300.0,
+                        -f32::from(p[1]) * depth / 300.0,
+                        -depth,
+                    ));
+                    let projected = output.project(world.to_array().map(|v| v as i32).into());
+                    [
+                        projected[0],
+                        projected[1],
+                        render_effects::depth(projected[2].max(1.0)),
+                    ]
+                } else {
+                    [
+                        f32::from(p[0]),
+                        f32::from(p[1]),
+                        render_effects::depth(depth),
+                    ]
+                }
             });
             output.surfaces.push(Surface {
                 depth,
@@ -639,7 +686,7 @@ impl Models {
                 &assets.level.background,
                 &assets.level.shading,
                 &self.scenery,
-                world.camera.view,
+                view,
                 math,
                 world.tick,
             ),
@@ -667,6 +714,7 @@ fn blend(blend: Blend, image: u8) -> u8 {
 
 struct Builder {
     view: Matrix,
+    distance: f32,
     shading: Shading,
     fog_start: Option<i32>,
     surfaces: Vec<Surface>,
@@ -685,6 +733,7 @@ impl Builder {
     fn new(view: Matrix, level: &Level, graphics: &Graphics) -> Self {
         Self {
             view,
+            distance: 300.0,
             shading: level.shading.clone(),
             fog_start: graphics.fog.then(|| {
                 ((level.draw_distance * i32::from(graphics.fog_distance) / 100) >> 4) - 256
@@ -710,7 +759,11 @@ impl Builder {
                     .map(|i| f32::from(self.view.rotation[axis][i]) * point[i] / 4096.0)
                     .sum::<f32>()
         });
-        [v[0] * 300.0 / v[2], v[1] * 300.0 / v[2], v[2]]
+        [
+            v[0] * self.distance / v[2],
+            v[1] * self.distance / v[2],
+            v[2],
+        ]
     }
 
     fn surface(&mut self, vertices: Vec<Vertex>, blend: u8) {
@@ -809,7 +862,7 @@ impl Builder {
         self.screen_sprite(
             projected,
             size,
-            scale.map(|v| v * 300.0 / projected[2]),
+            scale.map(|v| v * self.distance / projected[2]),
             rotation,
             color,
             image,

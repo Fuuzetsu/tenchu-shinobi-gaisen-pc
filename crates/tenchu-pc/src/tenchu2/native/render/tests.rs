@@ -27,6 +27,7 @@ fn native_night_scenery_does_not_depend_on_the_effect_pass() {
                 &session.frame,
                 &graphics,
                 true,
+                None,
             )?;
             if !effects {
                 geometry.effects.vertices.clear();
@@ -81,6 +82,7 @@ fn native_backgrounds_stay_behind_the_scene() {
                     &session.frame,
                     &graphics,
                     true,
+                    None,
                 )?;
                 assert_eq!(geometry.backgrounds.len(), 3);
                 if mode == "scene" {

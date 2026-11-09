@@ -676,6 +676,10 @@ impl Application {
 
 impl ApplicationHandler for Application {
     fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, event: DeviceEvent) {
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.native_tenchu2.is_some() {
+            return;
+        }
         if self.focused
             && !self.menu.open
             && let DeviceEvent::MouseMotion { delta } = event

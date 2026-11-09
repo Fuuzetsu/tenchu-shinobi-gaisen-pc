@@ -48,6 +48,12 @@ model swapping, camera-relative controls, rewind, randomizer, gameplay cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
 
+**F1 → Camera** supports free flight (F2), speed/FOV, player or actor focus,
+overhead views and a camera bookmark. WASD/QE move, Shift boosts and RMB looks;
+controller/touch sticks work too. F2 or Back returns to the game view. This also
+works while paused and in 3D cutscenes; gameplay input is withheld during free
+flight. F10 hides the gameplay HUD and camera help. Follow camera remains pending.
+
 **F1 → Tenchu 2** contains the original JP mission selector, integration
 diagnostics and return to the quick launcher. These controls are disabled with
 an explanation outside native JP play. **F1 → Simulation** contains pause,
