@@ -2,7 +2,7 @@
   "format": "tenchu-artwork-provenance",
   "version": 1,
   "description": "Newly painted Tenchu 2 Europe and Japan replacement materials; retail textures used only as private layout references. Original alpha is reconstructed from the supplied disc, never shipped.",
-  "manifest_sha256": "788419f958da7ca059a83808fc0548342a4947ab1c3a79613c79bb6be8e94657",
+  "manifest_sha256": "cb973b1942c46df68eae0fabe30ce27bca3b16a2ccbc48c67fa15e2b7485a8f7",
   "generator": "OpenAI image generation tool",
   "atlases": {
     "actors-00": {
@@ -496,6 +496,18 @@
       "prompt_sha256": "852e785f1cbc6317973ece940af2ce3b29cb9ab5a7762b4e9ba1230e7dde5d33",
       "grid": 8,
       "entries": 33
+    },
+    "jp-background-00": {
+      "image_sha256": "7fe3568d200beaf1193e9ac2147e830bd813b2d83b4c97ec66497901c8409441",
+      "prompt_sha256": "b400d6a318dafdc3394ed8e2fd09883779a74926afd1b48ef6e114af95e0578d",
+      "grid": 8,
+      "entries": 64
+    },
+    "jp-background-01": {
+      "image_sha256": "f4e9f0e1f676f9548daf2c88706accf3db89b6dd91689adb9007f1346cf8faee",
+      "prompt_sha256": "70717cfd778ecde5668cc07a690e5cf45d69903070de9c1601866b3758d17263",
+      "grid": 8,
+      "entries": 25
     }
   },
   "entries": {
@@ -90963,6 +90975,1498 @@
         "items/7"
       ],
       "runtime_original": "alpha only"
+    },
+    "0f5185fd048b6a42edcebbe7225810b9": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 0,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map0/background",
+        "map17/background",
+        "seq1/map0/background",
+        "seq102/map0/background",
+        "seq117/map0/background",
+        "seq16/map0/background",
+        "seq17/map0/background",
+        "seq186/map0/background",
+        "seq227/map17/background",
+        "seq229/map17/background",
+        "seq64/map17/background",
+        "seq66/map17/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "119d76f4a7a2e0fc04ff68e58d77d7d5": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 1,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map0/background",
+        "map17/background",
+        "seq1/map0/background",
+        "seq102/map0/background",
+        "seq117/map0/background",
+        "seq16/map0/background",
+        "seq17/map0/background",
+        "seq186/map0/background",
+        "seq227/map17/background",
+        "seq229/map17/background",
+        "seq64/map17/background",
+        "seq66/map17/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "450dc758485c649070b2d07d9d49a91d": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 2,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map0/background",
+        "map17/background",
+        "seq1/map0/background",
+        "seq102/map0/background",
+        "seq117/map0/background",
+        "seq16/map0/background",
+        "seq17/map0/background",
+        "seq186/map0/background",
+        "seq227/map17/background",
+        "seq229/map17/background",
+        "seq64/map17/background",
+        "seq66/map17/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "626e9d3dc817dc173fb672c48fb3ac2e": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 3,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map0/background",
+        "map17/background",
+        "seq1/map0/background",
+        "seq102/map0/background",
+        "seq117/map0/background",
+        "seq16/map0/background",
+        "seq17/map0/background",
+        "seq186/map0/background",
+        "seq227/map17/background",
+        "seq229/map17/background",
+        "seq64/map17/background",
+        "seq66/map17/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "a8f17820631bf44682b1487f01a87d71": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 4,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map0/background",
+        "seq1/map0/background",
+        "seq102/map0/background",
+        "seq117/map0/background",
+        "seq16/map0/background",
+        "seq17/map0/background",
+        "seq186/map0/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "aaabe20ebbfc8bab78a98c1737c41b34": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 5,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map0/background",
+        "map17/background",
+        "seq1/map0/background",
+        "seq102/map0/background",
+        "seq117/map0/background",
+        "seq16/map0/background",
+        "seq17/map0/background",
+        "seq186/map0/background",
+        "seq227/map17/background",
+        "seq229/map17/background",
+        "seq64/map17/background",
+        "seq66/map17/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "e52cb877b360a219b9f4374a75a28c74": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 6,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map0/background",
+        "map17/background",
+        "seq1/map0/background",
+        "seq102/map0/background",
+        "seq117/map0/background",
+        "seq16/map0/background",
+        "seq17/map0/background",
+        "seq186/map0/background",
+        "seq227/map17/background",
+        "seq229/map17/background",
+        "seq64/map17/background",
+        "seq66/map17/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "8ca2db99abf83cb8f3608850fbae3bcf": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 7,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map0/sky0",
+        "seq1/map0/sky0",
+        "seq102/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "be6295186297202f567a6caae55cc8ed": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 8,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map0/sky0",
+        "seq1/map0/sky0",
+        "seq102/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "3ecfec93811d486175a15995e38b0550": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 9,
+      "source_size": [
+        256,
+        1
+      ],
+      "sources": [
+        "map0/sky1",
+        "seq1/map0/sky1",
+        "seq102/map0/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "2833afb53a496b3e1c121582be7b74aa": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 10,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map0/sky1",
+        "seq1/map0/sky1",
+        "seq102/map0/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "a44c69cdedb44b1880719f28d8044c05": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 11,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map10/sky0",
+        "map11/sky0",
+        "seq134/map10/sky0",
+        "seq137/map11/sky0",
+        "seq139/map11/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "f51a439d5e3fca49cb168f38e4b71d0a": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 12,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map10/sky0",
+        "map11/sky0",
+        "seq134/map10/sky0",
+        "seq137/map11/sky0",
+        "seq139/map11/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "43f2dc0bda35ac75d74b3e27f5c2780c": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 13,
+      "source_size": [
+        256,
+        1
+      ],
+      "sources": [
+        "map10/sky1",
+        "map11/sky1",
+        "seq134/map10/sky1",
+        "seq137/map11/sky1",
+        "seq139/map11/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "b1b7d2faaa33fbabc47c77077595cd57": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 14,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map10/sky1",
+        "map11/sky1",
+        "seq134/map10/sky1",
+        "seq137/map11/sky1",
+        "seq139/map11/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "b2e016df3614064bbfa3a90412c84935": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 15,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map12/background",
+        "seq210/map12/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "ecc20389c6d65e367ade365f294c3f66": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 16,
+      "source_size": [
+        64,
+        128
+      ],
+      "sources": [
+        "map12/background",
+        "seq210/map12/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "02a40808275e0dff6a2f0aa33e8b2199": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 17,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map12/sky0",
+        "seq210/map12/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "5d8fb436eaedee13d4e1c8616deac783": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 18,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map12/sky0",
+        "seq210/map12/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "82bd3b8be82ae66391c559f315e44a12": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 19,
+      "source_size": [
+        256,
+        1
+      ],
+      "sources": [
+        "map12/sky1",
+        "seq210/map12/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "133893db460b3327726dc1332e2f0961": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 20,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map12/sky1",
+        "seq210/map12/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "280585fdc0f4de69aa84bcefe48b7159": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 21,
+      "source_size": [
+        104,
+        80
+      ],
+      "sources": [
+        "map13/sky0",
+        "seq214/map13/sky0",
+        "seq216/map13/sky0",
+        "seq47/map13/sky0",
+        "seq49/map13/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "06ba7d1851ac398008cb2358d1dfc239": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 22,
+      "source_size": [
+        152,
+        80
+      ],
+      "sources": [
+        "map13/sky0",
+        "seq214/map13/sky0",
+        "seq216/map13/sky0",
+        "seq47/map13/sky0",
+        "seq49/map13/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "acdb289682159e71ceb9ede68d47f178": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 23,
+      "source_size": [
+        8,
+        1
+      ],
+      "sources": [
+        "map13/sky1",
+        "seq214/map13/sky1",
+        "seq216/map13/sky1",
+        "seq47/map13/sky1",
+        "seq49/map13/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "670016c2c71f14ff374358cb053d2891": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 24,
+      "source_size": [
+        256,
+        160
+      ],
+      "sources": [
+        "map13/sky1",
+        "seq214/map13/sky1",
+        "seq216/map13/sky1",
+        "seq47/map13/sky1",
+        "seq49/map13/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "182165edc751a2af5595046ed1baab46": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 25,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map14/background",
+        "seq144/map14/background",
+        "seq147/map14/background",
+        "seq222/map14/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "d885412d32310fb9493988425dc42258": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 26,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map14/background",
+        "seq144/map14/background",
+        "seq147/map14/background",
+        "seq222/map14/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "f315633f2d3d593b29b4162af79c0757": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 27,
+      "source_size": [
+        256,
+        240
+      ],
+      "sources": [
+        "map14/sky0",
+        "map14/sky1",
+        "seq144/map14/sky0",
+        "seq144/map14/sky1",
+        "seq147/map14/sky0",
+        "seq147/map14/sky1",
+        "seq222/map14/sky0",
+        "seq222/map14/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "3e698b3c80ad2a05b31883c7a2d6d9c2": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 28,
+      "source_size": [
+        176,
+        80
+      ],
+      "sources": [
+        "map15/sky0",
+        "seq26/map15/sky0",
+        "seq56/map15/sky0",
+        "seq58/map15/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "af9d759b97f10a0f0711cdcf658d9845": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 29,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map15/sky0",
+        "seq26/map15/sky0",
+        "seq56/map15/sky0",
+        "seq58/map15/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "4eaefeaad64fd3d3605b5e64d54f5686": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 30,
+      "source_size": [
+        256,
+        1
+      ],
+      "sources": [
+        "map15/sky1",
+        "seq26/map15/sky1",
+        "seq56/map15/sky1",
+        "seq58/map15/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "7e3a325161b31bc4b8ef22cd571fef22": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 31,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map15/sky1",
+        "seq26/map15/sky1",
+        "seq56/map15/sky1",
+        "seq58/map15/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "49a606c66c0689506d2052d08c82aa22": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 32,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map16/background",
+        "seq154/map16/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "5b6169a1e7410bebb2048f15717433ff": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 33,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map16/background",
+        "seq154/map16/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "9467ccc0644f2d831a5ea1c4a2eda6e8": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 34,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map16/background",
+        "seq154/map16/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "b9a6608fc2b4fa92cd22195a4bb95f27": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 35,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map16/background",
+        "seq154/map16/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "bc48969bb4a37968e5f4dc343e455732": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 36,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map16/background",
+        "seq154/map16/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "c6c1562c117e5595abfb6bec0b098ec2": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 37,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map16/background",
+        "seq154/map16/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "e035954db4ebca82787adf16a620455d": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 38,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map16/background",
+        "seq154/map16/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "2cc37db92ef35b70166eda60c53193f1": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 39,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map16/sky0",
+        "seq154/map16/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "8e4dd137288516e0621d6ff208bda271": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 40,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map16/sky0",
+        "seq154/map16/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "b08d788056c9df736f7cbd77ead4748b": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 41,
+      "source_size": [
+        64,
+        80
+      ],
+      "sources": [
+        "map16/sky1",
+        "seq154/map16/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "807e68982f01c5ebd178c79ee1b5b228": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 42,
+      "source_size": [
+        80,
+        1
+      ],
+      "sources": [
+        "map16/sky1",
+        "seq154/map16/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "2d0a7b403bdae27bb876de482dd59c88": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 43,
+      "source_size": [
+        192,
+        80
+      ],
+      "sources": [
+        "map16/sky1",
+        "seq154/map16/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "f3e89c41afbdf76da82096c2c2dda3e7": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 44,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map17/background",
+        "seq227/map17/background",
+        "seq229/map17/background",
+        "seq64/map17/background",
+        "seq66/map17/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "78b28b3832c783459469e604381c8bbf": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 45,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map17/sky0",
+        "seq227/map17/sky0",
+        "seq229/map17/sky0",
+        "seq64/map17/sky0",
+        "seq66/map17/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "ed682ed92becd610021f9bf49abd1355": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 46,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map17/sky0",
+        "seq227/map17/sky0",
+        "seq229/map17/sky0",
+        "seq64/map17/sky0",
+        "seq66/map17/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "e9ea9f6a0039c23519184a0223144f1a": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 47,
+      "source_size": [
+        56,
+        80
+      ],
+      "sources": [
+        "map17/sky1",
+        "seq227/map17/sky1",
+        "seq229/map17/sky1",
+        "seq64/map17/sky1",
+        "seq66/map17/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "31bb6b56e4f0e5571a809fa8f17ae518": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 48,
+      "source_size": [
+        200,
+        80
+      ],
+      "sources": [
+        "map17/sky1",
+        "seq227/map17/sky1",
+        "seq229/map17/sky1",
+        "seq64/map17/sky1",
+        "seq66/map17/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "8b851efb71571fc30f52119c35800366": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 49,
+      "source_size": [
+        256,
+        1
+      ],
+      "sources": [
+        "map17/sky1",
+        "seq227/map17/sky1",
+        "seq229/map17/sky1",
+        "seq64/map17/sky1",
+        "seq66/map17/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "603d12fed452988ef9a2790a3023d474": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 50,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map18/sky0",
+        "seq158/map18/sky0",
+        "seq160/map18/sky0",
+        "seq72/map18/sky0",
+        "seq74/map18/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "6121ec600aec4001aa8ead987ae38b21": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 51,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map18/sky0",
+        "seq158/map18/sky0",
+        "seq160/map18/sky0",
+        "seq72/map18/sky0",
+        "seq74/map18/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "078f3ae54364cd4e92a128b3357d5dd7": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 52,
+      "source_size": [
+        80,
+        1
+      ],
+      "sources": [
+        "map18/sky1",
+        "seq158/map18/sky1",
+        "seq160/map18/sky1",
+        "seq72/map18/sky1",
+        "seq74/map18/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "1fbc60447a1d6f67d2e859b60d4ffc43": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 53,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map18/sky1",
+        "seq158/map18/sky1",
+        "seq160/map18/sky1",
+        "seq72/map18/sky1",
+        "seq74/map18/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "53f93035cc82439768e64533f5ac9feb": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 54,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map2/background",
+        "map3/background",
+        "seq11/map2/background",
+        "seq110/map3/background",
+        "seq112/map3/background",
+        "seq9/map2/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "d0fff4ed0ae1110f46e443f6f0208dc6": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 55,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map2/background",
+        "map3/background",
+        "seq11/map2/background",
+        "seq110/map3/background",
+        "seq112/map3/background",
+        "seq9/map2/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "d68700629f02076ca12e6a8dafa0848c": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 56,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map2/background",
+        "map3/background",
+        "seq11/map2/background",
+        "seq110/map3/background",
+        "seq112/map3/background",
+        "seq9/map2/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "fbd7bcf555b0379dffc49f7e7490a789": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 57,
+      "source_size": [
+        64,
+        64
+      ],
+      "sources": [
+        "map2/background",
+        "map3/background",
+        "seq11/map2/background",
+        "seq110/map3/background",
+        "seq112/map3/background",
+        "seq9/map2/background"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "3cff6375d7348aa12bf676ff3536c037": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 58,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map2/sky0",
+        "seq11/map2/sky0",
+        "seq9/map2/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "f0dfcb09397bedaa9cb3092b22f6a76d": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 59,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map2/sky0",
+        "seq11/map2/sky0",
+        "seq9/map2/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "e125a36571d2c2939c4f13e5d433ea17": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 60,
+      "source_size": [
+        16,
+        80
+      ],
+      "sources": [
+        "map2/sky1",
+        "seq11/map2/sky1",
+        "seq9/map2/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "dcec29262e7d256e66563281b53a9a9a": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 61,
+      "source_size": [
+        80,
+        1
+      ],
+      "sources": [
+        "map2/sky1",
+        "seq11/map2/sky1",
+        "seq9/map2/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "3d1c630a1a17714cdeaf8f1836d44e5d": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 62,
+      "source_size": [
+        80,
+        80
+      ],
+      "sources": [
+        "map2/sky1",
+        "seq11/map2/sky1",
+        "seq9/map2/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "7106a1a0019ce9d1ca2e6511aa4d2f12": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-00",
+      "cell": 63,
+      "source_size": [
+        160,
+        80
+      ],
+      "sources": [
+        "map2/sky1",
+        "seq11/map2/sky1",
+        "seq9/map2/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "539f20ed40d1dcc8ad137c7baef56353": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 0,
+      "source_size": [
+        16,
+        80
+      ],
+      "sources": [
+        "map21/sky0",
+        "map23/sky0",
+        "seq179/map23/sky0",
+        "seq243/map23/sky0",
+        "seq245/map23/sky0",
+        "seq87/map21/sky0",
+        "seq89/map21/sky0",
+        "seq92/map23/sky0",
+        "seq94/map23/sky0",
+        "seq96/map23/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "9ada047bb0b29da214a3600ea3416e84": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 1,
+      "source_size": [
+        80,
+        80
+      ],
+      "sources": [
+        "map21/sky0",
+        "map23/sky0",
+        "seq179/map23/sky0",
+        "seq243/map23/sky0",
+        "seq245/map23/sky0",
+        "seq87/map21/sky0",
+        "seq89/map21/sky0",
+        "seq92/map23/sky0",
+        "seq94/map23/sky0",
+        "seq96/map23/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "70347828b75a9ef27c013704c46dfbec": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 2,
+      "source_size": [
+        160,
+        80
+      ],
+      "sources": [
+        "map21/sky1",
+        "map23/sky1",
+        "seq179/map23/sky1",
+        "seq243/map23/sky1",
+        "seq245/map23/sky1",
+        "seq87/map21/sky1",
+        "seq89/map21/sky1",
+        "seq92/map23/sky1",
+        "seq94/map23/sky1",
+        "seq96/map23/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "6b5a3383270c2f192b54b5808010a757": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 3,
+      "source_size": [
+        256,
+        1
+      ],
+      "sources": [
+        "map21/sky1",
+        "map23/sky1",
+        "seq179/map23/sky1",
+        "seq243/map23/sky1",
+        "seq245/map23/sky1",
+        "seq87/map21/sky1",
+        "seq89/map21/sky1",
+        "seq92/map23/sky1",
+        "seq94/map23/sky1",
+        "seq96/map23/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "5e6b35228138b59e1176b91c65302a63": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 4,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map3/sky0",
+        "seq110/map3/sky0",
+        "seq112/map3/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "5fecb03f87f6c6b59aa3db71abed4797": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 5,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map3/sky0",
+        "seq110/map3/sky0",
+        "seq112/map3/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "475a0d03554bf3a440111a6c659c7254": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 6,
+      "source_size": [
+        248,
+        184
+      ],
+      "sources": [
+        "map3/sky1",
+        "seq110/map3/sky1",
+        "seq112/map3/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "6bcf6837f0489b4ddad3fe4302098f68": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 7,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map3/sky1",
+        "seq110/map3/sky1",
+        "seq112/map3/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "a9199e1ee87286978934d5dc1bac77c8": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 8,
+      "source_size": [
+        256,
+        240
+      ],
+      "sources": [
+        "map5/sky0",
+        "map5/sky1",
+        "map6/sky0",
+        "map6/sky1",
+        "seq119/map5/sky0",
+        "seq119/map5/sky1",
+        "seq121/map5/sky0",
+        "seq121/map5/sky1",
+        "seq189/map6/sky0",
+        "seq189/map6/sky1",
+        "seq191/map6/sky0",
+        "seq191/map6/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "287117fa4abcd18a59f8e40b56edbea5": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 9,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map8/sky0",
+        "seq128/map8/sky0",
+        "seq198/map8/sky0",
+        "seq200/map8/sky0",
+        "seq203/map8/sky0",
+        "seq28/map8/sky0",
+        "seq30/map8/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "54b52fa7746198d1dd04a89783442c0d": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 10,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map8/sky0",
+        "seq128/map8/sky0",
+        "seq198/map8/sky0",
+        "seq200/map8/sky0",
+        "seq203/map8/sky0",
+        "seq28/map8/sky0",
+        "seq30/map8/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "21e21ed92addcf28cc8d65f590508ea2": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 11,
+      "source_size": [
+        256,
+        70
+      ],
+      "sources": [
+        "map8/sky1",
+        "seq128/map8/sky1",
+        "seq198/map8/sky1",
+        "seq200/map8/sky1",
+        "seq203/map8/sky1",
+        "seq28/map8/sky1",
+        "seq30/map8/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "7860b797b5496dfca35545f0e065164a": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 12,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map9/sky0",
+        "seq39/map9/sky0",
+        "seq41/map9/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "eb907d68d8ae1bfe3653ea41e6eeeb36": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 13,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map9/sky0",
+        "seq39/map9/sky0",
+        "seq41/map9/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "1541b317b284dca683561b569f264a93": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 14,
+      "source_size": [
+        256,
+        1
+      ],
+      "sources": [
+        "map9/sky1",
+        "seq39/map9/sky1",
+        "seq41/map9/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "2071dcecfcf88e40bf793a589f217024": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 15,
+      "source_size": [
+        256,
+        80
+      ],
+      "sources": [
+        "map9/sky1",
+        "seq39/map9/sky1",
+        "seq41/map9/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "0706af1c0a2d8b255870cd102113aa43": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 16,
+      "source_size": [
+        85,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky0",
+        "seq16/map0/sky0",
+        "seq17/map0/sky0",
+        "seq186/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "36d1d8cb092167f73ea0438fd857c338": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 17,
+      "source_size": [
+        85,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky0",
+        "seq16/map0/sky0",
+        "seq17/map0/sky0",
+        "seq186/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "0c2d233120057aeaf1caa9b35d034e81": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 18,
+      "source_size": [
+        86,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky0",
+        "seq16/map0/sky0",
+        "seq17/map0/sky0",
+        "seq186/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "f7beb8f8c533dceff2e0d2edb80d09ed": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 19,
+      "source_size": [
+        86,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky0",
+        "seq16/map0/sky0",
+        "seq17/map0/sky0",
+        "seq186/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "850d19cf29421b2ea2253e66853d9fba": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 20,
+      "source_size": [
+        87,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky0",
+        "seq16/map0/sky0",
+        "seq17/map0/sky0",
+        "seq186/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "bede91efb17fac09b780937e3134ac4e": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 21,
+      "source_size": [
+        87,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky0",
+        "seq16/map0/sky0",
+        "seq17/map0/sky0",
+        "seq186/map0/sky0"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "ec2e3f1b377c3bb6513bd1c65b35d1f5": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 22,
+      "source_size": [
+        1,
+        1
+      ],
+      "sources": [
+        "seq117/map0/sky1",
+        "seq16/map0/sky1",
+        "seq17/map0/sky1",
+        "seq186/map0/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "05380543fdafe6dffe491d031af540d9": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 23,
+      "source_size": [
+        64,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky1",
+        "seq16/map0/sky1",
+        "seq17/map0/sky1",
+        "seq186/map0/sky1"
+      ],
+      "runtime_original": "alpha only"
+    },
+    "e2d3e45b812b279fbd9facf7c216c6b0": {
+      "origin": "generated-painting",
+      "atlas": "jp-background-01",
+      "cell": 24,
+      "source_size": [
+        65,
+        80
+      ],
+      "sources": [
+        "seq117/map0/sky1",
+        "seq16/map0/sky1",
+        "seq17/map0/sky1",
+        "seq186/map0/sky1"
+      ],
+      "runtime_original": "alpha only"
     }
   },
   "files": {
@@ -95452,6 +96956,95 @@
     "paintings/eb9d7bb24eb4069191bbbc728cb8fdb7.png": "3b4f2f4753d423e66a544192396f6534d31ce0308d9d3b2f44e0d877bd1caf41",
     "paintings/0fb585f2ee5cbfa25b233e383a8e7b97.png": "e552210f3b05245d76562e5724d0e8ff4515c326cc6ecba0e88db632ff8071fc",
     "paintings/8d36cc1ae3aee299f7c3fcd40b734b4b.png": "87cad4450a00e08c05d6b38908978e607febed049a55ffc82dd24e0b5b4a1f7e",
-    "paintings/7a9aae3bbb485e880032705a246222e3.png": "90d44d534d9756192556fc53c0656f38402754a1d389c47ce6b96354a41228cd"
+    "paintings/7a9aae3bbb485e880032705a246222e3.png": "90d44d534d9756192556fc53c0656f38402754a1d389c47ce6b96354a41228cd",
+    "paintings/0f5185fd048b6a42edcebbe7225810b9.png": "c8e6d62bf38840166fe0994dd97e47e4e4b679aae29f9439f32d11ffa2d3e4dc",
+    "paintings/119d76f4a7a2e0fc04ff68e58d77d7d5.png": "96a6cf75b55e138d8fd0c6d79a1c5bb312ad502cb8e11e820217911a26698ed5",
+    "paintings/450dc758485c649070b2d07d9d49a91d.png": "3a844dfed2c7601a3b90c0dad8d05989a4c22b5c4765dfd1aec60632a76b86e9",
+    "paintings/626e9d3dc817dc173fb672c48fb3ac2e.png": "7caf1ac3fb0f948c73b03475985a0820cc74eb8867220a3348f0ba846d508ced",
+    "paintings/a8f17820631bf44682b1487f01a87d71.png": "188654d1ce2ed11349a9291376de627bf0583130ceefdbaa15d1159fcfdbfa6a",
+    "paintings/aaabe20ebbfc8bab78a98c1737c41b34.png": "149cd9f8932756507a5097c64f8a5b8cc5f4632628914f6d43d4e573814692f3",
+    "paintings/e52cb877b360a219b9f4374a75a28c74.png": "5be49e5130a8fec93273556069eeea191ed20808dec51fda1b28b58bd95a1a41",
+    "paintings/8ca2db99abf83cb8f3608850fbae3bcf.png": "5318bbf89191dae9771f23053f3f0a18a4eae05df12d21b9e50253e525b45d92",
+    "paintings/be6295186297202f567a6caae55cc8ed.png": "8819ee908a85466aa1561877ef94ab9b045cae232f58944951eac89815e75f01",
+    "paintings/3ecfec93811d486175a15995e38b0550.png": "f3ffc4dbcd2497f79bcb2337b07c8127993f9dde91a02a039cd288f734ed3ef8",
+    "paintings/2833afb53a496b3e1c121582be7b74aa.png": "91626c1d2bbf186e94321f1d55622df31420994cda0e88ee9c5869e89c6cb9d5",
+    "paintings/a44c69cdedb44b1880719f28d8044c05.png": "55c887e0c68499955b577c5f382c115753f890c982038baf0e7c5387adade16f",
+    "paintings/f51a439d5e3fca49cb168f38e4b71d0a.png": "ece8a9f50d0a16cec360f91e278fae919f38a93f36ea6a66141e8d73cfb2ea4c",
+    "paintings/43f2dc0bda35ac75d74b3e27f5c2780c.png": "325030f811731e4144540238cbc243c86ed6fad9a8add7a7de260d22244764e5",
+    "paintings/b1b7d2faaa33fbabc47c77077595cd57.png": "72c340e4d6093189743b4fe09a57c00f8a0732aa8ca3b5422ad5a2bb74c62d43",
+    "paintings/b2e016df3614064bbfa3a90412c84935.png": "21a7e7cee8fffaa64c232a3d4c5109435abbb94462a957506430c18db03f0c70",
+    "paintings/ecc20389c6d65e367ade365f294c3f66.png": "13b4545a8ea2488a7eb9d20c61459abdc426d4bf240a1a7553783428fec2a2f8",
+    "paintings/02a40808275e0dff6a2f0aa33e8b2199.png": "983190eaa13fb1382f7b5be784cc4ba1dc127703bd6edd6fed67b42193c1abf8",
+    "paintings/5d8fb436eaedee13d4e1c8616deac783.png": "bae1667985894e24c5274cb518857b9927a112b47ba3d125a27826725d0a95eb",
+    "paintings/82bd3b8be82ae66391c559f315e44a12.png": "7b9be84363e9b5e26080372e9ea2f9810f3a40f84702ba33d6994a3a4633943d",
+    "paintings/133893db460b3327726dc1332e2f0961.png": "b98524317d9286fd944670955be739df3e521f6c814acb6701c713b09c487dbb",
+    "paintings/280585fdc0f4de69aa84bcefe48b7159.png": "c4246786ca10ed8b73f597cc5a309a2c5159f52bce9227d956d706c7b352b1c9",
+    "paintings/06ba7d1851ac398008cb2358d1dfc239.png": "52ce461ab05d809ebcf845d738050a3d860af9792b329dd217dcf934606bfb96",
+    "paintings/acdb289682159e71ceb9ede68d47f178.png": "65115e1072901debe9d738bc1b1596807c51a396e721787085555a67c2be7556",
+    "paintings/670016c2c71f14ff374358cb053d2891.png": "8680e08fcb270d97ad6175806ed07c4523b49a19ad389f64a481fbc8de8ac33b",
+    "paintings/182165edc751a2af5595046ed1baab46.png": "13a9ce4053f44f48c43f06dd22410b9249193216aba785d0d2728149b9141d74",
+    "paintings/d885412d32310fb9493988425dc42258.png": "a17bb6b9279dd5e228a58c84ede81f5e6d62b13e157e5b2bf7be311affd14c14",
+    "paintings/f315633f2d3d593b29b4162af79c0757.png": "e52d771ea0540fc7e24f8252da67d4a8896cb710672bf2ce95a44d2f9c2c7525",
+    "paintings/3e698b3c80ad2a05b31883c7a2d6d9c2.png": "ca4afa8feec471ee999b1f9cc93f71e7315f9920db01c3519d2bd5c84a00c8f2",
+    "paintings/af9d759b97f10a0f0711cdcf658d9845.png": "db28bc2229bd57bf9e3062995a9ffb56f2a04723bdd7e151692042b3a9ce9221",
+    "paintings/4eaefeaad64fd3d3605b5e64d54f5686.png": "9dce62aae7f03a97265e6fc1d13c1924ff631f5cf6fe7f944127d411a9405269",
+    "paintings/7e3a325161b31bc4b8ef22cd571fef22.png": "7eee210b1621f9472cf0b6f2acc89f9bf75abcfa316d8fd6921ef6e0f840914a",
+    "paintings/49a606c66c0689506d2052d08c82aa22.png": "42dbbe19465b8a0f99f855e4184c9d3d62d3a70759c67f0836434a79b682f011",
+    "paintings/5b6169a1e7410bebb2048f15717433ff.png": "bcd269d38f27e51ce57cca47fdd35204ad2f4dc178d8973bfb46bdfbcbb3d296",
+    "paintings/9467ccc0644f2d831a5ea1c4a2eda6e8.png": "09b7aa444a7d3fcc9c2491d7232b7f6b4fb792f6843860284736cb8e417516d0",
+    "paintings/b9a6608fc2b4fa92cd22195a4bb95f27.png": "006dca804be1b55bbea205c30d09591bcbe7382351d54b959e88b5c9c87ff864",
+    "paintings/bc48969bb4a37968e5f4dc343e455732.png": "236c815d6893dd5c4d8b4773c5ff0cf3f6ad5b42a3ed4e53af4e3c84ff030032",
+    "paintings/c6c1562c117e5595abfb6bec0b098ec2.png": "1014f6814e7a4d064957b77845bf800980905c20a618368ad1fca719d13e5130",
+    "paintings/e035954db4ebca82787adf16a620455d.png": "818fc79bad70c31e1efc6d955cf16550d783767845b5bae51b5f4fc8b4b46c51",
+    "paintings/2cc37db92ef35b70166eda60c53193f1.png": "ce7d883f6bfacced142b62e8b935f29f3bf70ec14b1a02bfdf1878aeed930152",
+    "paintings/8e4dd137288516e0621d6ff208bda271.png": "ef04b43e01ddaf6fa42d801bb423d0e06984125079462c850f24de5ea9880523",
+    "paintings/b08d788056c9df736f7cbd77ead4748b.png": "6ea370e997475e59dc612d265c438eabc1ca68a458906f8821a322f575cf985c",
+    "paintings/807e68982f01c5ebd178c79ee1b5b228.png": "e8f808dfc5e6dac3e29d1381296d2a9ee9443b36b00c368995ea5a030a5f9b6c",
+    "paintings/2d0a7b403bdae27bb876de482dd59c88.png": "bf6ad509b86bac65b06588337829eb2217b0c073b4133083d7d568d6d0d8aa80",
+    "paintings/f3e89c41afbdf76da82096c2c2dda3e7.png": "5ff83c161972e3ee39f74111e3f0e157c77a881fefbdb88d3cc1a8d30a444c73",
+    "paintings/78b28b3832c783459469e604381c8bbf.png": "6e863b41594b5f27e65227dc134eb1eb7cfe3bc180be8a885ee430fe3d48fbf0",
+    "paintings/ed682ed92becd610021f9bf49abd1355.png": "20e37912011cc54d83c6fa444a39f82cf70aee0d2a76f9eddfd72c5c68bb52a0",
+    "paintings/e9ea9f6a0039c23519184a0223144f1a.png": "e6523d97ef00a7a430f346d2354ff8eb666b0b851f03e53eff6c9c7297ae8de0",
+    "paintings/31bb6b56e4f0e5571a809fa8f17ae518.png": "e191dc6528d109460658791d3ce9f1c72bad5ca467ec67bfea2637922d498f68",
+    "paintings/8b851efb71571fc30f52119c35800366.png": "9611cbf070e7c76b4205b308a0754eab1dda8cadeb69c535fa60dbb9c8ffed74",
+    "paintings/603d12fed452988ef9a2790a3023d474.png": "52f6fdf2c9c7ea012ffaea074c2e3c468773ea9f6223b1411cff05d8de5ac586",
+    "paintings/6121ec600aec4001aa8ead987ae38b21.png": "8b204f10a2465f647d0d500ad216a7841612c74541067adff008d46400186ffb",
+    "paintings/078f3ae54364cd4e92a128b3357d5dd7.png": "879695869e3a445fe502634bc62668aebbe3286ad908ec2efe23ce95b03d8965",
+    "paintings/1fbc60447a1d6f67d2e859b60d4ffc43.png": "fcccbdf591098d5ae065998c7497c41be974b3c4242400e6448c82a0396add8b",
+    "paintings/53f93035cc82439768e64533f5ac9feb.png": "27865d321970d869f115dcf305962ba07d4e6c2f8d9f4170016b7a9c32a110ad",
+    "paintings/d0fff4ed0ae1110f46e443f6f0208dc6.png": "34ec50d94cd8f207679052054344e2a0cc27e577a8a0882f996a94f5dc9a3ac1",
+    "paintings/d68700629f02076ca12e6a8dafa0848c.png": "abe5fe8bcd6b62a4a40861ec3e8d8fcfd9d5f7c1cdb237fa7b5b3aa2b072f4ca",
+    "paintings/fbd7bcf555b0379dffc49f7e7490a789.png": "d8f5fee317954e308fcbe30b13556c3a9664417a54c2cf404263b7089e01ecb1",
+    "paintings/3cff6375d7348aa12bf676ff3536c037.png": "7faa6e1217cc97091b97e4ba136203e9196139a8a658bbef101fe2334cd2734d",
+    "paintings/f0dfcb09397bedaa9cb3092b22f6a76d.png": "7bcbe1e2e6c9eee18a27dfa56fcb0d873149c7beae3a122df20321824290b85d",
+    "paintings/e125a36571d2c2939c4f13e5d433ea17.png": "fad41a218c8e7e3a24d8ca25e35e714913824cb2e8f8034fbf2152a0f3cc70a7",
+    "paintings/dcec29262e7d256e66563281b53a9a9a.png": "59682fa7cefa49c881b6d4ca6323bca9f3f1223b3961f38f5c81b99c8be804c9",
+    "paintings/3d1c630a1a17714cdeaf8f1836d44e5d.png": "28a7673ba52e5e778dbb294ed5e318bd5af30ee2d9cb25e7dceb277160f7938c",
+    "paintings/7106a1a0019ce9d1ca2e6511aa4d2f12.png": "f6c6326efb0f2b1ad23499879b1c33ed0d42c4ac322af18b42da804727856e41",
+    "paintings/539f20ed40d1dcc8ad137c7baef56353.png": "53d7cfb5cb203d612738036a90f4a739c10e8ccec4b2c64d6442b54295cf4c6b",
+    "paintings/9ada047bb0b29da214a3600ea3416e84.png": "634f90caa30a9c83ff88c83c1d439be565f4047da9f0168c0e9323babd94255b",
+    "paintings/70347828b75a9ef27c013704c46dfbec.png": "6f19819ed07c6a0a9b4b9929a61cbc3d4ea5138e5b6b8532a776bad3f672916e",
+    "paintings/6b5a3383270c2f192b54b5808010a757.png": "d0739db97092868c5ab8ef4837fc90cde70580fe932db3625b9b5040cd7e86f7",
+    "paintings/5e6b35228138b59e1176b91c65302a63.png": "41e9f1a4cc121b0c7959c088a4b7800fce3f42ec1e2f8a5c8ee827c8f5e0be4f",
+    "paintings/5fecb03f87f6c6b59aa3db71abed4797.png": "14a453c43246f1860232f1e50b210741bba4efcf11ccc2dc42780b101bd99271",
+    "paintings/475a0d03554bf3a440111a6c659c7254.png": "c24e4dd0fd379679e2593353fd939f9d0f374e26e86b87dae89c28d8d1901254",
+    "paintings/6bcf6837f0489b4ddad3fe4302098f68.png": "343907f4081407da099838ac2d2a89939dd44fdf5eabec10770b3f80e28eab87",
+    "paintings/a9199e1ee87286978934d5dc1bac77c8.png": "e774655e6b4849af5c3e0be72089ca4b0b78856084cbdc09ebc16263f41ffe2b",
+    "paintings/287117fa4abcd18a59f8e40b56edbea5.png": "f064b7fa07759305b29b63c6d37128553299ec80b64ecd3515fea3d83a91924f",
+    "paintings/54b52fa7746198d1dd04a89783442c0d.png": "a55a25a8603e4362f077b731477b452b9d3ff33065845dd9adea74c386a59c96",
+    "paintings/21e21ed92addcf28cc8d65f590508ea2.png": "3814ff629bc6c52da0fe70c433ea3bd3ec0e5f131f57de52a1f03b1ab022be7c",
+    "paintings/7860b797b5496dfca35545f0e065164a.png": "b0d4747031745b590cb1ed09fd05ada7846a95d00008ce80b552dbf7c796bb58",
+    "paintings/eb907d68d8ae1bfe3653ea41e6eeeb36.png": "3fd4bec1981aa229600f1d29a40c58e763f5c36fb0b2496303b84815a8a07562",
+    "paintings/1541b317b284dca683561b569f264a93.png": "4b25057a79e5560725411942ff4f3c423ac58a1746facf87cfab74f05461dfab",
+    "paintings/2071dcecfcf88e40bf793a589f217024.png": "768d43ececf445f45410d127f7e5d506d5196e23f70f775c1a44063acf71f52e",
+    "paintings/0706af1c0a2d8b255870cd102113aa43.png": "85fb9c4f706964c2b3c7f3bf8007c4b4a5fce78d3aacff57958bb4e885cf57a8",
+    "paintings/36d1d8cb092167f73ea0438fd857c338.png": "71e2525fb6d17db6412b8d577765a7cf9da6be0ea23eb75c4248a4212ef26743",
+    "paintings/0c2d233120057aeaf1caa9b35d034e81.png": "a71ebde8233b58fc0edd61d24a87397b82f4ba553f6b4a31dc62e295339f9432",
+    "paintings/f7beb8f8c533dceff2e0d2edb80d09ed.png": "ed431ff0db268ca5c33ac222beae2a707fd61be9bdb53ddd950fb20d79e85f5a",
+    "paintings/850d19cf29421b2ea2253e66853d9fba.png": "7de9de56dbaaa4c5731f4898f620486d449605dc524a2afe678e1b0ffeb55ab5",
+    "paintings/bede91efb17fac09b780937e3134ac4e.png": "20347ce1aa36939a065531c456fb09023d5ce97de8b3baee734545fa964a3a03",
+    "paintings/ec2e3f1b377c3bb6513bd1c65b35d1f5.png": "d6325bd24a66141e9be518d303852fab10d39cbbf9ed21765cd7e771d51fc5c3",
+    "paintings/05380543fdafe6dffe491d031af540d9.png": "9b9d347b6494f2ff3ee29ec1d39e52b0cf00975f402b24f6c4c6b047551d82d4",
+    "paintings/e2d3e45b812b279fbd9facf7c216c6b0.png": "14478c31a4bd31c936279a4cb6ab57bc10375d4e3e3f80481375d3ac719545de"
   }
 }

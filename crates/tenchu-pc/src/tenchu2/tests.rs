@@ -188,6 +188,7 @@ fn artwork_covers_native_japanese_mission_resources() {
         let level = Level::load(&disc, id).unwrap();
         check_artwork(&format!("map{id}/terrain"), &level.map, &level.vram);
         check_artwork(&format!("map{id}/props"), &level.objects, &level.vram);
+        check_background_artwork(&level);
         for (id, part) in &level.stumps {
             check_artwork(
                 &format!("map{}/stump{id}", level.id),
@@ -208,6 +209,17 @@ fn artwork_covers_native_japanese_mission_resources() {
             &level.objects,
             &level.vram,
         );
+        check_background_artwork(&level);
+    }
+    let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(&disc).unwrap();
+    for sequence in [16, 17, 26, 117, 186] {
+        let story = tenchu_assets::tenchu2::story::Script::load(
+            &disc,
+            campaign.sequences[sequence].resource,
+        )
+        .unwrap();
+        let level = Level::japanese_scene(&disc, story.area.unwrap(), sequence, false).unwrap();
+        check_background_artwork(&level);
     }
     for character in characters::load(&disc, None).unwrap() {
         let rig = characters::rig(&disc, &character.name).unwrap();
@@ -232,6 +244,23 @@ fn artwork_covers_native_japanese_mission_resources() {
     let items = Items::load(&disc).unwrap();
     for (id, parts) in items.models() {
         check_artwork(&format!("items/{id}"), parts, &items.vram);
+    }
+}
+
+fn check_background_artwork(level: &Level) {
+    for (index, sky) in level.background.sky.iter().enumerate() {
+        check_artwork(
+            &format!("map{}/sky{index}", level.id),
+            std::slice::from_ref(&sky.model),
+            &level.vram,
+        );
+    }
+    if let Some(part) = &level.background.landscape {
+        check_artwork(
+            &format!("map{}/background", level.id),
+            std::slice::from_ref(part),
+            &level.vram,
+        );
     }
 }
 

@@ -7,10 +7,11 @@ launcher, or import it with **Import Tenchu 2 HD artwork** in the Android launch
 Enable **F1 → Visual assets → Replacement artwork**. The Gaisen artwork pack is
 independent; either or both can be installed.
 
-Version 2 contains 4,487 replacements. It retains version 1's Europe coverage
-and adds all 892 missing identities from the Japanese mission-resource audit:
-terrain, props, sequence-specific layouts, character bodies/costumes, weapons
-and items. All 3,816 unique identities in that JP audit are covered. This does
+Version 2 contains 4,576 replacements. It retains version 1's Europe coverage
+and adds all 981 missing identities from the Japanese mission-resource audit:
+terrain, props, skies/distant scenery, sequence-specific layouts, character
+bodies/costumes, weapons and items. All 3,908 unique identities in that JP audit
+are covered, including the evening background variants. This does
 not promise HD replacements for story-exclusive artwork or menu sprites.
 
 It preserves the source meshes, UV layouts and cutout shapes. The Gaisen disc

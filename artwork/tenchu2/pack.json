@@ -67306,6 +67306,1341 @@
           }
         }
       ]
+    },
+    "0f5185fd048b6a42edcebbe7225810b9": {
+      "base": {
+        "file": "paintings/0f5185fd048b6a42edcebbe7225810b9.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "119d76f4a7a2e0fc04ff68e58d77d7d5": {
+      "base": {
+        "file": "paintings/119d76f4a7a2e0fc04ff68e58d77d7d5.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "450dc758485c649070b2d07d9d49a91d": {
+      "base": {
+        "file": "paintings/450dc758485c649070b2d07d9d49a91d.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "626e9d3dc817dc173fb672c48fb3ac2e": {
+      "base": {
+        "file": "paintings/626e9d3dc817dc173fb672c48fb3ac2e.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "a8f17820631bf44682b1487f01a87d71": {
+      "base": {
+        "file": "paintings/a8f17820631bf44682b1487f01a87d71.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "aaabe20ebbfc8bab78a98c1737c41b34": {
+      "base": {
+        "file": "paintings/aaabe20ebbfc8bab78a98c1737c41b34.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "e52cb877b360a219b9f4374a75a28c74": {
+      "base": {
+        "file": "paintings/e52cb877b360a219b9f4374a75a28c74.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "8ca2db99abf83cb8f3608850fbae3bcf": {
+      "base": {
+        "file": "paintings/8ca2db99abf83cb8f3608850fbae3bcf.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "be6295186297202f567a6caae55cc8ed": {
+      "base": {
+        "file": "paintings/be6295186297202f567a6caae55cc8ed.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "3ecfec93811d486175a15995e38b0550": {
+      "base": {
+        "file": "paintings/3ecfec93811d486175a15995e38b0550.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "2833afb53a496b3e1c121582be7b74aa": {
+      "base": {
+        "file": "paintings/2833afb53a496b3e1c121582be7b74aa.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "a44c69cdedb44b1880719f28d8044c05": {
+      "base": {
+        "file": "paintings/a44c69cdedb44b1880719f28d8044c05.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "f51a439d5e3fca49cb168f38e4b71d0a": {
+      "base": {
+        "file": "paintings/f51a439d5e3fca49cb168f38e4b71d0a.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "43f2dc0bda35ac75d74b3e27f5c2780c": {
+      "base": {
+        "file": "paintings/43f2dc0bda35ac75d74b3e27f5c2780c.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "b1b7d2faaa33fbabc47c77077595cd57": {
+      "base": {
+        "file": "paintings/b1b7d2faaa33fbabc47c77077595cd57.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "b2e016df3614064bbfa3a90412c84935": {
+      "base": {
+        "file": "paintings/b2e016df3614064bbfa3a90412c84935.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "ecc20389c6d65e367ade365f294c3f66": {
+      "base": {
+        "file": "paintings/ecc20389c6d65e367ade365f294c3f66.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "02a40808275e0dff6a2f0aa33e8b2199": {
+      "base": {
+        "file": "paintings/02a40808275e0dff6a2f0aa33e8b2199.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "5d8fb436eaedee13d4e1c8616deac783": {
+      "base": {
+        "file": "paintings/5d8fb436eaedee13d4e1c8616deac783.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "82bd3b8be82ae66391c559f315e44a12": {
+      "base": {
+        "file": "paintings/82bd3b8be82ae66391c559f315e44a12.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "133893db460b3327726dc1332e2f0961": {
+      "base": {
+        "file": "paintings/133893db460b3327726dc1332e2f0961.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "280585fdc0f4de69aa84bcefe48b7159": {
+      "base": {
+        "file": "paintings/280585fdc0f4de69aa84bcefe48b7159.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "06ba7d1851ac398008cb2358d1dfc239": {
+      "base": {
+        "file": "paintings/06ba7d1851ac398008cb2358d1dfc239.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "acdb289682159e71ceb9ede68d47f178": {
+      "base": {
+        "file": "paintings/acdb289682159e71ceb9ede68d47f178.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "670016c2c71f14ff374358cb053d2891": {
+      "base": {
+        "file": "paintings/670016c2c71f14ff374358cb053d2891.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "182165edc751a2af5595046ed1baab46": {
+      "base": {
+        "file": "paintings/182165edc751a2af5595046ed1baab46.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "d885412d32310fb9493988425dc42258": {
+      "base": {
+        "file": "paintings/d885412d32310fb9493988425dc42258.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "f315633f2d3d593b29b4162af79c0757": {
+      "base": {
+        "file": "paintings/f315633f2d3d593b29b4162af79c0757.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "3e698b3c80ad2a05b31883c7a2d6d9c2": {
+      "base": {
+        "file": "paintings/3e698b3c80ad2a05b31883c7a2d6d9c2.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "af9d759b97f10a0f0711cdcf658d9845": {
+      "base": {
+        "file": "paintings/af9d759b97f10a0f0711cdcf658d9845.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "4eaefeaad64fd3d3605b5e64d54f5686": {
+      "base": {
+        "file": "paintings/4eaefeaad64fd3d3605b5e64d54f5686.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "7e3a325161b31bc4b8ef22cd571fef22": {
+      "base": {
+        "file": "paintings/7e3a325161b31bc4b8ef22cd571fef22.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "49a606c66c0689506d2052d08c82aa22": {
+      "base": {
+        "file": "paintings/49a606c66c0689506d2052d08c82aa22.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "5b6169a1e7410bebb2048f15717433ff": {
+      "base": {
+        "file": "paintings/5b6169a1e7410bebb2048f15717433ff.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "9467ccc0644f2d831a5ea1c4a2eda6e8": {
+      "base": {
+        "file": "paintings/9467ccc0644f2d831a5ea1c4a2eda6e8.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "b9a6608fc2b4fa92cd22195a4bb95f27": {
+      "base": {
+        "file": "paintings/b9a6608fc2b4fa92cd22195a4bb95f27.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "bc48969bb4a37968e5f4dc343e455732": {
+      "base": {
+        "file": "paintings/bc48969bb4a37968e5f4dc343e455732.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "c6c1562c117e5595abfb6bec0b098ec2": {
+      "base": {
+        "file": "paintings/c6c1562c117e5595abfb6bec0b098ec2.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "e035954db4ebca82787adf16a620455d": {
+      "base": {
+        "file": "paintings/e035954db4ebca82787adf16a620455d.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "2cc37db92ef35b70166eda60c53193f1": {
+      "base": {
+        "file": "paintings/2cc37db92ef35b70166eda60c53193f1.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "8e4dd137288516e0621d6ff208bda271": {
+      "base": {
+        "file": "paintings/8e4dd137288516e0621d6ff208bda271.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "b08d788056c9df736f7cbd77ead4748b": {
+      "base": {
+        "file": "paintings/b08d788056c9df736f7cbd77ead4748b.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "807e68982f01c5ebd178c79ee1b5b228": {
+      "base": {
+        "file": "paintings/807e68982f01c5ebd178c79ee1b5b228.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "2d0a7b403bdae27bb876de482dd59c88": {
+      "base": {
+        "file": "paintings/2d0a7b403bdae27bb876de482dd59c88.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "f3e89c41afbdf76da82096c2c2dda3e7": {
+      "base": {
+        "file": "paintings/f3e89c41afbdf76da82096c2c2dda3e7.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "78b28b3832c783459469e604381c8bbf": {
+      "base": {
+        "file": "paintings/78b28b3832c783459469e604381c8bbf.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "ed682ed92becd610021f9bf49abd1355": {
+      "base": {
+        "file": "paintings/ed682ed92becd610021f9bf49abd1355.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "e9ea9f6a0039c23519184a0223144f1a": {
+      "base": {
+        "file": "paintings/e9ea9f6a0039c23519184a0223144f1a.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "31bb6b56e4f0e5571a809fa8f17ae518": {
+      "base": {
+        "file": "paintings/31bb6b56e4f0e5571a809fa8f17ae518.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "8b851efb71571fc30f52119c35800366": {
+      "base": {
+        "file": "paintings/8b851efb71571fc30f52119c35800366.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "603d12fed452988ef9a2790a3023d474": {
+      "base": {
+        "file": "paintings/603d12fed452988ef9a2790a3023d474.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "6121ec600aec4001aa8ead987ae38b21": {
+      "base": {
+        "file": "paintings/6121ec600aec4001aa8ead987ae38b21.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "078f3ae54364cd4e92a128b3357d5dd7": {
+      "base": {
+        "file": "paintings/078f3ae54364cd4e92a128b3357d5dd7.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "1fbc60447a1d6f67d2e859b60d4ffc43": {
+      "base": {
+        "file": "paintings/1fbc60447a1d6f67d2e859b60d4ffc43.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "53f93035cc82439768e64533f5ac9feb": {
+      "base": {
+        "file": "paintings/53f93035cc82439768e64533f5ac9feb.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "d0fff4ed0ae1110f46e443f6f0208dc6": {
+      "base": {
+        "file": "paintings/d0fff4ed0ae1110f46e443f6f0208dc6.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "d68700629f02076ca12e6a8dafa0848c": {
+      "base": {
+        "file": "paintings/d68700629f02076ca12e6a8dafa0848c.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "fbd7bcf555b0379dffc49f7e7490a789": {
+      "base": {
+        "file": "paintings/fbd7bcf555b0379dffc49f7e7490a789.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "3cff6375d7348aa12bf676ff3536c037": {
+      "base": {
+        "file": "paintings/3cff6375d7348aa12bf676ff3536c037.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "f0dfcb09397bedaa9cb3092b22f6a76d": {
+      "base": {
+        "file": "paintings/f0dfcb09397bedaa9cb3092b22f6a76d.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "e125a36571d2c2939c4f13e5d433ea17": {
+      "base": {
+        "file": "paintings/e125a36571d2c2939c4f13e5d433ea17.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "dcec29262e7d256e66563281b53a9a9a": {
+      "base": {
+        "file": "paintings/dcec29262e7d256e66563281b53a9a9a.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "3d1c630a1a17714cdeaf8f1836d44e5d": {
+      "base": {
+        "file": "paintings/3d1c630a1a17714cdeaf8f1836d44e5d.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "7106a1a0019ce9d1ca2e6511aa4d2f12": {
+      "base": {
+        "file": "paintings/7106a1a0019ce9d1ca2e6511aa4d2f12.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "539f20ed40d1dcc8ad137c7baef56353": {
+      "base": {
+        "file": "paintings/539f20ed40d1dcc8ad137c7baef56353.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "9ada047bb0b29da214a3600ea3416e84": {
+      "base": {
+        "file": "paintings/9ada047bb0b29da214a3600ea3416e84.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "70347828b75a9ef27c013704c46dfbec": {
+      "base": {
+        "file": "paintings/70347828b75a9ef27c013704c46dfbec.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "6b5a3383270c2f192b54b5808010a757": {
+      "base": {
+        "file": "paintings/6b5a3383270c2f192b54b5808010a757.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "5e6b35228138b59e1176b91c65302a63": {
+      "base": {
+        "file": "paintings/5e6b35228138b59e1176b91c65302a63.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "5fecb03f87f6c6b59aa3db71abed4797": {
+      "base": {
+        "file": "paintings/5fecb03f87f6c6b59aa3db71abed4797.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "475a0d03554bf3a440111a6c659c7254": {
+      "base": {
+        "file": "paintings/475a0d03554bf3a440111a6c659c7254.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "6bcf6837f0489b4ddad3fe4302098f68": {
+      "base": {
+        "file": "paintings/6bcf6837f0489b4ddad3fe4302098f68.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "a9199e1ee87286978934d5dc1bac77c8": {
+      "base": {
+        "file": "paintings/a9199e1ee87286978934d5dc1bac77c8.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "287117fa4abcd18a59f8e40b56edbea5": {
+      "base": {
+        "file": "paintings/287117fa4abcd18a59f8e40b56edbea5.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "54b52fa7746198d1dd04a89783442c0d": {
+      "base": {
+        "file": "paintings/54b52fa7746198d1dd04a89783442c0d.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "21e21ed92addcf28cc8d65f590508ea2": {
+      "base": {
+        "file": "paintings/21e21ed92addcf28cc8d65f590508ea2.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "7860b797b5496dfca35545f0e065164a": {
+      "base": {
+        "file": "paintings/7860b797b5496dfca35545f0e065164a.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "eb907d68d8ae1bfe3653ea41e6eeeb36": {
+      "base": {
+        "file": "paintings/eb907d68d8ae1bfe3653ea41e6eeeb36.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "1541b317b284dca683561b569f264a93": {
+      "base": {
+        "file": "paintings/1541b317b284dca683561b569f264a93.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "2071dcecfcf88e40bf793a589f217024": {
+      "base": {
+        "file": "paintings/2071dcecfcf88e40bf793a589f217024.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "0706af1c0a2d8b255870cd102113aa43": {
+      "base": {
+        "file": "paintings/0706af1c0a2d8b255870cd102113aa43.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "36d1d8cb092167f73ea0438fd857c338": {
+      "base": {
+        "file": "paintings/36d1d8cb092167f73ea0438fd857c338.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "0c2d233120057aeaf1caa9b35d034e81": {
+      "base": {
+        "file": "paintings/0c2d233120057aeaf1caa9b35d034e81.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "f7beb8f8c533dceff2e0d2edb80d09ed": {
+      "base": {
+        "file": "paintings/f7beb8f8c533dceff2e0d2edb80d09ed.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "850d19cf29421b2ea2253e66853d9fba": {
+      "base": {
+        "file": "paintings/850d19cf29421b2ea2253e66853d9fba.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "bede91efb17fac09b780937e3134ac4e": {
+      "base": {
+        "file": "paintings/bede91efb17fac09b780937e3134ac4e.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "ec2e3f1b377c3bb6513bd1c65b35d1f5": {
+      "base": {
+        "file": "paintings/ec2e3f1b377c3bb6513bd1c65b35d1f5.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "05380543fdafe6dffe491d031af540d9": {
+      "base": {
+        "file": "paintings/05380543fdafe6dffe491d031af540d9.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
+    },
+    "e2d3e45b812b279fbd9facf7c216c6b0": {
+      "base": {
+        "file": "paintings/e2d3e45b812b279fbd9facf7c216c6b0.png"
+      },
+      "steps": [
+        {
+          "op": "alpha",
+          "mask": {
+            "source": "original",
+            "channel": "alpha",
+            "filter": "nearest"
+          }
+        }
+      ]
     }
   }
 }
