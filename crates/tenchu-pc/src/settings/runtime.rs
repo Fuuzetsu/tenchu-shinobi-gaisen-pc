@@ -52,7 +52,8 @@ impl Runtime {
             | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Trail | Sight | SightStance
             | Patrols | Events | Collision | CollisionOnly | Target(_) | PlayerPosition
             | CameraPosition | SnapFloor | Teleport | PickTeleport | ClickTeleport | KillActor
-            | ClickKill | Screenshot => None,
+            | ClickKill | Screenshot | ActorPosition | PickActorPosition | MoveActor
+            | RemoveActor => None,
             CircleAction | CameraRelative | AlignAim | FollowActor | FollowDistance
             | RecenterOrbit | MouseSensitivity | StickSensitivity | StickDeadzone
             | InvertCameraY => None,

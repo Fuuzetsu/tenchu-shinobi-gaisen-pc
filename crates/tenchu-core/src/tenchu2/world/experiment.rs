@@ -9,6 +9,137 @@ use crate::{
 };
 
 impl World {
+    fn editable_actor(&self, index: usize) -> Result<()> {
+        let player = &self.actors[self.player].actor;
+        let actor = &self
+            .actors
+            .get(index)
+            .ok_or("Actor no longer exists")?
+            .actor;
+        if !self.mission.input_allowed()
+            || player.health <= 0
+            || self.controls.stealth.is_some()
+            || (0x920..=0x92f).contains(&player.motion.action)
+            || index == self.player
+            || actor.health < 0
+            || self.script_hidden.contains(&index)
+            || self.mission.targets.contains(&Some(index))
+        {
+            return Err("Player, story actors and mission objectives cannot be edited here".into());
+        }
+        Ok(())
+    }
+
+    pub fn reposition_actor(
+        &mut self,
+        index: usize,
+        position: Position,
+        yaw: i16,
+        snap: bool,
+        assets: &Assets,
+    ) -> Result<()> {
+        self.editable_actor(index)?;
+        let mut actor = self.actors[index].actor.clone();
+        if actor.health == 0 {
+            return Err("Only living actors can be moved".into());
+        }
+        let (position, probe) =
+            self.edit_destination(position, actor.width, actor.height, snap, assets)?;
+        let action = if actor.weapon_drawn() { 0x100 } else { 0 };
+        actor
+            .change_motion(action, Velocity::Stop, &assets.resources)?
+            .ok_or("No idle motion for this actor")?;
+        actor.motion.frame = 0;
+        actor
+            .motion
+            .advance(&assets.resources.clips, &assets.spline, true)?;
+        actor.motion.frame = 0;
+        actor.position = position;
+        actor.previous = position;
+        actor.rotation = [0, yaw, 0].into();
+        actor.terrain = probe;
+        actor.velocity = Default::default();
+        actor.last_vertical_velocity = 0;
+        actor.flags &= 2 | 0x10;
+        actor.hit = None;
+        actor.pad = Default::default();
+        actor.attack = Default::default();
+        actor.target = (!matches!(actor.kind, 0x6a..=0x6e) && actor.kind & 0xf0 != 0x10)
+            .then_some(self.player);
+        self.collision.allow_expansion();
+        let agent = &mut self.actors[index];
+        agent.actor = actor;
+        agent.behavior.relocate(position);
+        agent.sight = Default::default();
+        agent.sight.destination = position;
+        agent.surroundings = Default::default();
+        let actor = &mut agent.actor;
+        let rig = &mut self.instances[index].rig;
+        actor.set_body_collision(rig.joints[0], index, &mut self.collision, true)?;
+        actor.set_secondary_body_collision(rig, index, &mut self.collision, true)?;
+        actor.set_weapon(
+            rig,
+            index,
+            &mut self.collision,
+            &assets.resources,
+            crate::tenchu2::rig::WeaponMode::Refresh,
+        )?;
+        self.publish(index, assets);
+        self.sync_attack_contacts(index);
+        for agent in &mut self.actors {
+            agent.actor.hit = None;
+        }
+        self.collision.compute(|id| self.scene.world(id))?;
+        for foot in &mut self.instances[index].feet {
+            foot.position = position;
+            foot.floor = self.actors[index].actor.terrain.floor;
+        }
+        Ok(())
+    }
+
+    pub fn remove_actor(&mut self, index: usize, assets: &Assets) -> Result<()> {
+        self.editable_actor(index)?;
+        use tenchu_assets::tenchu2::campaign::Objective;
+        let actor = &self.actors[index].actor;
+        if actor.health > 0
+            && !matches!(actor.kind & 0xf0, 0x10 | 0x60 | 0x70)
+            && matches!(
+                self.mission.objective,
+                Objective::EliminateAll | Objective::EliminateUnseen { .. }
+            )
+        {
+            return Err(
+                "This actor contributes to the mission's kill quota; use Kill selected actor"
+                    .into(),
+            );
+        }
+        self.set_script_visible(index, false, assets)?;
+        let actor = &mut self.actors[index].actor;
+        actor.health = -1;
+        actor.hit = None;
+        actor.target = None;
+        actor.pad = Default::default();
+        actor.attack = Default::default();
+        for agent in &mut self.actors {
+            agent.actor.hit = None;
+            if agent.actor.target == Some(index) {
+                agent.actor.target = None;
+            }
+        }
+        if self.controls.focus == Some(index) {
+            self.controls.focus = None;
+        }
+        if self.tracking == Some(index) {
+            self.tracking = None;
+        }
+        self.controls.hud.hide_health(index);
+        if self.controls.camera_actor == index {
+            self.controls.camera_actor = self.player;
+        }
+        self.collision.compute(|id| self.scene.world(id))?;
+        Ok(())
+    }
+
     pub fn kill_actor(&mut self, index: usize, assets: &Assets) -> Result<()> {
         let player = &self.actors[self.player].actor;
         if !self.mission.input_allowed()
@@ -83,7 +214,7 @@ impl World {
 
     pub fn teleport_player(
         &mut self,
-        mut position: Position,
+        position: Position,
         snap: bool,
         assets: &Assets,
     ) -> Result<()> {
@@ -97,36 +228,8 @@ impl World {
         {
             return Err("Teleport requires a living player outside combat animations and scripted transitions.".into());
         }
-        let map = &self.terrain;
-        for (axis, coordinate) in [position.x, position.z].into_iter().enumerate() {
-            let low = i32::from(map.origin[axis]) * 10;
-            let high = low + i32::from(map.cell_size) * map.dimensions[axis] as i32 * 10;
-            if !(low..high).contains(&coordinate) {
-                return Err("Teleport destination is outside this area's collision map.".into());
-            }
-        }
-        let mut cursor = terrain::Cursor::default();
-        if snap {
-            position.y = terrain::level(
-                map,
-                &mut cursor,
-                position.wrapping_sub(Position::new(0, 1000, 0)),
-                Query::Surface,
-            )?
-            .ok_or("No collision floor below that destination.")?;
-        }
-        let mut probe = Probe::default();
-        probe.sample(
-            map,
-            &mut cursor,
-            &assets.terrain_rules,
-            position.wrapping_sub(Position::new(0, i32::from(player.height), 0)),
-            player.width,
-            Default::default(),
-        )?;
-        if probe.floor.is_none() || probe.blocked != 0 {
-            return Err("Teleport destination is blocked or too close to a wall.".into());
-        }
+        let (position, probe) =
+            self.edit_destination(position, player.width, player.height, snap, assets)?;
         let mut player = player.clone();
         let action = if player.weapon_drawn() { 0x100 } else { 0 };
         player
@@ -178,5 +281,46 @@ impl World {
         let camera = self.update_camera(assets, true);
         self.random = random;
         camera
+    }
+
+    fn edit_destination(
+        &self,
+        mut position: Position,
+        width: i16,
+        height: i16,
+        snap: bool,
+        assets: &Assets,
+    ) -> Result<(Position, Probe)> {
+        let map = &self.terrain;
+        for (axis, coordinate) in [position.x, position.z].into_iter().enumerate() {
+            let low = i32::from(map.origin[axis]) * 10;
+            let high = low + i32::from(map.cell_size) * map.dimensions[axis] as i32 * 10;
+            if !(low..high).contains(&coordinate) {
+                return Err("Destination is outside this area's collision map".into());
+            }
+        }
+        let mut cursor = terrain::Cursor::default();
+        if snap {
+            position.y = terrain::level(
+                map,
+                &mut cursor,
+                position.wrapping_sub(Position::new(0, 1000, 0)),
+                Query::Surface,
+            )?
+            .ok_or("No collision floor below that destination")?;
+        }
+        let mut probe = Probe::default();
+        probe.sample(
+            map,
+            &mut cursor,
+            &assets.terrain_rules,
+            position.wrapping_sub(Position::new(0, i32::from(height), 0)),
+            width,
+            Default::default(),
+        )?;
+        if probe.floor.is_none() || probe.blocked != 0 {
+            return Err("Destination is blocked or too close to a wall".into());
+        }
+        Ok((position, probe))
     }
 }

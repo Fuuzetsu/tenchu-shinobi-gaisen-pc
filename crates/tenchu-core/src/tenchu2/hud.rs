@@ -110,6 +110,14 @@ impl Default for Hud {
 }
 
 impl Hud {
+    pub(crate) fn hide_health(&mut self, actor: usize) {
+        for slot in &mut self.enemies {
+            if slot.as_ref().is_some_and(|enemy| enemy.actor == actor) {
+                *slot = None;
+            }
+        }
+    }
+
     pub fn aim(&mut self, reticle: Option<super::items::aim::Reticle>) {
         let Some(reticle) = reticle else { return };
         if reticle.ready {

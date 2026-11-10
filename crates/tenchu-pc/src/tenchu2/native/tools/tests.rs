@@ -2,6 +2,156 @@ use super::*;
 use winit::keyboard::KeyCode;
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; native actor edits retain IDs, collision, patrol reset and retry restoration"]
+fn actor_edits_move_remove_and_pick_without_advancing_play() {
+    use tenchu_core::{
+        math::Position,
+        tenchu2::collision::{DISABLED, REMOVED},
+    };
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = crate::tenchu2::native::Session::load(&disc, 9, 1).unwrap();
+    session.world.keep_all_active = true;
+    session.world.actors[0].actor.invulnerable = true;
+    for _ in 0..60 {
+        session.step(0).unwrap();
+    }
+    let id = session
+        .world
+        .actors
+        .iter()
+        .enumerate()
+        .find(|(id, a)| *id != 0 && (0x20..0x60).contains(&a.actor.kind) && a.actor.health > 0)
+        .unwrap()
+        .0;
+    let original = session.world.actors[id].actor.position;
+    let player = session.world.actors[0].actor.position;
+    let ids: Vec<_> = session.world.instances.iter().map(|a| a.rig.root).collect();
+    let random = session.world.random;
+    let mut content = Content::Gameplay(Box::new(session));
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    tools.debug.selected_actor = id;
+    let mut yaw = 0;
+    tools.edit_actor(Item::ActorPosition, &mut yaw).unwrap();
+    assert_eq!(tools.debug.target, original);
+    tools.debug.target = player;
+    tools.debug.snap_to_floor = true;
+    yaw = 90;
+    tools.edit_actor(Item::MoveActor, &mut yaw).unwrap();
+    tools.apply(&mut content, [800, 600]).unwrap();
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    let agent = &session.world.actors[id];
+    assert_eq!(
+        (agent.actor.position.x, agent.actor.position.z),
+        (player.x, player.z)
+    );
+    assert_ne!(agent.actor.position, original);
+    assert_eq!(agent.actor.rotation.y, 1024);
+    assert_eq!(agent.actor.position, agent.behavior.home);
+    assert_eq!(agent.behavior.patrol.waypoints().count(), 0);
+    assert_eq!(session.world.random, random);
+    assert_eq!(session.world.tick, 60);
+    assert_eq!(
+        session
+            .world
+            .instances
+            .iter()
+            .map(|a| a.rig.root)
+            .collect::<Vec<_>>(),
+        ids
+    );
+    assert!(tools.debug.actors_edited);
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    assert!(
+        session
+            .world
+            .reposition_actor(
+                id,
+                Position::new(i32::MAX, 0, i32::MAX),
+                0,
+                true,
+                &session.assets
+            )
+            .is_err()
+    );
+    assert!(
+        session
+            .world
+            .reposition_actor(0, player, 0, true, &session.assets)
+            .is_err()
+    );
+    assert!(session.world.remove_actor(0, &session.assets).is_err());
+    assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+    let objective = session.world.mission.objective;
+    session.world.mission.objective = tenchu_assets::tenchu2::campaign::Objective::EliminateAll;
+    assert!(session.world.remove_actor(id, &session.assets).is_err());
+    session.world.mission.objective = objective;
+    assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+    // Picking a destination returns to the editor, without moving the player.
+    tools.sync(&content, 0);
+    tools.change(Item::ClickKill, 1).unwrap();
+    tools.edit_actor(Item::PickActorPosition, &mut yaw).unwrap();
+    assert!(!tools.debug.click_kill);
+    tools.debug.camera = Some(Camera {
+        position: glam::Vec3::from(player.to_array().map(|v| v as f32)) - glam::Vec3::Y * 5000.0,
+        yaw: 0.0,
+        pitch: -1.5,
+        fov: 50.0,
+    });
+    tools.click = Some((400.0, 300.0));
+    tools.apply(&mut content, [800, 600]).unwrap();
+    assert!(tools.open_actor_editor && !tools.debug.pick_actor_position);
+    let mut menu = crate::tenchu2::native::preferences::Menu::default();
+    menu.tools = tools;
+    menu.apply_tools(&mut content, [800, 600]);
+    assert!(menu.panel.open && menu.panel.page == 4);
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+    menu.tools.debug.selected_actor = id;
+    menu.tools.edit_actor(Item::RemoveActor, &mut yaw).unwrap();
+    menu.apply_tools(&mut content, [800, 600]);
+    assert!(menu.panel.notice.starts_with("Removed actor"));
+    let mut tools = menu.tools;
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    assert_eq!(session.world.statistics.killed, 0);
+    assert_eq!(session.world.random, random);
+    assert_eq!(session.world.tick, 60);
+    assert!(session.world.script_hidden.contains(&id));
+    assert!(
+        session
+            .world
+            .collision
+            .slots()
+            .iter()
+            .filter(|s| s.owner == Some(id))
+            .all(|s| s.flags & (DISABLED | REMOVED) != 0)
+    );
+    for _ in 0..90 {
+        session.step(0).unwrap();
+    }
+    assert_eq!(session.world.actors[id].actor.health, -1);
+    assert_ne!(session.world.actors[id].actor.flags & 8, 0);
+    assert_eq!(session.world.statistics.killed, 0);
+    let retry = crate::tenchu2::native::Session::load(&disc, 9, 1).unwrap();
+    assert!(retry.world.actors[id].actor.health > 0);
+    assert!(!retry.world.script_hidden.contains(&id));
+    tools.sync(&content, 0);
+    tools.edit_actor(Item::PickActorPosition, &mut yaw).unwrap();
+    tools.edit_actor(Item::RemoveActor, &mut yaw).unwrap();
+    tools.sync(&Content::Failed, 1);
+    assert!(
+        tools.actor_edit.is_none() && !tools.debug.pick_actor_position && !tools.open_actor_editor
+    );
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; force-kill tools retain source corpses and reject stale or scripted targets"]
 fn kill_tools_complete_native_deaths_and_cancel_pending_clicks() {
     use tenchu_core::tenchu2::{actor::State, collision::BODY};
@@ -153,6 +303,15 @@ fn kill_tools_advance_native_boss_objectives() {
             };
             session.world.actors[index].actor.invulnerable = true;
             let before = postcard::to_allocvec(&session.world).unwrap();
+            let position = session.world.actors[index].actor.position;
+            assert!(
+                session
+                    .world
+                    .reposition_actor(index, position, 0, true, &session.assets)
+                    .is_err()
+            );
+            assert!(session.world.remove_actor(index, &session.assets).is_err());
+            assert!(postcard::to_allocvec(&session.world).unwrap() == before);
             let player = session.world.player;
             let action = session.world.actors[player].actor.motion.action;
             session.world.actors[player].actor.motion.action = 0x920;

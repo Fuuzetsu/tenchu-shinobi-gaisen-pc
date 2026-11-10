@@ -173,6 +173,21 @@ impl Behavior {
         actor.target = Some(player);
     }
 
+    pub(crate) fn relocate(&mut self, home: Position) {
+        let mut programs = self.programs.clone();
+        programs.idle = if self.layout_idle == Program::Patrol {
+            Program::LookAround
+        } else {
+            self.layout_idle
+        };
+        *self = Self {
+            layout_idle: programs.idle,
+            programs,
+            has_suspicious_program: self.has_suspicious_program,
+            ..Self::new(home, &[])
+        };
+    }
+
     pub fn reset(&mut self, forget: bool) {
         self.active = Active::None;
         self.patrol.turning = 0;

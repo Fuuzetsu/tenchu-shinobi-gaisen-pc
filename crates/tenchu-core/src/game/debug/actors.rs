@@ -65,7 +65,7 @@ impl Game {
         Ok(())
     }
 
-    fn editable_actor(&self, id: usize) -> Result<()> {
+    pub fn editable_actor(&self, id: usize) -> Result<()> {
         self.can_edit_actors()?;
         let actor = self
             .roster

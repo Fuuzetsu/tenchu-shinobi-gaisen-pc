@@ -151,9 +151,20 @@ impl Menu {
     }
 
     pub fn apply_tools(&mut self, content: &mut super::campaign::Content, size: [u32; 2]) {
+        let previous_notice = self.tools.debug.notice.as_ref().map(|(_, at)| *at);
         if let Err(error) = self.tools.apply(content, size) {
             self.panel.notice = error.clone();
             self.tools.debug.notice = Some((error, web_time::Instant::now()));
+        }
+        if let Some((message, at)) = &self.tools.debug.notice
+            && Some(*at) != previous_notice
+        {
+            self.panel.notice.clone_from(message);
+        }
+        if std::mem::take(&mut self.tools.open_actor_editor) {
+            self.panel.open = true;
+            self.panel.page(4 - self.panel.page as i32);
+            self.panel.reveal_row = false;
         }
     }
     pub fn cutscene_controls(&mut self, ctx: &egui::Context, cinematic: bool) {
@@ -492,6 +503,17 @@ impl Menu {
                             self.request_screenshot();
                             Ok(())
                         }
+                        Item::ActorPosition
+                        | Item::PickActorPosition
+                        | Item::MoveActor
+                        | Item::RemoveActor => self
+                            .tools
+                            .edit_actor(item, &mut self.panel.spawn_yaw)
+                            .map(|()| {
+                                if item == Item::PickActorPosition {
+                                    self.panel.open = false;
+                                }
+                            }),
                         Item::Tenchu2Missions => {
                             action.select_mission = true;
                             Ok(())

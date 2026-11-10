@@ -270,9 +270,7 @@ pub fn show(
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
                                 if menu.page == 4 {
-                                    available_ui(ui, runtime, Item::SpawnActor, |ui| {
-                                        actors::show(ui, menu, models.as_deref(), &mut edits);
-                                    });
+                                    actors::show(ui, menu, models.as_deref(), runtime, &mut edits);
                                 }
                                 for (index, row) in rows.iter().enumerate() {
                                     ui.push_id(index, |ui| {

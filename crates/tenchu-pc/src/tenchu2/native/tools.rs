@@ -11,6 +11,7 @@ use crate::{
 use tenchu_assets::Result;
 use winit::event::{ElementState, MouseButton, TouchPhase, WindowEvent};
 
+mod actors;
 mod experiment;
 
 #[derive(Default)]
@@ -24,6 +25,8 @@ pub struct Tools {
     click: Option<(f64, f64)>,
     teleport: Option<(tenchu_core::math::Position, bool)>,
     kill: Option<usize>,
+    actor_edit: Option<actors::Edit>,
+    pub open_actor_editor: bool,
     edits: Vec<experiment::Edit>,
     focus_light: bool,
     relative: bool,
@@ -43,6 +46,8 @@ impl Tools {
             self.click = None;
             self.teleport = None;
             self.kill = None;
+            self.actor_edit = None;
+            self.open_actor_editor = false;
             self.edits.clear();
             self.debug.click_teleport = false;
             self.debug.click_kill = false;
@@ -239,6 +244,7 @@ impl Tools {
                     && !self.debug.photo_mode
                     && touch.phase == TouchPhase::Started
                     && (self.debug.teleport_armed
+                        || self.debug.pick_actor_position
                         || self.debug.click_teleport
                         || self.debug.click_kill) =>
             {
@@ -289,6 +295,7 @@ impl Tools {
                     self.debug.click_kill = !self.debug.click_kill;
                     self.debug.click_teleport = false;
                     self.debug.teleport_armed = false;
+                    self.debug.pick_actor_position = false;
                     self.click = None;
                 }
                 return Ok(());
@@ -310,6 +317,7 @@ impl Tools {
                     return Err("Start a mission before teleporting".into());
                 }
                 self.debug.click_kill = false;
+                self.debug.pick_actor_position = false;
                 match item {
                     Item::Teleport => {
                         self.teleport = Some((self.debug.target, self.debug.snap_to_floor))
@@ -396,11 +404,20 @@ impl Tools {
                 (1.0 - y / f64::from(size[1].max(1)) * 2.0) as f32,
             ];
             let (origin, direction) = crate::debug::camera::ray(matrix, ndc);
-            if self.debug.teleport_armed || self.debug.click_teleport {
+            if self.debug.teleport_armed
+                || self.debug.click_teleport
+                || self.debug.pick_actor_position
+            {
                 let point = super::inspection::pick(&session.world.terrain, origin, direction)
                     .ok_or("No collision floor at that point")?;
                 self.debug.target = point;
-                self.teleport = Some((point, false));
+                if self.debug.pick_actor_position {
+                    self.debug.pick_actor_position = false;
+                    self.debug.looking = false;
+                    self.open_actor_editor = true;
+                } else {
+                    self.teleport = Some((point, false));
+                }
             } else if self.debug.camera.is_some() || self.debug.click_kill {
                 use tenchu_core::tenchu2::collision::{BODY, DISABLED, REMOVED};
                 let picked = session
@@ -432,6 +449,7 @@ impl Tools {
                 }
             }
         }
+        self.apply_actor_edit(content)?;
         if let Some(actor) = self.kill.take() {
             let Content::Gameplay(session) = content else {
                 return Err("Start a mission before killing actors".into());
@@ -474,7 +492,9 @@ impl Tools {
                 )],
             );
         }
-        if (self.debug.teleport_armed || self.debug.click_teleport)
+        if (self.debug.teleport_armed
+            || self.debug.click_teleport
+            || self.debug.pick_actor_position)
             && !menu_open
             && !self.debug.photo_mode
         {
@@ -482,7 +502,12 @@ impl Tools {
                 ctx,
                 &[crate::debug::Label(
                     crate::debug::Anchor::BottomLeft([12.0, 96.0]),
-                    "TELEPORT · click/tap a floor · Esc/Back: cancel".into(),
+                    if self.debug.pick_actor_position {
+                        "ACTOR POSITION · click/tap a floor · Esc/Back: cancel"
+                    } else {
+                        "TELEPORT · click/tap a floor · Esc/Back: cancel"
+                    }
+                    .into(),
                     [1.0, 0.85, 0.2],
                 )],
             );

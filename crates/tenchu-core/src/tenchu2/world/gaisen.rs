@@ -122,6 +122,17 @@ impl Director {
         self.bindings.get(source_actor).copied().flatten()
     }
 
+    pub fn editable_actor(&self, native_actor: usize) -> Result<()> {
+        if let Some(id) = self
+            .bindings
+            .iter()
+            .position(|&id| id == Some(native_actor))
+        {
+            self.source.editable_actor(id)?;
+        }
+        Ok(())
+    }
+
     /// Run after a native gameplay update. Original ambient callbacks retain
     /// their order and shared RNG; native mechanisms and scrolling run in World.
     pub fn advance_ambient(&mut self, world: &mut World) -> Result<()> {

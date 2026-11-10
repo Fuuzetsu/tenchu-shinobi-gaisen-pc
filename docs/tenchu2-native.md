@@ -156,6 +156,15 @@ on a new area, and do not erase previous detection penalties. Sight overlays sho
 the effective range and query result, with ignored-player cones dimmed. Diagnostic
 reports include the active values.
 
+**F1 → Teleport / actor → Place / edit mission actors** supports copying the
+selected position, picking a floor point, moving with the chosen facing, and
+removing a native actor. Moving clears its previous patrol route. Players,
+story actors and mission targets are protected; removing living actors that
+contribute to a kill quota is blocked. **Kill selected actor** remains available.
+Removal gives no kill credit and keeps script references intact. Edits last
+until retry or the next area, including in imported T1 stages. Native actor
+spawning is still being connected.
+
 **F1 → Secondary motion** uses the same bounded hair, cloth and equipment springs
 as Gaisen, during gameplay and 3D cutscenes. Strength, response and breeze work
 without changing animations, weapon contacts, collision or RNG. Motion advances

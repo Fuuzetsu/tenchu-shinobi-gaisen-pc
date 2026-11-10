@@ -43,6 +43,84 @@ pub(super) fn fixture(
 }
 
 #[test]
+#[ignore = "requires both discs; native actor edits preserve imported story bindings and retry layout"]
+fn actor_edits_preserve_imported_story_bindings() {
+    let game = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for hero in 0..3 {
+        let (mut director, mut world, mut assets) =
+            fixture(&game, &disc, 0, i16::from(hero == 1), hero, 1);
+        world.actors[world.player].actor.invulnerable = true;
+        world.keep_all_active = true;
+        if director.update(&mut world, &assets, 0).unwrap() {
+            finish_scene(&mut director, &mut world, &assets);
+        }
+        let (source_id, id) = director
+            .source
+            .roster
+            .order
+            .iter()
+            .copied()
+            .find_map(|source_id| {
+                let id = director.native_actor(source_id)?;
+                (director.editable_actor(id).is_ok() && world.actors[id].actor.health > 0)
+                    .then_some((source_id, id))
+            })
+            .unwrap();
+        let boss = director
+            .source
+            .roster
+            .order
+            .iter()
+            .copied()
+            .find_map(|source_id| {
+                let actor = director.source.roster.get(source_id);
+                (actor.kind & 0xf0 == 0x80)
+                    .then(|| director.native_actor(source_id))
+                    .flatten()
+            })
+            .unwrap();
+        assert!(director.editable_actor(boss).is_err());
+        let destination = world.actors[world.player].actor.position;
+        let random = world.random;
+        let slot = world.actors[id].slot;
+        world
+            .reposition_actor(id, destination, 1024, true, &assets)
+            .unwrap();
+        assert_eq!(world.random, random);
+        director.update(&mut world, &assets, 0).unwrap();
+        assert_eq!(
+            director.source.roster.get(source_id).position,
+            world.actors[id].actor.position
+        );
+        assert_eq!(director.native_actor(source_id), Some(id));
+        director.editable_actor(id).unwrap();
+        world.remove_actor(id, &assets).unwrap();
+        for _ in 0..60 {
+            if director.update(&mut world, &assets, 0).unwrap() {
+                finish_scene(&mut director, &mut world, &assets);
+            } else {
+                world
+                    .step([0; 2], &mut assets, &mut Sounds::default())
+                    .unwrap();
+            }
+        }
+        assert_eq!(director.source.roster.get(source_id).health, -1);
+        assert_eq!(world.actors[id].slot, slot);
+        assert!(world.script_hidden.contains(&id));
+        assert_eq!(world.statistics.killed, 0);
+        let (retry, reset, _) = fixture(&game, &disc, 0, i16::from(hero == 1), hero, 1);
+        let id = retry.native_actor(source_id).unwrap();
+        assert!(reset.actors[id].actor.health > 0);
+        assert!(!reset.script_hidden.contains(&id));
+    }
+}
+
+#[test]
 #[ignore = "requires both discs; forced native boss deaths complete original merchant-stage scripts with every hero"]
 fn kill_tools_complete_imported_original_objectives() {
     let game = GameAssets::open(

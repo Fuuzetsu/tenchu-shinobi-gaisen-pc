@@ -3044,6 +3044,18 @@ Native F9/F1 capture redraws the same ContentDrawing and egui overlay through
 the existing PNG readback, without stepping the world. No source code or assets
 are imported for these adapters.
 
+Native F1 actor movement/removal reuses the scalar teleport terrain probe,
+native idle/pose and rig-collision methods, and activation's existing explicit
+hidden-actor set. A move resets the actor's transient AI state and patrol home;
+removal keeps its vector index and authored slot, hides collision/rendering,
+and clears pending hit/target references without awarding kills. Mission targets
+and living kill-quota participants are protected. Imported stages reuse Gaisen's
+existing script/story protection through the director's binding, rather than
+interpreting native actor kinds as original script identities. These are optional
+debug edits and are not source gameplay algorithms. The read-only viewer's
+authored placement/model lookup and TAS actor position/collision routing were
+reviewed; no code, architecture or game assets are imported for these edits.
+
 ### Cross-game hero movesets
 
 The optional Gaisen moveset adapter reads each installed T2 edition's hero

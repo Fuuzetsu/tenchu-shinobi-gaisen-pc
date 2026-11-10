@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2's F1 actor editor can copy positions, pick a floor point, move a guard
+  with a new facing, and remove actors. Edits reset on retry or area change and
+  also work in imported T1 stages. Moving clears the old patrol; removal leaves
+  script IDs intact and gives no kill credit. Players, story actors and mission
+  targets are protected; living targets of kill quotas must be killed instead.
+
 - Native T2 supports **F9 / Screenshot** in gameplay, cutscenes and menus,
   retaining the current camera, HD text, HUD/photo settings and visual effects.
   PNG files go to `screenshots/` or `TENCHU_SCREENSHOTS`.

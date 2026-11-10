@@ -704,11 +704,13 @@ impl ApplicationHandler for Application {
                                 if !self.menu.panel.open
                                     && (self.menu.tools.debug.click_teleport
                                         || self.menu.tools.debug.click_kill
-                                        || self.menu.tools.debug.teleport_armed) =>
+                                        || self.menu.tools.debug.teleport_armed
+                                        || self.menu.tools.debug.pick_actor_position) =>
                             {
                                 self.menu.tools.debug.click_teleport = false;
                                 self.menu.tools.debug.click_kill = false;
                                 self.menu.tools.debug.teleport_armed = false;
+                                self.menu.tools.debug.pick_actor_position = false;
                             }
                             KeyCode::Escape if self.menu.panel.open || self.menu.diagnostics => {
                                 self.menu.back(&mut self.controls, &mut self.presets);

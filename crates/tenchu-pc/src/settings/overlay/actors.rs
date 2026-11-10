@@ -5,10 +5,16 @@ pub(super) fn show(
     ui: &mut Ui,
     menu: &mut Menu,
     models: Option<&picker::State<'_>>,
+    runtime: Runtime,
     edits: &mut Vec<Edit>,
 ) {
     ui.collapsing("Place / edit mission actors", |ui| {
-        ui.weak("Changes last until retry. Ends input recording; no TRIAL records. Story actors are protected.");
+        ui.weak(if runtime == Runtime::Tenchu2 {
+            "Changes last until retry or the next area. Story actors and mission targets are protected."
+        } else {
+            "Changes last until retry. Ends input recording; no TRIAL records. Story actors are protected."
+        });
+        available_ui(ui, runtime, Item::SpawnActor, |ui| {
         if let Some(models) = models {
             if let Some(library) = models.library {
                 ui.horizontal(|ui| {
@@ -26,8 +32,6 @@ pub(super) fn show(
                         }
                     });
                 ui.horizontal(|ui| {
-                    ui.label("Facing (degrees)");
-                    ui.add(egui::DragValue::new(&mut menu.spawn_yaw).range(0..=359));
                     if ui.add_enabled(!menu.spawn_model.is_empty(), egui::Button::new("Place new actor")).clicked() {
                         edits.push(Edit::Change(Item::SpawnActor, 1));
                     }
@@ -36,6 +40,11 @@ pub(super) fn show(
                 ui.label("Loading the disc's model library…");
             }
         }
+        });
+        ui.horizontal(|ui| {
+            ui.label("Facing (degrees)");
+            ui.add(egui::DragValue::new(&mut menu.spawn_yaw).range(0..=359));
+        });
         ui.horizontal_wrapped(|ui| {
             for (label, item) in [
                 ("Pick point on floor…", Item::PickActorPosition),
@@ -43,7 +52,9 @@ pub(super) fn show(
                 ("Move selected here", Item::MoveActor),
                 ("Remove selected", Item::RemoveActor),
             ] {
-                if ui.button(label).clicked() { edits.push(Edit::Change(item, 1)); }
+                available_ui(ui, runtime, item, |ui| {
+                    if ui.button(label).clicked() { edits.push(Edit::Change(item, 1)); }
+                });
             }
         });
         ui.weak("Uses the X/Y/Z and floor-snap controls below. Moving a patrol resets its route to guarding the new position.");

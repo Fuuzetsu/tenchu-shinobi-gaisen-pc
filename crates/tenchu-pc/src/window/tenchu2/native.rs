@@ -609,10 +609,12 @@ impl Application {
                 } else if native.menu.tools.debug.click_teleport
                     || native.menu.tools.debug.click_kill
                     || native.menu.tools.debug.teleport_armed
+                    || native.menu.tools.debug.pick_actor_position
                 {
                     native.menu.tools.debug.click_teleport = false;
                     native.menu.tools.debug.click_kill = false;
                     native.menu.tools.debug.teleport_armed = false;
+                    native.menu.tools.debug.pick_actor_position = false;
                 } else if native.menu.tools.debug.camera.is_some()
                     || native.menu.tools.debug.camera_actor.is_some()
                 {
@@ -676,12 +678,14 @@ impl Application {
         if matches!(event, WindowEvent::KeyboardInput { ref event, .. } if event.state == ElementState::Pressed && event.physical_key == PhysicalKey::Code(KeyCode::Escape))
             && (native.menu.tools.debug.click_teleport
                 || native.menu.tools.debug.click_kill
-                || native.menu.tools.debug.teleport_armed)
+                || native.menu.tools.debug.teleport_armed
+                || native.menu.tools.debug.pick_actor_position)
             && !native.menu.panel.open
         {
             native.menu.tools.debug.click_teleport = false;
             native.menu.tools.debug.click_kill = false;
             native.menu.tools.debug.teleport_armed = false;
+            native.menu.tools.debug.pick_actor_position = false;
             return Ok(());
         }
         native.menu.tools.event(
