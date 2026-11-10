@@ -250,6 +250,7 @@ impl Effects {
                 continue;
             };
             let mut effect = Sprites::new(12, Position::ZERO, 1, duration);
+            effect.emission = Some(super::Emission::BurningActor);
             effect.parent = Some(parent);
             effect.frames = (12..=15)
                 .map(|image| Frame { image, duration: 0 })
@@ -299,6 +300,7 @@ impl Effects {
         let center = (mask + 1) / 2;
         for i in 0..if large { 4 } else { 1 } {
             let mut effect = Sprites::new(6, position, 6, 12);
+            effect.emission = Some(super::Emission::Explosion);
             effect.size = [[3072; 2], [1024; 2]];
             effect.frames = [2, 2, 2, 3, 4]
                 .into_iter()
@@ -330,6 +332,7 @@ impl Effects {
         if large {
             let mut sparks =
                 Sprites::new(24, position.wrapping_add(Position::new(0, -60, 0)), 8, 16);
+            sparks.emission = Some(super::Emission::Embers);
             sparks.velocity.y = -20;
             sparks.size = [[6144; 2], [128; 2]];
             sparks.color_step = [-8; 3].into();

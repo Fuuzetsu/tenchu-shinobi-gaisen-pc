@@ -8,6 +8,78 @@ use serde_json::{Value, json};
 use std::io::BufRead;
 
 #[test]
+fn attached_fire_emission_survives_culling_without_changing_source_particles() {
+    let mut source = sprites::Sprites::new(12, Position::new(20, -40, 60), 2, 8);
+    source.size = [[1024; 2]; 2];
+    source.velocity = [0, -8, 0].into();
+    source.particles[1].age = -3;
+    let mut lit = source.clone();
+    lit.emission = Some(Emission::BurningActor);
+    let mut hidden = lit.clone();
+    let mut scene = Scene::default();
+    let parent = scene.add(None, Matrix::default());
+    for effect in [&mut source, &mut lit, &mut hidden] {
+        effect.parent = Some(parent);
+    }
+    let view = View {
+        eye: Position::ZERO,
+        look: Position::new(0, 0, 1000),
+        focus: Position::ZERO,
+        matrix: Matrix::default(),
+        distance: 16000,
+    };
+    let hidden_view = View {
+        matrix: Matrix {
+            translation: Position::new(0, 0, -20000),
+            ..Matrix::default()
+        },
+        ..view
+    };
+    let mut rotations = [Vec::new(), Vec::new(), Vec::new()];
+    let mut saw_emission = false;
+    for tick in 0..14 {
+        let position = Position::new(tick * 25, 0, 4000);
+        scene.set_translation(parent, position);
+        let mut images = [Vec::new(), Vec::new(), Vec::new()];
+        let mut emitters = [Vec::new(), Vec::new(), Vec::new()];
+        for (index, (effect, camera)) in [
+            (&mut source, view),
+            (&mut lit, view),
+            (&mut hidden, hidden_view),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            effect
+                .update(
+                    &mut scene,
+                    camera,
+                    &mut rotations[index],
+                    &mut images[index],
+                    &mut emitters[index],
+                )
+                .unwrap();
+        }
+        assert_eq!(images[0], images[1], "lighting changed the source sprite");
+        assert!(images[2].is_empty(), "off-screen fixture was still visible");
+        assert!(emitters[0].is_empty());
+        assert_eq!(emitters[1], emitters[2], "camera culled a light emitter");
+        assert!(emitters[1].iter().all(|e| e.position.x == position.x + 20));
+        saw_emission |= !emitters[1].is_empty();
+        let mut untagged = lit.clone();
+        untagged.emission = None;
+        assert_eq!(
+            serde_json::to_value(&source).unwrap(),
+            serde_json::to_value(&untagged).unwrap()
+        );
+        if tick == 13 {
+            assert!(emitters[1].is_empty(), "light outlived particles");
+        }
+    }
+    assert!(saw_emission);
+}
+
+#[test]
 #[ignore = "requires TENCHU2_SPRITE_ORACLE and TENCHU2_EFFECT_TABLES from JP executable particle routines"]
 fn particles_match_source_spawning_eviction_animation_and_expiry() {
     let tables: Value = serde_json::from_slice(
@@ -121,6 +193,7 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
                             |p| (p, row["depth"].as_i64().unwrap() as i32),
                             &mut effects.sprite_rotations,
                             &mut drawings,
+                            &mut Vec::new(),
                         )
                         .unwrap(),
                     Effect::Points(effect) => {
@@ -162,11 +235,16 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
         (Value::Object(a), Value::Object(b)) => {
             // The port's presentation tag is not a source particle field.
             assert_eq!(
-                a.len() - usize::from(a.contains_key("sparks")),
+                a.len()
+                    - usize::from(a.contains_key("sparks"))
+                    - usize::from(a.contains_key("emission")),
                 b.len(),
                 "{path} fields"
             );
-            for (key, value) in a.iter().filter(|(key, _)| key.as_str() != "sparks") {
+            for (key, value) in a
+                .iter()
+                .filter(|(key, _)| !matches!(key.as_str(), "sparks" | "emission"))
+            {
                 compare(value, &b[key], &format!("{path}/{key}"));
             }
         }

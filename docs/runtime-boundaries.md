@@ -14,6 +14,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Settings edits and availability | `settings/edit.rs`, `settings/runtime.rs` | Runtime-specific command handlers for gameplay changes |
 | Experiment inventory UI | `settings/menu.rs` uses named, numbered inventory slots | Gaisen/native adapters supply their own items and quantity rules; queued native commands edit actual player state |
 | Light selection, priorities and budgets | `lighting.rs` | `lighting/gaisen.rs`; native `render/lighting.rs` |
+| Burning actors and explosions | `lighting/transients.rs` clusters nearby emitters; shared renderer handles light, self-occlusion and shadows | Gaisen extracts effect slots/billboards; native sprite updates expose position, size, colour and lifetime before camera culling |
 | Sun/moon and visual time of day | `visuals/sky.rs`, shared renderer | Each runtime supplies its simulation tick and retained shadow geometry |
 | Texture-based emitter discovery | `visuals/lights.rs` accepts a model catalog, VRAM and rules | `visuals/lights/gaisen.rs` supplies source meshes and instances |
 | Mesh refinement and smoothing | `visuals/models`, `smooth`, `refine` and shared skin-weight interpolation; one mesh-options signature | Catalog adapters identify actor, terrain and prop roles independently of artwork IDs |
@@ -42,8 +43,8 @@ reset the pose history. Capturing a native pose reads a copy of its small scene
 graph so presentation never refreshes simulation coordinate caches.
 
 Both runtimes use the same light selection and GPU shadow code. Native T2 maps
-its explicit static flame emitters and source-timed metal impacts. Texture-based
-lamp metadata and other combat emitters are still missing. Static shadow/shelter geometry is retained by
+its explicit static flames, burning actors, explosions and source-timed metal
+impacts. Texture-based lamp metadata is still missing. Static shadow/shelter geometry is retained by
 the native environment cache. Source simulation visibility does not switch these
 lights on/off as the camera turns. Both also drive the shared directional light
 and sky clock; repeated presentation frames do not advance time, and fast-forward
@@ -84,4 +85,4 @@ interactive and rendered checks are also needed for each connected feature.
 Light placement, camera-follow/freeze, marker drawing and shadow-preview settings
 are shared too. Native JP supplies its authored flame positions; the renderer
 owns flicker, heat shimmer and shadow budgeting for both games. Texture-panel
-lamp discovery and combat emitters still need native source adapters.
+lamp discovery still needs a native source adapter.

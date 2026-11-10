@@ -54,9 +54,26 @@ pub struct SparkBurst {
     pub parried: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Emission {
+    BurningActor,
+    Explosion,
+    Embers,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Emitter {
+    pub kind: Emission,
+    pub position: Position,
+    pub color: [u8; 3],
+    pub size: [i16; 2],
+    pub remaining: i32,
+}
+
 #[derive(Default)]
 pub struct Frame {
     pub sparks: Vec<SparkBurst>,
+    pub emitters: Vec<Emitter>,
     pub sprites: Vec<sprites::Drawing>,
     pub points: Vec<points::Drawing>,
     pub quads: Vec<surface::Quad>,
@@ -99,7 +116,13 @@ impl Effects {
                             parried: sprites.frames[0].image == 16,
                         });
                     }
-                    sprites.update(scene, view, &mut self.sprite_rotations, &mut frame.sprites)?
+                    sprites.update(
+                        scene,
+                        view,
+                        &mut self.sprite_rotations,
+                        &mut frame.sprites,
+                        &mut frame.emitters,
+                    )?
                 }
                 Effect::Points(points) => {
                     if points.sparks && points.age == 0 {

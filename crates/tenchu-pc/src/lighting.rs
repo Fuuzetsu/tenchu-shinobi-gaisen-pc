@@ -2,7 +2,7 @@ pub mod flames;
 mod gaisen;
 pub mod shadows;
 pub mod sparks;
-mod transients;
+pub(crate) mod transients;
 pub use gaisen::{fire_sources, gunfire, lightning, sources};
 use glam::Vec3;
 

@@ -36,6 +36,8 @@ pub enum Motion {
 pub struct Sprites {
     #[serde(default)]
     pub sparks: bool,
+    #[serde(default)]
+    pub emission: Option<super::Emission>,
     pub position: Position,
     pub parent: Option<ModelId>,
     pub velocity: Vector3<i16>,
@@ -68,6 +70,7 @@ impl Sprites {
     pub fn new(image: u8, position: Position, count: usize, lifetime: i16) -> Self {
         Self {
             sparks: false,
+            emission: None,
             position,
             parent: None,
             velocity: Vector3::default(),
@@ -90,6 +93,7 @@ impl Sprites {
         view: View,
         rotations: &mut Vec<i32>,
         drawings: &mut Vec<Drawing>,
+        emitters: &mut Vec<super::Emitter>,
     ) -> Result<bool> {
         let parent = self.parent.map(|id| scene.world(id)).transpose()?;
         self.advance(
@@ -108,6 +112,7 @@ impl Sprites {
             },
             rotations,
             drawings,
+            emitters,
         )
     }
 
@@ -116,6 +121,7 @@ impl Sprites {
         mut project: impl FnMut(Position) -> (Position, i32),
         rotations: &mut Vec<i32>,
         drawings: &mut Vec<Drawing>,
+        emitters: &mut Vec<super::Emitter>,
     ) -> Result<bool> {
         let linear = matches!(self.motion, Motion::Linear);
         let lifetime = i32::from(if linear && self.lifetime <= 0 {
@@ -210,6 +216,15 @@ impl Sprites {
                 }
             }
             let (position, depth) = project(self.position.wrapping_add(offset));
+            if let Some(kind) = self.emission {
+                emitters.push(super::Emitter {
+                    kind,
+                    position,
+                    color,
+                    size,
+                    remaining: lifetime - age,
+                });
+            }
             let depth = depth.wrapping_add(depth_offset);
             if depth <= 0 {
                 continue;

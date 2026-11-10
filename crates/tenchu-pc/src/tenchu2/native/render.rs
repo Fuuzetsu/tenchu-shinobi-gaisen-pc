@@ -152,6 +152,10 @@ impl Drawing {
                 pose: pose.as_ref(),
             },
         )?;
+        self.scene.lighting.update_emitters(
+            &session.frame.effects.emitters,
+            &renderer.graphics().lighting,
+        );
         self.scene.lighting.focus = self.camera.is_none().then(|| {
             glam::Vec3::from(
                 session.world.actors[session.world.player]

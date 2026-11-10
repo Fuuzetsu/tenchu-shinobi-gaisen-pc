@@ -50,10 +50,17 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Texture-based lamp discovery, fire/explosion combat lights, blood enhancements, hair/cloth physics,
+Texture-based lamp discovery, blood enhancements, hair/cloth physics,
 rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Lighting → Fire / explosion lights** also lights burning characters, explosions,
+fire breath and embers. Their moving emitters share Gaisen's clustering, shadow
+selection and surface lighting. Light follows the source effect's position and
+lifetime even outside the original camera view; disabling it restores the source
+particles without changing damage, AI, audio or RNG. Modern High/Ultra already
+enable fire lighting; Original keeps it disabled.
 
 **F1 → Contact effects → Modern impact sparks** enables the shared modern
 sparks for grappling, projectile contacts and weapon blocks. **Spark amount**

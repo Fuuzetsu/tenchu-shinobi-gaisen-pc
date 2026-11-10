@@ -1091,6 +1091,7 @@ fn native_player_fire_arrow_uses_inventory_and_burns_a_guard() {
     let before = world.actors[guard].actor.health;
     let mut flaming = false;
     let mut explosion = false;
+    let mut lit = false;
     for _ in 0..100 {
         for i in [0, guard] {
             world.move_actor(i, &assets, &mut events).unwrap();
@@ -1105,12 +1106,12 @@ fn native_player_fire_arrow_uses_inventory_and_burns_a_guard() {
                 explosion |= matches!(arrow.phase, Phase::Exploding(_));
             }
         }
-        world.update_effects(&assets).unwrap();
+        lit |= !world.update_effects(&assets).unwrap().emitters.is_empty();
         world.finish_tick(&assets, 6).unwrap();
     }
     assert_eq!(world.actors[0].actor.inventory.counts[9], 1);
     assert!(
-        flaming && explosion,
+        flaming && explosion && lit,
         "fire arrow did not launch/explode: {flaming}/{explosion}"
     );
     assert!(
@@ -1301,6 +1302,7 @@ fn native_fire_breath_hurts_a_guard_and_expires_without_harming_its_owner() {
     let mut casts = 0;
     let mut blasts = 0;
     let mut particles = false;
+    let mut lit = false;
     for _ in 0..150 {
         for index in [0, guard] {
             world.move_actor(index, &assets, &mut events).unwrap();
@@ -1323,10 +1325,12 @@ fn native_fire_breath_hurts_a_guard_and_expires_without_harming_its_owner() {
             .iter()
             .filter(|e| matches!(e.state, ItemState::FireBlast(_)))
             .count();
-        particles |= !world.update_effects(&assets).unwrap().sprites.is_empty();
+        let effects = world.update_effects(&assets).unwrap();
+        particles |= !effects.sprites.is_empty();
+        lit |= !effects.emitters.is_empty();
         world.finish_tick(&assets, 6).unwrap();
     }
-    assert!(casts > 0 && blasts > 0 && particles);
+    assert!(casts > 0 && blasts > 0 && particles && lit);
     assert!(world.actors[guard].actor.health < health);
     assert_eq!(world.actors[0].actor.health, 100);
     assert_eq!(world.actors[0].actor.inventory.counts[17], 1);
