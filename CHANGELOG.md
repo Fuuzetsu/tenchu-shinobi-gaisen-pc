@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.25.0 — 2026-11-10
+
 - Native T2 restores ambient water ripples and their original RNG timing.
   Offscreen guards retain the original initial root orientation and reset their
   patrol wait and root position correctly when sent home, preserving collision
