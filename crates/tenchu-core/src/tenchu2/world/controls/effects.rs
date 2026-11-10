@@ -31,7 +31,6 @@ impl<E: Events> Context<'_, E> {
                     self.effect_rules,
                     random,
                 )?;
-                self.events.blood(self.index, position);
             }
             Event::WaterRipple { position, size } => {
                 self.effects

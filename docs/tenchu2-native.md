@@ -88,8 +88,18 @@ T2's spatial blood-impact sound. Pause freezes them and fast-forward advances
 them without playing a backlog of sounds. Disabling drips or using Clear blood
 removes active wound bleeding; a model rebuild clears body-local emitters while
 already falling drops and ground stains remain. Modern High/Ultra enable wound
-drips; Original remains unchanged. Extra death gushes and severed-part emitters
-are still unavailable in native JP.
+drips; Original remains unchanged. Severed-part emitters remain unavailable in
+native JP.
+
+**Death gush style**, **Death gush strength** and **Death gush duration** use the
+shared optional upward bursts. A new death waits for its authored blood event,
+then emits from the animated source body joint. Original, Original HD and Modern
+styles are independent of hit spurts and wound drips. Drops stain the ground using
+its selected style and play spatial T2 impact sounds. Death pools must not be Off;
+**Death pool beneath player** also controls extra player gushes. Drowning remains
+unchanged. Clear blood, disabling gushes and model reloads stop current emitters;
+reenabling does not restart old corpses. The effect stays off by default, as in
+Gaisen; native and shared graphical presets keep their existing values.
 
 **Blood on weapons**, **Weapon blood on metal only**, **Weapon blood coverage**
 and **Wet weapon blood flow** share the Gaisen coating and droplet simulation.

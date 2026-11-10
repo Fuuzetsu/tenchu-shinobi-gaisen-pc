@@ -16,13 +16,20 @@ pub struct Corpse {
     pub source_pool: bool,
 }
 
+#[derive(Clone, Copy)]
+pub struct Wound {
+    pub owner: usize,
+    pub joint: usize,
+    pub position: Position,
+}
+
 // Keep source contacts between rendered frames, including fast-forward updates.
 #[derive(Default)]
 pub struct History {
     frames: VecDeque<(u64, Vec<Contact>)>,
     pub blood: blood::History,
     pub player_corpse: Option<Corpse>,
-    pub wounds: Vec<(usize, Position)>,
+    pub wounds: Vec<Wound>,
     pub melee_hits: std::collections::BTreeSet<usize>,
 }
 

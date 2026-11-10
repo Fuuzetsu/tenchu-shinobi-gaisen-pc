@@ -20,7 +20,7 @@ impl Weapons {
                     .contact
                     .wounds
                     .iter()
-                    .any(|&(owner, _)| owner == target)
+                    .any(|wound| wound.owner == target)
             })
         {
             hits.insert(world.player);

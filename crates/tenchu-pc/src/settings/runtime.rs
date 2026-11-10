@@ -81,6 +81,7 @@ impl Runtime {
             | StormBolts | StormInterval | StormThunder | RainVolume | WindVolume
             | ThunderStyle => None,
             ContactSparks | SparkDensity | ContactSplashes | GrappleDetail | BloodHit => None,
+            GushStyle | DeathGush | GushSeconds => None,
             BloodDrips | BloodSeconds | BloodSpurts | BloodWeapons | WeaponBloodMetalOnly
             | WeaponBloodCoverage | WeaponBloodFlow => None,
             BloodGround | BloodDeath | BloodPlayerDeath | BloodDeathSize | BloodRetain

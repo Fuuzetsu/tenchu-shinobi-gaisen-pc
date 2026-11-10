@@ -164,7 +164,7 @@ impl Drawing {
         settings: &crate::settings::Blood,
         renderer: &mut Renderer,
     ) {
-        if settings.wounds() || settings.weapons && settings.amount != 0 {
+        if settings.wounds() || settings.gush(false) || settings.weapons && settings.amount != 0 {
             self.scene.environment(
                 &session.assets.level,
                 &self.models.scenery,

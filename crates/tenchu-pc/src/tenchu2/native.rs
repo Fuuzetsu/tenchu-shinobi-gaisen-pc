@@ -262,7 +262,7 @@ struct Output<'a> {
     voice: Option<&'a Arc<VoiceSet>>,
     listener: Listener,
     requests: Vec<SoundRequest>,
-    wounds: Vec<(usize, Position)>,
+    wounds: Vec<contact::Wound>,
     melee_hits: BTreeSet<usize>,
     pending: &'a mut BTreeSet<String>,
 }
@@ -290,8 +290,12 @@ impl Events for Output<'_> {
         self.melee_hits.insert(attacker);
     }
 
-    fn blood(&mut self, actor: usize, position: Position) {
-        self.wounds.push((actor, position));
+    fn blood(&mut self, owner: usize, joint: usize, position: Position) {
+        self.wounds.push(contact::Wound {
+            owner,
+            joint,
+            position,
+        });
     }
 
     fn emit(&mut self, source: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {

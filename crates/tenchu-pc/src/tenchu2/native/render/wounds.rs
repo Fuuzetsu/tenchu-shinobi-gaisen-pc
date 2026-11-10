@@ -12,12 +12,14 @@ pub(super) struct Wounds {
     tick: Option<u32>,
     health: BTreeMap<usize, i16>,
     pending: BTreeSet<usize>,
+    deaths: BTreeSet<usize>,
     sounds: Vec<Position>,
 }
 
 impl Wounds {
     pub fn clear(&mut self) {
         self.pending.clear();
+        self.deaths.clear();
         self.sounds.clear();
     }
 
@@ -31,7 +33,15 @@ impl Wounds {
         let world = &session.world;
         environment.configure_blood(settings);
         let blood = &mut environment.blood;
-        if !settings.wounds() && !(settings.weapons && settings.amount != 0) {
+        if !settings.gush(false) {
+            self.deaths.clear();
+        } else if !settings.gush(true) {
+            self.deaths.remove(&world.instances[world.player].rig.root);
+        }
+        if !settings.wounds()
+            && !settings.gush(false)
+            && !(settings.weapons && settings.amount != 0)
+        {
             self.clear();
             self.health.clear();
             if self.tick != Some(world.tick) {
@@ -60,7 +70,8 @@ impl Wounds {
             return Ok(());
         }
         self.tick = Some(world.tick);
-        for (agent, instance) in world.actors.iter().zip(&world.instances) {
+        let mut dead = BTreeSet::new();
+        for (owner, (agent, instance)) in world.actors.iter().zip(&world.instances).enumerate() {
             let root = instance.rig.root;
             let actor = &agent.actor;
             if !settings.wounds()
@@ -77,20 +88,46 @@ impl Wounds {
             {
                 self.pending.insert(root);
             }
+            let gush = settings.gush(owner == world.player)
+                && actor.health == 0
+                && actor.state == State::Dead
+                && !matches!(actor.motion.action, 0xb08 | 0xb0a);
+            if gush {
+                dead.insert(root);
+            }
+            if !gush || actor.motion.loops < 0 {
+                self.deaths.remove(&root);
+            }
+            if gush && self.health.get(&root).is_some_and(|&old| old > 0) {
+                self.deaths.insert(root);
+            }
         }
         self.health = health;
         self.pending.retain(|root| self.health.contains_key(root));
+        self.deaths.retain(|root| dead.contains(root));
+        blood.retain_gushes(|root| dead.contains(&root));
         blood.retain_attached_parts(|key| match key {
             PartId::Actor { root, .. } => self.health.contains_key(&root),
             _ => false,
         });
         let mut contacts = BTreeMap::new();
-        for &(owner, position) in &session.contact.wounds {
-            if settings.wounds()
-                && let Some(instance) = world.instances.get(owner)
-                && self.pending.remove(&instance.rig.root)
-            {
-                contacts.insert(instance.rig.root, (owner, point(position)));
+        for wound in &session.contact.wounds {
+            let Some(instance) = world.instances.get(wound.owner) else {
+                continue;
+            };
+            if settings.wounds() && self.pending.remove(&instance.rig.root) {
+                contacts.insert(instance.rig.root, (wound.owner, point(wound.position)));
+            }
+            if self.deaths.remove(&instance.rig.root) {
+                blood.start_gush(
+                    instance.rig.root,
+                    interpolation::part(
+                        instance.rig.root,
+                        wound.joint,
+                        world.actors[wound.owner].actor.definition_kind(),
+                    ),
+                    Vec3::ZERO,
+                );
             }
         }
         let weapons = if settings.weapons
@@ -105,6 +142,7 @@ impl Wounds {
         };
         let needed: BTreeSet<_> = blood
             .wound_parts()
+            .chain(blood.gush_parts())
             .chain(blood.weapon_parts())
             .chain(weapons.hits.iter().copied())
             .collect();

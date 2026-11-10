@@ -22,6 +22,7 @@ impl Blood {
         self.clear_model_stains();
         self.wounds.clear();
         self.weapons.clear();
+        self.gushes.values_mut().for_each(|g| *g = Gush::Finished);
     }
 
     pub(crate) fn wound_body(

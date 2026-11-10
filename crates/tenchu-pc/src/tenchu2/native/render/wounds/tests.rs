@@ -7,7 +7,7 @@ use tenchu_core::{
 };
 #[derive(Default)]
 struct Hits {
-    wounds: Vec<(usize, Position)>,
+    wounds: Vec<crate::tenchu2::native::contact::Wound>,
     melee: BTreeSet<usize>,
 }
 impl environment::Events for Hits {
@@ -19,8 +19,12 @@ impl Events for Hits {
     fn emit(&mut self, _: EventSource<'_>, _: Event, _: &mut Random) -> Result<()> {
         Ok(())
     }
-    fn blood(&mut self, actor: usize, position: Position) {
-        self.wounds.push((actor, position));
+    fn blood(&mut self, owner: usize, joint: usize, position: Position) {
+        self.wounds.push(crate::tenchu2::native::contact::Wound {
+            owner,
+            joint,
+            position,
+        });
     }
     fn melee_hit(&mut self, attacker: usize) {
         self.melee.insert(attacker);
@@ -263,7 +267,11 @@ fn check_model_stains(custom: Option<&Pack>) {
                 for (attacker, victim) in [(guard, player), (player, guard)] {
                     weapon_hit(&mut session, attacker, victim)?;
                     assert!(
-                        session.contact.wounds.iter().any(|(id, _)| *id == victim),
+                        session
+                            .contact
+                            .wounds
+                            .iter()
+                            .any(|wound| wound.owner == victim),
                         "damage controller emitted no blood for hero {hero}, actor {victim}"
                     );
                     let state = postcard::to_allocvec(&session.world).unwrap();
@@ -609,3 +617,6 @@ fn weapon_hit(
 
 #[path = "tests/weapons.rs"]
 mod weapon_tests;
+
+#[path = "tests/gush.rs"]
+mod gush_tests;

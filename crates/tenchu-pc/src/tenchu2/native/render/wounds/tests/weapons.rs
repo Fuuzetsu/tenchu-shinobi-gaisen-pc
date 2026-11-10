@@ -211,7 +211,11 @@ fn native_stealth_weapon_blood_waits_for_source_emission() {
                 let mut bled = false;
                 let mut coated = false;
                 for _ in 0..240 {
-                    bled |= session.contact.wounds.iter().any(|&(id, _)| id == guard);
+                    bled |= session
+                        .contact
+                        .wounds
+                        .iter()
+                        .any(|wound| wound.owner == guard);
                     let state = postcard::to_allocvec(&session.world).unwrap();
                     drawing.tick(&session, &graphics)?;
                     assert!(state == postcard::to_allocvec(&session.world).unwrap());

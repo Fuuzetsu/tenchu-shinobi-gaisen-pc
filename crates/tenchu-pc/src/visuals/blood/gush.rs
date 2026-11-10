@@ -167,6 +167,25 @@ impl Blood {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl Blood {
+    pub(crate) fn gush_parts(&self) -> impl Iterator<Item = Part> + '_ {
+        self.gushes.values().filter_map(Gush::part)
+    }
+
+    pub(crate) fn retain_gushes(&mut self, mut keep: impl FnMut(usize) -> bool) {
+        self.gushes.retain(|&root, _| keep(root));
+    }
+
+    pub(crate) fn start_gush(&mut self, root: usize, part: Part, position: Vec3) {
+        self.gushes.entry(root).or_insert(Gush::Active {
+            part,
+            position,
+            age: 0,
+        });
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

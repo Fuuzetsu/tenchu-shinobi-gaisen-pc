@@ -299,7 +299,9 @@ impl<E: Events> Context<'_, E> {
             .ok_or("Missing Tenchu 2 blood joint")?;
         let position = self.scene.world(joint)?.translation;
         let angle = angle.unwrap_or_else(|| random.next15() as i16);
-        self.emit(actor, Event::Blood { position, angle }, random)
+        self.emit(actor, Event::Blood { position, angle }, random)?;
+        self.events.blood(self.index, joint, position);
+        Ok(())
     }
 
     fn damage_event(

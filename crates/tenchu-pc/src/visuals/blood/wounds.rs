@@ -25,6 +25,7 @@ impl Blood {
         self.sounds.clear();
         let settings = self.settings;
         self.emit_wounds(tick, &settings, transforms);
+        self.emit_gushes(&settings, transforms);
         self.advance_drops(
             tick,
             images,

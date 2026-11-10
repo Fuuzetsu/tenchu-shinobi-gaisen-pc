@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports optional death gushes with shared Original,
+  Original HD and Modern styles, strength and duration. They begin at the source
+  death-blood event, follow its animated body joint and stop after the selected
+  duration. Ground stains, impact audio, player opt-out and Clear blood use the
+  same controls as Gaisen; gameplay and RNG are unchanged.
+
 - Fix native Tenchu 2 camera-relative movement and debug teleport remaining
   unavailable after completing a stealth kill. Active kill animations still
   retain their source controls.
