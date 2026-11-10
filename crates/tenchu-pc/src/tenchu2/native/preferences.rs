@@ -19,6 +19,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         textures: g.textures,
         shading: g.shading,
         exposure: g.exposure,
+        interpolation: g.interpolation,
         bilinear: g.bilinear,
         mipmaps: g.mipmaps,
         anisotropy: g.anisotropy,

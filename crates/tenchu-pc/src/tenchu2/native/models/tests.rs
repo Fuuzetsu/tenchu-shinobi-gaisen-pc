@@ -203,8 +203,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
                     &session.assets,
                     &session.frame,
                     &graphics,
-                    false,
-                    None,
+                    Default::default(),
                 )
                 .unwrap();
             let center = Vec3::from(

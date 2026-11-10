@@ -1,4 +1,6 @@
 use super::{Builder, Geometry, ModelStyle, Story, build, overlay, sources};
+use crate::tenchu2::native::interpolation;
+use crate::visuals::interpolation::Frame as PoseFrame;
 use crate::{
     fonts, render_effects,
     renderer::Renderer,
@@ -11,7 +13,7 @@ use crate::{
 };
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{Result, tenchu2::level::objects::StaticKind};
-use tenchu_core::{math::Matrix, motion::Pose};
+use tenchu_core::math::Matrix;
 
 pub(super) struct Models {
     pub(super) terrain: Meshes,
@@ -123,6 +125,7 @@ impl Models {
         story: &Story,
         renderer: &mut Renderer,
         camera: Option<crate::debug::camera::Camera>,
+        pose: Option<&PoseFrame>,
     ) -> Result<(Geometry, Vec<fonts::Text>)> {
         let resources = &story.resources;
         let level = &story.level;
@@ -177,22 +180,24 @@ impl Models {
                 ModelStyle::Terrain,
             );
         }
-        for (slot, (motion, animation)) in story
-            .state
-            .actors
-            .iter()
-            .zip(&resources.script.actors)
-            .enumerate()
-        {
+        for (slot, animation) in resources.script.actors.iter().enumerate() {
             let Some(model) = resources.models.get(&animation.model) else {
                 continue;
             };
-            let mut pose = Pose::new(&model.parts)?;
-            pose.translation[0] = motion.position;
-            for (rotation, &value) in pose.rotation.iter_mut().zip(&motion.rotation) {
-                *rotation = value;
-            }
-            let matrices = pose.matrices(math, Matrix::default());
+            let Some(matrices) = story.matrices(slot)? else {
+                continue;
+            };
+            let matrices: Vec<_> = matrices
+                .into_iter()
+                .enumerate()
+                .map(|(joint, matrix)| {
+                    PoseFrame::transform(
+                        pose,
+                        interpolation::part(slot, joint, animation.model),
+                        matrix,
+                    )
+                })
+                .collect();
             let mesh = &self.actors[&animation.model];
             mesh.pose_skin(&matrices, None);
             for (part, &matrix) in model.parts.iter().zip(&matrices) {

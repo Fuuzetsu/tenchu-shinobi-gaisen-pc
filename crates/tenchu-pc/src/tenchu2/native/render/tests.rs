@@ -27,8 +27,10 @@ fn native_night_scenery_does_not_depend_on_the_effect_pass() {
                 &session.assets,
                 &session.frame,
                 &graphics,
-                true,
-                None,
+                Presentation {
+                    show_hud: true,
+                    ..Default::default()
+                },
             )?;
             if !effects {
                 geometry.effects.vertices.clear();
@@ -82,8 +84,10 @@ fn native_backgrounds_stay_behind_the_scene() {
                     &session.assets,
                     &session.frame,
                     &graphics,
-                    true,
-                    None,
+                    Presentation {
+                        show_hud: true,
+                        ..Default::default()
+                    },
                 )?;
                 assert_eq!(geometry.backgrounds.len(), 3);
                 if mode == "scene" {
@@ -515,4 +519,78 @@ fn native_follow_camera_uses_the_shared_scene_surfaces() {
         },
     )
     .unwrap();
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; renders distinct in-between body/weapon poses without changing source state"]
+fn native_interpolated_geometry_matches_current_pose_at_endpoint() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    session.interpolate(true).unwrap();
+    for _ in 0..50 {
+        session.step(tenchu_core::tenchu2::input::UP).unwrap();
+    }
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    let graphics = Graphics {
+        interpolation: true,
+        fog: false,
+        ..Default::default()
+    };
+    let camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    let mut vertices = Vec::new();
+    for (index, alpha) in [0.0, 0.5, 1.0].into_iter().enumerate() {
+        capture_frame(
+            &session.assets.sprites.vram,
+            &graphics,
+            &output.join(format!("jp-interpolation-{index}.png")),
+            |renderer| {
+                let pose = session
+                    .interpolation
+                    .as_ref()
+                    .unwrap()
+                    .sample(u64::from(session.world.tick), alpha);
+                let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
+                let geometry = models.geometry(
+                    &session.world,
+                    &session.assets,
+                    &session.frame,
+                    &graphics,
+                    Presentation {
+                        pose: pose.as_ref(),
+                        camera: Some(camera),
+                        ..Default::default()
+                    },
+                )?;
+                vertices.push(bytemuck::cast_slice::<_, u8>(&geometry.actors).to_vec());
+                if alpha == 1.0 {
+                    let exact = models.geometry(
+                        &session.world,
+                        &session.assets,
+                        &session.frame,
+                        &graphics,
+                        Presentation {
+                            camera: Some(camera),
+                            ..Default::default()
+                        },
+                    )?;
+                    assert_eq!(
+                        vertices.last().unwrap(),
+                        bytemuck::cast_slice::<_, u8>(&exact.actors)
+                    );
+                }
+                Ok((
+                    SceneDrawing::new(geometry, renderer, &session.assets.level),
+                    camera.source_view(),
+                    Vec::new(),
+                ))
+            },
+        )
+        .unwrap();
+    }
+    assert_ne!(vertices[0], vertices[1]);
+    assert_ne!(vertices[1], vertices[2]);
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
 }

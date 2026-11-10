@@ -28,6 +28,7 @@ mod equipment;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
 mod inspection;
+mod interpolation;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod models;
 #[cfg(not(target_arch = "wasm32"))]
@@ -57,6 +58,7 @@ pub struct Session {
     pub frame: Frame,
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
     pub pending: BTreeSet<String>,
+    pub interpolation: Option<crate::visuals::interpolation::History>,
     #[cfg(not(target_arch = "wasm32"))]
     pub models: models::Override,
 }
@@ -111,6 +113,7 @@ impl Session {
             frame: Frame::default(),
             bank,
             pending: BTreeSet::new(),
+            interpolation: None,
             #[cfg(not(target_arch = "wasm32"))]
             models: Default::default(),
         })
@@ -176,7 +179,28 @@ impl Session {
                 .map(Sourced::from),
         );
         self.frame.transition_fade = self.world.mission.fade;
+        if let Some(history) = &mut self.interpolation {
+            history.record(interpolation::gameplay(&self.world, &self.assets)?);
+        }
         Ok(sounds)
+    }
+
+    pub fn interpolate(&mut self, enabled: bool) -> Result<()> {
+        if enabled && self.interpolation.is_none() {
+            let mut history = crate::visuals::interpolation::History::default();
+            history.reset_to(interpolation::gameplay(&self.world, &self.assets)?);
+            self.interpolation = Some(history);
+        } else if !enabled {
+            self.interpolation = None;
+        }
+        Ok(())
+    }
+
+    pub fn reset_interpolation(&mut self) -> Result<()> {
+        if let Some(history) = &mut self.interpolation {
+            history.reset_to(interpolation::gameplay(&self.world, &self.assets)?);
+        }
+        Ok(())
     }
 }
 

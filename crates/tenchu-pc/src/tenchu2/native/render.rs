@@ -1,3 +1,5 @@
+use super::interpolation;
+use crate::visuals::interpolation::Frame as PoseFrame;
 use crate::{
     render_effects::{self, Surface},
     render_mesh::{self, Vertex},
@@ -35,6 +37,7 @@ pub struct Drawing {
     scene: SceneDrawing,
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
+    pub alpha: f32,
     pub show_hud: bool,
     pub labels: Vec<crate::debug::Label>,
 }
@@ -56,21 +59,18 @@ impl Drawing {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn follow_camera(
+    pub fn navigation_surfaces(
         &mut self,
         session: &super::Session,
-        orbit: &mut crate::navigation::Orbit,
-        settings: &crate::settings::Navigation,
-        elapsed: f32,
         renderer: &mut Renderer,
-    ) -> crate::debug::camera::Camera {
+    ) -> &crate::visuals::surfaces::Surfaces {
         let environment = self.scene.environment(
             &session.assets.level,
             &self.models.scenery,
             &session.assets.resources.math,
             renderer,
         );
-        orbit.camera(1.0, elapsed, settings, &environment.surfaces)
+        &environment.surfaces
     }
 
     pub fn clear_weather(&mut self, tracks_only: bool) {
@@ -98,8 +98,10 @@ impl Drawing {
             &session.assets,
             &session.frame,
             graphics,
-            true,
-            None,
+            Presentation {
+                show_hud: true,
+                ..Default::default()
+            },
         )?;
         Ok(Self {
             models,
@@ -107,6 +109,7 @@ impl Drawing {
             view: session.world.camera.view,
             show_hud: true,
             camera: None,
+            alpha: 1.0,
             labels: Vec::new(),
         })
     }
@@ -117,13 +120,24 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
+        let pose = session
+            .interpolation
+            .as_ref()
+            .filter(|_| renderer.graphics().interpolation)
+            .and_then(|history| history.sample(u64::from(session.world.tick), self.alpha));
+        let view = pose
+            .as_ref()
+            .map_or(session.world.camera.view, |frame| frame.view);
         let mut geometry = self.models.geometry(
             &session.world,
             &session.assets,
             &session.frame,
             renderer.graphics(),
-            self.show_hud,
-            self.camera,
+            Presentation {
+                show_hud: self.show_hud,
+                camera: self.camera,
+                pose: pose.as_ref(),
+            },
         )?;
         self.scene.lighting.focus = self.camera.is_none().then(|| {
             glam::Vec3::from(
@@ -141,7 +155,7 @@ impl Drawing {
                 meshes: &self.models.scenery,
                 math: &session.assets.resources.math,
                 tick: u64::from(session.world.tick),
-                camera: camera_matrix(session.world.camera.view, self.camera, renderer.size()),
+                camera: camera_matrix(view, self.camera, renderer.size()),
                 world: Some((&session.world, &session.assets)),
             },
             renderer,
@@ -164,7 +178,7 @@ impl Drawing {
             let overlay = super::inspection::overlay(
                 session,
                 debug,
-                camera_matrix(session.world.camera.view, self.camera, size),
+                camera_matrix(view, self.camera, size),
                 size[0] as f32 / size[1] as f32,
             );
             geometry.effects.append(overlay.geometry);
@@ -172,7 +186,7 @@ impl Drawing {
         }
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
-        self.view = session.world.camera.view;
+        self.view = view;
         Ok(())
     }
 
@@ -419,6 +433,13 @@ pub struct Geometry {
     pub effects: render_effects::Geometry,
 }
 
+#[derive(Default)]
+pub struct Presentation<'a> {
+    pub show_hud: bool,
+    pub camera: Option<crate::debug::camera::Camera>,
+    pub pose: Option<&'a PoseFrame>,
+}
+
 fn sources<'a>(name: &str, parts: &'a [Part]) -> Vec<catalog::ModelSource<'a>> {
     parts
         .iter()
@@ -521,21 +542,9 @@ impl Models {
         renderer.bind_meshes(&mut items);
         let mut weapon_names = BTreeMap::new();
         for (agent, instance) in world.actors.iter().zip(&world.instances) {
-            let definition = assets
-                .resources
-                .registry
-                .actor(agent.actor.definition_kind())
-                .ok_or("Missing native actor")?;
-            let mut roots: Vec<_> = instance.rig.weapons.iter().flatten().copied().collect();
-            roots.sort_unstable();
             weapon_names.extend(
-                roots.into_iter().zip(
-                    assets
-                        .resources
-                        .weapons
-                        .parts(definition.weapon)
-                        .filter_map(|part| part.model.clone()),
-                ),
+                interpolation::weapons(&agent.actor, instance, assets)?
+                    .map(|(root, name)| (root, name.to_owned())),
             );
         }
         Ok(Self {
@@ -554,10 +563,17 @@ impl Models {
         assets: &Assets,
         frame: &Frame,
         graphics: &Graphics,
-        show_hud: bool,
-        camera: Option<crate::debug::camera::Camera>,
+        presentation: Presentation<'_>,
     ) -> Result<Geometry> {
-        let view = camera.map_or(world.camera.view, |c| c.source_view());
+        let Presentation {
+            show_hud,
+            camera,
+            pose,
+        } = presentation;
+        let view = camera.map_or_else(
+            || pose.map_or(world.camera.view, |frame| frame.view),
+            |c| c.source_view(),
+        );
         let mut output = Builder::new(view, &assets.level, graphics);
         if let Some(camera) = camera {
             output.distance = 120.0 / (camera.fov.to_radians() * 0.5).tan();
@@ -609,7 +625,15 @@ impl Models {
                 .rig
                 .joints
                 .iter()
-                .map(|&joint| scene.world(joint))
+                .map(|&joint| {
+                    scene.world(joint).map(|matrix| {
+                        PoseFrame::transform(
+                            pose,
+                            interpolation::part(instance.rig.root, joint, actor.definition_kind()),
+                            matrix,
+                        )
+                    })
+                })
                 .collect::<Result<Vec<_>>>()?;
             meshes.pose_skin(&matrices, None);
             for (part, &matrix) in body.parts.iter().zip(&matrices) {
@@ -645,7 +669,15 @@ impl Models {
                     output.model(
                         self.imported_weapons.get(name).unwrap_or(&self.weapons),
                         part,
-                        scene.world(root + 1 + index)?,
+                        PoseFrame::transform(
+                            pose,
+                            interpolation::part(
+                                instance.rig.root,
+                                root + 1 + index,
+                                actor.definition_kind(),
+                            ),
+                            scene.world(root + 1 + index)?,
+                        ),
                         if assets
                             .weapon_imports
                             .get(name)
@@ -670,7 +702,16 @@ impl Models {
                 .joints
                 .get(11)
                 .ok_or("Missing native grapple hand")?;
-            let mut previous = scene.world(hand)?.translation;
+            let mut previous = PoseFrame::transform(
+                pose,
+                interpolation::part(
+                    world.instances[hook.owner].rig.root,
+                    hand,
+                    world.actors[hook.owner].actor.definition_kind(),
+                ),
+                scene.world(hand)?,
+            )
+            .translation;
             for &point in &hook.rope {
                 output.line(previous, point);
                 previous = point;
@@ -684,7 +725,16 @@ impl Models {
                 .joints
                 .get(11)
                 .ok_or("Missing native held-item hand")?;
-            output.parts(&self.items, parts, scene.world(hand)?, math)?;
+            let transform = PoseFrame::transform(
+                pose,
+                interpolation::part(
+                    world.instances[world.player].rig.root,
+                    hand,
+                    world.actors[world.player].actor.definition_kind(),
+                ),
+                scene.world(hand)?,
+            );
+            output.parts(&self.items, parts, transform, math)?;
         }
         for entry in &world.items.entries {
             use tenchu_core::tenchu2::items::{State, arrow::Phase};

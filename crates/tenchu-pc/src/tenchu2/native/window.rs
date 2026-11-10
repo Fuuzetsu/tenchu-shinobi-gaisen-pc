@@ -254,6 +254,9 @@ impl Application {
             fast_forward: self.controls.held(KeyCode::Backspace) || self.menu.fast_forward,
             paused,
         };
+        self.session
+            .content
+            .interpolate(self.settings.rendering().graphics.interpolation)?;
         let update =
             self.transport
                 .advance(&mut self.session, elapsed, input, self.audio.as_ref())?;
@@ -307,7 +310,12 @@ impl Application {
                 &gallery.library,
                 &self.settings,
             ) {
-                Ok(changed) => models_changed = changed,
+                Ok(changed) => {
+                    models_changed = changed;
+                    if changed {
+                        session.reset_interpolation()?;
+                    }
+                }
                 Err(error) => self.menu.panel.notice = error,
             }
         }
@@ -351,6 +359,11 @@ impl Application {
                 view.graphics.clone_from(&graphics);
                 self.last = Instant::now();
             }
+            view.drawing.interpolate(if graphics.interpolation {
+                self.transport.interpolation(&self.session.content, input)
+            } else {
+                1.0
+            });
             self.menu.tools.update_camera(
                 &self.session.content,
                 &mut view.drawing,

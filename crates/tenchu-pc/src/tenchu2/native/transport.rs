@@ -48,6 +48,14 @@ pub struct Update {
 }
 
 impl Transport {
+    pub fn interpolation(&self, content: &Content, input: Input) -> f32 {
+        if input.paused || input.pacing(content).0 == 0.0 {
+            1.0
+        } else {
+            self.clock.interpolation()
+        }
+    }
+
     fn audio(
         &mut self,
         playback: &Playback<impl ReadAt>,

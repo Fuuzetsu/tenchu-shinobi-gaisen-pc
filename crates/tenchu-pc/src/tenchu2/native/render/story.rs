@@ -16,6 +16,7 @@ pub(crate) struct Drawing {
     pub texts: Vec<fonts::Text>,
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
+    pub alpha: f32,
 }
 
 impl Drawing {
@@ -39,18 +40,26 @@ impl Drawing {
 
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         let mut models = models::Models::new(story, graphics, renderer)?;
-        let (geometry, texts) = models.geometry(story, renderer, None)?;
+        let (geometry, texts) = models.geometry(story, renderer, None, None)?;
         Ok(Self {
             models,
             scene: SceneDrawing::new(geometry, renderer, &story.level),
             texts,
             view: story.state.view,
             camera: None,
+            alpha: 1.0,
         })
     }
 
     pub fn update(&mut self, story: &Story, renderer: &mut Renderer) -> Result<()> {
-        let (mut geometry, texts) = self.models.geometry(story, renderer, self.camera)?;
+        let pose = story
+            .interpolation
+            .as_ref()
+            .filter(|_| renderer.graphics().interpolation)
+            .and_then(|history| history.sample(story.state.frame.max(0) as u64, self.alpha));
+        let (mut geometry, texts) =
+            self.models
+                .geometry(story, renderer, self.camera, pose.as_ref())?;
         self.scene.prepare_environment(
             &mut geometry,
             super::environment::Frame {

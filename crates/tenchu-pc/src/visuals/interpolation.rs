@@ -1,10 +1,8 @@
-use crate::render_mesh;
 use glam::{Mat3, Mat4, Quat, Vec3};
 use std::collections::BTreeMap;
-use tenchu_core::{
-    game::Game,
-    math::{Matrix, Position},
-};
+use tenchu_core::math::{Matrix, Position};
+
+mod gaisen;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub enum Part {
@@ -39,45 +37,14 @@ impl Part {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
-struct Snapshot {
-    tick: u64,
-    parts: BTreeMap<Part, Matrix>,
-    roots: BTreeMap<usize, Position>,
-    view: Matrix,
-    cinematic: (bool, i16),
-    camera_mode: tenchu_core::camera::Mode,
-    death_blood: Option<std::sync::Arc<super::death::blood::Presented>>,
-}
-
-impl Snapshot {
-    fn new(game: &Game) -> Self {
-        let mut parts = BTreeMap::new();
-        for inspection in [false, true] {
-            render_mesh::visit_character_parts(game, inspection, |key, _, matrix| {
-                parts.insert(key, matrix);
-            });
-        }
-        render_mesh::visit_hinged_parts(game, |key, _, matrix| {
-            parts.insert(key, matrix);
-        });
-        Self {
-            tick: game.tick,
-            parts,
-            roots: game
-                .roster
-                .order
-                .iter()
-                .map(|&id| {
-                    let a = game.roster.get(id);
-                    (a.root_model, a.position)
-                })
-                .collect(),
-            view: game.rendered_view,
-            cinematic: (game.cinematic.active, game.cinematic.sequence),
-            camera_mode: game.camera.mode,
-            death_blood: None,
-        }
-    }
+pub(crate) struct Snapshot {
+    pub(crate) tick: u64,
+    pub(crate) parts: BTreeMap<Part, Matrix>,
+    pub(crate) roots: BTreeMap<usize, Position>,
+    pub(crate) view: Matrix,
+    pub(crate) cinematic: (bool, i16),
+    pub(crate) camera_mode: u32,
+    pub(crate) death_blood: Option<std::sync::Arc<super::death::blood::Presented>>,
 }
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -106,18 +73,32 @@ impl History {
         }
     }
 
-    pub fn reset(&mut self, game: &Game) {
+    pub(crate) fn reset_to(&mut self, snapshot: Snapshot) {
         self.previous = None;
-        self.current = Some(Snapshot::new(game));
+        self.current = Some(snapshot);
     }
 
-    pub fn tick(&mut self, game: &Game) {
-        let next = Snapshot::new(game);
+    pub(crate) fn record(&mut self, next: Snapshot) {
         self.previous = self
             .current
             .take()
-            .filter(|s| s.tick + 1 == game.tick && s.cinematic == next.cinematic);
+            .filter(|s| s.tick + 1 == next.tick && s.cinematic == next.cinematic);
         self.current = Some(next);
+    }
+
+    pub(crate) fn root(&self, tick: u64, root: usize, alpha: f32) -> Option<Vec3> {
+        let current = self.current.as_ref().filter(|s| s.tick == tick)?;
+        let position = *current.roots.get(&root)?;
+        let point = |p: Position| Vec3::from(p.to_array().map(|v| v as f32));
+        let previous = self
+            .previous
+            .as_ref()
+            .and_then(|s| s.roots.get(&root))
+            .filter(|&&p| close(p, position, 2000.0));
+        Some(previous.map_or_else(
+            || point(position),
+            |&p| point(p).lerp(point(position), alpha.clamp(0.0, 1.0)),
+        ))
     }
 
     pub fn sample(&self, tick: u64, alpha: f32) -> Option<Frame> {
@@ -285,6 +266,8 @@ fn blend(a: Matrix, b: Matrix, alpha: f32) -> Matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::render_mesh;
+    use tenchu_core::game::Game;
 
     #[test]
     fn camera_rounding_does_not_move_the_eye_far_from_the_map_origin() {
@@ -357,7 +340,7 @@ mod tests {
             roots: BTreeMap::from([(1, Position::new(x, 0, 0))]),
             view: pose(-x),
             cinematic: (false, 0),
-            camera_mode: tenchu_core::camera::Mode::Normal,
+            camera_mode: 0,
             death_blood: None,
         };
         let mut history = History {
@@ -420,7 +403,7 @@ mod tests {
             roots: (0..12).map(|i| (i, Position::ZERO)).collect(),
             view: pose(0),
             cinematic: (false, 0),
-            camera_mode: tenchu_core::camera::Mode::Normal,
+            camera_mode: 0,
             death_blood: None,
         };
         let mut current = previous.clone();

@@ -147,6 +147,10 @@ impl Application {
             paused: self.is_suspended(),
         };
         let native = self.native_tenchu2.as_mut().unwrap();
+        native
+            .playback
+            .content
+            .interpolate(self.settings.rendering().graphics.interpolation)?;
         let update = native.transport.advance(
             &mut native.playback,
             elapsed,
@@ -205,7 +209,12 @@ impl Application {
                 library,
                 &self.settings,
             ) {
-                Ok(changed) => models_changed = changed,
+                Ok(changed) => {
+                    models_changed = changed;
+                    if changed {
+                        session.reset_interpolation()?;
+                    }
+                }
                 Err(error) => native.menu.panel.notice = error,
             }
         }
@@ -245,6 +254,13 @@ impl Application {
             self.clock.discard_host_backlog();
         }
         let drawing = native.drawing.as_mut().unwrap();
+        drawing.interpolate(if graphics.interpolation {
+            native
+                .transport
+                .interpolation(&native.playback.content, input)
+        } else {
+            1.0
+        });
         native.menu.tools.update_camera(
             &native.playback.content,
             drawing,

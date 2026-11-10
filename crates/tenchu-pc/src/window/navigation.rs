@@ -62,12 +62,26 @@ impl Application {
         } else {
             1.0
         };
-        Some(self.orbit.camera(
-            alpha,
-            elapsed,
-            &self.settings.navigation,
-            view.navigation_surfaces(game),
-        ))
+        let actor = self
+            .debug
+            .followed_actor(game)
+            .unwrap_or_else(|| game.player());
+        let target = view.interpolation.root(game.tick, actor.root_model, alpha);
+        Some(if let Some(target) = target {
+            self.orbit.camera_at(
+                target - glam::Vec3::Y * 1100.0,
+                elapsed,
+                &self.settings.navigation,
+                view.navigation_surfaces(game),
+            )
+        } else {
+            self.orbit.camera(
+                alpha,
+                elapsed,
+                &self.settings.navigation,
+                view.navigation_surfaces(game),
+            )
+        })
     }
 
     pub(super) fn advance_navigation(&mut self, elapsed: f32) {

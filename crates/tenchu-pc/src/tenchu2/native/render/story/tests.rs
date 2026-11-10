@@ -20,7 +20,7 @@ fn opening_scene_uses_its_own_distance_palette() {
         let path = output.join(format!("jp-opening-palette-fog-{fog}.png"));
         capture_frame(&story.level.vram, &graphics, &path, |renderer| {
             let mut models = models::Models::new(&story, &graphics, renderer)?;
-            let (geometry, texts) = models.geometry(&story, renderer, None)?;
+            let (geometry, texts) = models.geometry(&story, renderer, None, None)?;
             assert!(
                 geometry
                     .terrain

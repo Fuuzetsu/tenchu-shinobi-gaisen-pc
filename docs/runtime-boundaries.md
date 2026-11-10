@@ -8,6 +8,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | --- | --- | --- |
 | Camera and inspection commands | `debug/inspection.rs`, `debug/camera.rs` | `debug/gaisen.rs`; native `tools.rs` and `inspection.rs` |
 | Follow/orbit camera and terrain avoidance | `navigation.rs` consumes an actor target and retained surfaces | Gaisen/native adapters supply actor identity, position, facing and simulation tick; Gaisen movement steering stays in `navigation/gaisen.rs` |
+| Pose interpolation | `visuals/interpolation.rs` blends keyed matrices and detects teleports/camera cuts | Gaisen snapshots live in `visuals/interpolation/gaisen.rs`; native gameplay/story snapshots live in `tenchu2/native/interpolation.rs` |
 | Overlay geometry and readable labels | `debug/overlay.rs` | `debug/gaisen/overlay.rs`; native `inspection.rs` |
 | Settings edits and availability | `settings/edit.rs`, `settings/runtime.rs` | Runtime-specific command handlers for gameplay changes |
 | Experiment inventory UI | `settings/menu.rs` uses named, numbered inventory slots | Gaisen/native adapters supply their own items and quantity rules; queued native commands edit actual player state |
@@ -26,6 +27,14 @@ diagnostics call its own perception routine on local query state; eye-height
 envelopes are illustrative and separate from the actual target ray. Teleport UI
 is shared, with a checked native command that repairs pose, collision and camera
 state without advancing simulation or RNG.
+
+Native interpolation captures poses only when enabled, after each original update,
+and samples them at presentation time. Bodies, equipment and held items use the
+same pose, including shadow geometry. Follow cameras sample the same tick history
+even when multiple updates occur between display frames. Camera-mode changes and
+large jumps snap; story cameras retain their authored cuts. Swaps and teleports
+reset the pose history. Capturing a native pose reads a copy of its small scene
+graph so presentation never refreshes simulation coordinate caches.
 
 Both runtimes use the same light selection and GPU shadow code. Native T2 maps
 its explicit static flame emitters; its texture-based lamp metadata and transient

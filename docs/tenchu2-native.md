@@ -121,6 +121,13 @@ distance, sensitivity, inversion and recentering use the shared camera controls.
 Terrain and props keep the camera out of walls. Following does not steer the actor
 or change the simulation camera; F2/Back restores the original view.
 
+**Smooth model motion** blends actor and weapon poses between the original 30 Hz
+updates, including held equipment and cutscene characters. Gameplay and follow
+cameras use the same visual timing; scripted camera cuts stay exact. Modern
+presets enable it, Original leaves it off. This adds up to one logic tick of
+display delay, without changing collision, AI, audio events or RNG. Pausing and
+single-stepping show the exact current pose; model swaps and teleports reset it.
+
 **F1 → Tenchu 2** contains the original JP mission selector, integration
 diagnostics and return to the quick launcher. These controls are disabled with
 an explanation outside native JP play. **F1 → Simulation** contains pause,

@@ -4,7 +4,8 @@ use tenchu_assets::{
     tenchu2::{level::Level, math_tables, motions, story::Resources},
 };
 use tenchu_core::{
-    math::Math,
+    math::{Math, Matrix},
+    motion::Pose,
     tenchu2::story::{Playback, TextureChange},
 };
 
@@ -15,6 +16,7 @@ pub struct Story {
     pub level: Level,
     pub math: Math,
     pub state: Playback,
+    pub interpolation: Option<crate::visuals::interpolation::History>,
     basis: [[i16; 4]; 33],
 }
 
@@ -29,6 +31,7 @@ impl Story {
             resources,
             level,
             state,
+            interpolation: None,
             math: Math {
                 tables: math_tables(disc)?,
             },
@@ -46,7 +49,37 @@ impl Story {
                     .apply(&mut self.resources.models.get_mut(&model).unwrap().vram);
             }
         }
+        if let Some(mut history) = self.interpolation.take() {
+            let snapshot = super::interpolation::story(self)?;
+            history.record(snapshot);
+            self.interpolation = Some(history);
+        }
         Ok(())
+    }
+
+    pub fn interpolate(&mut self, enabled: bool) -> Result<()> {
+        if enabled && self.interpolation.is_none() {
+            let mut history = crate::visuals::interpolation::History::default();
+            history.reset_to(super::interpolation::story(self)?);
+            self.interpolation = Some(history);
+        } else if !enabled {
+            self.interpolation = None;
+        }
+        Ok(())
+    }
+
+    pub(super) fn matrices(&self, slot: usize) -> Result<Option<Vec<Matrix>>> {
+        let animation = &self.resources.script.actors[slot];
+        let Some(model) = self.resources.models.get(&animation.model) else {
+            return Ok(None);
+        };
+        let motion = &self.state.actors[slot];
+        let mut pose = Pose::new(&model.parts)?;
+        pose.translation[0] = motion.position;
+        for (rotation, &value) in pose.rotation.iter_mut().zip(&motion.rotation) {
+            *rotation = value;
+        }
+        Ok(Some(pose.matrices(&self.math, Matrix::default())))
     }
 
     #[cfg(test)]
@@ -58,5 +91,6 @@ impl Story {
             }
         }
         self.state = state;
+        self.interpolation = None;
     }
 }

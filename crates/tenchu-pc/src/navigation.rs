@@ -118,6 +118,16 @@ impl Orbit {
         surfaces: &Surfaces,
     ) -> Camera {
         let target = self.previous.lerp(self.center, alpha.clamp(0.0, 1.0));
+        self.camera_at(target, elapsed, settings, surfaces)
+    }
+
+    pub fn camera_at(
+        &mut self,
+        target: Vec3,
+        elapsed: f32,
+        settings: &Navigation,
+        surfaces: &Surfaces,
+    ) -> Camera {
         let mut camera = Camera {
             position: target,
             yaw: self.yaw,

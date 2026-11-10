@@ -82,8 +82,18 @@ impl Tools {
             super::presentation::ContentDrawing::Gameplay(drawing),
         ) = (content, drawing)
         {
-            self.debug.follow_camera =
-                Some(drawing.follow_camera(session, &mut self.orbit, settings, elapsed, renderer));
+            let target = session
+                .interpolation
+                .as_ref()
+                .and_then(|history| history.root(self.tick, actor.root, drawing.alpha))
+                .unwrap_or(actor.position)
+                - glam::Vec3::Y * 1100.0;
+            self.debug.follow_camera = Some(self.orbit.camera_at(
+                target,
+                elapsed,
+                settings,
+                drawing.navigation_surfaces(session, renderer),
+            ));
         }
     }
 
@@ -277,6 +287,7 @@ impl Tools {
             session
                 .world
                 .teleport_player(position, snap, &session.assets)?;
+            session.reset_interpolation()?;
             self.debug.teleport_armed = false;
         }
         Ok(())

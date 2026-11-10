@@ -31,6 +31,14 @@ impl Update {
 }
 
 impl Content {
+    pub fn interpolate(&mut self, enabled: bool) -> Result<()> {
+        match self {
+            Self::Gameplay(session) => session.interpolate(enabled),
+            Self::Story { story, .. } => story.interpolate(enabled),
+            _ => Ok(()),
+        }
+    }
+
     pub fn cutscene(&self) -> bool {
         matches!(
             self,
@@ -263,6 +271,14 @@ pub(crate) enum ContentDrawing {
 }
 
 impl ContentDrawing {
+    pub fn interpolate(&mut self, alpha: f32) {
+        match self {
+            Self::Gameplay(drawing) => drawing.alpha = alpha,
+            Self::Story(drawing) => drawing.alpha = alpha,
+            _ => {}
+        }
+    }
+
     pub fn light_count(&self, settings: &crate::settings::Lighting) -> usize {
         match self {
             Self::Gameplay(drawing) => drawing.light_count(settings),
