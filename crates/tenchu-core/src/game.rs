@@ -198,6 +198,24 @@ impl Game {
         input: u16,
         step: crate::drawing::Step,
     ) -> Result<bool> {
+        self.begin_update(input, step, false)
+    }
+
+    pub(crate) fn step_cinematic(&mut self, input: u16) -> Result<bool> {
+        let active = self.cinematic.active;
+        let updated = self.begin_update(input, crate::drawing::Step::Normal, true)?;
+        if updated {
+            self.finish_recorded_update(true)?;
+        }
+        Ok(active || updated)
+    }
+
+    fn begin_update(
+        &mut self,
+        input: u16,
+        step: crate::drawing::Step,
+        cinematic_only: bool,
+    ) -> Result<bool> {
         let navigation = std::mem::take(&mut self.navigation);
         self.camera.initial_pitch = navigation.aim_pitch.map(|pitch| pitch.clamp(-910, 910));
         self.drawing.step = step;
@@ -234,7 +252,9 @@ impl Game {
         } else {
             self.stage_sequence()?;
         }
-        if self.events.outcome != events::Outcome::Running {
+        if self.events.outcome != events::Outcome::Running
+            || (cinematic_only && !self.cinematic.active)
+        {
             return Ok(false);
         }
         self.visible.clear();

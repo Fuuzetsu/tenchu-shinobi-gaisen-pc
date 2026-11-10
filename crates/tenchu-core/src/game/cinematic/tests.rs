@@ -10,6 +10,63 @@ use crate::{
 use tenchu_assets::script::{ActorCommand, Command};
 mod camera;
 
+#[test]
+#[ignore = "requires TENCHU_DISC; compares directed scene ticks with the original full update, including entry cues and the audio tail"]
+fn directed_cinematics_match_full_source_updates() {
+    for (stage, sequence) in [(0, 0), (7, 10), (10, 5)] {
+        for character in 0..2 {
+            let mut original = oracle::game(stage, character);
+            let mut directed = oracle::game(stage, character);
+            for game in [&mut original, &mut directed] {
+                let event = &mut game.mission.scripts.events[0];
+                event.sequence = sequence;
+                event.mode = 0;
+                game.events =
+                    Events::new(&game.mission.scripts.events, &game.roster, game.player_id);
+            }
+            for tick in 0..6000 {
+                let input = if tick == 0 { crate::input::RIGHT } else { 0 };
+                original.step(input).unwrap();
+                assert!(directed.step_cinematic(input).unwrap());
+                assert_eq!(original.music, directed.music);
+                assert_eq!(original.effects.sounds, directed.effects.sounds);
+                assert_eq!(original.intelligence.voices, directed.intelligence.voices);
+                assert_eq!(original.random.seed, directed.random.seed);
+                assert_eq!(original.clock, directed.clock);
+                assert_eq!(original.rendered_view, directed.rendered_view);
+                assert_eq!(original.cinematic.active, directed.cinematic.active);
+                assert_eq!(original.cinematic.frame, directed.cinematic.frame);
+                assert_eq!(original.cinematic.elapsed, directed.cinematic.elapsed);
+                assert_eq!(
+                    original.cinematic.displayed_caption,
+                    directed.cinematic.displayed_caption
+                );
+                for &id in &original.roster.order {
+                    let a = original.roster.get(id);
+                    let b = directed.roster.get(id);
+                    assert_eq!(
+                        (a.position, a.velocity, a.rotation, a.health, a.status),
+                        (b.position, b.velocity, b.rotation, b.health, b.status)
+                    );
+                    assert_eq!(
+                        (a.motion.action, a.motion.count, a.motion.loops),
+                        (b.motion.action, b.motion.count, b.motion.loops)
+                    );
+                }
+                if !original.cinematic.active {
+                    assert!(tick > 0);
+                    assert_eq!(
+                        serde_json::to_value(&original.roster).unwrap(),
+                        serde_json::to_value(&directed.roster).unwrap()
+                    );
+                    break;
+                }
+                assert!(tick < 5999, "unfinished source scene");
+            }
+        }
+    }
+}
+
 fn finish(game: &mut Game) -> u64 {
     let start = game.tick;
     while game.cinematic.active {

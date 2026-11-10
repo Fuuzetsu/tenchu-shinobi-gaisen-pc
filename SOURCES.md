@@ -115,6 +115,27 @@ hand attachment origins can bury them. The existing native item meshes and
 replacement identities supply presentation, independently of graphical presets.
 No item placement data is checked in.
 
+The portable imported-mission director reuses the existing `STAGE.C` event
+interpreter and `CHRANIM.C` cinematic runner. The constructed original roster
+supplies stable actor identities, including initially inactive bosses and
+secondary bodies; construction-only actors are not duplicated. Nobles and
+scene props stay in the original cinematic cast. Native T2 retains interactive
+movement, combat, AI, inventory and health. Positive script health thresholds
+are scaled to the counterpart's maximum HP with integer division; death-status
+and player-attack gates still use the original event predicates.
+
+Only cinematic ticks run the original actor/camera/effect code. Native gameplay
+pauses until the authored scene and audio tail finish; affected actors then
+receive the resulting placement, visibility, health and weapon state. Native
+motions, collision probes and cameras resume at that boundary. The shared RNG
+continues through the scene; live T2 animation phases never index T1 clips.
+Script-hidden actors are excluded from distance activation and the optional
+all-active override. Source population adjustments exclude scripted duplicate
+boss phases. A scripted native objective waits for original success/death
+events, then uses native ending/results machinery. Snapshot fixtures serialize
+the director and native world together; this does not yet add a native F1 save
+format or connect cinematic presentation to the launcher.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |
@@ -133,6 +154,10 @@ Read-only references rechecked for this adapter:
 | `tenchu-decomp` | `src/main.exe/ITEM.C` | `fd5a6d31ef3e5628d792a4f05604d7e40ff588663c339651858e161bee57e78a` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/items/rolling.rs` | `aaceee4bfbc8aeb7a5dde8b1c5caaa20c6a68c670f2e5ebcc9da448a81b62365` |
 | `tenchu-viewer` | `src/world_items.rs` | `bf112a0dceb2c4d75fa6e54d6eb83f6721f7ebde5ab71a780aa16c8271526bd8` |
+| `tenchu-decomp` | `src/main.exe/STAGE.C` | `dc1573257be1b02eeaaa96cd1e3c6ce8b952da3dbd4a122e669a29e4d819a391` |
+| `tenchu-decomp` | `src/main.exe/CHRANIM.C` | `5e8c2a7548b441bdb68b16b54b7ac2fb6c9dd5f791868295d625c3fb2297c825` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/stage.rs` | `3c2078b66fbb1c5d48a105d13a04ebf899a27811449e94e8fbb3e58fe52655bc` |
+| `tenchu-viewer` | `src/scene.rs` | `7de326a13573430e02478bddadacdde14371b8f24566efa20f831d450a525c4c` |
 
 ## Asset, scalar and renderer checkpoint (2026-10-20)
 

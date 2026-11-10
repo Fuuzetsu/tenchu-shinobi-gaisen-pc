@@ -15,6 +15,7 @@ pub enum Objective {
     Defeat { targets: [i16; 3] },
     EliminateUnseen { count: i16 },
     EliminateAll,
+    Scripted,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

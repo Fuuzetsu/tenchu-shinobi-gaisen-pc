@@ -37,6 +37,13 @@ pub struct Events {
 }
 
 impl Events {
+    pub fn active(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.slots
+            .iter()
+            .flatten()
+            .map(|slot| (slot.event, slot.target))
+    }
+
     pub(super) fn new(events: &[Event], roster: &Roster, player: usize) -> Self {
         let mut state = Self {
             enabled: !events.is_empty(),

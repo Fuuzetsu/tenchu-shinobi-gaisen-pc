@@ -62,6 +62,7 @@ fn prepare_success(playback: &mut Game) -> Outcome {
             assert!(world.statistics.killed > 0);
             Outcome::AreaCleared
         }
+        Objective::Scripted => panic!("Retail campaign contains an imported objective"),
     }
 }
 

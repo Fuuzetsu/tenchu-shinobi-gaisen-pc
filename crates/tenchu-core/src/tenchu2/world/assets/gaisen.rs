@@ -68,48 +68,7 @@ impl Assets {
                 });
             }
         }
-        assets.cast = layout.actors.iter().map(|a| a.kind).collect();
-        assets.cast.sort_unstable();
-        assets.cast.dedup();
-        if assets.cast.len() > 11 {
-            return Err("Too many Tenchu 2 voices in imported stage".into());
-        }
-        let mut wanted = std::collections::BTreeSet::new();
-        for &kind in &assets.cast {
-            let actor = assets
-                .resources
-                .registry
-                .actor(kind)
-                .ok_or("Missing imported guard definition")?;
-            if !assets.models.contains_key(&actor.model) {
-                assets
-                    .models
-                    .insert(actor.model.clone(), characters::rig(disc, &actor.model)?);
-            }
-            wanted.extend(
-                actor
-                    .motions
-                    .iter()
-                    .map(|m| m.clip)
-                    .filter(|id| !assets.resources.clips.contains_key(id)),
-            );
-            for name in assets
-                .resources
-                .weapons
-                .parts(actor.weapon)
-                .filter_map(|p| p.model.as_ref())
-            {
-                if !assets.weapons.contains_key(name) {
-                    assets
-                        .weapons
-                        .insert(name.clone(), weapons::model(disc, name)?);
-                }
-            }
-        }
-        assets
-            .resources
-            .clips
-            .extend(motions::collect(disc, wanted)?);
+        assets.import_cast(disc, &layout)?;
         assets.import_stage(source)?;
         layout.map = assets.level.id;
         let objective = if layout
@@ -144,6 +103,107 @@ impl Assets {
         assets.campaign.starts = [[None; 11]; 3];
         assets.campaign.starts[hero][source.stage.id] = Some(0);
         Ok((assets, layout))
+    }
+
+    pub fn gaisen_campaign(
+        disc: &Disc<impl ReadAt>,
+        source: &crate::game::Game,
+        hero: usize,
+        alternate: bool,
+    ) -> Result<(Self, Layout)> {
+        let (mut assets, mut layout) = Self::gaisen(disc, &source.mission, hero, alternate)?;
+        layout.actors.clear();
+        for &id in source
+            .roster
+            .order
+            .iter()
+            .filter(|&&id| id != source.player_id)
+        {
+            let actor = source.roster.get(id);
+            let Some(kind) = actor_kind(actor.kind) else {
+                // These are scene-only nobles, swords and arrows. Their original
+                // models and commands remain owned by the cinematic director.
+                if matches!(actor.kind, 4..=6 | 0xa6..=0xa8) {
+                    continue;
+                }
+                return Err(format!("Unmapped Gaisen actor {:#x}", actor.kind));
+            };
+            let route = source.mission.enemies.iter().find(|spawn| {
+                spawn.kind == actor.kind && spawn.position == actor.position.to_array()
+            });
+            let route: Vec<_> = route
+                .into_iter()
+                .flat_map(|s| &s.patrol)
+                .map(|&(p, wait)| Waypoint {
+                    x: p[0],
+                    z: p[2],
+                    action: 0,
+                    wait,
+                })
+                .collect();
+            let think = actor
+                .think
+                .source_ids()
+                .into_iter()
+                .enumerate()
+                .fold(0, |mix, (i, code)| mix | i16::from(code) << (i * 4));
+            layout.actors.push(Actor {
+                slot: id,
+                kind,
+                behavior: if think == 0 {
+                    0
+                } else {
+                    behavior(kind, think, !route.is_empty())
+                },
+                position: actor.position.to_array(),
+                facing: actor.rotation[1],
+                route,
+            });
+        }
+        assets.import_cast(disc, &layout)?;
+        assets.campaign.sequences[0].kind = Kind::Gameplay(Objective::Scripted);
+        Ok((assets, layout))
+    }
+
+    fn import_cast(&mut self, disc: &Disc<impl ReadAt>, layout: &Layout) -> Result<()> {
+        self.cast = layout.actors.iter().map(|a| a.kind).collect();
+        self.cast.sort_unstable();
+        self.cast.dedup();
+        if self.cast.len() > 11 {
+            return Err("Too many Tenchu 2 voices in imported stage".into());
+        }
+        let mut wanted = std::collections::BTreeSet::new();
+        for &kind in &self.cast {
+            let actor = self
+                .resources
+                .registry
+                .actor(kind)
+                .ok_or("Missing imported guard definition")?;
+            if !self.models.contains_key(&actor.model) {
+                self.models
+                    .insert(actor.model.clone(), characters::rig(disc, &actor.model)?);
+            }
+            wanted.extend(
+                actor
+                    .motions
+                    .iter()
+                    .map(|m| m.clip)
+                    .filter(|id| !self.resources.clips.contains_key(id)),
+            );
+            for name in self
+                .resources
+                .weapons
+                .parts(actor.weapon)
+                .filter_map(|p| p.model.as_ref())
+            {
+                if !self.weapons.contains_key(name) {
+                    self.weapons
+                        .insert(name.clone(), weapons::model(disc, name)?);
+                }
+            }
+        }
+        self.resources.clips.extend(motions::collect(disc, wanted)?);
+        Ok(())
     }
 
     fn import_stage(&mut self, source: &MissionAssets) -> Result<()> {
@@ -296,6 +356,8 @@ fn grid(source: &MissionAssets) -> Result<Grid> {
 
 fn actor_kind(kind: i16) -> Option<i16> {
     Some(match kind {
+        0 | 2 => 0,
+        1 | 3 => 1,
         7 | 0x10 | 0x13 | 0x16 | 0x19 => 0x23,
         8 | 0x11 | 0x14 | 0x17 | 0x1a => 0x24,
         9 | 0x12 | 0x15 | 0x18 | 0x1b => 0x25,
@@ -330,7 +392,7 @@ fn actor_kind(kind: i16) -> Option<i16> {
         0x8b => 0xf0,
         0x8c => 0xe1,
         0x8d => 0xe7,
-        0x8e => 0xe0,
+        0x8e | 0x8f => 0xe0,
         0x90 => 0x64,
         0x91 | 0x92 | 0x95 | 0x96 => 0x61,
         0x93 | 0x94 => 0x69,

@@ -1,7 +1,7 @@
 use super::{
     actor::{Actor, State},
     ai::runtime::{Agent, System},
-    collision::{BODY, Collision},
+    collision::Collision,
     inventory::Inventory,
     physics::Water,
     rig::{Rig, WeaponMode},
@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     Result,
-    math::{Matrix, Position, Vector3},
+    math::{Matrix, Position},
     motion::Pose,
     random::Random,
     scene::Scene,
@@ -24,6 +24,7 @@ pub mod controls;
 mod effects;
 mod experiment;
 mod frame;
+pub mod gaisen;
 mod items;
 mod mission;
 mod navigation;
@@ -92,6 +93,8 @@ pub struct World {
     pub view_distance: i32,
     #[serde(default)]
     pub keep_all_active: bool,
+    #[serde(default)]
+    pub script_hidden: std::collections::BTreeSet<usize>,
     pub sequence: u16,
     pub player: usize,
     pub difficulty: u8,
@@ -135,6 +138,7 @@ impl World {
             environment: super::environment::Environment::default(),
             hidden_scene: false,
             keep_all_active: false,
+            script_hidden: Default::default(),
             actors: Vec::new(),
             instances: Vec::new(),
             scene: Scene::default(),
@@ -274,17 +278,7 @@ impl World {
         actor.rotation.y = facing;
         let owner = self.actors.len();
         let mut rig = Rig::bind(&actor, &mut self.scene, &resources.math);
-        if matches!(kind, 0x71 | 0x75 | 0xe5) {
-            let slot = self.collision.insert(rig.joints[1])?;
-            slot.owner = Some(owner);
-            slot.flags = BODY;
-            slot.size = Vector3::new(actor.width / 2, actor.height / 2, actor.width / 2);
-            slot.offset = if kind == 0x71 {
-                Vector3::new(0, -500, 0)
-            } else {
-                Vector3::new(0, 0, -1000)
-            };
-        }
+        actor.set_secondary_body_collision(&rig, owner, &mut self.collision, true)?;
         for weapon in resources.weapons.parts(definition.weapon) {
             let Some(name) = &weapon.model else { continue };
             let parts = assets

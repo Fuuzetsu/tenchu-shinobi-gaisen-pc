@@ -130,6 +130,16 @@ impl Mission {
         self.phase == Phase::Playing { pending: None }
     }
 
+    pub fn resolve_script(&mut self, outcome: Outcome) -> Result<()> {
+        if self.objective != Objective::Scripted {
+            return Err("Only scripted missions accept an external outcome".into());
+        }
+        if let Phase::Playing { pending } = &mut self.phase {
+            *pending = Some(outcome);
+        }
+        Ok(())
+    }
+
     pub fn items_running(&self) -> bool {
         match self.phase {
             Phase::Playing { .. } => true,
@@ -180,7 +190,9 @@ impl Mission {
             }
             Phase::Playing { pending } => pending,
         };
-        if input.health == 0 || input.tick as i32 > 178200 {
+        if self.objective == Objective::Scripted {
+            // The imported director owns death scenes as well as success events.
+        } else if input.health == 0 || input.tick as i32 > 178200 {
             if input.motion_loops != 0 {
                 pending = Some(Outcome::Dead);
             }
@@ -230,6 +242,7 @@ impl Mission {
                         pending = Some(Outcome::AreaCleared);
                     }
                 }
+                Objective::Scripted => unreachable!(),
             }
         }
         self.phase = if let Some(outcome) = pending

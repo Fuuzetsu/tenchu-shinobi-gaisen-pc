@@ -42,7 +42,7 @@ impl World {
         if self.keep_all_active {
             self.collision.allow_expansion();
             for index in 0..self.actors.len() {
-                if self.actors[index].actor.flags & 8 != 0 {
+                if self.actors[index].actor.flags & 8 != 0 && !self.script_hidden.contains(&index) {
                     self.activate_actor(index, assets)?;
                 }
             }
@@ -56,6 +56,9 @@ impl World {
         let mut active = Vec::new();
         let mut inactive = Vec::new();
         for (index, agent) in self.actors.iter().enumerate() {
+            if self.script_hidden.contains(&index) {
+                continue;
+            }
             if agent.actor.flags & 8 == 0 {
                 active.push(index);
             } else {
@@ -141,6 +144,50 @@ impl World {
                 free -= 1;
             }
             self.activate_actor(index, assets)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn set_script_visible(
+        &mut self,
+        index: usize,
+        visible: bool,
+        assets: &Assets,
+    ) -> Result<()> {
+        let actor = &mut self.actors[index].actor;
+        let rig = &mut self.instances[index].rig;
+        if visible {
+            self.script_hidden.remove(&index);
+            actor.flags &= !8;
+            if actor.health > 0 {
+                actor.set_secondary_body_collision(rig, index, &mut self.collision, true)?;
+                actor.set_weapon(
+                    rig,
+                    index,
+                    &mut self.collision,
+                    &assets.resources,
+                    WeaponMode::Refresh,
+                )?;
+            }
+            actor.set_body_collision(rig.joints[0], index, &mut self.collision, true)?;
+            if actor.health == 0 && actor.motion.loops == i16::MIN {
+                self.collision
+                    .get_mut(rig.joints[0])
+                    .ok_or("Missing scripted corpse body")?
+                    .size = crate::math::Vector3::new(actor.width, actor.height, actor.width);
+            }
+        } else {
+            self.script_hidden.insert(index);
+            actor.flags |= 8;
+            actor.set_weapon(
+                rig,
+                index,
+                &mut self.collision,
+                &assets.resources,
+                WeaponMode::Remove,
+            )?;
+            actor.set_body_collision(rig.joints[0], index, &mut self.collision, false)?;
+            actor.set_secondary_body_collision(rig, index, &mut self.collision, false)?;
         }
         Ok(())
     }

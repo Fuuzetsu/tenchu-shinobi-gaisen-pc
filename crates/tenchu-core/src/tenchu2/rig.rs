@@ -249,4 +249,30 @@ impl Actor {
         }
         Ok(())
     }
+
+    pub(crate) fn set_secondary_body_collision(
+        &self,
+        rig: &Rig,
+        owner: usize,
+        collision: &mut Collision,
+        enabled: bool,
+    ) -> Result<()> {
+        if matches!(self.kind, 0x71 | 0x75 | 0xe5) {
+            let joint = rig.joints[1];
+            if enabled {
+                let slot = collision.insert(joint)?;
+                slot.owner = Some(owner);
+                slot.flags = BODY;
+                slot.size = Vector3::new(self.width / 2, self.height / 2, self.width / 2);
+                slot.offset = if self.kind == 0x71 {
+                    Vector3::new(0, -500, 0)
+                } else {
+                    Vector3::new(0, 0, -1000)
+                };
+            } else {
+                collision.remove(joint);
+            }
+        }
+        Ok(())
+    }
 }
