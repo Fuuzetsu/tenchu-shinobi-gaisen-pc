@@ -163,9 +163,9 @@ fn native_story_faces_match_original_expression_and_draw_updates() {
 }
 
 #[test]
-#[ignore = "requires TENCHU2_DISC; loads every JP story cast, scenery model and texture group"]
+#[ignore = "requires TENCHU2_DISC; loads every JP story cast, stage scenery and texture group"]
 fn native_story_models_load_from_their_event_bundles() {
-    use tenchu_assets::tenchu2::story::Resources;
+    use tenchu_assets::tenchu2::{level::Level, story::Resources};
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let campaign = Campaign::load(&disc).unwrap();
@@ -184,21 +184,31 @@ fn native_story_models_load_from_their_event_bundles() {
         }
         let sequence = campaign.sequences[index];
         if sequence.kind == Kind::Event {
-            events.insert(sequence.resource);
+            events.insert((index, sequence.resource));
         }
         pending.extend(sequence.next);
         pending.extend(sequence.failure);
     }
     // Event 88 has an unused sequence descriptor and no E88.ARC on the JP disc.
-    assert_eq!(events.len(), 141);
+    assert_eq!(
+        events
+            .iter()
+            .map(|(_, event)| *event)
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        141
+    );
     let mut models = 0;
     let mut weapons = 0;
     let mut captions = 0;
     let mut voices = 0;
     let mut characters = std::collections::BTreeSet::new();
-    for event in events {
-        let resources =
-            Resources::load(&disc, event).unwrap_or_else(|e| panic!("event {event}: {e}"));
+    for (sequence, event) in events {
+        let resources = Resources::load(&disc, event)
+            .unwrap_or_else(|e| panic!("sequence {sequence}, event {event}: {e}"));
+        let level = Level::japanese_scene(&disc, resources.area, sequence, true)
+            .unwrap_or_else(|e| panic!("sequence {sequence}, event {event}: {e}"));
+        assert!(!level.map.is_empty(), "event {event}: missing stage");
         for actor in &resources.script.actors {
             if let Some(model) = resources.models.get(&actor.model) {
                 tenchu_core::motion::Pose::new(&model.parts).unwrap();

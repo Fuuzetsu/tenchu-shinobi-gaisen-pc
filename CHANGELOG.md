@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix native Tenchu 2 cutscenes using gameplay scenery, which left a duplicate
+  closed trapdoor over the opening animation in Rikimaru's and Ayame's training.
+  Story scenes now load their original event scenery variants.
+
 - F1 Movement now offers **Shift / Circle action**: Follow moveset, Crouch or
   Guard / dash. T2 movesets default to their guard stance and repeated directional
   steps, with R1 for crouching and rolls; the setting also works with T1 bodies

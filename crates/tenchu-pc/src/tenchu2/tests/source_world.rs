@@ -562,7 +562,7 @@ fn all_area_background_resources_load() {
             let script = Script::load(&disc, campaign.sequences[sequence].resource).unwrap();
             let area = script.area.unwrap();
             let base = Level::load(&disc, area).unwrap();
-            let alternate = Level::japanese_scene(&disc, area, sequence, false).unwrap();
+            let alternate = Level::japanese_scene(&disc, area, sequence, true).unwrap();
             assert!(!alternate.background.sky.is_empty());
             assert_ne!(base.vram.words, alternate.vram.words, "sequence {sequence}");
         }

@@ -23,7 +23,7 @@ pub struct Story {
 impl Story {
     pub fn load(disc: &Disc<impl ReadAt>, sequence: usize, event: u16, seed: u32) -> Result<Self> {
         let resources = Resources::load(disc, event)?;
-        let level = Level::japanese_scene(disc, resources.area, sequence, false)?;
+        let level = Level::japanese_scene(disc, resources.area, sequence, true)?;
         let state = Playback::new(&resources, seed);
         Ok(Self {
             sequence,

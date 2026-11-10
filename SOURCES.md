@@ -2544,6 +2544,15 @@ captured audio became silent while paused and resumed afterward. This does not
 establish full story parity: timed 3D effects, distortion, weather and campaign
 handoffs remain unfinished, and the normal launcher still uses the Gaisen sandbox.
 
+Native JP story scenery follows `EVENT.BIN` `800d1150` calling `GAME.EXE`
+`80048e5c`, which sets `8008eb7a = 1` before `8004ce78` chooses the object layout
+and archive. Loading the gameplay variant here left a static closed hatch over
+the scripted `ANA` model in training events 2021/2031. The event variant removes
+that duplicate. Disc-backed checks cover both opening tracks with and without
+draw skips, and all reachable story casts now load their actual stage scenery.
+Original-settings before/after captures of both training scenes are retained
+outside Git under `private/two-releases-20261110/trapdoor-*.png`.
+
 Native JP campaign carry-over and navigation follow `GAME.EXE` functions
 `80062310` (dispatch, story skip, failure and retry), `800646bc` (area-entry
 resets), `80064a34` (health, weapon/poison state, inventory, breath and elapsed-time

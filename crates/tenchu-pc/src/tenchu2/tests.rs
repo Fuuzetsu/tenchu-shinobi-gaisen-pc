@@ -222,7 +222,7 @@ fn artwork_covers_native_japanese_mission_resources() {
             campaign.sequences[sequence].resource,
         )
         .unwrap();
-        let level = Level::japanese_scene(&disc, story.area.unwrap(), sequence, false).unwrap();
+        let level = Level::japanese_scene(&disc, story.area.unwrap(), sequence, true).unwrap();
         check_background_artwork(&level);
     }
     for character in characters::load(&disc, None).unwrap() {

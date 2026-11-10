@@ -114,6 +114,45 @@ fn native_character_shading_matches_the_retail_color_table() {
 }
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; the training cutscenes replace the closed gameplay hatch with its scripted model"]
+fn training_trapdoor_opens_without_duplicate_scenery() {
+    use super::story::Story;
+    use tenchu_assets::tenchu2::level::{Level, objects::StaticKind};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let has_closed_hatch = |level: &Level| {
+        level.scene.statics.iter().any(|object| {
+            matches!(object.kind, StaticKind::Model(_)) && object.position == [29000, -9000, 26500]
+        })
+    };
+    assert!(has_closed_hatch(&Level::load(&disc, 0).unwrap()));
+    for (sequence, event, closed, opened, angle) in
+        [(2, 2021, 504, 516, -838), (103, 2031, 365, 371, -935)]
+    {
+        for skips in [false, true] {
+            let mut story = Story::load(&disc, sequence, event, 1).unwrap();
+            assert!(!has_closed_hatch(&story.level), "event {event}");
+            let hatch = story
+                .resources
+                .script
+                .actors
+                .iter()
+                .position(|actor| story.resources.models[&actor.model].name == "ana")
+                .unwrap();
+            for tick in 0..=opened + 30 {
+                story.step(!skips || tick % 3 == 0).unwrap();
+                let rotation = story.state.actors[hatch].rotation[0];
+                if tick <= closed {
+                    assert_eq!(rotation, [0, 0, 0], "event {event}, tick {tick}");
+                } else if tick >= opened {
+                    assert_eq!(rotation, [angle, 0, 0], "event {event}, tick {tick}");
+                }
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; live story state and facial textures continue after a snapshot, with complete XA decoding"]
 fn native_story_session_restores_faces_camera_and_captions() {
     use super::story::Story;
