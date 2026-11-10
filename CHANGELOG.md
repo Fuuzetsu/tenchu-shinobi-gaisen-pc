@@ -17,8 +17,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   underwater collision, with a default depth of 4,000 game units. `--water-depth`
   accepts 0–16,000 in multiples of 10; 0 disables the added collision. Original
   surface heights and shorelines are retained; T1 has no authored underwater
-  floors or seabed artwork. Wooden floors stay dry. Other stage
-  interactions and F6 selection are still being connected.
+  floors or seabed artwork. Wooden floors stay dry. F6 offers these stages under
+  **Shinobi Gaisen → Gameplay rules → Tenchu 2 (JP)**, with all three T2 heroes,
+  difficulty, water depth and native equipment selection. Both games' saved
+  campaigns are preserved. Other stage interactions are still being connected.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
   item readouts, equipment quantities and results numbers, plus clearer

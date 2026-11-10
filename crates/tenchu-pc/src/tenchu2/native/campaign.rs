@@ -137,6 +137,10 @@ impl<S: ReadAt> Playback<S> {
         playback.gaisen_water_depth = water_depth;
         playback.content = Content::Gameplay(Box::new(session));
         playback.generation = 1;
+        if loadout.is_none() {
+            playback.run.carry.inventory[0] = 0;
+            playback.load_current()?;
+        }
         Ok(playback)
     }
 

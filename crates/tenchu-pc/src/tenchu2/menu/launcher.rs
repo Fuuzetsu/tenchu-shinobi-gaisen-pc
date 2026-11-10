@@ -21,6 +21,8 @@ impl Menu {
         }
         let rows: &[usize] = if self.native() {
             &[7, 4, 5, 3, 11, 1, 12, 8]
+        } else if self.imported() {
+            &[7, 13, 4, 5, 2, 3, 14, 1, 8]
         } else if self.selected == Some(Edition::Japan) {
             &[7, 4, 5, 2, 3, 6, 9, 10, 11, 1, 8]
         } else if self.selected.is_some() {
@@ -28,7 +30,7 @@ impl Menu {
         } else if cfg!(target_arch = "wasm32") {
             &[4, 5, 2, 3, 6, 1, 0]
         } else {
-            &[7, 4, 5, 2, 3, 6, 1, 0, 8]
+            &[7, 13, 4, 5, 2, 3, 6, 1, 0, 8]
         };
         match action {
             Action::Up | Action::Down => {
@@ -56,6 +58,31 @@ impl Menu {
                         return (true, Some(Event::Select(selected)));
                     }
                     8 => return (true, Some(Event::Open)),
+                    13 => {
+                        if self.japanese_disc().is_none() {
+                            return (true, Some(Event::Open));
+                        }
+                        self.gaisen_t2 = !self.gaisen_t2;
+                        if self.gaisen_t2 {
+                            campaign.options.layout = campaign.options.layout.max(1);
+                        }
+                    }
+                    14 if self.imported() => {
+                        self.gaisen_water_depth = cycle(
+                            &[0, 400, 800, 2000, 4000, 6000, 8000, 12000, 16000],
+                            &self.gaisen_water_depth,
+                            delta,
+                        );
+                    }
+                    2 if self.imported() => {
+                        self.gaisen_hero = cycle(&[0, 1, 2], &self.gaisen_hero, delta)
+                    }
+                    5 if self.imported() => {
+                        campaign.options.layout = cycle(&[1, 2, 3], &campaign.options.layout, delta)
+                    }
+                    1 if self.imported() && matches!(action, Action::Confirm | Action::Start) => {
+                        return (true, Some(Event::GaisenTenchu2));
+                    }
                     12 if self.native() && matches!(action, Action::Confirm | Action::Start) => {
                         return (true, Some(Event::MissionSelection));
                     }
@@ -173,6 +200,22 @@ impl Menu {
                             });
                         });
                     } else {
+                        if !cfg!(target_arch = "wasm32") {
+                            ui.horizontal_wrapped(|ui| {
+                                ui.label(selected(13, "Gameplay rules"));
+                                ui.selectable_value(&mut self.gaisen_t2, false, "Shinobi Gaisen");
+                                let available = self.japanese_disc().is_some();
+                                ui.add_enabled_ui(available, |ui| {
+                                    if ui.selectable_value(&mut self.gaisen_t2, true, "Tenchu 2 (JP)").changed() {
+                                        options.layout = options.layout.max(1);
+                                    }
+                                });
+                                if !available { ui.small("Connect a Japanese T2 disc to use its gameplay rules."); }
+                            });
+                        }
+                        if self.imported() {
+                            ui.small("Experimental: T1 stages with T2 guards, movement, AI and HUD. Original mission objectives and pickups are still being connected.");
+                        }
                         ui.horizontal(|ui| {
                             ui.label(selected(4, "Mission"));
                             egui::ComboBox::from_id_salt("quick-mission").selected_text(mission_name(campaign, options.mission)).show_ui(ui, |ui| {
@@ -182,11 +225,16 @@ impl Menu {
                         ui.horizontal(|ui| {
                             ui.label(selected(5, "Layout"));
                             egui::ComboBox::from_id_salt("quick-layout").selected_text(layout_name(options.layout)).show_ui(ui, |ui| {
-                                for layout in 0..=3 { ui.selectable_value(&mut options.layout, layout, layout_name(layout)); }
+                                for layout in usize::from(self.imported())..=3 { ui.selectable_value(&mut options.layout, layout, layout_name(layout)); }
                             });
                         });
                     }
-                    if !self.native() { ui.horizontal(|ui| {
+                    if self.imported() { ui.horizontal(|ui| {
+                        ui.label(selected(2, "Character"));
+                        for (hero, name) in ["Rikimaru", "Ayame", "Tatsumaru"].into_iter().enumerate() {
+                            ui.selectable_value(&mut self.gaisen_hero, hero, name);
+                        }
+                    }); } else if !self.native() { ui.horizontal(|ui| {
                         ui.label(selected(2, "Character"));
                         ui.selectable_value(&mut options.character, 0, "Rikimaru");
                         ui.selectable_value(&mut options.character, 1, "Ayame");
@@ -212,6 +260,12 @@ impl Menu {
                             }
                         });
                         ui.checkbox(&mut self.source_models, selected(10, "Use Tenchu 2 guard models"));
+                    } else if self.imported() {
+                        ui.horizontal(|ui| {
+                            ui.label(selected(14, "Water depth"));
+                            ui.add(egui::Slider::new(&mut self.gaisen_water_depth, 0..=16000).step_by(10.0).suffix(" units"));
+                        });
+                        ui.small("Added depth allows swimming and diving. 0 disables it; T1 has no underwater floor artwork.");
                     } else if self.selected.is_none() {
                         ui.horizontal(|ui| {
                             ui.label(selected(6, "Language"));
@@ -228,9 +282,9 @@ impl Menu {
                     ui.horizontal_wrapped(|ui| {
                         if ui.button(selected(1, if self.selected.is_some() && !self.native() { "Explore area" } else { "Start mission" })).clicked() {
                             self.character = options.character;
-                            event = Some(if self.selected.is_some() { Event::Play } else { Event::Gaisen(false) });
+                            event = Some(if self.imported() { Event::GaisenTenchu2 } else if self.selected.is_some() { Event::Play } else { Event::Gaisen(false) });
                         }
-                        if self.selected.is_none() && ui.add_enabled(campaign.saved.is_some(), egui::Button::new(selected(0, "Continue saved game"))).clicked() {
+                        if self.selected.is_none() && !self.imported() && ui.add_enabled(campaign.saved.is_some(), egui::Button::new(selected(0, "Continue saved game"))).clicked() {
                             event = Some(Event::Gaisen(true));
                         }
                         if !cfg!(target_arch = "wasm32") && ui.button(selected(8, "Connect another disc…")).clicked() { event = Some(Event::Open); }

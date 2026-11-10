@@ -50,6 +50,13 @@ impl Application {
                 self.campaign.cursor = usize::from(!continue_save);
                 self.campaign_action(Action::Confirm);
             }
+            Event::GaisenTenchu2 => {
+                #[cfg(not(target_arch = "wasm32"))]
+                if self.tenchu2.imported() {
+                    return self.start_native_tenchu2(false);
+                }
+                return Err("Select Tenchu 2 gameplay rules for a Gaisen stage first".into());
+            }
             Event::Select(edition) => {
                 if let Some(edition) = edition {
                     let path = self

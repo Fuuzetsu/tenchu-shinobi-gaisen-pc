@@ -22,6 +22,9 @@ pub struct Menu {
     pub discs: Vec<(Edition, String)>,
     pub selected: Option<Edition>,
     pub sandbox: bool,
+    pub gaisen_t2: bool,
+    pub gaisen_hero: usize,
+    pub gaisen_water_depth: i16,
     initialized: bool,
 }
 
@@ -45,6 +48,9 @@ impl Default for Menu {
             discs: Vec::new(),
             selected: None,
             sandbox: false,
+            gaisen_t2: false,
+            gaisen_hero: 0,
+            gaisen_water_depth: tenchu_assets::tenchu2::collision::Gaisen::DEFAULT_WATER_DEPTH,
             initialized: false,
         }
     }
@@ -60,10 +66,22 @@ pub enum Event {
     Select(Option<Edition>),
     Options(crate::session::Options),
     Gaisen(bool),
+    GaisenTenchu2,
     Quick,
 }
 
 impl Menu {
+    pub fn imported(&self) -> bool {
+        self.selected.is_none() && self.gaisen_t2 && !cfg!(target_arch = "wasm32")
+    }
+
+    pub fn japanese_disc(&self) -> Option<&str> {
+        self.discs
+            .iter()
+            .find(|(edition, _)| *edition == Edition::Japan)
+            .map(|(_, path)| path.as_str())
+    }
+
     pub fn native(&self) -> bool {
         self.selected == Some(Edition::Japan) && !self.sandbox
     }

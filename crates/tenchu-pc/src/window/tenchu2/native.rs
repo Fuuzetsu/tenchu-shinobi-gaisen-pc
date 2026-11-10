@@ -54,21 +54,55 @@ impl Application {
     }
 
     pub(in crate::window) fn start_native_tenchu2(&mut self, selection: bool) -> Result<()> {
-        let sequence = self
-            .tenchu2
-            .sequence
-            .ok_or("Select a Japanese mission layout")?;
-        let disc = crate::source::open_disc(self.tenchu2.path.as_ref())?;
         let difficulty = match self.campaign.options.difficulty {
             tenchu_core::ai::Difficulty::Easy => 1,
             tenchu_core::ai::Difficulty::Normal => 2,
             tenchu_core::ai::Difficulty::Hard => 3,
         };
-        let save = Some(crate::tenchu2::native::save::SaveFile::new()?);
-        let playback = if selection {
-            Playback::menu(disc, difficulty, self.campaign.seed, save)?
+        let playback = if self.tenchu2.imported() {
+            let path = self
+                .tenchu2
+                .japanese_disc()
+                .ok_or("Connect a Japanese Tenchu 2 disc first")?;
+            let disc = crate::source::open_disc(path.as_ref())?;
+            let options = self.campaign.options;
+            let stage = self
+                .campaign
+                .stages
+                .iter()
+                .find(|s| s.order == options.mission as i32)
+                .ok_or("Unknown Gaisen mission")?
+                .id;
+            if !(1..=3).contains(&options.layout) {
+                return Err("Select a Gaisen layout from 1 to 3".into());
+            }
+            let source = tenchu_assets::stage::MissionAssets::load(
+                &self.assets,
+                stage,
+                i16::from(self.tenchu2.gaisen_hero == 1),
+                options.layout,
+            )?;
+            Playback::gaisen(
+                disc,
+                source,
+                self.tenchu2.gaisen_hero,
+                difficulty,
+                self.campaign.seed,
+                None,
+                self.tenchu2.gaisen_water_depth,
+            )?
         } else {
-            Playback::load(disc, sequence, difficulty, self.campaign.seed, None, save)?
+            let sequence = self
+                .tenchu2
+                .sequence
+                .ok_or("Select a Japanese mission layout")?;
+            let disc = crate::source::open_disc(self.tenchu2.path.as_ref())?;
+            let save = Some(crate::tenchu2::native::save::SaveFile::new()?);
+            if selection {
+                Playback::menu(disc, difficulty, self.campaign.seed, save)?
+            } else {
+                Playback::load(disc, sequence, difficulty, self.campaign.seed, None, save)?
+            }
         };
         self.finish_recording();
         self.performance = Default::default();
@@ -742,6 +776,9 @@ impl Application {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod launcher_tests;
 
 #[cfg(test)]
 mod tests {
