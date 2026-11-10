@@ -52,6 +52,8 @@ pub struct Drawing {
     pub camera: Option<crate::debug::camera::Camera>,
     pub alpha: f32,
     pub show_hud: bool,
+    pub sharp_text: bool,
+    pub texts: Vec<crate::fonts::Text>,
     pub labels: Vec<crate::debug::Label>,
 }
 
@@ -149,6 +151,8 @@ impl Drawing {
             scene: SceneDrawing::new(geometry, renderer, &session.assets.level),
             view: session.world.camera.view,
             show_hud: true,
+            sharp_text: false,
+            texts: Vec::new(),
             camera: None,
             alpha: 1.0,
             labels: Vec::new(),
@@ -212,6 +216,7 @@ impl Drawing {
             renderer.graphics(),
             Presentation {
                 show_hud: self.show_hud,
+                sharp_text: self.sharp_text,
                 alpha: if renderer.graphics().interpolation {
                     self.alpha
                 } else {
@@ -222,6 +227,14 @@ impl Drawing {
                 motion: Some(&motion),
             },
         )?;
+        self.texts = if self.show_hud && self.sharp_text {
+            hud::text(
+                &session.world.controls.hud.frame,
+                session.frame.transition_fade,
+            )
+        } else {
+            Vec::new()
+        };
         self.scene.lighting.update_emitters(
             &session.frame.effects.emitters,
             &renderer.graphics().lighting,
@@ -531,13 +544,16 @@ impl SceneDrawing {
 
 pub fn capture(
     session: &super::Session,
-    graphics: &Graphics,
+    settings: &crate::settings::Settings,
     path: &std::path::Path,
 ) -> Result<()> {
+    let graphics = &settings.graphics;
     capture_frame(&session.assets.sprites.vram, graphics, path, |renderer| {
         let mut drawing = Drawing::new(session, graphics, renderer)?;
+        drawing.show_hud = settings.show_hud;
+        drawing.sharp_text = settings.sharp_text;
         drawing.update(session, renderer, None)?;
-        Ok((drawing.scene, session.world.camera.view, Vec::new()))
+        Ok((drawing.scene, session.world.camera.view, drawing.texts))
     })?;
     eprintln!(
         "Native JP tick {}: position {:?}; {} actors; radar {:?}; pending {:?}",
@@ -611,6 +627,7 @@ pub struct Geometry {
 pub struct Presentation<'a> {
     pub alpha: f32,
     pub show_hud: bool,
+    pub sharp_text: bool,
     pub camera: Option<crate::debug::camera::Camera>,
     pub pose: Option<&'a PoseFrame>,
     pub motion: Option<&'a crate::visuals::motion::Frame>,
@@ -621,6 +638,7 @@ impl Default for Presentation<'_> {
         Self {
             alpha: 1.0,
             show_hud: false,
+            sharp_text: false,
             camera: None,
             pose: None,
             motion: None,
@@ -834,6 +852,7 @@ impl Models {
         let Presentation {
             alpha,
             show_hud,
+            sharp_text,
             camera,
             pose,
             motion,
@@ -1214,7 +1233,12 @@ impl Models {
             output.surface(vertices, blend);
         }
         if show_hud {
-            hud::append(&mut output, &assets.sprites, &world.controls.hud.frame);
+            hud::append(
+                &mut output,
+                &assets.sprites,
+                &world.controls.hud.frame,
+                sharp_text,
+            );
         }
         if let Some(fade) = frame.fade {
             output.screen_sprite(

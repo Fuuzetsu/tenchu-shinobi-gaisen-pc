@@ -662,6 +662,9 @@ mod tests {
                     if row.item == Item::KeepEnemiesActive {
                         assert!(state.settings.keep_enemies_active);
                     }
+                    if row.item == Item::SharpText {
+                        assert!(state.settings.sharp_text);
+                    }
                     assert!(
                         menu.panel.notice.is_empty(),
                         "{}: {}",

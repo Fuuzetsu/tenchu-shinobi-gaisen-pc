@@ -441,7 +441,7 @@ impl Application {
                 &self.session.content,
                 &mut view.renderer,
                 &self.menu.tools.debug,
-                self.settings.show_hud,
+                &self.settings,
             )?;
             let original_model = if let Content::Gameplay(session) = &self.session.content {
                 session

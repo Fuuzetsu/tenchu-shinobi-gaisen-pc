@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
+  item readouts, equipment quantities and results numbers, plus clearer
+  disc-derived prologue and briefing calligraphy. Changes apply while paused,
+  respect HUD hiding and fades, and are enabled by Modern High/Ultra. Original
+  rendering remains available; story dialogue already uses outline text.
+
 - Fix native Tenchu 2 cutscenes using gameplay scenery, which left a duplicate
   closed trapdoor over the opening animation in Rikimaru's and Ayame's training.
   Story scenes now load their original event scenery variants.

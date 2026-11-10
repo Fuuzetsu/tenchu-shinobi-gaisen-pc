@@ -41,7 +41,10 @@ impl super::ContentDrawing {
         });
         let target = texture.create_view(&Default::default());
         match self {
-            Self::Gameplay(drawing) => drawing.draw(&target, renderer)?,
+            Self::Gameplay(drawing) => {
+                drawing.draw(&target, renderer)?;
+                crate::fonts::capture(renderer, &texture, &drawing.texts);
+            }
             Self::Story(drawing) => {
                 drawing.draw(&target, renderer)?;
                 crate::fonts::capture(renderer, &texture, &drawing.texts);
@@ -84,21 +87,43 @@ fn grayscale([width, height]: [usize; 2], rgba: &[u8], stride: usize) -> Image {
 pub(crate) struct Drawing {
     pub frame: Arc<Frame>,
     pub backdrop: Option<Arc<Image>>,
+    pub text: Vec<crate::fonts::Text>,
+    sharp_text: bool,
 }
 
 impl Drawing {
     pub fn new(results: &super::super::results::Results, backdrop: Option<Arc<Image>>) -> Self {
-        let mut canvas = Canvas::new(320);
-        canvas.frame = Some(Frame::new([320, 240], Arc::default()));
-        if let Some(image) = &backdrop {
-            canvas.sprite(Sprite::new(image, 0.0, 0.0));
-        }
-        append(&mut canvas, results);
+        let (frame, text) = build(results, backdrop.as_deref(), false);
         Self {
-            frame: Arc::new(canvas.frame.unwrap()),
+            frame,
             backdrop,
+            text,
+            sharp_text: false,
         }
     }
+
+    pub fn update(&mut self, results: &super::super::results::Results, sharp_text: bool) {
+        if self.sharp_text == sharp_text {
+            return;
+        }
+        (self.frame, self.text) = build(results, self.backdrop.as_deref(), sharp_text);
+        self.sharp_text = sharp_text;
+    }
+}
+
+fn build(
+    results: &super::super::results::Results,
+    backdrop: Option<&Image>,
+    sharp_text: bool,
+) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
+    let mut canvas = Canvas::new(320);
+    canvas.frame = Some(Frame::new([320, 240], Arc::default()));
+    canvas.sharp_text = sharp_text;
+    if let Some(image) = backdrop {
+        canvas.sprite(Sprite::new(image, 0.0, 0.0));
+    }
+    append(&mut canvas, results);
+    (Arc::new(canvas.frame.unwrap()), canvas.text)
 }
 
 fn append(canvas: &mut Canvas, results: &super::super::results::Results) {
@@ -167,10 +192,12 @@ fn number(canvas: &mut Canvas, image: &Image, text: &str, x: i32, y: i32) {
             b'-' => 11,
             _ => continue,
         };
-        canvas.sprite(
+        canvas.label(
             Sprite::new(image, (x + i as i32 * 8) as f32, y as f32)
                 .row(row, 12)
                 .blend(Blend::Add),
+            char::from(character).to_string(),
+            egui::Color32::WHITE,
         );
     }
 }

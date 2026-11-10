@@ -513,5 +513,5 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     for _ in 0..ticks {
         session.step(buttons)?;
     }
-    render::capture(&session, &settings.graphics, Path::new(&args[2]))
+    render::capture(&session, &settings, Path::new(&args[2]))
 }

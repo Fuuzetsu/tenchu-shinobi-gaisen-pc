@@ -20,6 +20,8 @@ impl Runtime {
             "Guards ignore the player and corpses and return to their original idle/patrol behavior. Already committed attacks and projectiles can still hurt; use God mode for protection. Scripted sequences and fights against other actors remain active. Resets on a new area."
         } else if self == Self::Tenchu2 && item == Item::KeepEnemiesActive {
             "GAMEPLAY EDIT: keep all placed native actors simulating, patrolling and animating regardless of distance or the original activation budget. Scripted holds and deaths remain intact. Changes RNG and encounters; can cost more CPU. Off restores source distance/budget activation at its next check."
+        } else if self == Self::Tenchu2 && item == Item::SharpText {
+            "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. Authored title and rank artwork stays original."
         } else {
             fallback
         }
@@ -40,8 +42,8 @@ impl Runtime {
                 Some("Android manages the game window; fullscreen is a desktop setting.")
             }
             Fps | Performance | Focus | MenuPause | MusicWhilePaused | WaitAfterDeath
-            | LiveDeathScene | Volume | Fullscreen | Vsync | Hud | Preset | Retro | Fog
-            | FogDistance | Textures | Shading | Exposure | Filtering | Interpolation
+            | LiveDeathScene | Volume | Fullscreen | Vsync | Hud | SharpText | Preset | Retro
+            | Fog | FogDistance | Textures | Shading | Exposure | Filtering | Interpolation
             | Magnification | SurfaceDetail | SurfaceStrength | Antialiasing | AssetPack
             | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion | OcclusionRadius
             | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed

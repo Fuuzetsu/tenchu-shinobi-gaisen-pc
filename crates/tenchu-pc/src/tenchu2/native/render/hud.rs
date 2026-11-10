@@ -1,11 +1,58 @@
 use super::{Builder, render_mesh};
 use tenchu_assets::tenchu2::effects::Sprites;
-use tenchu_core::tenchu2::hud::{Image, Primitive};
+use tenchu_core::tenchu2::hud::{Image, Primitive, Sprite};
 
-pub(super) fn append(output: &mut Builder, sprites: &Sprites, frame: &[Primitive]) {
+fn digit(sprite: &Sprite) -> Option<u8> {
+    match sprite.image {
+        Image::Digit(value) if sprite.rotation == 0 && sprite.scale > 0 => Some(value),
+        _ => None,
+    }
+}
+
+pub(super) fn text(frame: &[Primitive], fade: Option<u8>) -> Vec<crate::fonts::Text> {
+    frame
+        .iter()
+        .rev()
+        .filter_map(|primitive| {
+            let Primitive::Sprite(sprite) = primitive else {
+                return None;
+            };
+            let value = digit(sprite)?;
+            if sprite.color == [0; 3] || fade == Some(255) {
+                return None;
+            }
+            let scale = f32::from(sprite.scale) / 4096.0;
+            Some(crate::fonts::Text {
+                position: egui::pos2(
+                    f32::from(sprite.position[0]),
+                    f32::from(sprite.position[1]) - 5.0 * scale,
+                ),
+                text: char::from(b'0' + value).to_string(),
+                color: crate::fonts::color(
+                    sprite
+                        .color
+                        .map(|c| f32::from(c) / 128.0 - f32::from(fade.unwrap_or(0)) / 255.0),
+                ),
+                size: 6.75 * scale,
+                width: 4.5 * scale,
+                centered: true,
+            })
+        })
+        .collect()
+}
+
+pub(super) fn append(
+    output: &mut Builder,
+    sprites: &Sprites,
+    frame: &[Primitive],
+    sharp_text: bool,
+) {
     for primitive in frame.iter().rev() {
         match primitive {
             Primitive::Sprite(sprite) => {
+                if sharp_text && digit(sprite).is_some() {
+                    continue;
+                }
                 let mut image = match sprite.image {
                     Image::Item(id) => sprites.items[42 + id],
                     Image::Selection => sprites.items[63],
@@ -68,7 +115,7 @@ pub(super) fn append(output: &mut Builder, sprites: &Sprites, frame: &[Primitive
 
 #[cfg(test)]
 mod tests {
-    use crate::settings::Graphics;
+    use crate::settings::{Graphics, Settings};
     use tenchu_core::tenchu2::{ai::status::Ki, inventory::Inventory};
 
     #[test]
@@ -101,34 +148,99 @@ mod tests {
                 session.world.actors.get(i).map(|a| (&a.actor).into())
             })
             .unwrap();
+        let world = postcard::to_allocvec(&session.world).unwrap();
+        let read = |path: &std::path::Path| {
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap()
+        };
         for post in [false, true] {
             let mut graphics = Graphics {
                 asset_pack: false,
                 ..Default::default()
             };
             graphics.post.enabled = post;
-            session.frame.transition_fade = None;
-            super::super::capture(
-                &session,
-                &graphics,
-                &output.join(format!("hud-post-{post}.png")),
-            )
-            .unwrap();
-            session.frame.transition_fade = Some(255);
-            let faded = output.join(format!("hud-faded-post-{post}.png"));
-            super::super::capture(&session, &graphics, &faded).unwrap();
-            let mut reader =
-                png::Decoder::new(std::io::BufReader::new(std::fs::File::open(faded).unwrap()))
-                    .read_info()
-                    .unwrap();
-            let mut pixels = vec![0; reader.output_buffer_size()];
-            let info = reader.next_frame(&mut pixels).unwrap();
+            let mut settings = Settings {
+                graphics,
+                ..Default::default()
+            };
+            let mut images = Vec::new();
+            for sharp_text in [false, true] {
+                settings.sharp_text = sharp_text;
+                session.frame.transition_fade = None;
+                let path = output.join(format!("hud-post-{post}-hd-{sharp_text}.png"));
+                super::super::capture(&session, &settings, &path).unwrap();
+                images.push(read(&path));
+                session.frame.transition_fade = Some(255);
+                let faded = output.join(format!("hud-faded-post-{post}-hd-{sharp_text}.png"));
+                super::super::capture(&session, &settings, &faded).unwrap();
+                assert!(
+                    read(&faded).rgba.chunks_exact(4).all(|p| p[..3] == [0; 3]),
+                    "fade left visible pixels (post={post}, HD={sharp_text})"
+                );
+                assert_eq!(postcard::to_allocvec(&session.world).unwrap(), world);
+            }
+            let [original, sharp] = images.as_slice() else {
+                unreachable!()
+            };
+            assert_eq!(original.size, sharp.size);
+            let width = original.size[0] as usize;
+            assert_eq!(
+                original.rgba[200 * width * 4..500 * width * 4],
+                sharp.rgba[200 * width * 4..500 * width * 4],
+                "HD text changed the world view (post={post})"
+            );
             assert!(
-                pixels[..info.buffer_size()]
-                    .chunks_exact(4)
-                    .all(|p| p[..3] == [0; 3]),
-                "the final fade must cover the scene, HUD and widescreen edges (post={post})"
+                original
+                    .rgba
+                    .iter()
+                    .zip(&sharp.rgba)
+                    .filter(|(a, b)| a != b)
+                    .count()
+                    > 100,
+                "HD text did not change the readouts (post={post})"
             );
         }
+
+        use super::super::super::{campaign::Content, presentation::ContentDrawing};
+        session.frame.transition_fade = None;
+        let content = Content::Gameplay(Box::new(session));
+        let Content::Gameplay(session) = &content else {
+            unreachable!()
+        };
+        let mut settings = Settings {
+            sharp_text: true,
+            ..Default::default()
+        };
+        let mut debug = crate::debug::Debug::default();
+        // The hosts update presentation even when the simulation is paused.
+        super::super::capture_frame(
+            &session.assets.sprites.vram,
+            &settings.graphics.clone(),
+            &output.join("hud-paused-hidden.png"),
+            |renderer| {
+                let mut drawing = ContentDrawing::new(&content, &settings.graphics, renderer)?;
+                for (visible, photo, sharp, expected) in [
+                    (true, false, true, true),
+                    (true, false, false, false),
+                    (true, false, true, true),
+                    (false, false, true, false),
+                    (true, true, true, false),
+                ] {
+                    settings.show_hud = visible;
+                    settings.sharp_text = sharp;
+                    debug.photo_mode = photo;
+                    drawing.update(&content, renderer, &debug, &settings)?;
+                    let ContentDrawing::Gameplay(drawing) = &drawing else {
+                        unreachable!()
+                    };
+                    assert_eq!(!drawing.texts.is_empty(), expected);
+                }
+                let ContentDrawing::Gameplay(drawing) = drawing else {
+                    unreachable!()
+                };
+                assert_eq!(postcard::to_allocvec(&session.world).unwrap(), world);
+                Ok((drawing.scene, session.world.camera.view, drawing.texts))
+            },
+        )
+        .unwrap();
     }
 }

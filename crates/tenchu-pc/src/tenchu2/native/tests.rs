@@ -307,7 +307,15 @@ fn native_training_pond_can_be_entered_from_the_bank() {
             asset_pack: false,
             ..Default::default()
         };
-        render::capture(&session, &graphics, &path).unwrap();
+        render::capture(
+            &session,
+            &crate::settings::Settings {
+                graphics,
+                ..Default::default()
+            },
+            &path,
+        )
+        .unwrap();
     }
 }
 

@@ -328,7 +328,7 @@ impl Application {
             &native.playback.content,
             &mut view.renderer,
             &native.menu.tools.debug,
-            self.settings.show_hud,
+            &self.settings,
         )?;
         timing.prepare = prepare.elapsed().as_secs_f32() * 1000.0;
         let phase = Instant::now();

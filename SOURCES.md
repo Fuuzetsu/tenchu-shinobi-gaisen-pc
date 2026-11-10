@@ -2553,6 +2553,19 @@ draw skips, and all reachable story casts now load their actual stage scenery.
 Original-settings before/after captures of both training scenes are retained
 outside Git under `private/two-releases-20261110/trapdoor-*.png`.
 
+Optional native JP HD text consumes the existing source HUD primitives and menu
+values through the shared `fonts` and `frontend::raster::Canvas` presentation.
+It replaces numeric glyphs and their duplicate bitmap shadows, preserves source
+positions, scales and colors, and applies the mission transition fade after the
+scene. Equipment/results use the same outline font; introductory text reuses the
+Gaisen `frontend::calligraphy` filter per disc column, with original scrolling,
+intensity and fade. No simulation state or RNG is changed. GPU checks compare
+world pixels, post-processing/fades, paused toggles and exact Original restoration;
+captures are private under `private/two-releases-20261110/hd-text/`. Existing
+Modern presets and the briefing-lettering demo pair expose the shared feature;
+native demo sequencing remains separate pending work. Authored title/rank images
+stay on the original artwork path.
+
 Native JP campaign carry-over and navigation follow `GAME.EXE` functions
 `80062310` (dispatch, story skip, failure and retry), `800646bc` (area-entry
 resets), `80064a34` (health, weapon/poison state, inventory, breath and elapsed-time

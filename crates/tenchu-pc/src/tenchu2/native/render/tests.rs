@@ -209,7 +209,15 @@ fn native_water_animation_survives_texture_replacement() {
             // Freeze the world and camera; only the two water texture phases advance.
             session.world.tick = tick;
             let path = output.join(format!("jp-water-{replaced}-{tick}.png"));
-            capture(&session, &graphics, &path).unwrap();
+            capture(
+                &session,
+                &crate::settings::Settings {
+                    graphics: graphics.clone(),
+                    ..Default::default()
+                },
+                &path,
+            )
+            .unwrap();
             images.push(std::fs::read(path).unwrap());
         }
         assert!(
@@ -621,7 +629,15 @@ fn native_follow_camera_uses_the_shared_scene_surfaces() {
                     renderer,
                 );
                 let camera = tools.debug.follow_camera.expect("follow camera");
-                drawing.update(&content, renderer, &tools.debug, false)?;
+                drawing.update(
+                    &content,
+                    renderer,
+                    &tools.debug,
+                    &crate::settings::Settings {
+                        show_hud: false,
+                        ..Default::default()
+                    },
+                )?;
                 let ContentDrawing::Gameplay(drawing) = drawing else {
                     unreachable!()
                 };

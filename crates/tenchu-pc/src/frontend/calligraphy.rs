@@ -4,9 +4,9 @@ use crate::visuals::{
 };
 use tenchu_assets::frontend::Image;
 
-pub(super) const SCALE: usize = 4;
+pub(crate) const SCALE: usize = 4;
 
-pub(super) fn sharpen(original: &Image) -> Vec<Image> {
+pub(crate) fn sharpen(original: &Image) -> Vec<Image> {
     let [width, height] = original.size;
     // Columns scroll independently. Filtering across them leaks neighbouring ink.
     (0..width)

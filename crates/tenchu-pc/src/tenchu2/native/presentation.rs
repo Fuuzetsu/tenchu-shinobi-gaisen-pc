@@ -15,6 +15,8 @@ mod equipment;
 mod film;
 mod results;
 mod selection;
+#[cfg(test)]
+mod text_tests;
 
 impl Update {
     pub fn play_audio(&self, output: &Output) {
@@ -257,11 +259,11 @@ impl Content {
 
 pub(crate) enum ContentDrawing {
     MissionSelection(selection::Drawing),
-    Prologue(Arc<crate::frontend::draw::Frame>),
+    Prologue(film::Drawing),
     Equipment(equipment::Drawing),
     Gameplay(Box<Drawing>),
     Story(Box<StoryDrawing>),
-    Introduction(Arc<crate::frontend::draw::Frame>),
+    Introduction(film::Drawing),
     Movie {
         texture: Option<egui::TextureHandle>,
         frame: Option<Arc<tenchu_assets::movie::Frame>>,
@@ -352,7 +354,7 @@ impl ContentDrawing {
             Content::MissionSelection(selection) => Ok(Self::MissionSelection(
                 selection::Drawing::new(selection, graphics)?,
             )),
-            Content::Prologue(intro) => Ok(Self::Prologue(film::prologue(intro))),
+            Content::Prologue(intro) => Ok(Self::Prologue(film::Drawing::prologue(intro))),
             Content::Equipment(selection) => {
                 Ok(Self::Equipment(equipment::Drawing::new(selection)))
             }
@@ -362,7 +364,9 @@ impl ContentDrawing {
             Content::Story { story, .. } => Ok(Self::Story(Box::new(StoryDrawing::new(
                 story, graphics, renderer,
             )?))),
-            Content::Introduction(intro) => Ok(Self::Introduction(film::introduction(intro))),
+            Content::Introduction(intro) => {
+                Ok(Self::Introduction(film::Drawing::introduction(intro)))
+            }
             Content::Movie(_) => Ok(Self::Movie {
                 texture: None,
                 frame: None,
@@ -409,36 +413,40 @@ impl ContentDrawing {
         content: &Content,
         renderer: &mut Renderer,
         debug: &crate::debug::Debug,
-        show_hud: bool,
+        settings: &crate::settings::Settings,
     ) -> Result<()> {
         match (self, content) {
             (Self::MissionSelection(drawing), Content::MissionSelection(selection)) => {
                 drawing.update(selection)
             }
-            (Self::Prologue(frame), Content::Prologue(intro)) => {
-                *frame = film::prologue(intro);
+            (Self::Prologue(drawing), Content::Prologue(intro)) => {
+                drawing.update_prologue(intro, settings.sharp_text);
                 Ok(())
             }
             (Self::Equipment(drawing), Content::Equipment(selection)) => {
-                drawing.update(selection);
+                drawing.update(selection, settings.sharp_text);
                 Ok(())
             }
             (Self::Gameplay(drawing), Content::Gameplay(session)) => {
                 drawing.camera = debug.camera.or(debug.follow_camera);
-                drawing.show_hud = show_hud && !debug.photo_mode;
+                drawing.show_hud = settings.show_hud && !debug.photo_mode;
+                drawing.sharp_text = settings.sharp_text;
                 drawing.update(session, renderer, Some(debug))
             }
             (Self::Story(drawing), Content::Story { story, .. }) => {
                 drawing.camera = debug.camera.or(debug.follow_camera);
                 drawing.update(story, renderer, Some(debug))
             }
-            (Self::Introduction(frame), Content::Introduction(intro)) => {
-                *frame = film::introduction(intro);
+            (Self::Introduction(drawing), Content::Introduction(intro)) => {
+                drawing.update_introduction(intro, settings.sharp_text);
                 Ok(())
             }
             (Self::Movie { .. }, Content::Movie(_)) => Ok(()),
-            (Self::Results(_), Content::Results(_))
-            | (Self::Empty, Content::Failed | Content::Complete) => Ok(()),
+            (Self::Results(drawing), Content::Results(results)) => {
+                drawing.update(results, settings.sharp_text);
+                Ok(())
+            }
+            (Self::Empty, Content::Failed | Content::Complete) => Ok(()),
             _ => Err("Mismatched native JP scene renderer".into()),
         }
     }
@@ -484,7 +492,8 @@ impl ContentDrawing {
     pub fn paint(&mut self, content: &Content, ctx: &egui::Context) {
         match (self, content) {
             (Self::Gameplay(drawing), _) => {
-                crate::debug::overlay::paint_labels(ctx, &drawing.labels)
+                crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts);
+                crate::debug::overlay::paint_labels(ctx, &drawing.labels);
             }
             (Self::MissionSelection(drawing), _) => {
                 ctx.layer_painter(egui::LayerId::background()).add(
@@ -508,12 +517,20 @@ impl ContentDrawing {
                 crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts);
                 crate::debug::overlay::paint_labels(ctx, &drawing.labels);
             }
-            (Self::Introduction(frame) | Self::Prologue(frame), _)
-            | (Self::Results(results::Drawing { frame, .. }), _) => {
+            (Self::Results(drawing), _) => {
                 ctx.layer_painter(egui::LayerId::background()).add(
                     egui_wgpu::Callback::new_paint_callback(
                         film::rect(ctx),
-                        crate::frontend::gpu::Paint::Frontend(frame.clone()),
+                        crate::frontend::gpu::Paint::Frontend(drawing.frame.clone()),
+                    ),
+                );
+                crate::fonts::paint(ctx, film::rect(ctx), &drawing.text);
+            }
+            (Self::Introduction(drawing) | Self::Prologue(drawing), _) => {
+                ctx.layer_painter(egui::LayerId::background()).add(
+                    egui_wgpu::Callback::new_paint_callback(
+                        film::rect(ctx),
+                        crate::frontend::gpu::Paint::Frontend(drawing.frame.clone()),
                     ),
                 );
             }

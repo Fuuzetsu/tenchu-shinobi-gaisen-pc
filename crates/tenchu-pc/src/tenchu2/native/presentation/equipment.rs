@@ -12,29 +12,34 @@ pub(crate) struct Drawing {
     pub frame: Arc<Frame>,
     pub text: Vec<crate::fonts::Text>,
     tick: u32,
+    sharp_text: bool,
 }
 
 impl Drawing {
     pub fn new(selection: &Selection) -> Self {
-        let (frame, text) = build(selection);
+        let (frame, text) = build(selection, false);
         Self {
             frame,
             text,
             tick: selection.state.tick,
+            sharp_text: false,
         }
     }
 
-    pub fn update(&mut self, selection: &Selection) {
-        if self.tick != selection.state.tick {
-            *self = Self::new(selection);
+    pub fn update(&mut self, selection: &Selection, sharp_text: bool) {
+        if self.tick != selection.state.tick || self.sharp_text != sharp_text {
+            (self.frame, self.text) = build(selection, sharp_text);
+            self.tick = selection.state.tick;
+            self.sharp_text = sharp_text;
         }
     }
 }
 
-fn build(selection: &Selection) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
+fn build(selection: &Selection, sharp_text: bool) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
     let state = &selection.state;
     let images = &selection.images;
     let mut canvas = Canvas::new(320);
+    canvas.sharp_text = sharp_text;
     canvas.frame = Some(Frame::new([320, 240], Arc::default()));
     canvas.sprite(Sprite::new(&images.background, 0.0, 0.0));
     for (i, image) in images.rings.iter().enumerate() {
@@ -75,7 +80,11 @@ fn build(selection: &Selection) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
         canvas.sprite(Sprite::new(&images.items[slot.item], x, 90.0));
     }
     for (x, row) in [(44.0, state.remaining / 10), (54.0, state.remaining % 10)] {
-        canvas.sprite(Sprite::new(&images.capacity, x, -73.0).row(usize::from(row), 10));
+        canvas.label(
+            Sprite::new(&images.capacity, x, -73.0).row(usize::from(row), 10),
+            row.to_string(),
+            egui::Color32::WHITE,
+        );
     }
     if state.stock.items[selection.rules.cells[state.selected].item].is_some() {
         if state.description >= 3 {
@@ -109,6 +118,17 @@ fn quantity(
     y: f32,
 ) {
     let digits = value.to_string();
+    if canvas.sharp_text {
+        canvas.text.push(crate::fonts::Text {
+            position: egui::pos2(x - 5.0 * (digits.len() - 1) as f32 - 2.0, y - 5.0),
+            width: 5.0 * digits.len() as f32,
+            text: digits,
+            color: egui::Color32::WHITE,
+            size: 6.75,
+            centered: false,
+        });
+        return;
+    }
     for (i, digit) in digits.bytes().enumerate() {
         let x = x - (digits.len() - i - 1) as f32 * 5.0;
         let source = [usize::from(digit - b'0') * 4, 0, 4, 5];
