@@ -38,12 +38,14 @@ mod scenery;
 mod story;
 #[cfg(test)]
 mod tests;
+mod wounds;
 pub(super) use story::Drawing as StoryDrawing;
 pub(super) use story::capture as capture_story;
 
 pub struct Drawing {
     models: Models,
     motion: crate::visuals::motion::Motion,
+    stains: wounds::Stains,
     scene: SceneDrawing,
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
@@ -85,6 +87,7 @@ impl Drawing {
     }
 
     pub fn clear_blood(&mut self) {
+        self.stains.clear();
         self.scene.clear_blood();
     }
 
@@ -101,6 +104,9 @@ impl Drawing {
         self.scene.preserve_environment(&mut previous.scene);
         self.motion = std::mem::take(&mut previous.motion);
         self.motion.invalidate();
+        if let Some(environment) = &mut self.scene.environment {
+            environment.blood.clear_model_stains();
+        }
     }
 
     pub fn new(
@@ -128,16 +134,44 @@ impl Drawing {
                 ..Default::default()
             },
         )?;
-        Ok(Self {
+        let mut drawing = Self {
             models,
             motion: Default::default(),
+            stains: Default::default(),
             scene: SceneDrawing::new(geometry, renderer, &session.assets.level),
             view: session.world.camera.view,
             show_hud: true,
             camera: None,
             alpha: 1.0,
             labels: Vec::new(),
-        })
+        };
+        drawing.prepare_stains(session, graphics.blood.model_stains, renderer);
+        drawing.tick(session, graphics)?;
+        Ok(drawing)
+    }
+
+    fn prepare_stains(&mut self, session: &super::Session, enabled: bool, renderer: &mut Renderer) {
+        if enabled {
+            self.scene.environment(
+                &session.assets.level,
+                &self.models.scenery,
+                &session.assets.resources.math,
+                renderer,
+            );
+        }
+    }
+
+    pub fn tick(&mut self, session: &super::Session, graphics: &Graphics) -> Result<()> {
+        self.tick_motion(session, &graphics.motion)?;
+        if let Some(environment) = &mut self.scene.environment {
+            self.stains.tick(
+                session,
+                &self.models,
+                &mut environment.blood,
+                &graphics.blood,
+            )?;
+        }
+        Ok(())
     }
 
     pub fn update(
@@ -146,7 +180,8 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
-        self.tick(session, &renderer.graphics().motion)?;
+        self.prepare_stains(session, renderer.graphics().blood.model_stains, renderer);
+        self.tick(session, renderer.graphics())?;
         let motion = self.motion.sample(if renderer.graphics().interpolation {
             self.alpha
         } else {
@@ -191,6 +226,18 @@ impl Drawing {
             )
         });
         let camera = camera_matrix(view, self.camera, renderer.size());
+        if let Some(environment) = &self.scene.environment
+            && environment.blood.attached_parts().next().is_some()
+        {
+            geometry.effects.append(wounds::geometry(
+                &environment.blood,
+                session,
+                &self.models,
+                pose.as_ref(),
+                &motion,
+                camera,
+            )?);
+        }
         self.labels = self
             .scene
             .inspect_lights(debug, camera, renderer, &mut geometry);

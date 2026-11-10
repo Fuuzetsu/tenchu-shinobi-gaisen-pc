@@ -240,14 +240,14 @@ impl Application {
             .view
             .as_mut()
             .filter(|v| v.generation == self.session.generation);
-        let motion = &self.settings.rendering().graphics.motion;
+        let graphics = &self.settings.rendering().graphics;
         let update = self.transport.frame_step(
             &mut self.session,
             buttons,
             self.audio.as_ref(),
             |content| {
                 if let Some(view) = &mut view {
-                    view.drawing.tick(content, motion)?;
+                    view.drawing.tick(content, graphics)?;
                 }
                 Ok(())
             },
@@ -304,7 +304,7 @@ impl Application {
             .view
             .as_mut()
             .filter(|v| v.generation == self.session.generation);
-        let motion = &self.settings.rendering().graphics.motion;
+        let graphics = &self.settings.rendering().graphics;
         let update = self.transport.advance(
             &mut self.session,
             elapsed,
@@ -312,7 +312,7 @@ impl Application {
             self.audio.as_ref(),
             |content| {
                 if let Some(view) = &mut view {
-                    view.drawing.tick(content, motion)?;
+                    view.drawing.tick(content, graphics)?;
                 }
                 Ok(())
             },

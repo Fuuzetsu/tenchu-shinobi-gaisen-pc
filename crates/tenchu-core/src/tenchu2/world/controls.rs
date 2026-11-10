@@ -167,6 +167,9 @@ pub struct EventSource<'a> {
 
 pub trait Events: crate::tenchu2::environment::Events {
     fn emit(&mut self, source: EventSource<'_>, event: Event, random: &mut Random) -> Result<()>;
+
+    /// Observe source blood emission without consuming gameplay randomness.
+    fn blood(&mut self, _actor: usize, _position: Position) {}
 }
 
 impl World {

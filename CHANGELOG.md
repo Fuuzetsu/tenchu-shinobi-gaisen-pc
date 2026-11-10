@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP now supports Stain wounded models, using the same body-blood
+  projection, retention and Clear blood control as Gaisen. Stains follow animated
+  native, imported and custom player bodies without changing damage or RNG.
+
 - Native Tenchu 2 JP now supports the shared enemy sight-distance slider and
   Never noticed experiment, with matching sight overlays and diagnostic reports.
 

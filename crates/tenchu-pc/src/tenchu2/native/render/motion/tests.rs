@@ -31,7 +31,7 @@ fn native_secondary_motion_preserves_faces_weapons_and_source_state() {
                 let buttons = if tick % 120 < 30 { UP } else if tick % 120 == 45 { ATTACK } else { 0 };
                 session.step(buttons)?;
                 let before = postcard::to_allocvec(&session.world).unwrap();
-                drawing.tick(&session, &graphics.motion)?;
+                drawing.tick(&session, &graphics)?;
                 let springs = postcard::to_allocvec(&drawing.motion).unwrap();
                 for alpha in [0.0, 0.5, 1.0] {
                     drawing.alpha = alpha;
@@ -77,7 +77,7 @@ fn native_secondary_motion_preserves_faces_weapons_and_source_state() {
                 assert_eq!((a.uv, a.material, a.page, a.palette), (b.uv, b.material, b.page, b.palette));
                 if protected.contains(&a.material) { assert_eq!(a.position,b.position,"face moved"); }
             }
-            drawing.tick(&session, &crate::settings::Motion::default())?;
+            drawing.tick_motion(&session, &crate::settings::Motion::default())?;
             assert!(drawing.motion.sample(1.0).is_empty(), "paused disable retained deformation");
             let restored = geometry(&drawing.models, Some(&drawing.motion.sample(1.0)))?;
             assert_eq!(bytemuck::cast_slice::<_,u8>(&original.actors), bytemuck::cast_slice::<_,u8>(&restored.actors));

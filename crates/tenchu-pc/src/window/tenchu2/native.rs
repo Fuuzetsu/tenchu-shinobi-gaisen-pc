@@ -125,14 +125,14 @@ impl Application {
             self.focused && !native.menu.panel.open,
         );
         let ready = native.generation == Some(native.playback.generation);
-        let motion = &self.settings.rendering().graphics.motion;
+        let graphics = &self.settings.rendering().graphics;
         let update = native.transport.frame_step(
             &mut native.playback,
             buttons,
             self.audio.as_ref().map(|audio| audio.output()),
             |content| {
                 if let Some(drawing) = native.drawing.as_mut().filter(|_| ready) {
-                    drawing.tick(content, motion)?;
+                    drawing.tick(content, graphics)?;
                 }
                 Ok(())
             },
@@ -194,7 +194,7 @@ impl Application {
             .content
             .interpolate(self.settings.rendering().graphics.interpolation)?;
         let ready = native.generation == Some(native.playback.generation);
-        let motion = &self.settings.rendering().graphics.motion;
+        let graphics = &self.settings.rendering().graphics;
         let update = native.transport.advance(
             &mut native.playback,
             elapsed,
@@ -202,7 +202,7 @@ impl Application {
             self.audio.as_ref().map(|audio| audio.output()),
             |content| {
                 if let Some(drawing) = native.drawing.as_mut().filter(|_| ready) {
-                    drawing.tick(content, motion)?;
+                    drawing.tick(content, graphics)?;
                 }
                 Ok(())
             },

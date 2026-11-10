@@ -82,7 +82,9 @@ impl Runtime {
             | ThunderStyle => None,
             ContactSparks | SparkDensity | ContactSplashes | GrappleDetail | BloodHit => None,
             BloodGround | BloodDeath | BloodPlayerDeath | BloodDeathSize | BloodRetain
-            | BloodConform | BloodAmount | BloodMarks | BloodRunoff | ClearBlood => None,
+            | BloodModels | BloodConform | BloodAmount | BloodMarks | BloodRunoff | ClearBlood => {
+                None
+            }
             Water | WaterReflective | WaterRipples | WaterReflections | WaterFlow | WaterFoam
             | WaterSpray | WaterDetail => None,
             PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts => {

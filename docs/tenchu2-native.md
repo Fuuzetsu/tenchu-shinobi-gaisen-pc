@@ -66,10 +66,20 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Body/weapon blood enhancements,
+Continuing wound drips, weapon blood enhancements,
 rewind, randomizer, broader enemy-behaviour options
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Persistent effects → Stain wounded models** attaches soft stains to the
+body at native blood-emission positions after damage. It uses Gaisen's projector
+and the same bounded blood store
+as ground stains. Native bodies, imported bodies and custom player models follow
+their displayed joints, interpolation and secondary motion. Body stains remain
+separate from the hit-spurt and ground styles. Turning the option off or using
+Clear blood removes them; rebuilding model geometry also clears body stains while
+preserving ground blood and weather. Modern High/Ultra already enable this;
+Original stays unchanged. Continuing wound drips and weapon coating are pending.
 
 **F1 → Simulation → Enemy sight distance** scales native notice, recognition,
 forgetting and corpse-detection distances from 0–400%, including guards approaching

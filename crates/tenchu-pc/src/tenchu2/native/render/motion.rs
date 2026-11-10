@@ -2,7 +2,7 @@ use super::*;
 use crate::visuals::{interpolation::Part as PartId, motion::Input};
 
 impl Drawing {
-    pub fn tick(
+    pub(super) fn tick_motion(
         &mut self,
         session: &super::super::Session,
         options: &crate::settings::Motion,
@@ -51,13 +51,13 @@ impl Models {
                 .is_some_and(|p| p.appearance.meshes.has_motion())
     }
 
-    pub(super) fn visit_actors(
-        &self,
+    pub(super) fn visit_actors<'a>(
+        &'a self,
         world: &World,
-        assets: &Assets,
+        assets: &'a Assets,
         scene: &mut tenchu_core::scene::Scene,
         pose: Option<&PoseFrame>,
-        mut visit: impl FnMut(PartId, &Meshes, &Part, Matrix, ModelStyle),
+        mut visit: impl FnMut(PartId, &'a Meshes, &'a Part, Matrix, ModelStyle),
     ) -> Result<Option<Matrix>> {
         let mut player_hand = None;
         for (owner, (agent, instance)) in world.actors.iter().zip(&world.instances).enumerate() {

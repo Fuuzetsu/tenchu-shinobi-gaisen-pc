@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
-pub(super) struct Wound {
+pub(crate) struct Wound {
     pub part: Part,
     pub position: Vec3,
     pub normal: Vec3,

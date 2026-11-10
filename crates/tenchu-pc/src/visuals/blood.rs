@@ -21,6 +21,8 @@ use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 mod ground;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use ground::SurfacePool;
+mod body;
+pub(crate) use body::{Attachment, BodyPart};
 mod gush;
 mod retail;
 mod runoff;
@@ -557,7 +559,11 @@ impl Blood {
             {
                 let mut vertices = Vec::new();
                 render_mesh::append_geometry(&mut vertices, geometry, matrix, Some(models));
-                parts.push((key.canonical(), matrix, vertices));
+                parts.push(BodyPart {
+                    key: key.canonical(),
+                    matrix,
+                    vertices,
+                });
             }
         });
         let approach = game
@@ -573,103 +579,14 @@ impl Blood {
                     .total_cmp(&b.distance_squared(position))
             })
             .map(|point| (point - position).normalize_or_zero());
-        let contact = approach.and_then(|direction| {
-            parts
-                .iter()
-                .enumerate()
-                .flat_map(|(index, (_, _, vertices))| {
-                    vertices.chunks_exact(3).filter_map(move |t| {
-                        surfaces::intersect(
-                            &[t[0], t[1], t[2]],
-                            position + direction * 2000.0,
-                            position - direction * 600.0,
-                        )
-                        .map(|hit| (index, hit))
-                    })
-                })
-                .min_by(|a, b| a.1.fraction.total_cmp(&b.1.fraction))
-                .map(|(index, hit)| (index, hit.position, hit.normal))
-        });
-        let nearest = contact.or_else(|| {
-            parts
-                .iter()
-                .enumerate()
-                .flat_map(|(i, (_, _, vertices))| {
-                    vertices.chunks_exact(3).map(move |t| {
-                        let triangle = [t[0], t[1], t[2]];
-                        let point = surfaces::closest(&triangle, position);
-                        let [a, b, c] = triangle.map(|v| Vec3::from(v.position));
-                        (i, point, (b - a).cross(c - a).normalize_or_zero())
-                    })
-                })
-                .min_by(|a, b| {
-                    a.1.distance_squared(position)
-                        .total_cmp(&b.1.distance_squared(position))
-                })
-        });
-        let Some((index, center, normal)) = nearest else {
-            return;
-        };
-        if center.distance_squared(position) > 1200.0_f32.powi(2) {
-            return;
-        }
-        self.random();
-        let stamp = Stamp {
-            center,
-            normal,
-            radius: 120.0 + f32::from(settings.amount.min(200)) * 0.8,
-            depth: 32.0,
-            seed: self.seed,
-            shape: None,
-        };
-        let projection = stamp.prepare();
-        let mut patches = Vec::new();
-        for &(key, matrix, ref vertices) in &parts {
-            let r = rotation(matrix);
-            if r.determinant().abs() < 0.0001 {
-                continue;
+        if let Some(wound) = self.stain_body(&parts, position, approach, settings)
+            && settings.drips != BloodStyle::Off
+            && settings.seconds != 0
+        {
+            self.wounds.push_back(wound);
+            while self.wounds.len() > WOUND_LIMIT {
+                self.wounds.pop_front();
             }
-            let inverse = r.inverse();
-            let offset = translation(matrix);
-            let mut projected = Vec::new();
-            for triangle in vertices.chunks_exact(3) {
-                projection.project(&[triangle[0], triangle[1], triangle[2]], &mut projected);
-            }
-            for v in &mut projected {
-                v.position = (inverse * (Vec3::from(v.position) - offset)).to_array();
-                v.normal = (r.transpose() * Vec3::from(v.normal)).to_array();
-            }
-            if !projected.is_empty() {
-                patches.push(Patch {
-                    part: Some(key),
-                    vertices: projected,
-                    sources: Vec::new(),
-                    bounds: Default::default(),
-                });
-            }
-        }
-        if settings.model_stains {
-            self.retain(
-                Mark(patches, Kind::Body),
-                usize::from(settings.marks.max(32)),
-            );
-        }
-        if settings.drips == BloodStyle::Off || settings.seconds == 0 {
-            return;
-        }
-        let (part, matrix, _) = &parts[index];
-        let r = rotation(*matrix);
-        if r.determinant().abs() < 0.0001 {
-            return;
-        }
-        self.wounds.push_back(Wound {
-            part: *part,
-            position: r.inverse() * (center - translation(*matrix)),
-            normal: r.transpose() * normal,
-            age: 0,
-        });
-        while self.wounds.len() > WOUND_LIMIT {
-            self.wounds.pop_front();
         }
     }
 
@@ -1157,43 +1074,17 @@ impl Blood {
             };
             self.weapons
                 .append(&mut vertices, &transforms, &self.settings, alpha);
-            for (_, mark) in &self.marks.attached {
-                for patch in &mark.0 {
-                    let (rotation, offset) = if let Some(key) = patch.part {
-                        let Some(&matrix) = transforms.get(&key) else {
-                            continue;
-                        };
-                        (rotation(matrix), translation(matrix))
-                    } else {
-                        (Mat3::IDENTITY, Vec3::ZERO)
-                    };
-                    if rotation.determinant().abs() < 0.0001 {
-                        continue;
-                    }
-                    let deformation = patch.part.and_then(|key| {
-                        transforms
-                            .get(&key)
-                            .and_then(|&matrix| models.deformation(key, matrix))
-                    });
-                    if frustum.as_ref().is_some_and(|frustum| {
-                        !patch.visible(frustum, rotation, offset, deformation.as_ref(), view.wind)
-                    }) {
-                        continue;
-                    }
-                    let normal = rotation.inverse().transpose();
-                    vertices.extend(patch.vertices.iter().map(|v| {
-                        let mut vertex = Vertex {
-                            position: (rotation * Vec3::from(v.position) + offset).to_array(),
-                            normal: (normal * Vec3::from(v.normal)).to_array(),
-                            ..*v
-                        };
-                        if let Some(deformation) = &deformation {
-                            deformation.vertex(&mut vertex);
-                        }
-                        vertex
-                    }));
-                }
-            }
+            self.append_attached(
+                &view,
+                |key| {
+                    let matrix = *transforms.get(&key)?;
+                    Some(Attachment {
+                        matrix,
+                        deformation: models.deformation(key, matrix),
+                    })
+                },
+                &mut vertices,
+            );
             let camera =
                 rotation(camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view)))
                     .transpose();

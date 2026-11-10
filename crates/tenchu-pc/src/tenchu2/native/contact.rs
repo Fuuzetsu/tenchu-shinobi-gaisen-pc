@@ -22,6 +22,7 @@ pub struct History {
     frames: VecDeque<(u64, Vec<Contact>)>,
     pub blood: blood::History,
     pub player_corpse: Option<Corpse>,
+    pub wounds: Vec<(usize, Position)>,
 }
 
 impl History {

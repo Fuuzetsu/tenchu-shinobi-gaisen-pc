@@ -271,10 +271,14 @@ pub(crate) enum ContentDrawing {
 }
 
 impl ContentDrawing {
-    pub fn tick(&mut self, content: &Content, motion: &crate::settings::Motion) -> Result<()> {
+    pub fn tick(&mut self, content: &Content, graphics: &crate::settings::Graphics) -> Result<()> {
         match (self, content) {
-            (Self::Gameplay(drawing), Content::Gameplay(session)) => drawing.tick(session, motion),
-            (Self::Story(drawing), Content::Story { story, .. }) => drawing.tick(story, motion),
+            (Self::Gameplay(drawing), Content::Gameplay(session)) => {
+                drawing.tick(session, graphics)
+            }
+            (Self::Story(drawing), Content::Story { story, .. }) => {
+                drawing.tick(story, &graphics.motion)
+            }
             _ => Ok(()),
         }
     }

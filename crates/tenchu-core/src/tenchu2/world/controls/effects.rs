@@ -19,17 +19,20 @@ impl<E: Events> Context<'_, E> {
                 self.effects
                     .trail(actor.position, actor.velocity, 0, self.hidden, random)?
             }
-            Event::Blood { position, angle } => self.effects.blood(
-                Spurt {
-                    position,
-                    yaw: angle,
-                    speed: 100,
-                    gravity: 20,
-                },
-                &self.math,
-                self.effect_rules,
-                random,
-            )?,
+            Event::Blood { position, angle } => {
+                self.effects.blood(
+                    Spurt {
+                        position,
+                        yaw: angle,
+                        speed: 100,
+                        gravity: 20,
+                    },
+                    &self.math,
+                    self.effect_rules,
+                    random,
+                )?;
+                self.events.blood(self.index, position);
+            }
             Event::WaterRipple { position, size } => {
                 self.effects
                     .splash(position, i32::from(size), &self.math, random)?

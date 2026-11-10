@@ -147,6 +147,7 @@ impl Session {
             voice: None,
             listener: self.world.listener(),
             requests: Vec::new(),
+            wounds: Vec::new(),
             pending: &mut self.pending,
         };
         let tick = self.world.tick;
@@ -156,6 +157,7 @@ impl Session {
         self.contact
             .record(u64::from(self.world.tick), &self.frame.effects);
         self.contact.record_player(&self.world);
+        self.contact.wounds = events.wounds;
         for &position in &self.frame.effects.blood_sounds {
             events.requests.push(SoundRequest {
                 source: None,
@@ -258,6 +260,7 @@ struct Output<'a> {
     voice: Option<&'a Arc<VoiceSet>>,
     listener: Listener,
     requests: Vec<SoundRequest>,
+    wounds: Vec<(usize, Position)>,
     pending: &'a mut BTreeSet<String>,
 }
 
@@ -280,6 +283,10 @@ impl Output<'_> {
 }
 
 impl Events for Output<'_> {
+    fn blood(&mut self, actor: usize, position: Position) {
+        self.wounds.push((actor, position));
+    }
+
     fn emit(&mut self, source: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {
         self.listener = source.listener;
         let position = (source.index != source.listener.actor).then_some(source.actor.position);
