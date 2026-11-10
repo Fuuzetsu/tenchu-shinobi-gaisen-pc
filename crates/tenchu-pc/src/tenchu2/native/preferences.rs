@@ -77,6 +77,7 @@ pub struct Action {
     pub clear_footprints: bool,
     pub models: Option<std::sync::Arc<crate::visuals::pack::Pack>>,
     pub reload_artwork: bool,
+    pub save_diagnostics: bool,
 }
 
 impl Menu {
@@ -287,6 +288,10 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::Diagnostics => {
+                action.save_diagnostics = true;
+                Ok(())
+            }
             Edit::PlayerModel(id) => {
                 state.settings.player_model = id;
                 Ok(())
@@ -551,12 +556,14 @@ mod tests {
             Edit::Benchmark,
             Edit::ImportRewind,
             Edit::ImportUnarmed,
-            Edit::Diagnostics,
         ] {
             menu.apply(edit, &mut state, &mut action);
             assert!(!menu.panel.notice.is_empty());
             assert_eq!(*state.settings, original);
         }
+        menu.apply(Edit::Diagnostics, &mut state, &mut action);
+        assert!(action.save_diagnostics && menu.panel.notice.is_empty());
+        assert_eq!(*state.settings, original);
         assert!(!action.leave && !action.select_mission && !action.step);
         assert!(!paused && !controls.editor.open && !presets.open);
     }

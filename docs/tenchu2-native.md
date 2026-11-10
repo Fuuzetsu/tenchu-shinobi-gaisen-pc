@@ -117,7 +117,7 @@ and synthesized ambience/thunder. Weather remains optional in every preset.
 Original leaves native weather unchanged. Baked-snow recognition on T2 artwork
 and moving-prop shelter are still pending; the disabled baked-snow control does
 not enable footprints on original snowy textures. Replacing artwork retains
-wetness/snow but rebuilds the surface cache and clears existing footprint decals.
+wetness/snow, footprint decals and the visual sky clock while rebuilding the surface cache.
 
 **F1 → Camera** supports free flight (F2), speed/FOV, player or actor focus,
 overhead views and a camera bookmark. WASD/QE move, Shift boosts and RMB looks;
@@ -143,6 +143,14 @@ single-step, simulation speed (25%–400% or Unlimited) and automatic cutscene s
 Simulation speed changes host pacing while retaining every source update. Unlimited
 mutes audio and yields regularly to input/rendering; menu navigation stays at its
 normal rate. Reset the value with R to return to 100%.
+
+**F1 → General → Save diagnostic report** exports the same portable JSON report
+as Gaisen, with native JP actor/AI/item state, mission progress, model/moveset
+selection, the last 600 simulation inputs, settings and GPU details. Cutscene
+reports include their current frame and actor/camera state. Input history resets
+at scene boundaries; the report identifies the native pad encoding. No disc assets
+or campaign save are included, and personal path roots are redacted. Reports from
+Windows, Linux and Android can be read on any platform with `inspect-report`.
 
 Hold Backspace during a cutscene to fast-forward, or choose an automatic speed
 in F1 (2×–16× or Unlimited). This includes prologues, chapter narration, disc

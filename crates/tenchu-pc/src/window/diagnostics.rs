@@ -1,7 +1,6 @@
 use super::*;
 use serde::Serialize;
 use serde_json::{Value, json};
-use std::collections::VecDeque;
 
 #[derive(Serialize)]
 struct Input {
@@ -18,107 +17,37 @@ struct Input {
 #[derive(Default, Serialize)]
 pub(super) struct RecentInputs {
     stage_id: usize,
-    inputs: VecDeque<Input>,
+    #[serde(flatten)]
+    recent: crate::diagnostics::Recent<Input>,
 }
 
 impl RecentInputs {
     pub fn record(&mut self, game: &Game, buttons: u16) {
-        if self.stage_id != game.mission.stage.id
-            || self
-                .inputs
-                .back()
-                .is_some_and(|i| i.tick_before >= game.tick)
-        {
-            self.inputs.clear();
-        }
         self.stage_id = game.mission.stage.id;
-        if self.inputs.len() == 600 {
-            self.inputs.pop_front();
-        }
-        self.inputs.push_back(Input {
-            tick_before: game.tick,
-            clock_before: game.clock,
-            rng_before: game.random.seed,
-            buttons,
-            player_position: game.player().position.to_array(),
-            player_health: game.player().health,
-            alert: game.intelligence.alert,
-            strain: game.intelligence.strain,
-        });
+        self.recent.push(
+            self.stage_id as u64,
+            game.tick,
+            Input {
+                tick_before: game.tick,
+                clock_before: game.clock,
+                rng_before: game.random.seed,
+                buttons,
+                player_position: game.player().position.to_array(),
+                player_health: game.player().health,
+                alert: game.intelligence.alert,
+                strain: game.intelligence.strain,
+            },
+        );
     }
-}
-
-fn platform() -> Value {
-    let mut info = json!({
-        "os": std::env::consts::OS, "architecture": std::env::consts::ARCH,
-        "pointer_bits": usize::BITS, "byte_order": if cfg!(target_endian = "little") { "little" } else { "big" },
-        "available_threads": std::thread::available_parallelism().ok().map(|n| n.get()),
-    });
-    #[cfg(target_os = "android")]
-    {
-        info["platform"] = json!("Android NativeActivity");
-    }
-    #[cfg(target_os = "linux")]
-    {
-        info["kernel"] = std::fs::read_to_string("/proc/sys/kernel/osrelease")
-            .ok()
-            .map(|s| s.trim().to_owned())
-            .into();
-        if let Ok(release) = std::fs::read_to_string("/etc/os-release") {
-            info["distribution"] = release
-                .lines()
-                .filter_map(|line| {
-                    let (key, value) = line.split_once('=')?;
-                    ["ID", "VERSION_ID", "PRETTY_NAME"]
-                        .contains(&key)
-                        .then(|| (key.into(), value.trim_matches('"').into()))
-                })
-                .collect::<serde_json::Map<String, Value>>()
-                .into();
-        }
-        info["session_type"] = std::env::var("XDG_SESSION_TYPE").ok().into();
-    }
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        info["version"] = std::process::Command::new("cmd")
-            .args(["/D", "/C", "ver"])
-            .creation_flags(0x08000000)
-            .output()
-            .ok()
-            .filter(|o| o.status.success())
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
-            .into();
-    }
-    #[cfg(target_os = "macos")]
-    {
-        info["version"] = std::process::Command::new("sw_vers")
-            .arg("-productVersion")
-            .output()
-            .ok()
-            .filter(|o| o.status.success())
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
-            .into();
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        info["browser"] =
-            serde_json::from_str(&crate::web::diagnostic_platform()).unwrap_or(Value::Null);
-    }
-    info
 }
 
 impl Application {
     pub(super) fn diagnostic_report(&self) -> Result<Vec<u8>> {
-        let game = &self.campaign.game;
-        let debug = &self.debug;
-        let mut settings = serde_json::to_value(&self.settings).map_err(|e| e.to_string())?;
-        settings["model_directory"] = if self.settings.model_directory.is_empty() {
-            ""
-        } else {
-            "<redacted>"
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.native_tenchu2.is_some() {
+            return self.native_diagnostic_report();
         }
-        .into();
+        let game = &self.campaign.game;
         let screen = match self.campaign.screen {
             Screen::Frontend => "frontend",
             Screen::Launcher => "launcher",
@@ -130,37 +59,13 @@ impl Application {
             Screen::Ending(_) => "ending",
             Screen::Complete => "complete",
         };
-        let debug_settings = json!({"simulation_speed_percent": debug.speed, "god_mode": debug.god_mode,
-                "rewind_ticks": self.rewind.ticks(game.tick), "rewind_bytes": self.rewind.bytes,
-                "rewind_range": self.rewind.entries.front().zip(self.rewind.entries.back()).map(|(first, last)| [first.tick, last.tick]),
-                "rewind_playing": self.reverse.active, "rewind_preview": self.reverse.preview,
-                "stealth": debug.stealth, "click_teleport": debug.click_teleport, "armor": debug.armor,
-                "sight_percent": debug.sight_percent, "photo_mode": debug.photo_mode,
-                "hitboxes": debug.hitboxes, "sight": debug.sight, "sight_stance": debug.sight_stance,
-                "collision": debug.collision, "collision_only": debug.collision_only,
-                "patrols": debug.patrols, "events": debug.events, "labels": debug.labels,
-                "xray": debug.xray, "show_trail": debug.show_trail, "inspect_actor": debug.inspect_actor,
-                "actors_edited": debug.actors_edited, "imported_actor_models": debug.actor_imports.keys().collect::<Vec<_>>(),
-                "camera_actor": debug.camera_actor.map(|subject| subject.id),
-                "selected_actor": debug.selected_actor, "target": debug.target.to_array(),
-                "snap_to_floor": debug.snap_to_floor, "teleport_armed": debug.teleport_armed,
-                "flight_speed": debug.flight_speed, "pause_view": debug.pause_view,
-                "light": debug.light.map(|p| p.to_array()), "light_follow": debug.light_follow,
-                "free_camera": debug.camera.map(|c| json!({"position": c.position.to_array(),
-                    "yaw_radians": c.yaw, "pitch_radians": c.pitch, "fov_degrees": c.fov}))});
-        let report = json!({
-            "format": crate::diagnostics::FORMAT, "schema_version": crate::diagnostics::VERSION,
-            "created_unix_ms": web_time::SystemTime::now().duration_since(web_time::UNIX_EPOCH).ok().map(|d| d.as_millis() as u64),
-            "build": crate::diagnostics::build(), "platform": platform(),
+        let mut report = crate::diagnostics::report(&self.settings, &self.debug, &self.controls);
+        let details = json!({
             "recording_source": self.reverse.source_report.as_ref().and_then(|s| serde_json::from_str::<Value>(s).ok()),
-            "notes": ["No disc assets, raw process memory, saved campaign or filesystem paths are required to read this report.",
-                "Snapshot and recent inputs are diagnostic context, not a restorable savestate or complete replay.",
-                "Game positions use original integer coordinates; inputs are PS1 pad bitmasks. Timings are milliseconds.",
-                "Personal path roots are redacted. Review custom names and errors before sharing. Nothing is uploaded automatically."],
+            "input_encoding": "PS1 pad mask (Gaisen; directional buttons in high byte)",
+            "engine": "gaisen",
             "disc": {"edition": "SLPS-019.01", "main_exe_sha256": tenchu_assets::game::EXE_SHA256},
-            "settings": settings,
             "effective_graphics": self.view.as_ref().map(|v| v.renderer.graphics()),
-            "controls": self.controls.diagnostic_settings(),
             "runtime": {"screen": screen, "paused": self.paused, "suspended": self.is_suspended(),
                 "simulating": self.simulating(),
                 "death_retry_seed": match self.campaign.screen {
@@ -171,7 +76,6 @@ impl Application {
                 "fault": self.fault, "error": self.error, "audio_active": self.audio.is_some(),
                 "recording_inputs": self.recording.is_some(), "demo": self.demo.as_ref().map(|d| &d.clip().id),
                 "benchmark_active": self.benchmarks.run.is_some()},
-            "debug": debug_settings,
             "session": {"mission": self.campaign.options.mission, "stage_id": game.mission.stage.id,
                 "character": self.campaign.options.character, "layout": self.campaign.options.layout,
                 "difficulty": self.campaign.options.difficulty.name(),
@@ -182,36 +86,22 @@ impl Application {
             "performance": self.performance.diagnostic_snapshot(),
             "renderer": self.view.as_ref().map(View::diagnostic_snapshot),
         });
-        let mut paths = vec![self.settings.model_directory.clone()];
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            for key in [
-                "HOME",
-                "USERPROFILE",
-                "APPDATA",
-                "LOCALAPPDATA",
-                "TEMP",
-                "TMP",
-                "XDG_CONFIG_HOME",
-                "XDG_DATA_HOME",
-            ] {
-                if let Some(path) = std::env::var_os(key) {
-                    paths.push(path.to_string_lossy().into_owned());
-                }
-            }
-            for path in [
-                std::env::current_dir().ok(),
-                crate::visuals::pack::configured_root(),
-                self.settings_store.path.parent().map(PathBuf::from),
-            ]
-            .into_iter()
-            .flatten()
-            {
-                paths.push(path.to_string_lossy().into_owned());
-            }
-        }
-        paths.sort_by_key(|p| std::cmp::Reverse(p.len()));
-        crate::diagnostics::encode(report, &paths)
+        report
+            .as_object_mut()
+            .unwrap()
+            .extend(details.as_object().unwrap().clone());
+        report["debug"]["rewind_ticks"] = json!(self.rewind.ticks(game.tick));
+        report["debug"]["rewind_bytes"] = json!(self.rewind.bytes);
+        report["debug"]["rewind_range"] = json!(
+            self.rewind
+                .entries
+                .front()
+                .zip(self.rewind.entries.back())
+                .map(|(a, b)| [a.tick, b.tick])
+        );
+        report["debug"]["rewind_playing"] = json!(self.reverse.active);
+        report["debug"]["rewind_preview"] = json!(self.reverse.preview);
+        crate::diagnostics::finish(report, &self.settings, self.settings_store.path.parent())
     }
 
     pub(super) fn save_diagnostics(&mut self) -> Result<()> {
@@ -222,32 +112,16 @@ impl Application {
             self.campaign.options.mission,
             self.campaign.game.tick
         );
-        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
-        {
-            let Some(path) = rfd::FileDialog::new()
-                .set_title("Save diagnostic report")
-                .add_filter("Diagnostic report (JSON)", &["json"])
-                .set_file_name(&name)
-                .save_file()
-            else {
-                return Ok(());
-            };
-            crate::storage::atomic_write(&path, &bytes)?;
-            self.menu.notice = format!("Diagnostic report saved to {}", path.display());
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            crate::web::download_report(
-                &name,
-                &String::from_utf8(bytes).map_err(|e| e.to_string())?,
-            )
-            .map_err(|e| format!("Diagnostic download failed: {e:?}"))?;
-            self.menu.notice = "Diagnostic report sent to browser downloads".into();
-        }
-        #[cfg(target_os = "android")]
-        {
-            crate::android::export(&name, &bytes)?;
-            self.menu.notice = "Choose where to save the report".into();
+        #[cfg(not(target_arch = "wasm32"))]
+        let name = self.native_tenchu2.as_ref().map_or(name, |native| {
+            crate::tenchu2::native::diagnostics::filename(&native.playback)
+        });
+        if let Some(notice) = crate::diagnostics::save(&name, &bytes)? {
+            self.menu.notice = notice.clone();
+            #[cfg(not(target_arch = "wasm32"))]
+            if let Some(native) = &mut self.native_tenchu2 {
+                native.menu.panel.notice = notice;
+            }
         }
         self.sync_pause();
         Ok(())
@@ -301,6 +175,6 @@ mod tests {
         app.campaign.game.tick = 0;
         app.recent_inputs
             .record(&app.campaign.game, tenchu_core::input::SQUARE);
-        assert_eq!(app.recent_inputs.inputs.len(), 1);
+        assert_eq!(app.recent_inputs.recent.inputs.len(), 1);
     }
 }

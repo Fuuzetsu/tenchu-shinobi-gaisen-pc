@@ -1,3 +1,10 @@
+mod environment;
+mod recent;
+mod report;
+pub use environment::{renderer, save};
+pub use recent::Recent;
+pub use report::{finish, report};
+
 use serde_json::{Value, json};
 use tenchu_assets::Result;
 use tenchu_core::{game::Game, math::Position};

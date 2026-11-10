@@ -24,6 +24,8 @@ use tenchu_core::{
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod campaign;
 #[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod diagnostics;
+#[cfg(not(target_arch = "wasm32"))]
 mod equipment;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;

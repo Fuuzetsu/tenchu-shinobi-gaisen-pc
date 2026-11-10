@@ -18,6 +18,40 @@ pub(in crate::window) struct Native {
 }
 
 impl Application {
+    pub(in crate::window) fn native_diagnostic_report(&self) -> Result<Vec<u8>> {
+        let native = self.native_tenchu2.as_ref().unwrap();
+        let mut report = crate::tenchu2::native::diagnostics::report(
+            &native.playback,
+            &native.transport,
+            &native.menu,
+            &self.settings,
+            &self.controls,
+        );
+        report["runtime"]["paused"] = serde_json::json!(self.paused);
+        report["runtime"]["suspended"] = serde_json::json!(self.is_suspended());
+        report["runtime"]["focused"] = serde_json::json!(self.focused);
+        report["runtime"]["error"] = serde_json::json!(native.error);
+        report["runtime"]["audio_active"] = serde_json::json!(self.audio.is_some());
+        if let Some(view) = &self.view {
+            let mut renderer = crate::diagnostics::renderer(
+                &view.adapter,
+                &view.window,
+                &view.config,
+                &view.renderer,
+            );
+            renderer["lights"] = serde_json::json!(
+                native
+                    .drawing
+                    .as_ref()
+                    .map(|d| d.light_count(&native.graphics.lighting))
+            );
+            renderer["fps"] = serde_json::json!(self.fps);
+            report["renderer"] = renderer;
+            report["effective_graphics"] = serde_json::json!(view.renderer.graphics());
+        }
+        crate::diagnostics::finish(report, &self.settings, self.settings_store.path.parent())
+    }
+
     pub(in crate::window) fn start_native_tenchu2(&mut self, selection: bool) -> Result<()> {
         let sequence = self
             .tenchu2
@@ -278,6 +312,7 @@ impl Application {
         let mut leave = false;
         let mut step = false;
         let mut reload_artwork = false;
+        let mut save_diagnostics = false;
         let was_open = native.menu.panel.open;
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
@@ -341,6 +376,7 @@ impl Application {
                 view.model_picker.clear();
             }
             reload_artwork |= actions.reload_artwork;
+            save_diagnostics |= actions.save_diagnostics;
             if actions.clear_weather || actions.clear_footprints {
                 native
                     .drawing
@@ -454,6 +490,9 @@ impl Application {
         }
         if step && self.native_tenchu2.as_ref().unwrap().error.is_none() {
             leave |= self.step_native_tenchu2()?;
+        }
+        if save_diagnostics && let Err(error) = self.save_diagnostics() {
+            self.native_tenchu2.as_mut().unwrap().menu.panel.notice = error;
         }
         if leave {
             self.leave_native_tenchu2()?;
@@ -747,6 +786,16 @@ mod tests {
             panic!("Not gameplay")
         };
         assert_eq!(session.world.tick, 60);
+        let before = serde_json::to_vec(&session.world).unwrap();
+        let report = crate::diagnostics::decode(&app.diagnostic_report().unwrap()).unwrap();
+        assert_eq!(report["engine"], "tenchu2-jp");
+        assert_eq!(report["game"]["tick"], 60);
+        assert_eq!(report["session"]["sequence"], 9);
+        assert_eq!(
+            report["recent_inputs"]["inputs"].as_array().unwrap().len(),
+            60
+        );
+        assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
         assert_ne!(
             session.world.actors[session.world.player].actor.position,
             start

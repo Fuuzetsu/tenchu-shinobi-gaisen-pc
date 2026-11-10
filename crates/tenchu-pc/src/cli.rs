@@ -44,9 +44,10 @@ fn run() -> Result<()> {
             .map_err(|e| e.to_string())?;
         let report = crate::diagnostics::decode(&bytes)?;
         let summary = serde_json::json!({
-            "build": report["build"], "platform": report["platform"],
+            "engine": report["engine"], "build": report["build"], "platform": report["platform"],
             "session": report["session"], "runtime": report["runtime"],
             "renderer": report["renderer"], "debug": report["debug"],
+            "story": report["story"], "model_override": report["model_override"],
             "ai": report["game"]["ai"], "activation": report["game"]["activation"],
             "performance": {"average_ms": report["performance"]["frame_average"],
                 "p95_ms": report["performance"]["frame_p95"]},

@@ -17,6 +17,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Sun/moon and visual time of day | `visuals/sky.rs`, shared renderer | Each runtime supplies its simulation tick and retained shadow geometry |
 | Texture-based emitter discovery | `visuals/lights.rs` accepts a model catalog, VRAM and rules | `visuals/lights/gaisen.rs` supplies source meshes and instances |
 | GPU shading, shadows, materials and post effects | `renderer` | Source scene preparation, including native palette/fog decoding |
+| Diagnostic reports | `diagnostics` shares metadata, settings/debug snapshots, bounded input history, redaction and platform export | Explicit Gaisen/native actor, AI, mission and cutscene state adapters; no asset dumps |
 | Weather and footprints | `visuals/weather`, `visuals/footprints`, `visuals/surfaces` | Source terrain and sole-contact adapters |
 | Imported weapon resources | `tenchu-assets::weapon::Equipment` and `ImportedModel`; shared model/material preparation | T2 disc tables supply attachments, contact eligibility and draw rules; each runtime maps its rig slots |
 

@@ -84,9 +84,7 @@ impl Runtime {
             Edit::Benchmark => {
                 Some("Performance benchmarks are not connected to native Tenchu 2 JP yet.")
             }
-            Edit::Diagnostics => Some(
-                "Report export is not connected to native Tenchu 2 JP yet. Use F1 → Tenchu 2 → Integration diagnostics to inspect the current state.",
-            ),
+            Edit::Diagnostics => None,
             Edit::ImportUnarmed | Edit::ExportUnarmed => Some(
                 "Imported Gaisen unarmed moves are not used by native Tenchu 2 JP. Its characters already use their own source movesets.",
             ),

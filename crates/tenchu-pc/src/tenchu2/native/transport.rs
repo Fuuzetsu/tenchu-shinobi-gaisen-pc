@@ -6,6 +6,7 @@ use tenchu_core::clock::GameClock;
 
 #[derive(Default)]
 pub struct Transport {
+    pub recent: crate::diagnostics::Recent<super::diagnostics::Input>,
     clock: GameClock,
     generation: Option<u64>,
     accelerated: bool,
@@ -83,10 +84,12 @@ impl Transport {
         buttons: u16,
         output: Option<&Output>,
     ) -> Result<Update> {
+        super::diagnostics::record(&mut self.recent, playback, buttons);
         let generation = playback.generation;
         let update = playback.step(buttons)?;
         let changed = playback.generation != generation;
         if changed {
+            self.recent.reset(playback.generation);
             self.clock.discard_host_backlog();
         } else if !self.accelerated
             && let Some(output) = output

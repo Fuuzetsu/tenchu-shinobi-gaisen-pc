@@ -84,6 +84,12 @@ struct Original {
 }
 
 impl Override {
+    pub fn diagnostic_snapshot(&self) -> serde_json::Value {
+        serde_json::json!({"body": self.applied.body, "moveset": self.applied.moveset,
+            "custom": self.custom.as_ref().map(|c| &c.id),
+            "source_voice": self.voice.as_ref().map(|v| format!("{:?}", v.dialect))})
+    }
+
     pub fn sync(
         &mut self,
         world: &mut World,

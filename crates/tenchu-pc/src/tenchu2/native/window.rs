@@ -24,6 +24,7 @@ use winit::{
 
 struct View {
     window: Arc<Window>,
+    adapter: wgpu::AdapterInfo,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     renderer: Renderer,
@@ -90,6 +91,7 @@ impl View {
         crate::frontend::gpu::register(&mut overlay, config.format);
         Ok(Self {
             window,
+            adapter: adapter.get_info(),
             surface,
             config,
             renderer,
@@ -320,6 +322,7 @@ impl Application {
                 Err(error) => self.menu.panel.notice = error,
             }
         }
+        let mut save_diagnostics = false;
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
@@ -407,6 +410,7 @@ impl Application {
                 self.error.as_deref(),
                 self.fps,
             )?;
+            save_diagnostics = action.save_diagnostics;
             if let Some(bodies) = action.models
                 && let Some(gallery) = &mut self.gallery
             {
@@ -456,11 +460,52 @@ impl Application {
                 self.presets.open = false;
             }
         }
+        if save_diagnostics {
+            if let Err(error) = self.save_diagnostics(paused) {
+                self.menu.panel.notice = error;
+            }
+            self.last = Instant::now();
+        }
         if previous != self.settings {
             if let Some(audio) = &self.audio {
                 audio.send(Command::Volume(self.settings.volume));
             }
             self.store.write(&self.settings)?;
+        }
+        Ok(())
+    }
+
+    fn save_diagnostics(&mut self, suspended: bool) -> Result<()> {
+        let mut report = super::diagnostics::report(
+            &self.session,
+            &self.transport,
+            &self.menu,
+            &self.settings,
+            &self.controls,
+        );
+        report["runtime"]["paused"] = serde_json::json!(self.paused);
+        report["runtime"]["suspended"] = serde_json::json!(suspended);
+        report["runtime"]["focused"] = serde_json::json!(self.focused);
+        report["runtime"]["error"] = serde_json::json!(self.error);
+        report["runtime"]["audio_active"] = serde_json::json!(self.audio.is_some());
+        if let Some(view) = &self.view {
+            let mut renderer = crate::diagnostics::renderer(
+                &view.adapter,
+                &view.window,
+                &view.config,
+                &view.renderer,
+            );
+            renderer["lights"] =
+                serde_json::json!(view.drawing.light_count(&view.graphics.lighting));
+            renderer["fps"] = serde_json::json!(self.fps);
+            report["renderer"] = renderer;
+            report["effective_graphics"] = serde_json::json!(view.renderer.graphics());
+        }
+        let bytes = crate::diagnostics::finish(report, &self.settings, self.store.path.parent())?;
+        if let Some(notice) =
+            crate::diagnostics::save(&super::diagnostics::filename(&self.session), &bytes)?
+        {
+            self.menu.panel.notice = notice;
         }
         Ok(())
     }

@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Enable native Tenchu 2 JP diagnostic report export from F1, with source actor/AI/item state, cutscene state, recent inputs, model/moveset selection, settings and GPU details. Reports use the shared portable JSON format and path redaction, with native input encoding identified.
+
 - Native Tenchu 2 JP can use custom-folder player models through the shared F1 gallery, including weighted meshes and adjusted body proportions. Weapons, held items and grapple ropes follow the displayed hands; visual swaps leave collision and gameplay unchanged. Model folders and artwork can be reloaded during play, preserving snow, rain and footprints.
 - Native Tenchu 2 JP now uses shared visual interpolation for actors, weapons, held items and the gameplay/follow cameras. Cutscene characters also interpolate while authored camera cuts remain exact. Enable Smooth model motion or a Modern preset; collisions, source updates and RNG are unchanged.
 - Enable native Tenchu 2 JP simulation-speed controls: 25%, 50%, normal, 2×, 4× and Unlimited. Every original update still runs; pause and frame-step remain exact, and menus keep their normal input rate.
