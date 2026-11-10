@@ -23,6 +23,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Weather and footprints | `visuals/weather`, `visuals/footprints`, `visuals/surfaces` | Source terrain and sole-contact adapters |
 | Water shading, curved waterfalls and spray | `visuals/water`, shared renderer | T2's level loader marks authored scrolling water; mesh preparation distinguishes horizontal surfaces and falls, respecting explicit pack overrides |
 | Contact sparks and water splashes | `visuals/contact`, `lighting/sparks` share particle motion, geometry, collision, wet marks, flashes and bounded light clustering | Gaisen extracts effect slots in `contact/gaisen.rs`; native source effects tag metal/water contacts and retain a short event history between rendered frames |
+| Detailed grappling rope/hook | `visuals/contact/rope.rs` builds the same round rope; shared mesh refinement recognizes the Grapple catalog role | Gaisen samples its source curve; native T2 supplies its stored rope points and displayed hand. Each source catalog identifies its hook mesh |
 | Imported weapon resources | `tenchu-assets::weapon::Equipment` and `ImportedModel`; shared model/material preparation | T2 disc tables supply attachments, contact eligibility and draw rules; each runtime maps its rig slots |
 
 Paths above are relative to `crates/tenchu-pc/src`. The small inspection interface

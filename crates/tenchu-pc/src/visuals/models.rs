@@ -449,7 +449,7 @@ impl Meshes {
                 .then(|| pack.model_patches.get(&source.id))
                 .flatten();
             let weapon = super::weapons::metal_weapon(&source.id);
-            let grapple = graphics.models.grapple && source.id == "common/26";
+            let grapple = graphics.models.grapple && source.role == catalog::Role::Grapple;
             let round = source.role == catalog::Role::Actor && replacement.is_none();
             let hero = (graphics.models.heroes && replacement.is_none())
                 .then(|| super::heroes::part(&source.id))
@@ -649,7 +649,13 @@ impl Meshes {
                 }
             }
             if grapple {
-                super::refine::prepare(&mut vertices, 2, 0.015, &mut refinement_budget);
+                super::refine::prepare_skinned(
+                    &mut vertices,
+                    2,
+                    0.015,
+                    &mut refinement_budget,
+                    &mut native_skin,
+                );
             } else if let Some(part) = hero {
                 super::heroes::prepare(&mut vertices, part, &mut refinement_budget);
             } else if refined {

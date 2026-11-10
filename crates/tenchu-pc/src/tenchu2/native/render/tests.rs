@@ -1399,3 +1399,130 @@ fn nearest_water(session: &super::super::Session, graphics: &Graphics) -> Vec3 {
         })
         .unwrap()
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; verifies detailed native hook/rope follows the source path and restores exactly"]
+fn native_detailed_grapple_preserves_source_path_and_restores_original() {
+    use tenchu_core::tenchu2::items::{State, aim::Aim, grapple::Grapple};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let owner = session.world.player;
+    let hand = session
+        .world
+        .scene
+        .world(session.world.instances[owner].rig.joints[11])
+        .unwrap()
+        .translation;
+    let direction = Position::new(1200, -2500, -4000);
+    let target = hand.wrapping_add(direction);
+    let mut aim = Aim {
+        direction,
+        target,
+        reach: Some(5000),
+        distance: 5000,
+        phase: 1,
+    };
+    let mut hook = Grapple::launch(
+        owner,
+        hand,
+        direction,
+        &mut aim,
+        &session.assets.resources.math,
+    )
+    .unwrap();
+    for _ in 0..10 {
+        hook.advance(target, hand, &session.assets.resources.math);
+    }
+    assert!(hook.rope.len() > 2);
+    let points: Vec<_> = std::iter::once(hand)
+        .chain(hook.rope.iter().copied())
+        .map(|p| Vec3::from(p.to_array().map(|v| v as f32)))
+        .collect();
+    let rope = crate::visuals::contact::rope::path(&points);
+    assert!(!rope.vertices.is_empty() && rope.vertices.len() <= 64 * 48);
+    for vertex in &rope.vertices {
+        let p = Vec3::from(vertex.position);
+        assert!(p.is_finite() && Vec3::from(vertex.normal).is_finite());
+        assert!(
+            points.iter().any(|point| p.distance(*point) <= 16.1),
+            "rope moved away from source path"
+        );
+    }
+    session
+        .world
+        .items
+        .insert(
+            State::Grapple(hook),
+            &mut session.world.scene,
+            &mut session.world.collision,
+        )
+        .unwrap();
+    let state = postcard::to_allocvec(&session.world).unwrap();
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    let center = Vec3::from(
+        hand.wrapping_add(direction.map(|v| v / 2))
+            .to_array()
+            .map(|v| v as f32),
+    );
+    camera.position = center - camera.forward() * 8000.0;
+    let mut images = Vec::new();
+    let mut hooks = Vec::new();
+    for mode in ["original", "detailed", "restored"] {
+        let mut graphics = Graphics {
+            asset_pack: false,
+            fog: false,
+            ..Default::default()
+        };
+        graphics.models.grapple = mode != "original";
+        let path = output.join(format!("jp-grapple-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            let mut vertices = 0;
+            for part in session.assets.items.model(0).unwrap() {
+                drawing.models.items.visit(
+                    &part.geometry,
+                    Matrix::default(),
+                    false,
+                    0,
+                    None,
+                    |_| vertices += 3,
+                );
+            }
+            hooks.push(vertices);
+            if mode == "restored" {
+                let mut original = graphics.clone();
+                original.models.grapple = false;
+                renderer.configure(&original);
+                let mut restored = Drawing::new(&session, &original, renderer)?;
+                restored.preserve_environment(&mut drawing);
+                restored.camera = Some(camera);
+                restored.show_hud = false;
+                restored.update(&session, renderer, None)?;
+                drawing = restored;
+            }
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    assert!(
+        hooks[1] > hooks[0],
+        "detailed hook did not refine source geometry"
+    );
+    assert_ne!(images[0], images[1]);
+    assert_eq!(images[0], images[2]);
+}

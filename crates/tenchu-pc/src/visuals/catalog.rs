@@ -168,6 +168,7 @@ pub enum Role {
     Terrain,
     Prop,
     Actor,
+    Grapple,
     Other,
 }
 
@@ -255,7 +256,11 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
     for (&kind, geometry) in mission.common_models.iter() {
         out.push(ModelSource {
             id: format!("common/{kind}"),
-            role: Role::Other,
+            role: if kind == 26 {
+                Role::Grapple
+            } else {
+                Role::Other
+            },
             label: format!("Common model {kind}"),
             geometry,
         });

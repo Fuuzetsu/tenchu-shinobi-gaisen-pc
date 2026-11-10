@@ -69,6 +69,11 @@ impact and moving sparks. Modern High/Ultra enable this, while Original retains
 the source particles. Presentation effects do not consume gameplay RNG, and
 pause, fast-forward and artwork/model reloads do not duplicate impacts.
 
+**Detailed rope / hook** in the same tab uses the shared round woven rope and
+hook refinement. T2 supplies its original flight/pull path; interpolation and
+custom bodies supply the displayed hand anchor. Original keeps the source line
+and hook mesh, and the option never changes grapple reach, collision or timing.
+
 **F1 → Water** controls the shared modern water shading, ripples, reflections,
 flow, foam, waterfall smoothing and spray. Native gameplay and 3D scenes use the
 level's authored water textures to identify surfaces, with original or HD artwork.

@@ -603,7 +603,13 @@ impl Models {
         let item_sources = assets
             .items
             .models()
-            .flat_map(|(id, parts)| sources(&format!("items/{id}"), parts, Role::Other))
+            .flat_map(|(id, parts)| {
+                sources(
+                    &format!("items/{id}"),
+                    parts,
+                    if id == 0 { Role::Grapple } else { Role::Other },
+                )
+            })
             .collect();
         let mut items = build(&assets.items.vram, item_sources, graphics)?;
         renderer.bind_meshes(&mut items);
@@ -820,6 +826,7 @@ impl Models {
                 }
             }
         }
+        let mut rope = None;
         if let Some(hook) = world.items.grapple() {
             if let Some(parts) = assets.items.model(0) {
                 output.parts(&self.items, parts, hook.transform, math)?;
@@ -844,9 +851,17 @@ impl Models {
             {
                 previous = hand.translation;
             }
-            for &point in &hook.rope {
-                output.line(previous, point);
-                previous = point;
+            if graphics.models.grapple {
+                let points: Vec<_> = std::iter::once(previous)
+                    .chain(hook.rope.iter().copied())
+                    .map(|p| glam::Vec3::from(p.to_array().map(|v| v as f32)))
+                    .collect();
+                rope = Some(crate::visuals::contact::rope::path(&points));
+            } else {
+                for &point in &hook.rope {
+                    output.line(previous, point);
+                    previous = point;
+                }
             }
         }
         if let Some(item) = world.items.held
@@ -1104,6 +1119,11 @@ impl Models {
                 vertex.flags |= render_mesh::UI | render_mesh::SCREEN_WIDE;
             }
         }
+        let mut effects = render_effects::surface_geometry(output.surfaces);
+        if let Some(mut rope) = rope {
+            rope.append(effects);
+            effects = rope;
+        }
         Ok(Geometry {
             backgrounds: background::geometry(
                 &assets.level.background,
@@ -1115,7 +1135,7 @@ impl Models {
             ),
             terrain: output.terrain,
             actors: output.actors,
-            effects: render_effects::surface_geometry(output.surfaces),
+            effects,
         })
     }
 }

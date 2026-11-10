@@ -23,6 +23,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         model_detail: g.model_detail,
         models: crate::settings::Models {
             characters: g.models.characters,
+            grapple: g.models.grapple,
             ..Default::default()
         },
         weapon_reflections: g.weapon_reflections,
