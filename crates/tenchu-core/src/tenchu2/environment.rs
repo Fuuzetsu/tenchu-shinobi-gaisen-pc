@@ -13,6 +13,10 @@ pub mod scenery;
 mod triggers;
 mod visibility;
 
+// Imported T1 scenery mechanisms; native OSD kinds remain unchanged.
+pub const GAISEN_PITFALL: i16 = 0x100;
+pub const GAISEN_OPEN_PITFALL: i16 = 0x101;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Object {
     pub coordinate: ModelId,
@@ -240,7 +244,7 @@ impl Environment {
             (extent, extent)
         };
         let slot = collision.insert(object.coordinate)?;
-        slot.flags = if matches!(object.kind, 5..=7 | 20) {
+        slot.flags = if matches!(object.kind, 5..=7 | 20 | GAISEN_PITFALL) {
             0x1200
         } else {
             0x1000

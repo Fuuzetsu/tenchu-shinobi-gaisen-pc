@@ -1,4 +1,4 @@
-use super::Environment;
+use super::{Environment, GAISEN_OPEN_PITFALL, GAISEN_PITFALL};
 use crate::{
     Result,
     math::Math,
@@ -16,7 +16,10 @@ impl Environment {
         math: &Math,
     ) -> Result<bool> {
         let object = &mut self.objects[index];
-        if object.kind > 9 && object.kind != 18 && object.link != 0 {
+        if object.kind > 9
+            && !matches!(object.kind, 18 | GAISEN_PITFALL | GAISEN_OPEN_PITFALL)
+            && object.link != 0
+        {
             object.clock = object.clock.wrapping_add(1);
         }
         let visible = if let Some(model) = object.model {
@@ -30,7 +33,7 @@ impl Environment {
         };
         if !visible {
             collision.remove(object.coordinate);
-        } else if !matches!(object.kind, -1 | 19) {
+        } else if !matches!(object.kind, -1 | 19 | GAISEN_OPEN_PITFALL) {
             self.enable_collision(index, &level.scene.bounds, collision, math)?;
         }
         Ok(visible)

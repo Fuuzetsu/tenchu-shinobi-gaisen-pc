@@ -1,12 +1,12 @@
 use super::*;
-use crate::math::Matrix;
+use crate::{math::Matrix, tenchu2::environment::GAISEN_PITFALL};
 use tenchu_assets::{
     misc,
     tenchu2::level::objects::{Bounds, Dynamic},
 };
 
 impl Assets {
-    pub(super) fn import_doors(&mut self, source: &MissionAssets) -> Result<()> {
+    pub(super) fn import_hinged_objects(&mut self, source: &MissionAssets) -> Result<()> {
         let level = &mut self.level;
         level.scene.bounds = vec![
             Bounds {
@@ -20,14 +20,17 @@ impl Assets {
         self.object_sources.clear();
         let mut models = BTreeMap::new();
         for spawn in &source.misc.spawns {
-            let misc::Kind::Door { rotation, kind } = spawn.kind else {
-                continue;
+            let (rotation, data, pitfall) = match spawn.kind {
+                misc::Kind::Door { rotation, kind } => (rotation, &source.misc.doors[kind], false),
+                misc::Kind::Pitfall { rotation, kind } => {
+                    (rotation, &source.misc.pitfalls[kind], true)
+                }
+                _ => continue,
             };
-            let data = &source.misc.doors[kind];
             let trigger = level.scene.triggers.len();
             let first = level.scene.dynamic.len();
             if first + 1 > 255 {
-                return Err("Too many imported Tenchu 2 door leaves".into());
+                return Err("Too many imported Tenchu 2 hinged objects".into());
             }
             let root = Matrix {
                 translation: spawn.position.into(),
@@ -39,7 +42,7 @@ impl Assets {
                         let geometry = source
                             .common_models
                             .get(mesh)
-                            .ok_or("Missing Gaisen door model")?;
+                            .ok_or("Missing Gaisen hinged model")?;
                         let mut low = [i16::MAX; 3];
                         let mut high = [i16::MIN; 3];
                         for vertex in geometry.iter().flat_map(|g| &g.vertices) {
@@ -49,7 +52,7 @@ impl Assets {
                             }
                         }
                         if low.iter().zip(high).any(|(&a, b)| a > b) {
-                            return Err("Empty Gaisen door model".into());
+                            return Err("Empty Gaisen hinged model".into());
                         }
                         let middle = std::array::from_fn::<_, 3, _>(|i| {
                             ((i32::from(low[i]) + i32::from(high[i])) / 2) as i16
@@ -87,6 +90,8 @@ impl Assets {
                     facing: rotation,
                     kind: if model.is_none() {
                         u16::MAX
+                    } else if pitfall {
+                        GAISEN_PITFALL as u16
                     } else if side == 0 {
                         2
                     } else {
@@ -101,7 +106,7 @@ impl Assets {
             level.scene.triggers.push(Trigger {
                 position: spawn.position,
                 angle: rotation >> 4,
-                kind: 1,
+                kind: if pitfall { GAISEN_PITFALL } else { 1 },
                 target: (first + 1) as u16 | ((first as u16) << 8),
             });
         }

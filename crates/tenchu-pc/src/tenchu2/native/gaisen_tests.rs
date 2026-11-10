@@ -2,6 +2,7 @@ use super::*;
 use tenchu_assets::{game::GameAssets, stage::MissionAssets};
 
 mod doors;
+mod pitfalls;
 
 #[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; imports original terrain, scenery and placements into all three native controllers"]

@@ -50,6 +50,17 @@ Imported bounds encode the leaf's local-X center for T2's two offset components;
 meshes and `common/{id}` replacement identities are preserved. The T1 opening
 controller and its shrinking hinge offset are not used in this optional mode.
 
+Pitfall leaves follow `MISC.C::ProcMiscPitfall`: fixed hinge offsets, opposite
+Z-axis rotations in 170-unit steps, clamped at 1024. T1 ACM already contains the
+holes; no terrain mutation or artificial support plane is introduced. The
+optional adapter assigns distinct imported object/trigger kinds and uses T2
+body contacts, non-supporting hazard colliders and mechanism sound. Native T2
+movement and fall/death handling remain unchanged. All original placements,
+including the duplicated castle flap and the cave leftovers in the cure stage,
+are retained. Their source meshes keep the existing common-model identities.
+The imported closed/open kinds `0x100/0x101` do not overlap any object or trigger
+kind in the 41 original Japanese scenery variants (whose kinds are 0–20).
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |

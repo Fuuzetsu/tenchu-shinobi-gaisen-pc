@@ -1,4 +1,6 @@
-use super::{Context, Debris, Environment, Event, Events, Shot, SurfaceActor, SurfaceContext};
+use super::{
+    Context, Debris, Environment, Event, Events, GAISEN_PITFALL, Shot, SurfaceActor, SurfaceContext,
+};
 use crate::{
     Result,
     math::Position,
@@ -127,6 +129,22 @@ impl Environment {
                 continue;
             }
             match trigger.kind {
+                GAISEN_PITFALL => {
+                    trigger.clock = trigger.clock.wrapping_add(1);
+                    let angle = (i32::from(trigger.clock & 0x7fff) * 170).min(1024);
+                    for (id, sign) in [(trigger.target & 255, -1), (trigger.target >> 8, 1)] {
+                        let leaf = self
+                            .objects
+                            .get_mut(usize::from(id))
+                            .ok_or("Missing Gaisen pitfall leaf")?;
+                        if leaf.model.is_some() {
+                            leaf.roll = angle * sign;
+                        }
+                    }
+                    if angle == 1024 {
+                        trigger.clock = 0;
+                    }
+                }
                 0 => {
                     trigger.clock = trigger.clock.wrapping_add(1);
                     if trigger.clock & 0x7fff > 25 {

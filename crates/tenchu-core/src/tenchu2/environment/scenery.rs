@@ -1,4 +1,4 @@
-use super::{Context, Environment, Event, Events, Object};
+use super::{Context, Environment, Event, Events, GAISEN_OPEN_PITFALL, GAISEN_PITFALL, Object};
 use crate::{
     Result,
     math::{Matrix, Position, Vector3},
@@ -58,7 +58,11 @@ impl Model {
                     0
                 },
                 object.yaw,
-                0,
+                if matches!(object.kind, GAISEN_PITFALL | GAISEN_OPEN_PITFALL) {
+                    object.roll as i16
+                } else {
+                    0
+                },
             ],
         })
     }

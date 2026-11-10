@@ -1,4 +1,4 @@
-use super::{Context, Debris, Environment, Event, Events};
+use super::{Context, Debris, Environment, Event, Events, GAISEN_OPEN_PITFALL, GAISEN_PITFALL};
 use crate::{
     Result,
     math::Position,
@@ -32,6 +32,24 @@ impl Environment {
                 let owner = slot.owner;
                 let object = &mut self.objects[index];
                 match object.kind {
+                    GAISEN_PITFALL if flags & BODY != 0 => {
+                        let trigger = self
+                            .triggers
+                            .get_mut(object.link as usize)
+                            .ok_or("Missing Gaisen pitfall trigger")?;
+                        for id in [trigger.target & 255, trigger.target >> 8] {
+                            let leaf = self
+                                .objects
+                                .get_mut(usize::from(id))
+                                .ok_or("Missing Gaisen pitfall leaf")?;
+                            if leaf.kind == GAISEN_PITFALL {
+                                c.collision.remove(leaf.coordinate);
+                                leaf.kind = GAISEN_OPEN_PITFALL;
+                            }
+                        }
+                        trigger.clock = 0x8000;
+                        c.sound(trigger.position, 0x28)?;
+                    }
                     0 if flags & BODY != 0 => {
                         c.collision.remove(object.coordinate);
                         object.kind = -1;

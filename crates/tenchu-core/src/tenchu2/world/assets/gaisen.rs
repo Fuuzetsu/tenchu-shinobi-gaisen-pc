@@ -203,7 +203,7 @@ impl Assets {
             ],
         };
         level.grid = grid(source)?;
-        self.import_doors(source)?;
+        self.import_hinged_objects(source)?;
         Ok(())
     }
 }

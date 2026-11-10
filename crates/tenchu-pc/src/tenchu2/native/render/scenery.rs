@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 use tenchu_assets::tenchu2::level::Level;
 use tenchu_core::tenchu2::{
-    environment::scenery::{Frame, Model, Source},
+    environment::{
+        GAISEN_PITFALL,
+        scenery::{Frame, Model, Source},
+    },
     world::World,
 };
 
@@ -24,8 +27,10 @@ pub(super) fn distant_doors<'a>(
         .iter()
         .enumerate()
         .filter_map(move |(index, object)| {
-            (matches!(level.scene.dynamic[index].kind, 0..=2 | 6 | 7)
-                && level.grid.contains(object.cell)
+            (matches!(
+                level.scene.dynamic[index].kind as i16,
+                0..=2 | 6 | 7 | GAISEN_PITFALL
+            ) && level.grid.contains(object.cell)
                 && !drawn.contains(&index))
             .then(|| Model::object(index, object))
             .flatten()

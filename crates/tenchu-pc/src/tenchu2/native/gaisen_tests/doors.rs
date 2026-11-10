@@ -5,7 +5,7 @@ use tenchu_core::{
 };
 
 #[derive(Default)]
-struct Sounds(Vec<u8>);
+pub(super) struct Sounds(pub(super) Vec<u8>);
 
 impl environment::Events for Sounds {
     fn emit(&mut self, event: environment::Event, _: &mut Random) -> Result<()> {
@@ -16,7 +16,7 @@ impl environment::Events for Sounds {
     }
 }
 
-fn advance(world: &mut World, assets: &Assets, events: &mut Sounds) {
+pub(super) fn advance(world: &mut World, assets: &Assets, events: &mut Sounds) {
     let mut context = Context {
         map: &mut world.terrain,
         cursor: &mut world.cursor,
@@ -98,11 +98,17 @@ fn imported_doors_open_with_native_contacts() {
             .misc
             .spawns
             .iter()
-            .filter(|s| matches!(s.kind, tenchu_assets::misc::Kind::Door { .. }))
+            .filter(|s| {
+                matches!(
+                    s.kind,
+                    tenchu_assets::misc::Kind::Door { .. }
+                        | tenchu_assets::misc::Kind::Pitfall { .. }
+                )
+            })
             .enumerate()
         {
             let tenchu_assets::misc::Kind::Door { rotation, kind } = spawn.kind else {
-                unreachable!()
+                continue;
             };
             types.insert(kind);
             count += 1;
