@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports the shared F1 Player trail overlay, including
+  X-ray viewing. It records recent movement without altering gameplay, breaks
+  across large teleports and clears when changing areas.
+
 - Native Tenchu 2 JP supports optional death gushes with shared Original,
   Original HD and Modern styles, strength and duration. They begin at the source
   death-blood event, follow its animated body joint and stop after the selected

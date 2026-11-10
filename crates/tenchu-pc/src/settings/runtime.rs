@@ -45,7 +45,7 @@ impl Runtime {
             | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed
             | Pause | Step | Speed | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor
             | Actor | Overhead | SaveCamera | RestoreCamera | PhotoMode | Hitboxes | Labels
-            | InspectActor | Xray | Sight | SightStance | Patrols | Events | Collision
+            | InspectActor | Xray | Trail | Sight | SightStance | Patrols | Events | Collision
             | CollisionOnly | Target(_) | PlayerPosition | CameraPosition | SnapFloor
             | Teleport | PickTeleport | ClickTeleport => None,
             CameraRelative | AlignAim | FollowActor | FollowDistance | RecenterOrbit

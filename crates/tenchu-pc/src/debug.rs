@@ -5,6 +5,7 @@ pub(crate) mod overlay;
 mod sight;
 pub use overlay::{Anchor, Label, Overlay, light_markers};
 pub mod terrain;
+mod trail;
 
 #[cfg(test)]
 mod tests;

@@ -45,6 +45,7 @@ impl Tools {
             self.debug.click_teleport = false;
             self.debug.light = None;
             self.debug.light_follow = false;
+            self.debug.clear_trail();
             self.focus_light = false;
         }
         self.scene.actors.clear();
@@ -57,6 +58,15 @@ impl Tools {
                         & tenchu_core::input::L1.swap_bytes()
                         == 0;
                 self.tick = u64::from(session.world.tick);
+                self.debug.record_trail(
+                    self.tick,
+                    session.world.actors[session.world.player]
+                        .actor
+                        .position
+                        .to_array()
+                        .map(|v| v as f32)
+                        .into(),
+                );
                 self.scene.player = session.world.player;
                 if changed {
                     self.debug.target = session.world.actors[session.world.player].actor.position;

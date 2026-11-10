@@ -61,7 +61,7 @@ impl Debug {
         self.target = game.player().position;
         self.surfaces = terrain::surfaces(&game.mission.terrain)?;
         self.sight_occluders.take();
-        self.trail.clear();
+        self.clear_trail();
         self.last_tick = game.tick;
         Ok(())
     }
@@ -156,18 +156,10 @@ impl Debug {
         self.inventory(game);
         self.bandages = game.player().bleeding.as_ref().map(|s| s.bandages);
         self.armor = game.combat.armor;
-        if self.last_tick != game.tick {
-            if game.tick < self.last_tick {
-                self.trail.clear();
-            }
-            self.last_tick = game.tick;
-            self.trail.push_back(Vec3::from(
-                game.player().position.map(|v| v as f32).to_array(),
-            ));
-            if self.trail.len() > 1800 {
-                self.trail.pop_front();
-            }
-        }
+        self.record_trail(
+            game.tick,
+            Vec3::from(game.player().position.map(|v| v as f32).to_array()),
+        );
     }
 
     pub fn overlay(&self, game: &Game, aspect: f32) -> Overlay {

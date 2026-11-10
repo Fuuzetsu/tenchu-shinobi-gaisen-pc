@@ -380,6 +380,75 @@ fn shared_follow_camera_tracks_native_guards_and_survives_player_death() {
 }
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; shared trail records native walking without redraw duplication, teleport bridges or scene leaks"]
+fn shared_trail_tracks_native_movement_and_resets_between_scenes() {
+    use crate::tenchu2::native::Session;
+    use tenchu_core::tenchu2::input;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut content = Content::Gameplay(Box::new(Session::load(&disc, 119, 17).unwrap()));
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    tools.change(Item::Trail, 1).unwrap();
+    for _ in 0..60 {
+        let Content::Gameplay(session) = &mut content else {
+            unreachable!()
+        };
+        session.step_world(input::UP, true).unwrap();
+        tools.sync(&content, 0);
+    }
+    tools.change(Item::Overhead, 1).unwrap();
+    let matrix = tools.debug.camera.unwrap().matrix(16.0 / 9.0);
+    let trail = |content: &Content, tools: &Tools| {
+        let Content::Gameplay(session) = content else {
+            unreachable!()
+        };
+        super::super::inspection::overlay(session, &tools.debug, matrix, 16.0 / 9.0)
+            .geometry
+            .vertices
+    };
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    let state = postcard::to_allocvec(&session.world).unwrap();
+    let path = trail(&content, &tools);
+    assert!(!path.is_empty());
+    for _ in 0..10 {
+        tools.sync(&content, 0);
+    }
+    assert_eq!(
+        bytemuck::cast_slice::<_, u8>(&path),
+        bytemuck::cast_slice::<_, u8>(&trail(&content, &tools))
+    );
+    tools.change(Item::PhotoMode, 1).unwrap();
+    assert!(trail(&content, &tools).is_empty());
+    tools.reset(Item::PhotoMode).unwrap();
+    tools.reset(Item::Trail).unwrap();
+    assert!(trail(&content, &tools).is_empty());
+    tools.change(Item::Trail, 1).unwrap();
+    assert_eq!(path.len(), trail(&content, &tools).len());
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    assert_eq!(state, postcard::to_allocvec(&session.world).unwrap());
+    tools.sync(&content, 1);
+    assert!(
+        trail(&content, &tools).is_empty(),
+        "new scene retained the previous path"
+    );
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    session.world.tick += 1;
+    session.world.actors[session.world.player].actor.position.x += 5000;
+    tools.sync(&content, 1);
+    assert!(
+        trail(&content, &tools).is_empty(),
+        "teleport drew a line across the map"
+    );
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; movable lights, follow/freeze, focus and scene transitions are presentation-only"]
 fn lighting_tools_preserve_native_world_and_clear_between_scenes() {
     let disc =

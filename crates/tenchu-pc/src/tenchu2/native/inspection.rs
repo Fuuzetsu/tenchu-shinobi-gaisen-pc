@@ -36,6 +36,7 @@ pub(super) fn overlay(session: &Session, debug: &Debug, matrix: Mat4, aspect: f3
     if debug.photo_mode {
         return drawing.finish();
     }
+    debug.draw_trail(&mut drawing);
     if debug.collision || debug.collision_only || debug.events {
         for (node, corners) in surfaces::surfaces(&session.world.terrain) {
             let trigger = node.attributes & 0xf00 == 0x400;

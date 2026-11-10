@@ -169,13 +169,7 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
             }
         }
     }
-    if debug.show_trail {
-        for (a, b) in debug.trail.iter().zip(debug.trail.iter().skip(1)) {
-            if a.distance_squared(*b) < 4000.0f32.powi(2) {
-                lines.line(*a - Vec3::Y * 20.0, *b - Vec3::Y * 20.0, [1.0, 0.85, 0.2]);
-            }
-        }
-    }
+    debug.draw_trail(&mut lines);
     if debug.inspect_actor
         && let Some(actor) = game
             .roster

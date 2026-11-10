@@ -58,6 +58,10 @@ link independently of the Gaisen pack.
 
 Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
+**F1 → Overlays → Player trail** shows recent movement through the same bounded
+path recorder as Gaisen. Paused redraws do not add points, large teleports break
+the line, and new areas clear it. X-ray also applies to the trail; Photo mode hides
+it with the other overlays. All graphical presets leave debug overlays off.
 **F1 → Lighting** also supports movable lights, placement above the player or at
 the camera, camera-follow lights, source markers and nearest-light inspection.
 Flame flicker and heat shimmer use the shared renderer in gameplay and 3D
