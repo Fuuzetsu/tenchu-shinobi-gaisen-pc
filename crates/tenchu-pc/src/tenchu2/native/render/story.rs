@@ -79,6 +79,8 @@ impl Drawing {
                 math: &story.math,
                 tick: story.state.frame.max(0) as u64,
                 camera,
+                alpha: self.alpha,
+                contact: None,
                 world: None,
             },
             renderer,

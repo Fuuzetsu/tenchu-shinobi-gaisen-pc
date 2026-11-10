@@ -23,6 +23,7 @@ use tenchu_core::{
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod campaign;
+mod contact;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod diagnostics;
 #[cfg(not(target_arch = "wasm32"))]
@@ -59,6 +60,7 @@ pub struct Session {
     pub world: World,
     pub assets: Assets,
     pub frame: Frame,
+    contact: contact::History,
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
     pub pending: BTreeSet<String>,
     pub interpolation: Option<crate::visuals::interpolation::History>,
@@ -115,6 +117,7 @@ impl Session {
             world,
             assets,
             frame: Frame::default(),
+            contact: Default::default(),
             bank,
             pending: BTreeSet::new(),
             interpolation: None,
@@ -146,6 +149,8 @@ impl Session {
         self.frame = self
             .world
             .step([buttons, 0], &mut self.assets, &mut events)?;
+        self.contact
+            .record(u64::from(self.world.tick), &self.frame.effects.sparks);
         for &position in &self.frame.effects.blood_sounds {
             events.requests.push(SoundRequest {
                 source: None,

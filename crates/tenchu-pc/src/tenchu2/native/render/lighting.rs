@@ -6,6 +6,7 @@ pub(super) struct Lighting {
     fires: Vec<Vec3>,
     pub focus: Option<Vec3>,
     pub debug_light: Option<Vec3>,
+    pub transients: Vec<Source>,
 }
 
 impl Lighting {
@@ -21,20 +22,24 @@ impl Lighting {
                 .collect(),
             focus: None,
             debug_light: None,
+            transients: Vec::new(),
         }
     }
 
     pub fn active(&self, settings: &crate::settings::Lighting) -> bool {
         settings.enabled
             && settings.count > 0
-            && (self.debug_light.is_some() || settings.fires && !self.fires.is_empty())
+            && (self.debug_light.is_some()
+                || !self.transients.is_empty()
+                || settings.fires && !self.fires.is_empty())
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     pub fn count(&self, settings: &crate::settings::Lighting) -> usize {
         if self.active(settings) {
             (if settings.fires { self.fires.len() } else { 0 }
-                + usize::from(self.debug_light.is_some()))
+                + usize::from(self.debug_light.is_some())
+                + self.transients.len())
             .min(lighting::MAX_SCENE_LIGHTS)
         } else {
             0
@@ -57,7 +62,8 @@ impl Lighting {
             .iter()
             .map(|&position| fire(position, f32::from(settings.radius) * 1000.0))
             .collect();
-        lighting::select(
+        let mut sources = self.transients.clone();
+        sources.extend(lighting::select(
             settings,
             self.focus.unwrap_or(eye),
             self.debug_light,
@@ -65,7 +71,9 @@ impl Lighting {
                 fires,
                 ..Default::default()
             },
-        )
+        ));
+        sources.truncate(lighting::MAX_SCENE_LIGHTS);
+        sources
     }
 }
 

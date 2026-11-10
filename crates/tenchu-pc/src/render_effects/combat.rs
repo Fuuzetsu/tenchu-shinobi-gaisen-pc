@@ -1,5 +1,7 @@
 mod gun;
 mod sparks;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use sparks::impact_flash;
 
 use super::{
     Style, Surface, quad,
@@ -13,6 +15,48 @@ fn noise(seed: u32) -> f32 {
     let mut n = seed.wrapping_mul(0x45d9f3b);
     n = (n ^ (n >> 16)).wrapping_mul(0x45d9f3b);
     ((n ^ (n >> 16)) & 65535) as f32 / 65535.0
+}
+
+pub(crate) fn soft_patch(
+    center: Vec3,
+    axes: [Vec3; 2],
+    color: [f32; 3],
+    glow: bool,
+    rounded: bool,
+    opacity: f32,
+) -> Vec<crate::render_mesh::Vertex> {
+    let [right, up] = axes;
+    let mut vertices = quad(
+        [
+            center - right - up,
+            center + right - up,
+            center - right + up,
+            center + right + up,
+        ]
+        .map(|p| p.to_array()),
+        [color; 4],
+        None,
+        0,
+    );
+    for (vertex, i) in vertices.iter_mut().zip([0, 1, 2, 1, 3, 2]) {
+        vertex.uv = [
+            if i & 1 == 0 { -1.0 } else { 1.0 },
+            if !rounded {
+                0.0
+            } else if i & 2 == 0 {
+                -1.0
+            } else {
+                1.0
+            },
+        ];
+        vertex.opacity = opacity;
+        vertex.flags = render_mesh::ALPHA
+            | render_mesh::DOUBLE_SIDED
+            | render_mesh::FOG
+            | render_mesh::SOFT
+            | if glow { render_mesh::UNLIT } else { 0 };
+    }
+    vertices
 }
 
 struct Painter<'a> {
@@ -46,37 +90,7 @@ impl Painter<'_> {
         if depth < 50.0 {
             return;
         }
-        let [right, up] = axes;
-        let mut vertices = quad(
-            [
-                center - right - up,
-                center + right - up,
-                center - right + up,
-                center + right + up,
-            ]
-            .map(|p| p.to_array()),
-            [color; 4],
-            None,
-            0,
-        );
-        for (vertex, i) in vertices.iter_mut().zip([0, 1, 2, 1, 3, 2]) {
-            vertex.uv = [
-                if i & 1 == 0 { -1.0 } else { 1.0 },
-                if !rounded {
-                    0.0
-                } else if i & 2 == 0 {
-                    -1.0
-                } else {
-                    1.0
-                },
-            ];
-            vertex.opacity = opacity;
-            vertex.flags = render_mesh::ALPHA
-                | render_mesh::DOUBLE_SIDED
-                | render_mesh::FOG
-                | render_mesh::SOFT
-                | if glow { render_mesh::UNLIT } else { 0 };
-        }
+        let vertices = soft_patch(center, axes, color, glow, rounded, opacity);
         self.surfaces.push(Surface {
             depth,
             blend: 5,

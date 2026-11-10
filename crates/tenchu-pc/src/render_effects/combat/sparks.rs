@@ -49,41 +49,53 @@ impl Painter<'_> {
                 }
                 Some(Effect::Impact(impact)) if impact.sprite == 1 => {
                     let age = f32::from(impact.count.saturating_sub(1)) + alpha;
-                    let fade = (1.0 - age / 4.0).max(0.0).powi(2);
-                    if fade > 0.0 {
-                        let center = Vec3::from(impact.position.map(|v| v as f32).to_array());
-                        for ray in 0..7 {
-                            let seed = slot as u32 * 71 + ray * 13;
-                            let angle =
-                                ray as f32 * std::f32::consts::TAU / 7.0 + noise(seed) * 0.35;
-                            let along =
-                                self.camera.x_axis * angle.cos() + self.camera.y_axis * angle.sin();
-                            let across = along.cross(self.camera.z_axis);
-                            let length = (130.0 + noise(seed + 1) * 220.0) * (1.0 + age * 0.12);
-                            self.patch_with_opacity(
-                                center + along * length * 0.45,
-                                [
-                                    across * (3.0 + noise(seed + 2) * 4.0),
-                                    along * length * 0.55,
-                                ],
-                                [2.2, 1.6, 0.75],
-                                true,
-                                true,
-                                fade,
-                            );
-                        }
-                        self.patch_with_opacity(
-                            center,
-                            [self.camera.x_axis * 25.0, self.camera.y_axis * 25.0],
-                            [2.5, 2.4, 2.0],
-                            true,
-                            true,
-                            fade,
-                        );
-                    }
+                    impact_flash(
+                        self.camera,
+                        Vec3::from(impact.position.map(|v| v as f32).to_array()),
+                        age,
+                        slot as u32 * 71,
+                        |center, axes, color, fade| {
+                            self.patch_with_opacity(center, axes, color, true, true, fade)
+                        },
+                    );
                 }
                 _ => {}
             }
         }
     }
+}
+
+pub(crate) fn impact_flash(
+    camera: glam::Mat3,
+    center: Vec3,
+    age: f32,
+    seed: u32,
+    mut emit: impl FnMut(Vec3, [Vec3; 2], [f32; 3], f32),
+) {
+    let fade = (1.0 - age / 4.0).max(0.0).powi(2);
+    if fade <= 0.0 {
+        return;
+    }
+    for ray in 0..7 {
+        let seed = seed + ray * 13;
+        let angle = ray as f32 * std::f32::consts::TAU / 7.0 + noise(seed) * 0.35;
+        let along = camera.x_axis * angle.cos() + camera.y_axis * angle.sin();
+        let across = along.cross(camera.z_axis);
+        let length = (130.0 + noise(seed + 1) * 220.0) * (1.0 + age * 0.12);
+        emit(
+            center + along * length * 0.45,
+            [
+                across * (3.0 + noise(seed + 2) * 4.0),
+                along * length * 0.55,
+            ],
+            [2.2, 1.6, 0.75],
+            fade,
+        );
+    }
+    emit(
+        center,
+        [camera.x_axis * 25.0, camera.y_axis * 25.0],
+        [2.5, 2.4, 2.0],
+        fade,
+    );
 }

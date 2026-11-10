@@ -173,6 +173,8 @@ impl Drawing {
                 math: &session.assets.resources.math,
                 tick: u64::from(session.world.tick),
                 camera,
+                alpha: self.alpha,
+                contact: Some(&session.contact),
                 world: Some((&session.world, &session.assets)),
             },
             renderer,
@@ -289,6 +291,7 @@ impl SceneDrawing {
             || (graphics.lighting.enabled && graphics.lighting.directional.intensity > 0);
         if (graphics.weather.mode != crate::settings::WeatherMode::Original
             || graphics.water.enabled
+            || graphics.effects.sparks
             || ((self.lighting.active(&graphics.lighting) || sky_light)
                 && graphics.lighting.shadows))
             && self.environment.is_none()
@@ -298,12 +301,20 @@ impl SceneDrawing {
         renderer.weather = Default::default();
         self.sky.tick(frame.tick, &graphics.sky);
         renderer.daylight = self.sky.sample(&graphics.sky, 1.0);
+        self.lighting.transients.clear();
         if let Some(environment) = &mut self.environment {
             if environment.stale {
                 environment.rebuild(frame.level, frame.meshes, frame.math, renderer);
             }
-            let mut effects =
-                environment.update(frame.tick, frame.camera, &graphics, frame.world, renderer);
+            let mut effects = environment.update(&frame, &graphics, renderer);
+            if graphics.effects.sparks && graphics.effects.spark_density > 0 {
+                self.lighting.transients = crate::lighting::sparks::clusters(
+                    environment.contact.spark_lights(frame.alpha),
+                );
+                self.lighting
+                    .transients
+                    .extend(environment.contact.lights().into_iter().take(2));
+            }
             effects.append(std::mem::replace(
                 &mut geometry.effects,
                 render_effects::Geometry {
@@ -934,6 +945,9 @@ impl Models {
             );
         }
         for sprite in &frame.effects.sprites {
+            if sprite.sparks && graphics.effects.sparks {
+                continue;
+            }
             let image = assets.sprites.effects[usize::from(sprite.image)];
             let blend = blend(sprite.blend, sprite.image);
             let projected = output.project(sprite.position);
@@ -960,6 +974,9 @@ impl Models {
             );
         }
         for point in &frame.effects.points {
+            if point.sparks && graphics.effects.sparks {
+                continue;
+            }
             output.screen_sprite(
                 output.project(point.position),
                 point.size.map(f32::from),

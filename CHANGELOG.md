@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP uses the shared modern grapple, projectile-impact and weapon-block sparks, with moving spark light and impact flashes. F1 controls their amount, Modern High/Ultra enable them, and Original preserves the source particles. Pausing, fast-forward and model/artwork reloads preserve their timing without changing gameplay or RNG.
+
 - Native Tenchu 2 JP supports optional camera-relative controls, full left-stick direction, shared mouse/right-stick orbit, camera recentering and camera-aligned grapple/look/item aim. Committed attacks and native wall, ledge, underwater and aiming controls keep their source behavior. F1 settings, frame-step, fast-forward and diagnostic input history support the new mode; classic controls remain the default.
 
 - Native Tenchu 2 JP supports the shared modern water shader, reflections, ripples, waterfall smoothing and spray through F1. Water is identified from the source level definitions, including when using HD artwork; unrelated animated textures keep their original appearance. The same material handling applies to JP/EU maps in the Gaisen scenery sandbox. Original water animation and gameplay are unchanged.

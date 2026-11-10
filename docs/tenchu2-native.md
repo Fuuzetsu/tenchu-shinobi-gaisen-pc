@@ -50,10 +50,17 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Texture-based lamp discovery, combat-effect lights, blood enhancements, hair/cloth physics,
+Texture-based lamp discovery, fire/explosion combat lights, blood enhancements, hair/cloth physics,
 rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Contact effects → Modern impact sparks** enables the shared modern
+sparks for grappling, projectile contacts and weapon blocks. **Spark amount**
+controls their density; dynamic lighting illuminates nearby surfaces from the
+impact and moving sparks. Modern High/Ultra enable this, while Original retains
+the source particles. Presentation effects do not consume gameplay RNG, and
+pause, fast-forward and artwork/model reloads do not duplicate impacts.
 
 **F1 → Water** controls the shared modern water shading, ripples, reflections,
 flow, foam, waterfall smoothing and spray. Native gameplay and 3D scenes use the

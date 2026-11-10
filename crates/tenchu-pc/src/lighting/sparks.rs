@@ -47,7 +47,7 @@ pub fn sources(
     clusters(particles.chain(extra))
 }
 
-fn clusters(particles: impl IntoIterator<Item = Light>) -> Vec<Source> {
+pub(crate) fn clusters(particles: impl IntoIterator<Item = Light>) -> Vec<Source> {
     let mut groups: Vec<Light> = Vec::new();
     for light in particles {
         let color = Vec3::from(light.color);

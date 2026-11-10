@@ -299,13 +299,17 @@ fn native_modern_water_uses_shared_materials_without_changing_logic() {
             drawing.update(&session, renderer, None)?;
             assert_eq!(drawing.scene.environment.is_some(), graphics.water.enabled);
             if let Some(environment) = &mut drawing.scene.environment {
-                let spray = environment.update(
-                    u64::from(session.world.tick),
-                    camera.matrix(16.0 / 9.0),
-                    &graphics,
-                    None,
-                    renderer,
-                );
+                let frame = environment::Frame {
+                    level: &session.assets.level,
+                    meshes: &drawing.models.scenery,
+                    math: &session.assets.resources.math,
+                    tick: u64::from(session.world.tick),
+                    camera: camera.matrix(16.0 / 9.0),
+                    alpha: 1.0,
+                    contact: None,
+                    world: None,
+                };
+                let spray = environment.update(&frame, &graphics, renderer);
                 assert!(
                     !spray.vertices.is_empty(),
                     "source waterfall should feed shared spray"
@@ -314,13 +318,7 @@ fn native_modern_water_uses_shared_materials_without_changing_logic() {
                 disabled.water.spray = 0;
                 assert!(
                     environment
-                        .update(
-                            u64::from(session.world.tick),
-                            camera.matrix(16.0 / 9.0),
-                            &disabled,
-                            None,
-                            renderer
-                        )
+                        .update(&frame, &disabled, renderer)
                         .vertices
                         .is_empty()
                 );
@@ -1058,4 +1056,190 @@ fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() 
         );
         assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
     }
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; verifies shared native impact sparks, lights, pause and original restoration"]
+fn native_modern_sparks_preserve_source_effects_and_restore_original() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    let position = session.world.actors[session.world.player]
+        .actor
+        .position
+        .wrapping_add(Position::new(900, -1300, 0));
+    let center = Vec3::from(position.to_array().map(|v| v as f32));
+    camera.position = center - camera.forward() * 3500.0;
+    session.world.effects.flash(position, false).unwrap();
+    session
+        .world
+        .effects
+        .impact(
+            position,
+            Position::new(1, 0, 0),
+            &session.assets.resources.math,
+            &session.assets.effect_rules,
+            &mut session.world.random,
+        )
+        .unwrap();
+    session
+        .world
+        .effects
+        .fuse(
+            position,
+            &session.assets.effect_rules,
+            &mut session.world.random,
+        )
+        .unwrap();
+    session.step(0).unwrap();
+    assert_eq!(session.frame.effects.sparks.len(), 2);
+    assert!(session.frame.effects.points.iter().any(|p| !p.sparks));
+    let state = postcard::to_allocvec(&session.world).unwrap();
+    let mut images = Vec::new();
+    for mode in ["original", "modern", "unlit", "zero", "restored"] {
+        let modern = mode != "original";
+        let mut graphics = Graphics {
+            asset_pack: false,
+            fog: false,
+            ..Default::default()
+        };
+        graphics.effects.sparks = modern;
+        graphics.effects.spark_density = if mode == "zero" { 0 } else { 100 };
+        graphics.lighting.enabled = mode != "unlit";
+        graphics.lighting.fires = false;
+        graphics.lighting.shadows = false;
+        let path = output.join(format!("jp-sparks-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            if modern {
+                let effects =
+                    postcard::to_allocvec(&drawing.scene.environment.as_ref().unwrap().contact)
+                        .unwrap();
+                drawing.update(&session, renderer, None)?;
+                assert_eq!(
+                    postcard::to_allocvec(&drawing.scene.environment.as_ref().unwrap().contact)
+                        .unwrap(),
+                    effects,
+                    "a paused redraw must not replay impacts"
+                );
+                assert_eq!(drawing.scene.lighting.transients.is_empty(), mode == "zero");
+                assert_eq!(
+                    drawing
+                        .scene
+                        .lighting
+                        .sources(&graphics.lighting, camera.position)
+                        .is_empty(),
+                    matches!(mode, "zero" | "unlit")
+                );
+                let before = drawing.scene.lighting.transients.len();
+                assert!(before <= 4, "moving sparks need bounded light clusters");
+                if mode == "restored" {
+                    let mut original = graphics.clone();
+                    original.effects.sparks = false;
+                    renderer.configure(&original);
+                    drawing.update(&session, renderer, None)?;
+                    assert!(drawing.scene.lighting.transients.is_empty());
+                }
+            }
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    assert_ne!(
+        images[0], images[1],
+        "modern geometry did not change the source sprites"
+    );
+    assert_ne!(
+        images[1], images[2],
+        "sparks did not illuminate their surroundings"
+    );
+    assert_ne!(
+        images[1], images[3],
+        "zero density failed to suppress modern bursts"
+    );
+    assert_eq!(
+        images[0], images[4],
+        "returning to Original must recover the exact source drawing"
+    );
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC and GPU; verifies native impact history under skipped renders, setting rebuilds and expiry"]
+fn native_sparks_survive_skipped_renders_without_repeating_impacts() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let instance = wgpu::Instance::new(&Default::default());
+    let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+    let mut renderer = pollster::block_on(Renderer::new(
+        &adapter,
+        wgpu::TextureFormat::Rgba8Unorm,
+        [640, 360],
+        &session.assets.sprites.vram,
+    ))
+    .unwrap();
+    let mut graphics = Graphics {
+        asset_pack: false,
+        ..Default::default()
+    };
+    graphics.effects.sparks = true;
+    renderer.configure(&graphics);
+    let mut frequent = Drawing::new(&session, &graphics, &mut renderer).unwrap();
+    frequent.update(&session, &mut renderer, None).unwrap();
+    let mut sparse = Drawing::new(&session, &graphics, &mut renderer).unwrap();
+    sparse.update(&session, &mut renderer, None).unwrap();
+    for frame in 0..16 {
+        if matches!(frame, 0 | 7 | 13) {
+            let position = session.world.actors[session.world.player]
+                .actor
+                .position
+                .wrapping_add(Position::new(0, -1400, 0));
+            session.world.effects.flash(position, frame != 7).unwrap();
+        }
+        session.step(0).unwrap();
+        let state = postcard::to_allocvec(&session.world).unwrap();
+        frequent.update(&session, &mut renderer, None).unwrap();
+        assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+    }
+    sparse.update(&session, &mut renderer, None).unwrap();
+    let contact = |drawing: &Drawing| {
+        postcard::to_allocvec(&drawing.scene.environment.as_ref().unwrap().contact).unwrap()
+    };
+    assert_eq!(contact(&frequent), contact(&sparse));
+    assert!(!sparse.scene.lighting.transients.is_empty());
+    let before = contact(&sparse);
+    let mut rebuilt = Drawing::new(&session, &graphics, &mut renderer).unwrap();
+    rebuilt.preserve_environment(&mut sparse);
+    rebuilt.update(&session, &mut renderer, None).unwrap();
+    assert_eq!(
+        contact(&rebuilt),
+        before,
+        "model/artwork rebuild restarted sparks"
+    );
+    for _ in 0..90 {
+        session.step(0).unwrap();
+    }
+    rebuilt.update(&session, &mut renderer, None).unwrap();
+    assert!(
+        rebuilt.scene.lighting.transients.is_empty(),
+        "expired pre-fast-forward impacts returned"
+    );
 }

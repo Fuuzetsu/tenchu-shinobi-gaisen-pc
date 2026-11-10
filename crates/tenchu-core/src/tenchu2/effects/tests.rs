@@ -160,8 +160,13 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
             }
         }
         (Value::Object(a), Value::Object(b)) => {
-            assert_eq!(a.len(), b.len(), "{path} fields");
-            for (key, value) in a {
+            // The port's presentation tag is not a source particle field.
+            assert_eq!(
+                a.len() - usize::from(a.contains_key("sparks")),
+                b.len(),
+                "{path} fields"
+            );
+            for (key, value) in a.iter().filter(|(key, _)| key.as_str() != "sparks") {
                 compare(value, &b[key], &format!("{path}/{key}"));
             }
         }

@@ -48,8 +48,15 @@ pub struct Effects {
     sprite_rotations: Vec<i32>,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct SparkBurst {
+    pub position: Position,
+    pub parried: bool,
+}
+
 #[derive(Default)]
 pub struct Frame {
+    pub sparks: Vec<SparkBurst>,
     pub sprites: Vec<sprites::Drawing>,
     pub points: Vec<points::Drawing>,
     pub quads: Vec<surface::Quad>,
@@ -86,9 +93,23 @@ impl Effects {
                 Effect::Paper(paper) => paper.update(math, &mut frame.quads),
                 Effect::Ribbon(ribbon) => ribbon.update(&mut frame.ribbons),
                 Effect::Sprites(sprites) => {
+                    if sprites.sparks && sprites.particles.iter().any(|p| p.age == 0) {
+                        frame.sparks.push(SparkBurst {
+                            position: sprites.position,
+                            parried: sprites.frames[0].image == 16,
+                        });
+                    }
                     sprites.update(scene, view, &mut self.sprite_rotations, &mut frame.sprites)?
                 }
-                Effect::Points(points) => points.update(scene, view, &mut frame.points)?,
+                Effect::Points(points) => {
+                    if points.sparks && points.age == 0 {
+                        frame.sparks.push(SparkBurst {
+                            position: points.position,
+                            parried: false,
+                        });
+                    }
+                    points.update(scene, view, &mut frame.points)?
+                }
                 Effect::Blood(blood) => blood.update(scene, view, terrain, cursor, &mut frame)?,
                 Effect::Pool(pool) => pool.update(&mut frame.quads)?,
                 Effect::Ripple(ripple) => ripple.update(&mut frame.quads)?,

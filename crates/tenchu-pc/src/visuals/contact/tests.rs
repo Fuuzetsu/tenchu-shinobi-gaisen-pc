@@ -1,6 +1,7 @@
 use super::*;
 use bytemuck::Zeroable;
 use glam::Mat4;
+use tenchu_core::effects::Effect;
 
 fn floor(center: Vec3, flags: u32) -> Vec<Vertex> {
     [

@@ -6,6 +6,47 @@ use crate::{
 use bytemuck::Zeroable;
 use glam::{Mat3, Mat4, Vec3};
 impl Contact {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn impact_geometry(
+        &self,
+        camera: Mat4,
+        alpha: f32,
+        settings: &crate::settings::Effects,
+    ) -> Geometry {
+        let mut vertices = Vec::new();
+        let inverse = camera.inverse();
+        let near = inverse.project_point3(Vec3::ZERO);
+        let forward = (inverse.project_point3(Vec3::Z) - near).normalize_or_zero();
+        let right = forward.cross(Vec3::NEG_Y).normalize_or_zero();
+        let up = right.cross(forward);
+        if settings.sparks && settings.spark_density > 0 {
+            for (index, flash) in self.flashes.iter().enumerate() {
+                if forward.dot(flash.position - near) <= 0.0 {
+                    continue;
+                }
+                crate::render_effects::impact_flash(
+                    Mat3::from_cols(right, up, forward),
+                    flash.position,
+                    flash.age * 30.0 + alpha.clamp(0.0, 1.0),
+                    index as u32 * 71,
+                    |center, axes, color, opacity| {
+                        vertices.extend(crate::render_effects::soft_patch(
+                            center, axes, color, true, true, opacity,
+                        ))
+                    },
+                );
+            }
+        }
+        let count = vertices.len() as u32;
+        Geometry {
+            vertices,
+            batches: vec![Batch {
+                blend: 5,
+                range: 0..count,
+            }],
+        }
+    }
+
     pub fn geometry(
         &self,
         camera: Mat4,

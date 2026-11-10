@@ -39,6 +39,11 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         post: g.post.clone(),
         weather: g.weather.clone(),
         water: g.water.clone(),
+        effects: crate::settings::Effects {
+            sparks: g.effects.sparks,
+            spark_density: g.effects.spark_density,
+            ..Default::default()
+        },
         sky: g.sky.clone(),
         lighting: crate::settings::Lighting {
             lamps: false,

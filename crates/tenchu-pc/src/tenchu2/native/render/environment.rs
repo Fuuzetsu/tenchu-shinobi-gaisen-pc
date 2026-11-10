@@ -24,6 +24,7 @@ pub(super) struct Environment {
     tick: Option<u64>,
     thunder: Option<tenchu_audio::ThunderCue>,
     spray: crate::visuals::water::Spray,
+    pub contact: crate::visuals::contact::Contact,
 }
 
 pub(super) struct Frame<'a> {
@@ -32,6 +33,8 @@ pub(super) struct Frame<'a> {
     pub math: &'a Math,
     pub tick: u64,
     pub camera: Mat4,
+    pub alpha: f32,
+    pub contact: Option<&'a super::super::contact::History>,
     pub world: Option<(&'a World, &'a Assets)>,
 }
 
@@ -80,6 +83,7 @@ impl Environment {
             tick: None,
             thunder: None,
             spray: crate::visuals::water::Spray::new(&water),
+            contact: Default::default(),
         }
     }
 
@@ -94,6 +98,7 @@ impl Environment {
         replacement.weather = std::mem::take(&mut self.weather);
         replacement.footprints = std::mem::take(&mut self.footprints);
         replacement.tick = self.tick;
+        replacement.contact = std::mem::take(&mut self.contact);
         replacement.thunder = self.thunder.take();
         *self = replacement;
     }
@@ -110,12 +115,17 @@ impl Environment {
 
     pub fn update(
         &mut self,
-        tick: u64,
-        camera: Mat4,
+        frame: &Frame<'_>,
         graphics: &Graphics,
-        world: Option<(&World, &Assets)>,
         renderer: &mut Renderer,
     ) -> render_effects::Geometry {
+        let Frame {
+            tick,
+            camera,
+            world,
+            alpha,
+            ..
+        } = *frame;
         let inverse = camera.inverse();
         let center = inverse.project_point3(Vec3::ZERO);
         // Fast-forward may advance hundreds of source updates between presentations.
@@ -135,6 +145,25 @@ impl Environment {
                 &graphics.weather,
                 self.weather.sample(&graphics.weather, 1.0).snow,
             );
+            if self
+                .contact
+                .begin_tick(step, &self.surfaces, graphics, center)
+                && graphics.effects.sparks
+                && let Some(history) = frame.contact
+            {
+                for burst in history.sparks(step) {
+                    self.contact.spark(
+                        Vec3::from(burst.position.to_array().map(|v| v as f32)),
+                        Vec3::NEG_Y,
+                        graphics.effects.spark_density,
+                        if burst.parried {
+                            [0.4, 0.65, 1.0]
+                        } else {
+                            [1.0, 0.64, 0.2]
+                        },
+                    );
+                }
+            }
         }
         self.tick = Some(tick);
         if graphics.weather.mode == WeatherMode::Original {
@@ -145,6 +174,11 @@ impl Environment {
         geometry.append(
             self.footprints
                 .geometry(&graphics.weather, Some(camera), 0.0),
+        );
+        geometry.append(self.contact.geometry(camera, alpha, &graphics.effects));
+        geometry.append(
+            self.contact
+                .impact_geometry(camera, alpha, &graphics.effects),
         );
         geometry.append(
             self.spray
