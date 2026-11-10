@@ -32,6 +32,7 @@ impl Application {
         report["runtime"]["focused"] = serde_json::json!(self.focused);
         report["runtime"]["error"] = serde_json::json!(native.error);
         report["runtime"]["audio_active"] = serde_json::json!(self.audio.is_some());
+        report["runtime"]["performance"] = self.performance.diagnostic_snapshot();
         if let Some(view) = &self.view {
             let mut renderer = crate::diagnostics::renderer(
                 &view.adapter,
@@ -70,6 +71,7 @@ impl Application {
             Playback::load(disc, sequence, difficulty, self.campaign.seed, None, save)?
         };
         self.finish_recording();
+        self.performance = Default::default();
         self.release_pointer();
         if let Some(frontend) = &mut self.frontend {
             frontend.leave();
@@ -100,6 +102,7 @@ impl Application {
 
     fn leave_native_tenchu2(&mut self) -> Result<()> {
         self.native_tenchu2 = None;
+        self.performance = Default::default();
         self.controls.close_editor();
         self.presets.open = false;
         self.touch.clear();
@@ -207,12 +210,18 @@ impl Application {
             self.fps_elapsed = 0.0;
             self.fps_frames = 0;
         }
+        let mut timing = performance::CpuFrame {
+            simulation: now.elapsed().as_secs_f32() * 1000.0,
+            ..Default::default()
+        };
+        let prepare = Instant::now();
         let suspended = self.is_suspended();
         let graphics = preferences::graphics(&self.settings);
         let Some(view) = &mut self.view else {
             return Ok(());
         };
         view.presentation_settings(&self.settings);
+        view.renderer.profiling = self.settings.show_performance;
         let native = self.native_tenchu2.as_mut().unwrap();
         let wants_models = (native.menu.panel.open && native.menu.panel.page == 10)
             || !self.settings.player_model.is_empty()
@@ -304,6 +313,8 @@ impl Application {
             &native.menu.tools.debug,
             self.settings.show_hud,
         )?;
+        timing.prepare = prepare.elapsed().as_secs_f32() * 1000.0;
+        let phase = Instant::now();
         let mut leave = false;
         let mut step = false;
         let mut reload_artwork = false;
@@ -334,6 +345,15 @@ impl Application {
             native
                 .menu
                 .cutscene_controls(ctx, native.playback.content.cutscene());
+            if self.settings.show_performance && !native.menu.tools.debug.photo_mode {
+                self.performance.show(
+                    ctx,
+                    &mut self.settings.show_performance,
+                    native.menu.panel.open,
+                    view.renderer.timings.is_some(),
+                    false,
+                );
+            }
             let actions = native.menu.show(
                 ctx,
                 &mut preferences::State {
@@ -415,6 +435,8 @@ impl Application {
                 .layout(ctx.screen_rect(), self.settings.touch, mode, false, false);
             self.touch.paint(ctx, self.settings.touch);
         });
+        timing.overlay = phase.elapsed().as_secs_f32() * 1000.0;
+        let phase = Instant::now();
         if reload_artwork {
             match native.drawing.as_mut().unwrap().replace(
                 &native.playback.content,
@@ -427,6 +449,7 @@ impl Application {
                 Err(error) => native.menu.panel.notice = error,
             }
         }
+        timing.prepare += phase.elapsed().as_secs_f32() * 1000.0;
         if let Some(audio) = &self.audio {
             let (ambience, thunder) = native
                 .drawing
@@ -454,20 +477,23 @@ impl Application {
             native.playback.run.sequence,
             native.playback.content.tick()
         ));
-        if view
-            .present(|view, target| {
-                native.drawing.as_ref().unwrap().draw(
-                    &native.playback.content,
-                    target,
-                    &mut view.renderer,
-                )?;
-                view.overlay.draw(&view.renderer, target);
-                Ok(())
-            })?
-            .is_some()
-        {
+        if let Some(draw) = view.present(|view, target| {
+            native.drawing.as_ref().unwrap().draw(
+                &native.playback.content,
+                target,
+                &mut view.renderer,
+            )?;
+            view.overlay.draw(&view.renderer, target);
+            Ok(())
+        })? {
+            timing.draw = draw;
             self.fps_frames += 1;
         }
+        self.performance.record_at(
+            now,
+            timing,
+            view.renderer.timings.as_ref().and_then(|t| t.latest),
+        );
         if was_open != native.menu.panel.open
             || was_paused != self.paused
             || previous_settings.pause_in_menu != self.settings.pause_in_menu
@@ -779,6 +805,20 @@ mod tests {
             assert!(!app.step_native_tenchu2().unwrap());
         }
         app.controls.key(KeyCode::KeyW, false);
+        let sampled = Instant::now();
+        app.performance.record_at(
+            sampled,
+            performance::CpuFrame {
+                prepare: 5.0,
+                ..Default::default()
+            },
+            None,
+        );
+        app.performance.record_at(
+            sampled + std::time::Duration::from_millis(20),
+            performance::CpuFrame::default(),
+            None,
+        );
         let Content::Gameplay(session) = &app.native_tenchu2.as_ref().unwrap().playback.content
         else {
             panic!("Not gameplay")
@@ -789,6 +829,8 @@ mod tests {
         assert_eq!(report["engine"], "tenchu2-jp");
         assert_eq!(report["game"]["tick"], 60);
         assert_eq!(report["session"]["sequence"], 9);
+        assert_eq!(report["runtime"]["performance"]["cpu"][0][0], 20.0);
+        assert_eq!(report["runtime"]["performance"]["cpu"][0][3], 5.0);
         assert_eq!(
             report["recent_inputs"]["inputs"].as_array().unwrap().len(),
             60

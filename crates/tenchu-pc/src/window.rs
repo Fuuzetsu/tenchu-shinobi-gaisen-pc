@@ -8,7 +8,6 @@ mod diagnostics;
 mod frontend;
 mod navigation;
 mod overlay;
-mod performance;
 mod playback;
 mod randomizer;
 #[cfg(not(target_arch = "wasm32"))]
@@ -30,6 +29,7 @@ use view::View;
 use crate::{
     campaign::{Action, Campaign, Screen},
     controls::{self, Command, Controls},
+    performance,
     recording::{Recorder, Start},
     render_effects, render_mesh,
     renderer::{EffectMesh, Mesh, Renderer},
@@ -1449,7 +1449,8 @@ impl ApplicationHandler for Application {
                             events.exit();
                         }
                     }
-                    self.performance.record(
+                    self.performance.record_at(
+                        now,
                         timing,
                         view.renderer.timings.as_ref().and_then(|t| t.latest),
                     );

@@ -33,16 +33,17 @@ impl Runtime {
             Fullscreen if cfg!(target_os = "android") => {
                 Some("Android manages the game window; fullscreen is a desktop setting.")
             }
-            Fps | Focus | MenuPause | MusicWhilePaused | Volume | Fullscreen | Vsync | Hud
-            | Preset | Retro | Fog | FogDistance | Textures | Shading | Exposure | Filtering
-            | Interpolation | Magnification | SurfaceDetail | SurfaceStrength | Antialiasing
-            | AssetPack | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion
-            | OcclusionRadius | Contrast | Saturation | Temperature | Gamma | Vignette
-            | Sharpen | CutsceneSpeed | Pause | Step | Speed | FreeCamera | FlightSpeed | Fov
-            | FocusPlayer | FocusActor | Actor | Overhead | SaveCamera | RestoreCamera
-            | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Sight | SightStance
-            | Patrols | Events | Collision | CollisionOnly | Target(_) | PlayerPosition
-            | CameraPosition | SnapFloor | Teleport | PickTeleport | ClickTeleport => None,
+            Fps | Performance | Focus | MenuPause | MusicWhilePaused | Volume | Fullscreen
+            | Vsync | Hud | Preset | Retro | Fog | FogDistance | Textures | Shading | Exposure
+            | Filtering | Interpolation | Magnification | SurfaceDetail | SurfaceStrength
+            | Antialiasing | AssetPack | Upscale | Post | Filmic | Bloom | BloomThreshold
+            | Occlusion | OcclusionRadius | Contrast | Saturation | Temperature | Gamma
+            | Vignette | Sharpen | CutsceneSpeed | Pause | Step | Speed | FreeCamera
+            | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor | Overhead | SaveCamera
+            | RestoreCamera | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Sight
+            | SightStance | Patrols | Events | Collision | CollisionOnly | Target(_)
+            | PlayerPosition | CameraPosition | SnapFloor | Teleport | PickTeleport
+            | ClickTeleport => None,
             CameraRelative | AlignAim | FollowActor | FollowDistance | RecenterOrbit
             | MouseSensitivity | StickSensitivity | StickDeadzone | InvertCameraY => None,
             GodMode | Armor | GiveItems | ClearItems | Inventory(_) => None,

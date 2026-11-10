@@ -1,6 +1,7 @@
 use crate::renderer::timing::{SCENE_COLUMNS, SCENE_COUNT, SCENE_NAMES};
 use egui::{Color32, Stroke};
 use std::collections::VecDeque;
+use web_time::Instant;
 
 const HISTORY: usize = 300;
 const COLORS: [Color32; 8] = [
@@ -58,6 +59,7 @@ pub(super) struct Performance {
     scene: VecDeque<[f32; SCENE_COUNT]>,
     serial: u64,
     frozen: bool,
+    started: Option<Instant>,
 }
 
 impl Performance {
@@ -86,7 +88,28 @@ impl Performance {
         })
     }
 
+    pub fn record_at(
+        &mut self,
+        started: Instant,
+        mut cpu: CpuFrame,
+        gpu: Option<crate::renderer::timing::Sample>,
+    ) {
+        let previous = self.started.take();
+        if previous.is_none() {
+            self.pending_cpu = None;
+        }
+        // Simulation clocks may discard loading delays; frame intervals must retain them.
+        cpu.interval = previous.map_or(0.0, |before| {
+            started.duration_since(before).as_secs_f32() * 1000.0
+        });
+        self.record(cpu, gpu);
+        self.started = Some(started);
+    }
+
     pub fn record(&mut self, cpu: CpuFrame, gpu: Option<crate::renderer::timing::Sample>) {
+        if self.started.take().is_some() {
+            self.pending_cpu = None;
+        }
         let previous = self.pending_cpu.replace(cpu);
         if self.frozen {
             return;
@@ -305,6 +328,60 @@ fn chart<const N: usize>(ui: &mut egui::Ui, values: &[[f32; N]], line: Option<&[
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wall_clock_preserves_loading_time_and_does_not_mix_offline_intervals() {
+        let mut performance = Performance::default();
+        let start = Instant::now();
+        performance.record_at(
+            start,
+            CpuFrame {
+                interval: 1.0,
+                prepare: 35.0,
+                ..Default::default()
+            },
+            None,
+        );
+        performance.record_at(
+            start + std::time::Duration::from_millis(100),
+            CpuFrame::default(),
+            None,
+        );
+        let frame = performance.cpu.back().unwrap();
+        assert_eq!(frame.interval, 100.0);
+        assert_eq!(frame.prepare, 35.0);
+        assert_eq!(frame.phases()[6], 65.0);
+        performance.record(
+            CpuFrame {
+                interval: 16.0,
+                ..Default::default()
+            },
+            None,
+        );
+        assert_eq!(performance.cpu.len(), 1);
+        performance.record(
+            CpuFrame {
+                interval: 16.0,
+                ..Default::default()
+            },
+            None,
+        );
+        assert_eq!(performance.cpu.back().unwrap().interval, 16.0);
+        performance.record_at(
+            start + std::time::Duration::from_secs(20),
+            CpuFrame::default(),
+            None,
+        );
+        assert_eq!(performance.cpu.len(), 2);
+        performance.record_at(
+            start + std::time::Duration::from_millis(20020),
+            CpuFrame::default(),
+            None,
+        );
+        let report = performance.diagnostic_snapshot();
+        assert_eq!(report["cpu"][2][0], 20.0);
+        assert_eq!(report["units"], "milliseconds");
+    }
 
     #[test]
     fn frame_intervals_complete_previous_work_and_show_time_outside_the_measurements() {

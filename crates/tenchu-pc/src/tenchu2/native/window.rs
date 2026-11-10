@@ -7,6 +7,7 @@ use super::{
 use crate::{
     audio::output::{Command, Output},
     controls::Controls,
+    performance::{CpuFrame, Performance},
     renderer::Renderer,
     settings::{Graphics, Settings, Store},
     source::DiscSource,
@@ -35,6 +36,7 @@ struct View {
     state: egui_winit::State,
     overlay: egui_wgpu::Renderer,
     free: Vec<egui::TextureId>,
+    performance: Performance,
 }
 
 impl View {
@@ -102,6 +104,7 @@ impl View {
             state,
             overlay,
             free: Vec::new(),
+            performance: Default::default(),
         })
     }
 
@@ -112,8 +115,12 @@ impl View {
         state: &mut preferences::State<'_>,
         error: Option<&str>,
         fps: f32,
+        timing: &mut CpuFrame,
     ) -> Result<preferences::Action> {
-        let frame = match self.surface.get_current_texture() {
+        let phase = Instant::now();
+        let acquired = self.surface.get_current_texture();
+        timing.draw.wait += phase.elapsed().as_secs_f32() * 1000.0;
+        let frame = match acquired {
             Ok(frame) => frame,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                 self.surface.configure(&self.renderer.device, &self.config);
@@ -122,9 +129,12 @@ impl View {
             Err(wgpu::SurfaceError::Timeout) => return Ok(preferences::Action::default()),
             Err(error) => return Err(error.to_string()),
         };
+        let phase = Instant::now();
         let target = frame.texture.create_view(&Default::default());
         self.drawing
             .draw(&session.content, &target, &mut self.renderer)?;
+        timing.draw.submit += phase.elapsed().as_secs_f32() * 1000.0;
+        let phase = Instant::now();
         let mut action = preferences::Action::default();
         let output = self
             .context
@@ -144,6 +154,15 @@ impl View {
                         .or(session.action);
                 }
                 menu.cutscene_controls(ctx, session.content.cutscene());
+                if state.settings.show_performance && !menu.tools.debug.photo_mode {
+                    self.performance.show(
+                        ctx,
+                        &mut state.settings.show_performance,
+                        menu.panel.open,
+                        self.renderer.timings.is_some(),
+                        false,
+                    );
+                }
                 action = menu.show(ctx, state);
                 if state.settings.show_fps && !menu.tools.debug.photo_mode {
                     egui::Area::new("native-fps".into())
@@ -163,6 +182,8 @@ impl View {
             &mut self.free,
             output.textures_delta,
         );
+        timing.overlay += phase.elapsed().as_secs_f32() * 1000.0;
+        let phase = Instant::now();
         self.renderer.draw_overlay(
             &target,
             &mut self.overlay,
@@ -172,8 +193,11 @@ impl View {
                 pixels_per_point: output.pixels_per_point,
             },
         );
+        timing.draw.submit += phase.elapsed().as_secs_f32() * 1000.0;
+        let phase = Instant::now();
         self.window.pre_present_notify();
         frame.present();
+        timing.draw.wait += phase.elapsed().as_secs_f32() * 1000.0;
         Ok(action)
     }
 }
@@ -281,6 +305,11 @@ impl Application {
             self.fps_frames = 0;
             self.fps_time = 0.0;
         }
+        let mut timing = CpuFrame {
+            simulation: now.elapsed().as_secs_f32() * 1000.0,
+            ..Default::default()
+        };
+        let prepare = Instant::now();
         self.menu.tools.advance(
             &mut self.controls,
             elapsed.as_secs_f32(),
@@ -324,6 +353,7 @@ impl Application {
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
+            view.renderer.profiling = self.settings.show_performance;
             if view.window.fullscreen().is_some() != self.settings.fullscreen {
                 view.window.set_fullscreen(
                     self.settings
@@ -391,6 +421,7 @@ impl Application {
                 None
             };
             let lights = view.drawing.light_count(&view.renderer.graphics().lighting);
+            timing.prepare = prepare.elapsed().as_secs_f32() * 1000.0;
             let action = view.draw(
                 &mut self.session,
                 &mut self.menu,
@@ -408,7 +439,9 @@ impl Application {
                 },
                 self.error.as_deref(),
                 self.fps,
+                &mut timing,
             )?;
+            let prepare = Instant::now();
             save_diagnostics = action.save_diagnostics;
             if let Some(bodies) = action.models
                 && let Some(gallery) = &mut self.gallery
@@ -449,8 +482,11 @@ impl Application {
                 audio.send(Command::Thunder(if accelerated { None } else { thunder }));
             }
             self.quit |= action.leave;
+            timing.prepare += prepare.elapsed().as_secs_f32() * 1000.0;
             if action.step && self.error.is_none() {
+                let phase = Instant::now();
                 self.step()?;
+                timing.simulation += phase.elapsed().as_secs_f32() * 1000.0;
             }
             if action.select_mission {
                 self.session.action = Some(Action::SelectMission);
@@ -473,6 +509,13 @@ impl Application {
                 audio.send(Command::Volume(self.settings.volume));
             }
             self.store.write(&self.settings)?;
+        }
+        if let Some(view) = &mut self.view {
+            view.performance.record_at(
+                now,
+                timing,
+                view.renderer.timings.as_ref().and_then(|t| t.latest),
+            );
         }
         Ok(())
     }
@@ -500,6 +543,7 @@ impl Application {
             renderer["lights"] =
                 serde_json::json!(view.drawing.light_count(&view.graphics.lighting));
             renderer["fps"] = serde_json::json!(self.fps);
+            report["runtime"]["performance"] = view.performance.diagnostic_snapshot();
             report["renderer"] = renderer;
             report["effective_graphics"] = serde_json::json!(view.renderer.graphics());
         }

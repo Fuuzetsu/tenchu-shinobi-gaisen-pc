@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP now shares the performance charts, detailed GPU scene timings and diagnostic-report histories with Gaisen, on desktop and Android. Frame intervals include loading or graphics-change stalls even when the simulation clock discards that time.
+
 - Native Tenchu 2 JP supports the shared distant-door option: fog-off, extended-fog and custom-camera views can show dormant doors and collapsing platforms at their current poses without activating collision or triggers. Moving props also participate in dynamic shadows in gameplay and 3D cutscenes.
 
 - Native Tenchu 2 JP lanterns use the shared dynamic lighting and shadows in gameplay and 3D cutscenes. Verified emitting textures identify lamps without lighting unrelated bright scenery; light positions remain available beyond the original draw distance. Packs can select lamp surfaces by texture ID as well as model name. Static props also render outside the original camera's draw list when fog is off or free camera is in use.

@@ -32,6 +32,13 @@ JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
 desktop. A damaged or newer-format file reports an error instead of being reset.
 The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
+**General → Performance charts** shows the same CPU frame phases, GPU passes and
+detailed scene categories as Gaisen. CPU timings include simulation/audio,
+geometry/uploads, menu work, submission, presentation waits and unclassified time.
+GPU samples require timestamp support and arrive asynchronously; they are not
+added to CPU time. F1 allows freezing the charts; photo mode hides them.
+Diagnostic reports include these bounded timing histories. The charts work in
+the main launcher and standalone JP preview; automated benchmarks remain pending.
 The resizable F1 panel uses the same categories and controls as Gaisen. Tab /
 Shift+Tab (or controller shoulders) changes category; arrows / D-pad selects and
 changes values. R resets the hovered or selected value. General contains the
@@ -52,7 +59,7 @@ visibility and its shadow budget. Movable lights reset when the scene changes.
 Presets remain shared, with only the supported graphics applied in native JP.
 Body/weapon blood enhancements, hair/cloth physics,
 rewind, randomizer, enemy-behaviour cheats
-and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
+and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
 
 **F1 → Lighting → Lantern / prop lights** uses the shared texture analysis and
