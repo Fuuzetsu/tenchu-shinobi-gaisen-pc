@@ -1,44 +1,11 @@
 mod state;
 use super::*;
-use crate::visuals::{lights::Emitters, models::Models, pack::Pack};
+use crate::visuals::{
+    lights::Emitters,
+    models::{Models, Options as ModelOptions},
+    pack::Pack,
+};
 pub(super) use state::State;
-
-#[derive(Clone, Copy, PartialEq)]
-struct ModelOptions {
-    artwork: bool,
-    smooth: bool,
-    detail: u16,
-    water: bool,
-    water_detail: u16,
-    characters: u16,
-    heroes: bool,
-    foliage: u16,
-    variation: bool,
-    grapple: bool,
-    leaves: bool,
-    secondary: bool,
-    wind: bool,
-    baked_snow: bool,
-}
-
-fn model_options(graphics: &settings::Graphics) -> ModelOptions {
-    ModelOptions {
-        artwork: graphics.asset_pack,
-        smooth: graphics.smooth_models,
-        detail: graphics.model_detail,
-        water: graphics.water.enabled,
-        water_detail: graphics.water.detail,
-        characters: graphics.models.characters,
-        heroes: graphics.models.heroes,
-        foliage: graphics.models.foliage,
-        variation: graphics.models.variation,
-        grapple: graphics.models.grapple,
-        leaves: graphics.effects.leaves || graphics.effects.scatter,
-        secondary: graphics.motion.actors(),
-        wind: graphics.motion.wind != 0,
-        baked_snow: graphics.weather.baked_snow,
-    }
-}
 
 pub(super) struct Frame<'a> {
     pub campaign: &'a Campaign,
@@ -522,7 +489,7 @@ impl View {
             player_models,
             player_selection: settings.player_model.clone(),
             randomizer_player: None,
-            model_options: model_options(&settings.graphics),
+            model_options: ModelOptions::from(&settings.graphics),
             emitters,
             surfaces: None,
             blood: Default::default(),
@@ -723,7 +690,7 @@ impl View {
             game,
         );
         self.player_selection = self.selected_player(settings).to_owned();
-        self.model_options = model_options(&settings.graphics);
+        self.model_options = ModelOptions::from(&settings.graphics);
         self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
         self.renderer.set_emitters(&self.emitters);
         error.map_or(Ok(()), Err)
@@ -847,7 +814,7 @@ impl View {
             self.interpolation_enabled = settings.graphics.interpolation;
             self.reset_interpolation(game);
         }
-        let options = model_options(&settings.graphics);
+        let options = ModelOptions::from(&settings.graphics);
         if options != self.model_options || self.player_selection != self.selected_player(settings)
         {
             self.set_models(self.build_models(game, settings)?, game);

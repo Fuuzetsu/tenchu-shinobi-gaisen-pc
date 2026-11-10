@@ -1,3 +1,6 @@
+mod options;
+pub use options::Options;
+
 use super::appearance::skin;
 use super::{catalog, pack::Pack, pixels::Image, smooth};
 use crate::{
@@ -79,6 +82,7 @@ impl Models {
             sources.extend(mission.weapons.grips.iter().map(|(&kind, geometry)| {
                 catalog::ModelSource {
                     id: format!("weapons/{kind:04x}"),
+                    role: catalog::Role::Other,
                     label: mission.weapons.names[&kind].clone(),
                     geometry,
                 }
@@ -121,6 +125,7 @@ impl Models {
                 .iter()
                 .enumerate()
                 .map(|(i, part)| catalog::ModelSource {
+                    role: catalog::Role::Actor,
                     id: source.source_id.as_ref().map_or_else(
                         || format!("actors/{:04x}/{i}", source.source_kind),
                         |id| format!("{id}/{i}"),
@@ -149,6 +154,7 @@ impl Models {
             let geometry = &mission.weapons.models[&kind];
             let sources = vec![catalog::ModelSource {
                 id: source.source_id.clone(),
+                role: catalog::Role::Other,
                 label: source.id.clone(),
                 geometry,
             }];
@@ -444,18 +450,18 @@ impl Meshes {
                 .flatten();
             let weapon = super::weapons::metal_weapon(&source.id);
             let grapple = graphics.models.grapple && source.id == "common/26";
-            let round = source.id.starts_with("actors/") && replacement.is_none();
+            let round = source.role == catalog::Role::Actor && replacement.is_none();
             let hero = (graphics.models.heroes && replacement.is_none())
                 .then(|| super::heroes::part(&source.id))
                 .flatten();
-            let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
-            let snow_enabled = graphics.weather.baked_snow && source.id.starts_with("stages/");
+            let water_enabled = graphics.water.enabled && source.role.scenery();
+            let snow_enabled = graphics.weather.baked_snow && source.role.scenery();
             let foliage = (graphics.models.foliage != 0
                 || graphics.models.variation
                 || graphics.effects.leaves
                 || graphics.effects.scatter)
-                && source.id.starts_with("stages/");
-            let wind = graphics.motion.wind != 0 && source.id.starts_with("stages/");
+                && source.role.scenery();
+            let wind = graphics.motion.wind != 0 && source.role.scenery();
             let refined = round && graphics.models.characters != 0;
             let secondary = graphics.motion.actors()
                 && motion.contains_key(&source.id)
@@ -647,17 +653,19 @@ impl Meshes {
             } else if let Some(part) = hero {
                 super::heroes::prepare(&mut vertices, part, &mut refinement_budget);
             } else if refined {
-                super::refine::prepare(
+                super::refine::prepare_skinned(
                     &mut vertices,
                     graphics.models.characters,
                     0.025,
                     &mut refinement_budget,
+                    &mut native_skin,
                 );
             } else {
-                smooth::prepare(
+                smooth::prepare_skinned(
                     &mut vertices,
                     graphics.smooth_models,
                     if round { graphics.model_detail } else { 0 },
+                    &mut native_skin,
                 );
             }
             if graphics.effects.leaves || graphics.effects.scatter {
@@ -710,7 +718,7 @@ impl Meshes {
                     out.motion.insert(source.geometry.as_ptr() as usize, rules);
                 }
             }
-            if plant && graphics.models.variation && source.id.contains("/objects/") {
+            if plant && graphics.models.variation && source.role == catalog::Role::Prop {
                 out.variants.insert(
                     source.geometry.as_ptr() as usize,
                     super::vegetation::botanical::Shape::new(&vertices),

@@ -55,13 +55,6 @@ impl Application {
                     self.apply_item(Item::Armor, 1)?;
                 }
             }
-            Item::CharacterRefinement => {
-                self.settings.graphics.models.characters = s.graphics.models.characters
-            }
-            Item::FoliageDetail => {
-                self.settings.graphics.models.foliage = s.graphics.models.foliage
-            }
-            Item::WaterDetail => self.settings.graphics.water.detail = s.graphics.water.detail,
             Item::HeadRest => {
                 let mut settings = self.settings.dismemberment;
                 settings.head_rest = s.dismemberment.head_rest;

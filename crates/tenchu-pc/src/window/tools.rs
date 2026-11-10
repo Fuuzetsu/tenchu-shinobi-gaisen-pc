@@ -565,22 +565,6 @@ impl Application {
                 self.campaign.game.combat.armor = !self.campaign.game.combat.armor;
                 self.debug.update(&self.campaign.game);
             }
-            Item::CharacterRefinement | Item::FoliageDetail => {
-                let options = &mut self.settings.graphics.models;
-                let value = if item == Item::CharacterRefinement {
-                    &mut options.characters
-                } else {
-                    &mut options.foliage
-                };
-                *value = (i32::from(*value) + direction)
-                    .rem_euclid(if item == Item::FoliageDetail { 5 } else { 3 })
-                    as u16;
-            }
-            Item::WaterDetail => {
-                self.settings.graphics.water.detail =
-                    (i32::from(self.settings.graphics.water.detail) + direction).rem_euclid(3)
-                        as u16
-            }
             Item::HeadRest => {
                 let choices = tenchu_core::game::dismemberment::HeadRest::ALL;
                 let current = choices

@@ -1,3 +1,4 @@
+use super::appearance::skin::Influence;
 use crate::render_mesh::Vertex;
 use glam::Vec3;
 use std::collections::{BTreeMap, BTreeSet};
@@ -20,11 +21,21 @@ fn continuous(adjacent: &[(Point, Vec3)]) -> bool {
 }
 
 pub fn prepare(vertices: &mut Vec<Vertex>, levels: u16, maximum: f32, budget: &mut usize) {
-    refine(vertices, levels, maximum, budget, false);
+    prepare_skinned(vertices, levels, maximum, budget, &mut Vec::new());
+}
+
+pub fn prepare_skinned(
+    vertices: &mut Vec<Vertex>,
+    levels: u16,
+    maximum: f32,
+    budget: &mut usize,
+    skin: &mut Vec<Influence>,
+) {
+    refine(vertices, levels, maximum, budget, false, skin);
 }
 
 pub fn preserve_height(vertices: &mut Vec<Vertex>, maximum: f32, budget: &mut usize) {
-    refine(vertices, 3, maximum, budget, true);
+    refine(vertices, 3, maximum, budget, true, &mut Vec::new());
 }
 
 fn refine(
@@ -33,6 +44,7 @@ fn refine(
     maximum: f32,
     budget: &mut usize,
     preserve_height: bool,
+    skin: &mut Vec<Influence>,
 ) {
     let cost = vertices
         .len()
@@ -51,12 +63,17 @@ fn refine(
         });
     let limit = (max - min).max_element() * maximum;
     for _ in 0..levels.min(3) {
-        subdivide(vertices, limit, preserve_height);
+        subdivide(vertices, limit, preserve_height, skin);
     }
     super::smooth::prepare(vertices, true, 0);
 }
 
-fn subdivide(vertices: &mut Vec<Vertex>, limit: f32, preserve_height: bool) {
+fn subdivide(
+    vertices: &mut Vec<Vertex>,
+    limit: f32,
+    preserve_height: bool,
+    skin: &mut Vec<Influence>,
+) {
     let relax = |from: Vec3, to: Vec3| {
         let mut delta = (to - from) * 0.7;
         if preserve_height {
@@ -117,7 +134,8 @@ fn subdivide(vertices: &mut Vec<Vertex>, limit: f32, preserve_height: bool) {
         })
         .collect();
     let mut out = Vec::with_capacity(vertices.len() * 4);
-    for triangle in vertices.chunks_exact(3) {
+    let mut out_skin = Vec::with_capacity(skin.len() * 4);
+    for (face, triangle) in vertices.chunks_exact(3).enumerate() {
         let keys: [_; 3] = std::array::from_fn(|i| key(triangle[i].position));
         let p: [Vertex; 3] = std::array::from_fn(|i| Vertex {
             position: corners[&keys[i]].to_array(),
@@ -135,12 +153,26 @@ fn subdivide(vertices: &mut Vec<Vertex>, limit: f32, preserve_height: bool) {
                 ..a
             }
         });
+        if !skin.is_empty() {
+            let p: [Influence; 3] = std::array::from_fn(|i| skin[face * 3 + i]);
+            let mid: [Influence; 3] = std::array::from_fn(|i| {
+                Influence::blend(
+                    p,
+                    std::array::from_fn(|j| if j == i || j == (i + 1) % 3 { 0.5 } else { 0.0 }),
+                )
+            });
+            out_skin.extend([
+                p[0], mid[0], mid[2], mid[0], p[1], mid[1], mid[2], mid[1], p[2], mid[0], mid[1],
+                mid[2],
+            ]);
+        }
         out.extend([
             p[0], mid[0], mid[2], mid[0], p[1], mid[1], mid[2], mid[1], p[2], mid[0], mid[1],
             mid[2],
         ]);
     }
     *vertices = out;
+    *skin = out_skin;
 }
 
 #[cfg(test)]

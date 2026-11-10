@@ -38,6 +38,7 @@ impl Drawing {
                     .iter()
                     .enumerate()
                     .map(|(i, part)| catalog::ModelSource {
+                        role: catalog::Role::Actor,
                         id: format!("tenchu2/actors/{name}/{i}"),
                         label: name.into(),
                         geometry: &part.geometry,

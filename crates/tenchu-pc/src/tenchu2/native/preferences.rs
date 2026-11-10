@@ -19,6 +19,13 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         textures: g.textures,
         shading: g.shading,
         exposure: g.exposure,
+        smooth_models: g.smooth_models,
+        model_detail: g.model_detail,
+        models: crate::settings::Models {
+            characters: g.models.characters,
+            ..Default::default()
+        },
+        weapon_reflections: g.weapon_reflections,
         interpolation: g.interpolation,
         bilinear: g.bilinear,
         mipmaps: g.mipmaps,

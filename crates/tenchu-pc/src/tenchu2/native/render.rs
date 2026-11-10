@@ -5,7 +5,11 @@ use crate::{
     render_mesh::{self, Vertex},
     renderer::Renderer,
     settings::Graphics,
-    visuals::{catalog, models::Meshes, pack::Pack},
+    visuals::{
+        catalog::{self, Role},
+        models::Meshes,
+        pack::Pack,
+    },
 };
 use std::collections::BTreeMap;
 use tenchu_assets::{
@@ -450,12 +454,13 @@ pub struct Presentation<'a> {
     pub pose: Option<&'a PoseFrame>,
 }
 
-fn sources<'a>(name: &str, parts: &'a [Part]) -> Vec<catalog::ModelSource<'a>> {
+fn sources<'a>(name: &str, parts: &'a [Part], role: Role) -> Vec<catalog::ModelSource<'a>> {
     parts
         .iter()
         .enumerate()
         .map(|(index, part)| catalog::ModelSource {
             id: format!("tenchu2/{name}/{index}"),
+            role,
             label: name.into(),
             geometry: &part.geometry,
         })
@@ -497,23 +502,29 @@ impl Models {
         graphics: &Graphics,
         renderer: &mut Renderer,
     ) -> Result<Self> {
-        let mut scenery = sources(&format!("map{}/terrain", world.map), &assets.level.map);
+        let mut scenery = sources(
+            &format!("map{}/terrain", world.map),
+            &assets.level.map,
+            Role::Terrain,
+        );
         scenery.extend(background::sources(&assets.level));
         scenery.extend(sources(
             &format!("map{}/props", world.map),
             &assets.level.objects,
+            Role::Prop,
         ));
         for (id, part) in &assets.level.stumps {
             scenery.extend(sources(
                 &format!("map{}/stump{id}", world.map),
                 std::slice::from_ref(part),
+                Role::Prop,
             ));
         }
         let mut scenery = build(&assets.level.vram, scenery, graphics)?;
         renderer.bind_meshes(&mut scenery);
         let mut bodies = BTreeMap::new();
         for (name, model) in &assets.models {
-            let mut model_sources = sources(&format!("actors/{name}"), &model.parts);
+            let mut model_sources = sources(&format!("actors/{name}"), &model.parts, Role::Actor);
             if let Some(ids) = assets.model_sources.get(name) {
                 for (source, id) in model_sources.iter_mut().zip(ids) {
                     source.id.clone_from(id);
@@ -528,14 +539,14 @@ impl Models {
             .weapons
             .iter()
             .filter(|(name, _)| !assets.weapon_imports.contains_key(*name))
-            .flat_map(|(name, parts)| sources(&format!("weapons/{name}"), parts))
+            .flat_map(|(name, parts)| sources(&format!("weapons/{name}"), parts, Role::Other))
             .collect();
         let mut weapons = build(&assets.weapon_vram, weapon_sources, graphics)?;
         renderer.bind_meshes(&mut weapons);
         let mut imported_weapons = BTreeMap::new();
         for (name, source) in &assets.weapon_imports {
             let parts = &assets.weapons[name];
-            let mut model_sources = sources(&format!("weapons/{name}"), parts);
+            let mut model_sources = sources(&format!("weapons/{name}"), parts, Role::Other);
             for model in &mut model_sources {
                 model.id.clone_from(&source.source_id);
             }
@@ -546,7 +557,7 @@ impl Models {
         let item_sources = assets
             .items
             .models()
-            .flat_map(|(id, parts)| sources(&format!("items/{id}"), parts))
+            .flat_map(|(id, parts)| sources(&format!("items/{id}"), parts, Role::Other))
             .collect();
         let mut items = build(&assets.items.vram, item_sources, graphics)?;
         renderer.bind_meshes(&mut items);

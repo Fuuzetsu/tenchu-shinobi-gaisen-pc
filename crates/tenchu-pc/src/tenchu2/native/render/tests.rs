@@ -148,7 +148,7 @@ fn native_water_animation_survives_texture_replacement() {
     }
     let meshes = prepare(
         &session.assets.level.vram,
-        sources("map0/terrain", &session.assets.level.map),
+        sources("map0/terrain", &session.assets.level.map, Role::Terrain),
         &Graphics {
             asset_pack: false,
             ..Default::default()
@@ -237,7 +237,7 @@ fn native_character_geometry_keeps_all_source_joints() {
         let model = characters::rig(&disc, &entry.name).unwrap();
         let mut meshes = build(
             &model.vram,
-            sources(&format!("actors/{}", entry.name), &model.parts),
+            sources(&format!("actors/{}", entry.name), &model.parts, Role::Actor),
             &Graphics::default(),
         )
         .unwrap();
@@ -778,5 +778,112 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
         );
         assert!(session.models.custom.is_none());
         assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
+    }
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; shared refinement must preserve source state, palettes, joint motion and terrain"]
+fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    for sequence in [9, 119, 191] {
+        let mut session = super::super::Session::load(&disc, sequence, 17).unwrap();
+        for tick in 0..60 {
+            let buttons = if tick < 10 {
+                tenchu_core::tenchu2::input::UP
+            } else if tick == 30 {
+                tenchu_core::tenchu2::input::ATTACK
+            } else {
+                0
+            };
+            session.step(buttons).unwrap();
+        }
+        let before = postcard::to_allocvec(&session.world).unwrap();
+        let actor = &session.world.actors[session.world.player].actor;
+        let center = Vec3::from(actor.position.to_array().map(|v| v as f32)) - Vec3::Y * 1100.0;
+        let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+        camera.focus(center, false);
+        let mut results: Vec<Geometry> = Vec::new();
+        for mode in 0..5 {
+            let mut settings = crate::settings::Settings::default();
+            settings.graphics.fog = false;
+            settings.graphics.smooth_models = (1..4).contains(&mode);
+            settings.graphics.model_detail = if mode == 2 { 2 } else { 0 };
+            settings.graphics.models.characters = if mode == 3 { 2 } else { 0 };
+            settings.graphics.lighting.directional.intensity = 60;
+            let graphics = super::super::preferences::graphics(&settings);
+            capture_frame(
+                &session.assets.sprites.vram,
+                &graphics,
+                &output.join(format!("jp-refinement-s{sequence}-{mode}.png")),
+                |renderer| {
+                    let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+                    let geometry = drawing.models.geometry(
+                        &session.world,
+                        &session.assets,
+                        &session.frame,
+                        &graphics,
+                        Presentation {
+                            camera: Some(camera),
+                            ..Default::default()
+                        },
+                    )?;
+                    assert!(
+                        geometry
+                            .actors
+                            .iter()
+                            .all(|v| Vec3::from(v.position).is_finite()
+                                && Vec3::from(v.normal).is_finite())
+                    );
+                    results.push(geometry);
+                    drawing.camera = Some(camera);
+                    drawing.show_hud = false;
+                    drawing.update(&session, renderer, None)?;
+                    Ok((drawing.scene, camera.source_view(), Vec::new()))
+                },
+            )
+            .unwrap();
+        }
+        let baseline = &results[0];
+        assert_eq!(baseline.actors.len(), results[1].actors.len());
+        assert!(
+            baseline
+                .actors
+                .iter()
+                .zip(&results[1].actors)
+                .any(|(a, b)| a.normal != b.normal)
+        );
+        for refined in &results[2..4] {
+            assert!(refined.actors.len() > baseline.actors.len());
+            assert_eq!(refined.terrain.len(), baseline.terrain.len());
+            assert!(
+                refined
+                    .terrain
+                    .iter()
+                    .zip(&baseline.terrain)
+                    .all(|(a, b)| a.position == b.position)
+            );
+            let bounds = |vertices: &[Vertex]| {
+                vertices.iter().fold(
+                    (Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)),
+                    |(lo, hi), v| {
+                        (
+                            lo.min(Vec3::from(v.position)),
+                            hi.max(Vec3::from(v.position)),
+                        )
+                    },
+                )
+            };
+            let (a, b) = bounds(&baseline.actors);
+            let (c, d) = bounds(&refined.actors);
+            assert!((a - c).length() < 1000.0 && (b - d).length() < 1000.0);
+        }
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(&baseline.actors),
+            bytemuck::cast_slice::<_, u8>(&results[4].actors)
+        );
+        assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
     }
 }

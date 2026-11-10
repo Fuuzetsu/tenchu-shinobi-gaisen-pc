@@ -269,7 +269,8 @@ impl Application {
             #[cfg(not(target_os = "android"))]
             view.renderer.configure(&graphics);
             if native.generation != Some(native.playback.generation)
-                || native.graphics.asset_pack != graphics.asset_pack
+                || crate::visuals::models::Options::from(&native.graphics)
+                    != crate::visuals::models::Options::from(&graphics)
                 || models_changed
             {
                 native

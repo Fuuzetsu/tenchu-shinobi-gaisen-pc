@@ -50,6 +50,7 @@ fn imported_water_scroll_matches_original_texture_moves() {
             .iter()
             .enumerate()
             .map(|(index, p)| crate::visuals::catalog::ModelSource {
+                role: crate::visuals::catalog::Role::Terrain,
                 id: format!("tenchu2/map{map}/terrain/{index}"),
                 label: String::new(),
                 geometry: &p.geometry,

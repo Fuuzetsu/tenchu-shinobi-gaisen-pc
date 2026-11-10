@@ -201,6 +201,7 @@ impl Appearance {
             .iter()
             .zip(ids)
             .map(|(p, id)| ModelSource {
+                role: super::catalog::Role::Actor,
                 id,
                 label: String::new(),
                 geometry: &p.geometry,
@@ -252,6 +253,7 @@ impl Appearance {
             .iter()
             .enumerate()
             .map(|(i, p)| ModelSource {
+                role: super::catalog::Role::Actor,
                 id: format!("player/{id}/{i}"),
                 label: String::new(),
                 geometry: &p.geometry,

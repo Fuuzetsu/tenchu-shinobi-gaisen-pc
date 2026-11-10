@@ -16,6 +16,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Light selection, priorities and budgets | `lighting.rs` | `lighting/gaisen.rs`; native `render/lighting.rs` |
 | Sun/moon and visual time of day | `visuals/sky.rs`, shared renderer | Each runtime supplies its simulation tick and retained shadow geometry |
 | Texture-based emitter discovery | `visuals/lights.rs` accepts a model catalog, VRAM and rules | `visuals/lights/gaisen.rs` supplies source meshes and instances |
+| Mesh refinement and smoothing | `visuals/models`, `smooth`, `refine` and shared skin-weight interpolation; one mesh-options signature | Catalog adapters identify actor, terrain and prop roles independently of artwork IDs |
 | GPU shading, shadows, materials and post effects | `renderer` | Source scene preparation, including native palette/fog decoding |
 | Diagnostic reports | `diagnostics` shares metadata, settings/debug snapshots, bounded input history, redaction and platform export | Explicit Gaisen/native actor, AI, mission and cutscene state adapters; no asset dumps |
 | Weather and footprints | `visuals/weather`, `visuals/footprints`, `visuals/surfaces` | Source terrain and sole-contact adapters |

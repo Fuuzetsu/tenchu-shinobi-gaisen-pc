@@ -133,6 +133,7 @@ fn check_artwork(
         .iter()
         .enumerate()
         .map(|(index, part)| catalog::ModelSource {
+            role: catalog::Role::Other,
             id: format!("tenchu2/{name}/{index}"),
             label: name.into(),
             geometry: &part.geometry,

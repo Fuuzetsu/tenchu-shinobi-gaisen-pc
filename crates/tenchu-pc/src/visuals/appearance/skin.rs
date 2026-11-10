@@ -13,6 +13,41 @@ pub struct Influence {
 }
 
 impl Influence {
+    pub fn blend(sources: [Self; 3], factors: [f32; 3]) -> Self {
+        if let Some(index) = factors.iter().position(|&factor| factor == 1.0) {
+            return sources[index];
+        }
+        let mut combined = [(0u8, 0.0f32); 12];
+        let mut count = 0;
+        for (source, factor) in sources.into_iter().zip(factors) {
+            for (joint, weight) in source.joints.into_iter().zip(source.weights) {
+                let weight = weight * factor;
+                if weight <= 0.0 {
+                    continue;
+                }
+                let index = combined[..count]
+                    .iter()
+                    .position(|&(id, _)| id == joint)
+                    .unwrap_or_else(|| {
+                        combined[count].0 = joint;
+                        count += 1;
+                        count - 1
+                    });
+                combined[index].1 += weight;
+            }
+        }
+        combined[..count].sort_unstable_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
+        let mut result = Self::default();
+        let total: f32 = combined.iter().take(4).map(|&(_, w)| w).sum();
+        if total > 0.0 {
+            for (i, &(joint, weight)) in combined.iter().take(4).enumerate() {
+                result.joints[i] = joint;
+                result.weights[i] = weight / total;
+            }
+        }
+        result
+    }
+
     pub fn key(self) -> ([u8; 4], [u32; 4]) {
         (self.joints, self.weights.map(f32::to_bits))
     }
@@ -290,6 +325,56 @@ mod tests {
                 assert_eq!(before, postcard::to_allocvec(&game).unwrap());
             }
             assert!(moved);
+        }
+    }
+}
+
+#[cfg(test)]
+mod refinement_tests {
+    use super::*;
+    use bytemuck::Zeroable;
+
+    #[test]
+    fn subdivision_keeps_weights_aligned_with_vertices_and_joint_motion() {
+        let original: Vec<_> = [[0.0, 0.0, 0.0], [100.0, 0.0, 0.0], [0.0, 100.0, 0.0]]
+            .into_iter()
+            .map(|position| Vertex {
+                position,
+                ..Vertex::zeroed()
+            })
+            .collect();
+        let weights: Vec<_> = (0..3)
+            .map(|joint| Influence {
+                joints: [joint, 0, 0, 0],
+                weights: [1.0, 0.0, 0.0, 0.0],
+            })
+            .collect();
+        let transforms = [0.0, 100.0, -100.0].map(|z| Transform {
+            point: Affine3A::from_translation(Vec3::Z * z),
+            normal: Mat3::IDENTITY,
+        });
+        for contours in [true, false] {
+            let mut vertices = original.clone();
+            let mut skin = weights.clone();
+            if contours {
+                crate::visuals::smooth::prepare_skinned(&mut vertices, true, 2, &mut skin);
+            } else {
+                crate::visuals::refine::prepare_skinned(
+                    &mut vertices,
+                    2,
+                    0.025,
+                    &mut 10000,
+                    &mut skin,
+                );
+            }
+            assert_eq!(skin.len(), vertices.len());
+            assert!(vertices.len() > original.len());
+            for (mut v, weights) in vertices.into_iter().zip(skin) {
+                let expected_z = v.position[0] - v.position[1];
+                assert!((weights.weights.iter().sum::<f32>() - 1.0).abs() < 0.0001);
+                vertex(&mut v, weights, Vec3::ZERO, &transforms);
+                assert!((v.position[2] - expected_z).abs() < 0.001);
+            }
         }
     }
 }

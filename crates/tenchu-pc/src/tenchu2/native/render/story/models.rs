@@ -6,7 +6,7 @@ use crate::{
     renderer::Renderer,
     settings::Graphics,
     visuals::{
-        catalog::Region,
+        catalog::{Region, Role},
         models::{Material, Meshes},
         pixels::Image,
     },
@@ -40,9 +40,17 @@ impl Models {
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         let level = &story.level;
         let resources = &story.resources;
-        let mut terrain_sources = sources(&format!("map{}/terrain", level.id), &level.map);
+        let mut terrain_sources = sources(
+            &format!("map{}/terrain", level.id),
+            &level.map,
+            Role::Terrain,
+        );
         terrain_sources.extend(super::super::background::sources(level));
-        terrain_sources.extend(sources(&format!("map{}/props", level.id), &level.objects));
+        terrain_sources.extend(sources(
+            &format!("map{}/props", level.id),
+            &level.objects,
+            Role::Prop,
+        ));
         let mut terrain = build(&level.vram, terrain_sources, graphics)?;
         renderer.bind_meshes(&mut terrain);
         let mut actors = BTreeMap::new();
@@ -62,7 +70,15 @@ impl Models {
             let vram = &resources.models[&owner].vram;
             let mut mesh = super::super::prepare(
                 vram,
-                sources(&format!("{directory}/{}", model.name), &model.parts),
+                sources(
+                    &format!("{directory}/{}", model.name),
+                    &model.parts,
+                    if directory == "actors" {
+                        Role::Actor
+                    } else {
+                        Role::Other
+                    },
+                ),
                 graphics,
             )?;
             mesh.skin(&model.parts);
@@ -106,7 +122,7 @@ impl Models {
         for (name, model) in &resources.weapons {
             let mut mesh = build(
                 &model.vram,
-                sources(&format!("weapons/{name}"), &model.parts),
+                sources(&format!("weapons/{name}"), &model.parts, Role::Other),
                 graphics,
             )?;
             renderer.bind_meshes(&mut mesh);

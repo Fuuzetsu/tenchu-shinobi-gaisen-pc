@@ -9,12 +9,14 @@ pub(super) fn sources(level: &Level) -> Vec<catalog::ModelSource<'_>> {
         sources.extend(super::sources(
             &format!("map{}/sky{index}", level.id),
             std::slice::from_ref(&sky.model),
+            catalog::Role::Other,
         ));
     }
     if let Some(landscape) = &level.background.landscape {
         sources.extend(super::sources(
             &format!("map{}/background", level.id),
             std::slice::from_ref(landscape),
+            catalog::Role::Other,
         ));
     }
     sources

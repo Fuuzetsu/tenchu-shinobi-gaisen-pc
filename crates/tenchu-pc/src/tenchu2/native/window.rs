@@ -348,7 +348,8 @@ impl Application {
             {
                 view.renderer.configure(&graphics);
                 if view.generation != self.session.generation
-                    || view.graphics.asset_pack != graphics.asset_pack
+                    || crate::visuals::models::Options::from(&view.graphics)
+                        != crate::visuals::models::Options::from(&graphics)
                     || models_changed
                 {
                     view.drawing.replace(

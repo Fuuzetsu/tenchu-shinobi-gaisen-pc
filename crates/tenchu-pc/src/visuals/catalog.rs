@@ -163,7 +163,22 @@ pub fn image_id(size: [u16; 2], pixels: &[u8]) -> String {
     format!("{:x}", hash.finalize())[..32].to_owned()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Role {
+    Terrain,
+    Prop,
+    Actor,
+    Other,
+}
+
+impl Role {
+    pub fn scenery(self) -> bool {
+        matches!(self, Self::Terrain | Self::Prop)
+    }
+}
+
 pub struct ModelSource<'a> {
+    pub role: Role,
     pub id: String,
     pub label: String,
     pub geometry: &'a [Geometry],
@@ -184,6 +199,7 @@ pub fn world_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
     for (index, part) in mission.map.iter().enumerate() {
         out.push(ModelSource {
             id: format!("stages/{}/map/{index}", mission.stage.directory),
+            role: Role::Terrain,
             label: format!("Map part {index}"),
             geometry: &part.geometry,
         });
@@ -191,6 +207,7 @@ pub fn world_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
     for (index, part) in mission.objects.iter().enumerate() {
         out.push(ModelSource {
             id: format!("stages/{}/objects/{index}", mission.stage.directory),
+            role: Role::Prop,
             label: mission
                 .object_names
                 .get(index)
@@ -211,6 +228,7 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
         for (index, part) in parts.iter().enumerate() {
             out.push(ModelSource {
                 id: format!("actors/{kind:04x}/{index}"),
+                role: Role::Actor,
                 label: format!(
                     "{}, part {index}",
                     mission
@@ -229,6 +247,7 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
         }
         out.push(ModelSource {
             id: format!("weapons/{kind:04x}"),
+            role: Role::Other,
             label: mission.weapons.names[&kind].clone(),
             geometry,
         });
@@ -236,6 +255,7 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
     for (&kind, geometry) in mission.common_models.iter() {
         out.push(ModelSource {
             id: format!("common/{kind}"),
+            role: Role::Other,
             label: format!("Common model {kind}"),
             geometry,
         });

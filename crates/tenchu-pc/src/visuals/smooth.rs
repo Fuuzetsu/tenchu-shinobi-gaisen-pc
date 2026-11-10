@@ -1,3 +1,4 @@
+use super::appearance::skin::Influence;
 use crate::render_mesh::Vertex;
 use glam::Vec3;
 use std::collections::BTreeMap;
@@ -15,7 +16,16 @@ fn edge(a: Point, b: Point) -> [Point; 2] {
 }
 
 pub fn prepare(vertices: &mut Vec<Vertex>, lighting: bool, detail: u16) {
-    curve(
+    prepare_skinned(vertices, lighting, detail, &mut Vec::new());
+}
+
+pub fn prepare_skinned(
+    vertices: &mut Vec<Vertex>,
+    lighting: bool,
+    detail: u16,
+    skin: &mut Vec<Influence>,
+) {
+    curve_skinned(
         vertices,
         lighting,
         match detail {
@@ -25,6 +35,7 @@ pub fn prepare(vertices: &mut Vec<Vertex>, lighting: bool, detail: u16) {
         },
         if detail == 1 { 0.35 } else { 0.7 },
         f32::INFINITY,
+        skin,
     );
 }
 
@@ -34,6 +45,24 @@ pub fn curve(
     divisions: usize,
     strength: f32,
     maximum: f32,
+) {
+    curve_skinned(
+        vertices,
+        lighting,
+        divisions,
+        strength,
+        maximum,
+        &mut Vec::new(),
+    );
+}
+
+fn curve_skinned(
+    vertices: &mut Vec<Vertex>,
+    lighting: bool,
+    divisions: usize,
+    strength: f32,
+    maximum: f32,
+    skin: &mut Vec<Influence>,
 ) {
     if !lighting && divisions <= 1 {
         return;
@@ -94,7 +123,8 @@ pub fn curve(
         return;
     }
     let mut curved = Vec::with_capacity(vertices.len() * divisions * divisions);
-    for triangle in vertices.chunks_exact(3) {
+    let mut curved_skin = Vec::with_capacity(skin.len() * divisions * divisions);
+    for (face, triangle) in vertices.chunks_exact(3).enumerate() {
         let points: [Vec3; 3] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
         let mut tangent = [[Vec3::ZERO; 3]; 3];
         let mut sum = Vec3::ZERO;
@@ -120,10 +150,16 @@ pub fn curve(
             }
         }
         let center = sum / 6.0 * 1.5 - (points[0] + points[1] + points[2]) / 6.0;
-        let at = |x: usize, y: usize| {
+        let mut at = |x: usize, y: usize| {
             let u = x as f32 / divisions as f32;
             let v = y as f32 / divisions as f32;
             let weights = [1.0 - u - v, u, v];
+            if !skin.is_empty() {
+                curved_skin.push(Influence::blend(
+                    std::array::from_fn(|i| skin[face * 3 + i]),
+                    weights,
+                ));
+            }
             let flat = points
                 .into_iter()
                 .zip(weights)
@@ -168,6 +204,7 @@ pub fn curve(
         }
     }
     *vertices = curved;
+    *skin = curved_skin;
 }
 
 #[cfg(test)]

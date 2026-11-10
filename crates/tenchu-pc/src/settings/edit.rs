@@ -373,6 +373,21 @@ impl Item {
                     settings.graphics.model_detail =
                         cycle(settings.graphics.model_detail, &[0, 1, 2], direction)
                 }
+                Item::CharacterRefinement => {
+                    settings.graphics.models.characters =
+                        cycle(settings.graphics.models.characters, &[0, 1, 2], direction)
+                }
+                Item::FoliageDetail => {
+                    settings.graphics.models.foliage = cycle(
+                        settings.graphics.models.foliage,
+                        &[0, 1, 2, 3, 4],
+                        direction,
+                    )
+                }
+                Item::WaterDetail => {
+                    settings.graphics.water.detail =
+                        cycle(settings.graphics.water.detail, &[0, 1, 2], direction)
+                }
                 Item::Upscale => {
                     settings.graphics.upscale =
                         cycle(settings.graphics.upscale, &[1, 2, 4], direction)
@@ -459,6 +474,15 @@ impl Item {
                 }
                 Item::ModelDetail => {
                     settings.graphics.model_detail = defaults.graphics.model_detail
+                }
+                Item::CharacterRefinement => {
+                    settings.graphics.models.characters = defaults.graphics.models.characters
+                }
+                Item::FoliageDetail => {
+                    settings.graphics.models.foliage = defaults.graphics.models.foliage
+                }
+                Item::WaterDetail => {
+                    settings.graphics.water.detail = defaults.graphics.water.detail
                 }
                 Item::Upscale => settings.graphics.upscale = defaults.graphics.upscale,
                 Item::SurfaceDetail => {

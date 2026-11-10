@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect native Tenchu 2 JP to shared smooth model lighting, character contours/surface refinement and weapon reflections, including 3D cutscene characters. Imported T2 bodies also respect Gaisen model-refinement settings. Added vertices retain their bone weights, and live quality changes preserve weather and footprints.
+
 - Enable native Tenchu 2 JP diagnostic report export from F1, with source actor/AI/item state, cutscene state, recent inputs, model/moveset selection, settings and GPU details. Reports use the shared portable JSON format and path redaction, with native input encoding identified.
 
 - Native Tenchu 2 JP can use custom-folder player models through the shared F1 gallery, including weighted meshes and adjusted body proportions. Weapons, held items and grapple ropes follow the displayed hands; visual swaps leave collision and gameplay unchanged. Model folders and artwork can be reloaded during play, preserving snow, rain and footprints.

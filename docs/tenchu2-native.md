@@ -129,6 +129,16 @@ distance, sensitivity, inversion and recentering use the shared camera controls.
 Terrain and props keep the camera out of walls. Following does not steer the actor
 or change the simulation camera; F2/Back restores the original view.
 
+**F1 → Visual assets / Model refinement** supports smooth model lighting,
+character contours and character surface refinement through the shared mesh
+pipeline. Native T2 bone weights follow the added vertices, including imported
+models used in either game. These options also apply to 3D cutscene characters.
+**Weapon reflections** uses the shared metal shader. Modern presets select their
+usual quality levels; Original retains the source geometry. Live changes rebuild
+only when mesh preparation settings change and preserve weather/footprints.
+High-detail hero rebuilding, vegetation and secondary-motion adapters remain
+separate pending work; their controls stay disabled.
+
 **Smooth model motion** blends actor and weapon poses between the original 30 Hz
 updates, including held equipment and cutscene characters. Gameplay and follow
 cameras use the same visual timing; scripted camera cuts stay exact. Modern

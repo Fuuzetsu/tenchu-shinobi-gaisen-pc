@@ -346,6 +346,7 @@ impl Body {
             .iter()
             .enumerate()
             .map(|(i, part)| catalog::ModelSource {
+                role: catalog::Role::Actor,
                 id: self
                     .character
                     .as_ref()
