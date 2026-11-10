@@ -248,6 +248,9 @@ impl Director {
             }
         }
         source.intelligence.found = i16::from(world.ai.detections);
+        if world.actors[world.player].actor.health == 0 && world.camera.mode == 19 {
+            source.camera.mode = crate::camera::Mode::Fall;
+        }
         source.statistics.criticals = i16::from(world.statistics.stealth_kills);
         source.statistics.murders = i16::from(world.statistics.combat_kills);
         source.statistics.friend_hits = i16::from(world.statistics.innocents);
@@ -285,19 +288,25 @@ impl Director {
                 actor.attribute &= !ATTR_SUSPEND;
             }
             actor.equip(&context, native.weapon_drawn());
-            let status = match native.state {
-                State::Normal => SourceState::Normal,
-                State::Ready => SourceState::Engage,
-                State::Crouched => SourceState::Crouch,
-                State::Wall => SourceState::Wall,
-                State::Ledge => SourceState::Hang,
-                State::Swimming => SourceState::Swim,
-                State::Jumping => SourceState::Jump,
-                State::Special => SourceState::Action,
-                State::Item => SourceState::UseItem,
-                State::Attack => SourceState::Attack,
-                State::Hurt => SourceState::Damaged,
-                State::Dead => SourceState::Dead,
+            // Native fatal floors/long falls keep the current motion and use
+            // camera 19. Original mission scripts still need their death gate.
+            let status = if index == world.player && native.health == 0 && world.camera.mode == 19 {
+                SourceState::Dead
+            } else {
+                match native.state {
+                    State::Normal => SourceState::Normal,
+                    State::Ready => SourceState::Engage,
+                    State::Crouched => SourceState::Crouch,
+                    State::Wall => SourceState::Wall,
+                    State::Ledge => SourceState::Hang,
+                    State::Swimming => SourceState::Swim,
+                    State::Jumping => SourceState::Jump,
+                    State::Special => SourceState::Action,
+                    State::Item => SourceState::UseItem,
+                    State::Attack => SourceState::Attack,
+                    State::Hurt => SourceState::Damaged,
+                    State::Dead => SourceState::Dead,
+                }
             };
             if actor.status != SourceState::Dead || status != SourceState::Dead {
                 actor.status = SourceState::Normal;

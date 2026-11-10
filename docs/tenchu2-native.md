@@ -6,6 +6,23 @@ now use the native JP runtime. The sequence determines the original player and
 cast. EU selections still use the Gaisen scenery sandbox; JP can also opt into
 that mode with **Use Gaisen scenery sandbox**.
 
+For T1 stages with native T2 gameplay, select **Shinobi Gaisen → Gameplay rules →
+Tenchu 2 (JP)** in F6. Both discs must be connected. Choose the stage, placement
+layout, difficulty and any of the three T2 heroes, then use the native equipment
+screen. T2 supplies guards, AI, physics, inventory, HUD and results; original T1
+objectives and cutscenes retain their cast, captions and audio. Tatsumaru follows
+Rikimaru's story. Doors, pitfalls, damaging floors, pickups, scrolling textures
+and ambient effects are supported. Neither game's saved campaign is changed.
+This mode is experimental: T1 has no authored underwater floors or scenery.
+Added collision supports native swimming, diving and breath, but submerged views
+remain sparse. **Water depth** defaults to 4,000 game units; 0 disables it.
+
+The standalone equivalent is:
+
+```sh
+./dev.sh target/debug/tenchu-pc play-t2-jp /path/to/tenchu2-japan.cue --gaisen /path/to/gaisen.cue --stage 0 --hero 0 --layout 1 --water-depth 4000
+```
+
 Choose **Original JP mission selection…** in F6 for the original mission screen,
 with all 29 missions available across Rikimaru, Ayame and Tatsumaru. Left/right
 changes hero; up/down chooses a mission; Circle or Enter starts and Cross returns.
@@ -32,6 +49,10 @@ JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
 desktop. A damaged or newer-format file reports an error instead of being reset.
 The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
+**Visual assets → High-definition text** sharpens native health/Ki/item digits,
+equipment counts, results numbers and the disc's prologue/briefing calligraphy.
+Story dialogue already uses outline text. Modern High/Ultra enable this option;
+Original keeps the source glyphs. Authored title and rank artwork stay original.
 **General → Wait after death** holds the finalized corpse before the failure
 fade. **Keep world running after death** also keeps guards, scenery, items and
 effects updating while you observe with the camera. With that option off, the
@@ -218,6 +239,10 @@ orbit, and click the right stick or choose **Recenter behind player** to recente
 bindings still apply: Circle guards and R1 crouches. Attacks keep their committed
 facing; directional attack inputs are mapped into the character's local space.
 Wall, ledge, underwater and item controls retain T2's original behavior.
+**Shift / Circle action** offers Follow moveset, Crouch and Guard / dash.
+Follow moveset uses the selected controller's stance: T2 guards and directional
+steps, T1 crouching. The override is independent of the displayed body and also
+works with T2 movesets in T1 stages under Gaisen rules.
 **Start aiming toward camera** turns the player and seeds the vertical angle when
 starting grapple, shuriken/blowgun aim or look. Subsequent aiming adjustments use
 the source controls; both sticks can adjust aim. Disable camera-relative controls
@@ -239,7 +264,9 @@ paired stealth kills and unmapped actions. Character-local voice/weapon cues use
 the selected moveset’s own disc bank, with translations between the games’ cue
 slots; global world effects and event scheduling still follow the host. Movesets carry their source
 weapon models, textures, handles and sheaths, including T2 HD-pack replacements
-and source draw/holster attachment rules. Scripted/projectile-only moves
+and source draw/holster attachment rules.
+Draw/sheath animations and weapon-event timing also follow the selected moveset
+when it supplies those motions. Scripted/projectile-only moves
 are not connected to the native runtime yet. A body without a supported
 moveset keeps the host's moves. The standalone `play-t2-jp` preview needs a
 remembered Gaisen disc; open it once through `play` to connect the gallery.
@@ -261,7 +288,7 @@ colour, intensity and shadow quality. **Time of day** can instead drive the ligh
 and ambient colour through a day/night cycle. Both work in gameplay and 3D
 cutscenes, use the shared terrain/model shadows, and remain presentation-only.
 The visual clock follows simulation time, including pause and fast-forward;
-changing models or artwork preserves it. Other combat emitters remain pending.
+changing models or artwork preserves it.
 
 **F1 → Overlays** provides hitboxes, actor labels and the actor inspector, with
 X-ray and photo-mode handling. The boxes come from native collision slots.
@@ -312,7 +339,7 @@ models used in either game. These options also apply to 3D cutscene characters.
 **Weapon reflections** uses the shared metal shader. Modern presets select their
 usual quality levels; Original retains the source geometry. Live changes rebuild
 only when mesh preparation settings change and preserve weather/footprints.
-High-detail hero rebuilding, vegetation and secondary-motion adapters remain
+High-detail hero rebuilding and vegetation adapters remain
 separate pending work; their controls stay disabled.
 
 **Smooth model motion** blends actor and weapon poses between the original 30 Hz
@@ -411,5 +438,8 @@ breath, the aiming reticle, item selection and pickup notices. Timed 3D story
 effects remain integration work.
 The native renderer also loads the original sky layers and distant scenery,
 including the story sequences' alternate evening palettes.
-Component comparisons and snapshot continuation do not establish full campaign
-parity. EU assets remain supported without an EU-native AI runtime.
+The existing BizHawk observer/replay checker now compares bounded native JP
+training play, including recorded display skips. Separate controlled fixtures
+cover progression, failure and retry through all three campaigns. Neither is a
+complete recorded campaign playthrough; see [validation coverage](validation.md).
+EU assets remain supported without an EU-native AI runtime.

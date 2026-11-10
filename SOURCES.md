@@ -3170,3 +3170,12 @@ first-divergence logs, source-instruction ripple oracle and native comparisons.
 The bounded training recording covers idle activation, turns and walking; it is
 not evidence for complete missions or all native AI/effect/item state. Source
 assets and captured RAM remain outside Git. Sibling repositories are unchanged.
+
+Imported fatal-floor/long-fall handoffs preserve native physics and camera 19.
+T2 can leave the current actor motion/state intact after setting health to zero;
+the original Gaisen `game::events` gate instead waits for its Dead state and
+motion completion. The imported director now maps this terminal camera/health
+combination into that gate and retains the source Fall camera's death-wait path.
+Only the cinematic adapter changes; native actor health, state, animation and
+collision are not rewritten. Disc-backed floor surveys and direct fall fixtures
+are recorded under `private/two-releases-20261110/t1-*handoff*.log`.

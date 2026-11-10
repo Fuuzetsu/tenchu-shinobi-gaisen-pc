@@ -46,7 +46,7 @@ graph so presentation never refreshes simulation coordinate caches.
 
 Both runtimes use the same light selection and GPU shadow code. Native T2 maps
 its explicit static flames, burning actors, explosions and source-timed metal
-impacts. Texture-based lamp metadata is still missing. Static shadow/shelter geometry is retained by
+impacts and verified texture-based lamp emitters. Static shadow/shelter geometry is retained by
 the native environment cache. Source simulation visibility does not switch these
 lights on/off as the camera turns. Both also drive the shared directional light
 and sky clock; repeated presentation frames do not advance time, and fast-forward
@@ -86,5 +86,5 @@ interactive and rendered checks are also needed for each connected feature.
 
 Light placement, camera-follow/freeze, marker drawing and shadow-preview settings
 are shared too. Native JP supplies its authored flame positions; the renderer
-owns flicker, heat shimmer and shadow budgeting for both games. Texture-panel
-lamp discovery still needs a native source adapter.
+owns flicker, heat shimmer and shadow budgeting for both games. Native texture-panel
+lamp discovery uses the same rules with original material fingerprints.

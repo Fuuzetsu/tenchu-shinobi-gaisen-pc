@@ -197,6 +197,9 @@ fn gaisen_water_uses_native_depth_and_swimming() {
             assert_eq!(player.health, 100);
             assert_eq!(player.breath, 100);
             assert_eq!(world.terrain.gaisen.as_ref().unwrap().map, source.terrain);
+            if hero == 0 {
+                capture(&disc, &source, &world, "surface");
+            }
             eprintln!(
                 "stage {stage}, hero {hero}: native surface swimming at {:?}",
                 player.position
@@ -265,6 +268,7 @@ fn gaisen_diving_and_breath_resume_from_snapshots() {
             postcard::to_allocvec(&restored).unwrap()
         );
         assert!(world.actors[world.player].actor.breath < 100);
+        capture(&disc, &source, &world, "submerged");
         for tick in 0..200 {
             let held = input::DOWN | if tick % 8 < 4 { input::JUMP } else { 0 };
             world
@@ -287,5 +291,44 @@ fn gaisen_diving_and_breath_resume_from_snapshots() {
                 .unwrap();
         }
         assert_eq!(world.actors[world.player].actor.breath, 100);
+    }
+}
+
+fn capture(disc: &Disc<impl ReadAt>, source: &MissionAssets, world: &World, phase: &str) {
+    let Some(output) = std::env::var_os("TENCHU_GAISEN_REVIEW") else {
+        return;
+    };
+    let output = std::path::PathBuf::from(output);
+    std::fs::create_dir_all(&output).unwrap();
+    let hero = usize::from(world.actors[world.player].actor.kind as u16);
+    let (mut assets, _) = Assets::gaisen(disc, source, hero, false).unwrap();
+    assets.level.scene.statics.clear();
+    assets.level.scene.dynamic.clear();
+    assets.level.collision = world.terrain.clone();
+    let bank = Arc::new(gaisen_bank(disc, &assets, hero).unwrap());
+    let mut session = Session::from_parts(world.clone(), assets, bank);
+    session.frame.scenery = session
+        .world
+        .update_environment(&session.assets, &mut Sounds::default())
+        .unwrap();
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    for modern in [false, true] {
+        let mut settings = crate::settings::Settings::default();
+        if modern {
+            settings
+                .graphics
+                .set_preset(crate::settings::presets::MODERN_HIGH);
+        }
+        render::capture(
+            &session,
+            &settings,
+            &output.join(format!(
+                "water-stage-{}-hero-{hero}-{phase}-{}.png",
+                source.stage.id,
+                if modern { "modern" } else { "original" }
+            )),
+        )
+        .unwrap();
+        assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
     }
 }

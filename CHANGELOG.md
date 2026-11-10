@@ -37,7 +37,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   through scenes, retaining their original or HD artwork. Authored fire,
   bonfires, steam, snow, decorative sprites and ambient sounds also run during
   T2 gameplay, with their T1 artwork and sound banks. Existing fire lighting
-  and weather settings apply. Other stage interactions are still being connected.
+  and weather settings apply. Native fatal floors and long falls reach the
+  original mission's failure flow even when T2 retains the falling/idle animation.
+  Underwater scenery remains sparse because T1 has no authored submerged geometry.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
   item readouts, equipment quantities and results numbers, plus clearer
