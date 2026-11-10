@@ -12,7 +12,7 @@ fn session(playback: &Playback<crate::source::DiscSource>) -> &Session {
     session
 }
 
-fn start_death(playback: &mut Playback<crate::source::DiscSource>) {
+pub(super) fn start_death(playback: &mut Playback<crate::source::DiscSource>) {
     for _ in 0..30 {
         playback.step(0).unwrap();
     }

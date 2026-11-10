@@ -3,6 +3,7 @@ use tenchu_assets::tenchu2::campaign::Objective;
 use tenchu_core::tenchu2::input::JUMP;
 
 mod death;
+mod progression;
 
 fn start(sequence: usize) -> Playback<crate::source::DiscSource> {
     let disc =
