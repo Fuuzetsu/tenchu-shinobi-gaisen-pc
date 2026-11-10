@@ -67,9 +67,20 @@ visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
 Body/weapon blood enhancements,
-rewind, randomizer, enemy-behaviour cheats
+rewind, randomizer, broader enemy-behaviour options
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Simulation → Enemy sight distance** scales native notice, recognition,
+forgetting and corpse-detection distances from 0–400%, including guards approaching
+bait. Angles, terrain obstruction and actor activation remain original; 100% is
+the source behavior. **Experiment → Never noticed** returns guards to their own
+idle/patrol behavior and suppresses player/corpse alerts. Already committed attacks,
+projectiles and traps can still hurt; use God mode for protection. Scripted
+sequences and combat against other actors remain active. These experiments reset
+on a new area, and do not erase previous detection penalties. Sight overlays show
+the effective range and query result, with ignored-player cones dimmed. Diagnostic
+reports include the active values.
 
 **F1 → Secondary motion** uses the same bounded hair, cloth and equipment springs
 as Gaisen, during gameplay and 3D cutscenes. Strength, response and breeze work

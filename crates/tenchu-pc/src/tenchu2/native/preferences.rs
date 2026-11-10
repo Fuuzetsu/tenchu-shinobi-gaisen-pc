@@ -634,6 +634,8 @@ mod tests {
                             | Item::ClickTeleport
                             | Item::GodMode
                             | Item::Armor
+                            | Item::SightDistance
+                            | Item::Stealth
                             | Item::FlightSpeed
                             | Item::Fov
                             | Item::Actor

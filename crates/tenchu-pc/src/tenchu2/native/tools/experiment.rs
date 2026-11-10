@@ -28,6 +28,8 @@ const ITEMS: &[(u8, &str)] = &[
 pub(super) enum Edit {
     GodMode(bool),
     Armor(bool),
+    Sight(u16),
+    Stealth(bool),
     Inventory(inventory::Item, u8),
 }
 
@@ -36,11 +38,15 @@ pub(super) fn sync(debug: &mut Debug, content: &Content) {
     debug.inventory_unlimited = false;
     debug.god_mode = false;
     debug.armor = false;
+    debug.sight_percent = 100;
+    debug.stealth = false;
     if let Content::Gameplay(session) = content {
         let world = &session.world;
         let actor = &world.actors[world.player].actor;
         debug.god_mode = actor.invulnerable;
         debug.armor = world.controls.armor;
+        debug.sight_percent = world.ai.sight_percent;
+        debug.stealth = world.ai.ignore_player;
         debug.inventory.extend(ITEMS.iter().map(|&(id, name)| {
             InventorySlot {
                 id: usize::from(id),
@@ -62,7 +68,13 @@ pub(super) fn change(
 ) -> Result<bool> {
     if !matches!(
         item,
-        Item::GodMode | Item::Armor | Item::Inventory(_) | Item::GiveItems | Item::ClearItems
+        Item::GodMode
+            | Item::Armor
+            | Item::SightDistance
+            | Item::Stealth
+            | Item::Inventory(_)
+            | Item::GiveItems
+            | Item::ClearItems
     ) {
         return Ok(false);
     }
@@ -77,6 +89,21 @@ pub(super) fn change(
         Item::Armor => {
             debug.armor = !reset && !debug.armor;
             pending.push(Edit::Armor(debug.armor));
+        }
+        Item::SightDistance => {
+            let slider = item.slider().unwrap();
+            debug.sight_percent = if reset {
+                100
+            } else {
+                i32::from(debug.sight_percent)
+                    .saturating_add(delta.saturating_mul(slider.step))
+                    .clamp(slider.min, slider.max) as u16
+            };
+            pending.push(Edit::Sight(debug.sight_percent));
+        }
+        Item::Stealth => {
+            debug.stealth = !reset && !debug.stealth;
+            pending.push(Edit::Stealth(debug.stealth));
         }
         Item::Inventory(id) => {
             let slot = debug
@@ -123,6 +150,8 @@ pub(super) fn apply(world: &mut World, edits: impl IntoIterator<Item = Edit>) ->
         match edit {
             Edit::GodMode(enabled) => actor.invulnerable = enabled,
             Edit::Armor(enabled) => world.controls.armor = enabled,
+            Edit::Sight(percent) => world.ai.sight_percent = percent,
+            Edit::Stealth(enabled) => world.ai.ignore_player = enabled,
             Edit::Inventory(item, count) => actor.inventory.set_amount(item, count),
         }
     }

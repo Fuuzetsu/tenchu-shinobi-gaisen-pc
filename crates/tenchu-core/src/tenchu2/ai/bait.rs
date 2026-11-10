@@ -2,7 +2,7 @@ use super::{
     Decision,
     combat::Context,
     direction,
-    sight::{Body, Ranges, Visibility},
+    sight::{Body, Ranges, Visibility, scale_range},
 };
 use crate::{
     Result,
@@ -23,6 +23,8 @@ pub struct Observation<'a> {
     pub body: Body,
     pub slot: i16,
     pub range: i16,
+    pub range_percent: u16,
+    pub ignore_player: bool,
     pub ranges: &'a mut Ranges,
 }
 
@@ -56,7 +58,7 @@ pub fn update(
         } else {
             ranges.standing.forget
         };
-        if frame.script != 0 {
+        if frame.script != 0 || frame.observation.ignore_player {
             *c.visibility = Visibility::Hidden;
         } else if matches!(player.action, 0x804 | 0x400) || (player.action == 0x702 && delta.y > 0)
         {
@@ -64,7 +66,7 @@ pub fn update(
         } else if (player.state == State::Ledge && delta.y >= 0)
             || distance.wrapping_mul(3) / 5 <= delta.y.wrapping_abs()
             || delta.y.wrapping_abs() > 4999
-            || forget <= distance
+            || scale_range(forget, frame.observation.range_percent) <= distance
             || c.facing >= 700
             || (crouched && c.facing >= 350)
             || (player.action == 0x536 && c.actor.state != State::Swimming)
@@ -78,7 +80,7 @@ pub fn update(
             } else {
                 &ranges.standing
             };
-            if distance < thresholds.notice {
+            if distance < scale_range(thresholds.notice, frame.observation.range_percent) {
                 let eye = c.actor.position.wrapping_add(Position::new(
                     0,
                     400 - i32::from(c.actor.height),
@@ -97,7 +99,7 @@ pub fn update(
                     return Ok(Outcome::Continue(Decision::default()));
                 }
                 c.sight.destination = player.position;
-                if distance < thresholds.recognize {
+                if distance < scale_range(thresholds.recognize, frame.observation.range_percent) {
                     *c.visibility = Visibility::Recognized;
                     return Ok(Outcome::ResumePatrol);
                 }

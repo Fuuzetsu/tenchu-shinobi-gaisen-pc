@@ -183,6 +183,8 @@ fn native_behavior_sequences_match_source() {
                     rotation_phase: &mut phase,
                     events: &mut effects,
                     observation: tenchu_core::tenchu2::ai::bait::Observation {
+                        range_percent: 100,
+                        ignore_player: false,
                         player: 1,
                         body: (&target).into(),
                         slot: 0,

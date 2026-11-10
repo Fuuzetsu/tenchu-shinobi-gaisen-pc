@@ -7,6 +7,11 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::collision::Collision;
 
+pub fn scale_range(distance: i32, percent: u16) -> i32 {
+    (i64::from(distance) * i64::from(percent.min(400)) / 100)
+        .clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Visibility {
     Unchanged,
@@ -83,6 +88,8 @@ pub struct Context<'a> {
     pub player_position: Position,
     pub player_yaw: i16,
     pub script_mode: u16,
+    pub range_percent: u16,
+    pub hidden: bool,
     pub terrain: &'a Collision,
     pub math: &'a Math,
     pub near_object: &'a mut dyn FnMut() -> bool,
@@ -156,6 +163,12 @@ impl Sight {
             from.z.wrapping_sub(world.player_position.z),
             world.player_yaw,
         )?;
+        if world.hidden {
+            return Ok(Observation::new(
+                Visibility::Hidden,
+                "Never noticed enabled",
+            ));
+        }
         if world.tick.wrapping_add(observer.slot as u32) & 31 != 0
             || observer.body.state == State::Ledge
             || matches!(target.action, 0x804 | 0x400)
@@ -189,7 +202,7 @@ impl Sight {
         } else {
             ranges.standing.forget
         };
-        if forget <= self.distance {
+        if scale_range(forget, world.range_percent) <= self.distance {
             return Ok(Observation::new(
                 Visibility::Hidden,
                 "Beyond forget distance",
@@ -216,7 +229,7 @@ impl Sight {
         } else {
             &ranges.standing
         };
-        if thresholds.notice <= self.distance {
+        if scale_range(thresholds.notice, world.range_percent) <= self.distance {
             return Ok(Observation::new(
                 Visibility::Unnoticed,
                 "Beyond notice distance",
@@ -261,7 +274,7 @@ impl Sight {
         } else {
             (self.distance, thresholds.recognize)
         };
-        let visibility = if distance < recognize {
+        let visibility = if distance < scale_range(recognize, world.range_percent) {
             Visibility::Recognized
         } else {
             Visibility::Suspicious

@@ -102,6 +102,8 @@ fn native_bait_ai_matches_original_sight_and_approach() {
                     body,
                     slot: int("slot") as i16,
                     range: int("range") as i16,
+                    range_percent: 100,
+                    ignore_player: false,
                     ranges: &mut ranges,
                 },
             },

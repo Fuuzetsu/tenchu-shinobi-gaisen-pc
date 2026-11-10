@@ -97,6 +97,8 @@ fn native_perception_matches_japanese_source() {
             player_position: row.player.into(),
             player_yaw: row.player_yaw,
             script_mode: row.script,
+            range_percent: 100,
+            hidden: false,
             terrain: map.as_ref().unwrap(),
             math: &math,
             near_object: &mut near,

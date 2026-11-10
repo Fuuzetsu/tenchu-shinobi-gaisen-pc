@@ -57,6 +57,14 @@ pub struct System {
     pub visibility: Visibility,
     pub detections: u8,
     pub last_spotter: Option<usize>,
+    #[serde(default = "original_sight")]
+    pub sight_percent: u16,
+    #[serde(default)]
+    pub ignore_player: bool,
+}
+
+fn original_sight() -> u16 {
+    100
 }
 
 impl System {
@@ -77,6 +85,8 @@ impl System {
             visibility: Visibility::Unchanged,
             detections: 0,
             last_spotter: None,
+            sight_percent: 100,
+            ignore_player: false,
         }
     }
 
@@ -86,6 +96,10 @@ impl System {
         agents: &mut [Agent],
         frame: &mut Frame<'_, impl Events>,
     ) -> Result<u16> {
+        let ignore_player = self.ignore_player && frame.script == 0;
+        if ignore_player && index == frame.player {
+            self.global.perception.alert = Default::default();
+        }
         let player = &agents
             .get(frame.player)
             .ok_or("Missing Tenchu 2 player")?
@@ -145,6 +159,8 @@ impl System {
             player_body,
             scene: &scene,
             sight_range: agent.sight_range,
+            sight_percent: self.sight_percent,
+            ignore_player,
             script: frame.script,
             controllers: frame.controllers,
             events: frame.events,
@@ -163,33 +179,48 @@ impl System {
             sequence: frame.sequence,
             script: frame.script,
             player_distance,
-            notice_distance: callbacks.ranges.standing.notice,
+            notice_distance: sight::scale_range(
+                callbacks.ranges.standing.notice,
+                self.sight_percent,
+            ),
             player_action: player_body.action,
             player: frame.player,
             recovering_confusion: callbacks.behavior.recovering_confusion,
             surroundings: callbacks.surroundings,
         };
-        let outcome = callbacks.behavior.perceive(
-            &mut c,
-            &scene,
-            &mut self.global.perception,
-            &mut behavior::Frame {
-                terrain: frame.terrain,
-                cursor: callbacks.cursor,
-                tick: frame.tick,
-                script: frame.script,
-                controllers: frame.controllers,
-                rotation_phase: &mut self.global.rotation_phase,
-                events: callbacks.events,
-                observation: super::bait::Observation {
-                    player: frame.player,
-                    body: player_body,
-                    slot: agent.slot,
-                    range: agent.sight_range,
-                    ranges: callbacks.ranges,
+        let outcome = if callbacks.ignores(&c) {
+            perception::Outcome {
+                decision: super::Decision {
+                    held: callbacks.unnoticed(&mut c, &mut self.global, player_distance)?,
+                    ..Default::default()
                 },
-            },
-        )?;
+                spotted: false,
+            }
+        } else {
+            callbacks.behavior.perceive(
+                &mut c,
+                &scene,
+                &mut self.global.perception,
+                &mut behavior::Frame {
+                    terrain: frame.terrain,
+                    cursor: callbacks.cursor,
+                    tick: frame.tick,
+                    script: frame.script,
+                    controllers: frame.controllers,
+                    rotation_phase: &mut self.global.rotation_phase,
+                    events: callbacks.events,
+                    observation: super::bait::Observation {
+                        player: frame.player,
+                        body: player_body,
+                        slot: agent.slot,
+                        range: agent.sight_range,
+                        range_percent: self.sight_percent,
+                        ignore_player,
+                        ranges: callbacks.ranges,
+                    },
+                },
+            )?
+        };
         let held = Navigation {
             actor: c.actor,
             target: c
@@ -286,12 +317,26 @@ struct Reactions<'a, 'b, E> {
     player_body: Body,
     scene: &'a entry::Scene,
     sight_range: i16,
+    sight_percent: u16,
+    ignore_player: bool,
     script: u16,
     controllers: [u16; 2],
     events: &'a mut E,
 }
 
 impl<E> Reactions<'_, '_, E> {
+    fn ignores(&self, c: &Context<'_>) -> bool {
+        self.ignore_player
+            && self.scene.actor != self.scene.player
+            && c.actor
+                .target
+                .is_none_or(|target| target == self.scene.player)
+            && !matches!(
+                self.behavior.programs.idle,
+                super::Program::PlayerOne | super::Program::PlayerTwo
+            )
+    }
+
     fn sample(&mut self, c: &mut Context<'_>, distance: i16) -> Result<()> {
         self.surroundings.sample(
             c.actor,
@@ -308,6 +353,33 @@ impl<E> Reactions<'_, '_, E> {
             self.behavior.forced.is_some(),
         );
         Ok(())
+    }
+}
+
+impl<E: Events> Reactions<'_, '_, E> {
+    fn unnoticed(
+        &mut self,
+        c: &mut Context<'_>,
+        global: &mut entry::Global,
+        distance: i32,
+    ) -> Result<u16> {
+        use entry::Reactions;
+        if c.observed_flags & 0x83 != 0 {
+            self.behavior.reset(true);
+            self.behavior.forced = None;
+        }
+        c.observed_flags &= !(0x83 | crate::tenchu2::physics::TOUCHING_PLAYER);
+        c.actor.flags = c.observed_flags;
+        c.steering.alerted = false;
+        c.steering.forced = self.behavior.forced.is_some();
+        *c.visibility = Visibility::Hidden;
+        self.behavior.observe(Visibility::Hidden);
+        global.perception.alert = Default::default();
+        global.perception.nearest_distance =
+            global.perception.nearest_distance.min(distance.max(1));
+        // Already committed attacks finish normally; patrols cannot request a new attack/item.
+        self.idle(c, global)
+            .map(|held| held & !(crate::tenchu2::input::ATTACK | crate::tenchu2::input::ITEM))
     }
 }
 
@@ -354,6 +426,8 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
                         body: self.player_body,
                         slot: self.scene.slot,
                         range: self.sight_range,
+                        range_percent: self.sight_percent,
+                        ignore_player: self.ignore_player,
                         ranges: self.ranges,
                     },
                 },
@@ -367,6 +441,9 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
     }
 
     fn corpses(&mut self, c: &mut Context<'_>, global: &mut entry::Global) -> Result<()> {
+        if self.ignore_player {
+            return Ok(());
+        }
         let observer = self.corpses.observe(
             self.scene.actor,
             self.others.len(),
@@ -374,7 +451,7 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
             &mut CorpseContext {
                 player: self.scene.player,
                 difficulty: c.difficulty as u8,
-                distance: self.ranges.standing.notice,
+                distance: sight::scale_range(self.ranges.standing.notice, self.sight_percent),
                 terrain: self.terrain,
                 cursor: self.cursor,
                 math: &c.resources.math,
@@ -422,6 +499,8 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
                 player_position: self.player_body.position,
                 player_yaw: self.player_body.yaw,
                 script_mode: self.script,
+                range_percent: self.sight_percent,
+                hidden: self.ignore_player && c.actor.target == Some(self.scene.player),
                 terrain: self.terrain,
                 math: &c.resources.math,
                 near_object: &mut || {

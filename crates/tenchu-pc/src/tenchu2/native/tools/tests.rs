@@ -119,6 +119,46 @@ fn experiment_edits_native_quantities_and_protection_without_refilling_health() 
 }
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; live sight edits preserve source thresholds and reset without cumulative scaling"]
+fn sight_controls_preserve_native_ranges_and_default_continuation() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut reference = crate::tenchu2::native::Session::load(&disc, 119, 17).unwrap();
+    let session = crate::tenchu2::native::Session::load(&disc, 119, 17).unwrap();
+    let mut content = Content::Gameplay(Box::new(session));
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    for (delta, expected) in [(4, 200), (1000, 400), (-1000, 0)] {
+        tools.change(Item::SightDistance, delta).unwrap();
+        tools.apply(&mut content, [1280, 720]).unwrap();
+        tools.sync(&content, 0);
+        assert_eq!(tools.debug.sight_percent, expected);
+    }
+    tools.reset(Item::SightDistance).unwrap();
+    tools.change(Item::Stealth, 1).unwrap();
+    tools.apply(&mut content, [1280, 720]).unwrap();
+    tools.sync(&content, 0);
+    assert!(tools.debug.stealth);
+    tools.reset(Item::Stealth).unwrap();
+    tools.apply(&mut content, [1280, 720]).unwrap();
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    for _ in 0..120 {
+        assert_eq!(
+            postcard::to_allocvec(&session.world).unwrap(),
+            postcard::to_allocvec(&reference.world).unwrap()
+        );
+        session.step(0).unwrap();
+        reference.step(0).unwrap();
+    }
+    tools.sync(&Content::Failed, 1);
+    assert_eq!(tools.debug.sight_percent, 100);
+    assert!(!tools.debug.stealth);
+    assert!(tools.change(Item::SightDistance, -1).is_err());
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; debug teleport must repair the live native world"]
 fn teleport_repairs_pose_contacts_and_camera_without_advancing_gameplay() {
     use tenchu_core::{math::Position, tenchu2::actor::State};
