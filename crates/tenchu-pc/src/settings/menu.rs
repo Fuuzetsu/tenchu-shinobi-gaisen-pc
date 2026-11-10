@@ -224,6 +224,8 @@ pub enum Item {
     SpawnActor,
     MoveActor,
     RemoveActor,
+    KillActor,
+    ClickKill,
     ActorPosition,
     PickActorPosition,
     Pause,
@@ -335,6 +337,7 @@ impl Item {
                 | Self::CameraPosition
                 | Self::Teleport
                 | Self::PickTeleport
+                | Self::KillActor
                 | Self::Pause
                 | Self::Step
                 | Self::Screenshot
@@ -798,6 +801,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Click to teleport",
                     on(d.click_teleport),
                     "Close F1, then left-click a collision floor to move there. Works in the normal or free camera; Escape cancels the mode.",
+                ),
+                (
+                    Item::ClickKill,
+                    "Click to kill",
+                    on(d.click_kill),
+                    "GAMEPLAY EDIT: close F1, then click/tap an NPC to force its death, including bosses and invulnerable actors. Uses body hitboxes in the normal or free camera. Mission objectives can advance; Esc/Back cancels. Ends input recording; no TRIAL records.",
                 ),
                 (
                     Item::GiveItems,
@@ -2049,6 +2058,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Actor state display",
                 on(d.inspect_actor),
                 "Position, HP, motion, flags and AI programs.",
+            ),
+            (
+                Item::KillActor,
+                "Kill selected actor",
+                "Kill".into(),
+                "GAMEPLAY EDIT: force the selected NPC's death, including bosses and invulnerable actors. Death animations and mission objectives continue normally. Unavailable during cutscenes or stealth kills. Ends input recording; no TRIAL records.",
+            ),
+            (
+                Item::ClickKill,
+                "Click to kill",
+                on(d.click_kill),
+                "Close F1 and click/tap an NPC's body hitbox to force its death. Works with the normal or free camera. Esc/Back cancels; resets on a new mission or area.",
             ),
             (
                 Item::Target(0),

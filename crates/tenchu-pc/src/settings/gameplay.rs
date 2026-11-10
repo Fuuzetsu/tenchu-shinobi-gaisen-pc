@@ -78,6 +78,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && debug.god_mode == p.practice
             && debug.stealth == p.practice
             && debug.click_teleport == p.practice
+            && !debug.click_kill
             && !debug.armor
     })
 }

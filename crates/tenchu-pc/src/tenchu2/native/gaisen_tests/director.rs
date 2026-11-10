@@ -43,6 +43,53 @@ pub(super) fn fixture(
 }
 
 #[test]
+#[ignore = "requires both discs; forced native boss deaths complete original merchant-stage scripts with every hero"]
+fn kill_tools_complete_imported_original_objectives() {
+    let game = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for hero in 0..3 {
+        let (mut director, mut world, mut assets) =
+            fixture(&game, &disc, 0, i16::from(hero == 1), hero, 1);
+        world.actors[world.player].actor.invulnerable = true;
+        let mut deaths = 0;
+        let mut visited = std::collections::BTreeSet::new();
+        for _ in 0..1200 {
+            if director.update(&mut world, &assets, 0).unwrap() {
+                finish_scene(&mut director, &mut world, &assets);
+                continue;
+            }
+            if director.source.events.outcome != SourceOutcome::Running {
+                break;
+            }
+            let (event, target) = director.source.events.active().next().unwrap();
+            if visited.insert(event) {
+                match director.source.mission.scripts.events[event].mode {
+                    3 | 5 => {
+                        let actor = director.native_actor(target).unwrap();
+                        world.kill_actor(actor, &assets).unwrap();
+                        deaths += 1;
+                    }
+                    _ => force_next(&director, &mut world, &assets),
+                }
+            }
+            world
+                .step([0; 2], &mut assets, &mut Sounds::default())
+                .unwrap();
+        }
+        assert!(deaths >= 2);
+        assert_eq!(
+            director.source.events.outcome,
+            SourceOutcome::Complete,
+            "hero {hero}"
+        );
+    }
+}
+
+#[test]
 #[ignore = "requires both discs; native collection and inventory survive an original cinematic without duplicate source pickups"]
 fn imported_director_keeps_native_item_ownership() {
     use tenchu_core::tenchu2::items::State as ItemState;

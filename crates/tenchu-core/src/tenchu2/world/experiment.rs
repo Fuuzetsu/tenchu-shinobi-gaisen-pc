@@ -9,6 +9,78 @@ use crate::{
 };
 
 impl World {
+    pub fn kill_actor(&mut self, index: usize, assets: &Assets) -> Result<()> {
+        let player = &self.actors[self.player].actor;
+        if !self.mission.input_allowed()
+            || player.health <= 0
+            || (0x920..=0x92f).contains(&player.motion.action)
+        {
+            return Err(
+                "Killing actors requires a living player outside a cutscene or stealth kill".into(),
+            );
+        }
+        let actor = &self
+            .actors
+            .get(index)
+            .ok_or("Actor no longer exists")?
+            .actor;
+        if index == self.player
+            || actor.health <= 0
+            || self.script_hidden.contains(&index)
+            || actor.state == State::Dead
+        {
+            return Err("Choose a living NPC outside a scripted scene".into());
+        }
+        let mut actor = actor.clone();
+        let action = if actor.kind == 0x75 {
+            0xb0a
+        } else if actor.state == State::Swimming
+            && actor.motion.action > 0x50f
+            && actor.motion.action != 0x520
+        {
+            0xb08
+        } else {
+            0xb00
+        };
+        let mut random = self.random;
+        if actor
+            .change_motion(action, Velocity::Motion, &assets.resources)?
+            .is_none()
+            && (action != 0xb00
+                || actor
+                    .change_motion(
+                        0xb01 + (random.next15() % 5) as i16,
+                        Velocity::Motion,
+                        &assets.resources,
+                    )?
+                    .is_none())
+        {
+            return Err("This actor has no death animation".into());
+        }
+        actor.health = 0;
+        actor.hit = None;
+        actor.pad = Default::default();
+        actor.attack = Default::default();
+        super::controls::credit(
+            &mut self.statistics,
+            &mut self.script,
+            &actor,
+            false,
+            true,
+            assets.hero == 2 && self.map >= 12,
+        );
+        self.actors[index].actor = actor;
+        self.random = random;
+        if self.actors[index].actor.flags & 8 != 0 {
+            self.activate_actor(index, assets)?;
+        }
+        self.sync_attack_contacts(index);
+        self.controls
+            .hud
+            .show_health(index, self.actors[index].actor.kind);
+        Ok(())
+    }
+
     pub fn teleport_player(
         &mut self,
         mut position: Position,

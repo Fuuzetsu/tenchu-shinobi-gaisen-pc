@@ -635,12 +635,16 @@ impl ApplicationHandler for Application {
         let Some(view) = &mut self.view else {
             return;
         };
+        let consumed = view.state.on_window_event(&view.window, &event).consumed;
         self.menu.tools.event(
             &event,
-            self.focused && !self.menu.panel.open,
+            self.focused
+                && !self.menu.panel.open
+                && !self.menu.diagnostics
+                && !consumed
+                && !view.context.is_pointer_over_area(),
             &self.settings.navigation,
         );
-        let consumed = view.state.on_window_event(&view.window, &event).consumed;
         match event {
             WindowEvent::CloseRequested => events.exit(),
             WindowEvent::Resized(size) if size.width > 0 && size.height > 0 => {
@@ -669,9 +673,11 @@ impl ApplicationHandler for Application {
                             KeyCode::Escape
                                 if !self.menu.panel.open
                                     && (self.menu.tools.debug.click_teleport
+                                        || self.menu.tools.debug.click_kill
                                         || self.menu.tools.debug.teleport_armed) =>
                             {
                                 self.menu.tools.debug.click_teleport = false;
+                                self.menu.tools.debug.click_kill = false;
                                 self.menu.tools.debug.teleport_armed = false;
                             }
                             KeyCode::Escape if self.menu.panel.open || self.menu.diagnostics => {

@@ -642,6 +642,7 @@ mod tests {
                         Item::FreeCamera
                             | Item::FollowActor
                             | Item::ClickTeleport
+                            | Item::ClickKill
                             | Item::GodMode
                             | Item::Armor
                             | Item::SightDistance

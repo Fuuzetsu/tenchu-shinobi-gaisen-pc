@@ -23,6 +23,7 @@ pub struct Tools {
     cursor: Option<(f64, f64)>,
     click: Option<(f64, f64)>,
     teleport: Option<(tenchu_core::math::Position, bool)>,
+    kill: Option<usize>,
     edits: Vec<experiment::Edit>,
     focus_light: bool,
     relative: bool,
@@ -41,8 +42,11 @@ impl Tools {
             self.cursor = None;
             self.click = None;
             self.teleport = None;
+            self.kill = None;
             self.edits.clear();
             self.debug.click_teleport = false;
+            self.debug.click_kill = false;
+            self.debug.actors_edited = false;
             self.debug.light = None;
             self.debug.light_follow = false;
             self.debug.clear_trail();
@@ -219,24 +223,31 @@ impl Tools {
         active: bool,
         settings: &crate::settings::Navigation,
     ) {
+        if !active {
+            self.click = None;
+        }
         match event {
             WindowEvent::MouseInput {
                 button: MouseButton::Left,
                 state: ElementState::Pressed,
                 ..
-            } if active => {
+            } if active && !self.debug.photo_mode => {
                 self.click = self.cursor;
             }
             WindowEvent::Touch(touch)
                 if active
+                    && !self.debug.photo_mode
                     && touch.phase == TouchPhase::Started
-                    && (self.debug.teleport_armed || self.debug.click_teleport) =>
+                    && (self.debug.teleport_armed
+                        || self.debug.click_teleport
+                        || self.debug.click_kill) =>
             {
                 self.click = Some((touch.location.x, touch.location.y));
             }
             WindowEvent::Focused(false) | WindowEvent::CursorLeft { .. } => {
                 self.debug.looking = false;
                 self.cursor = None;
+                self.click = None;
             }
             WindowEvent::MouseInput {
                 button: MouseButton::Right,
@@ -268,6 +279,20 @@ impl Tools {
             return Ok(());
         }
         match item {
+            Item::KillActor | Item::ClickKill => {
+                if self.scene.actors.is_empty() {
+                    return Err("Start a mission before killing actors".into());
+                }
+                if item == Item::KillActor {
+                    self.kill = Some(self.debug.selected_actor);
+                } else {
+                    self.debug.click_kill = !self.debug.click_kill;
+                    self.debug.click_teleport = false;
+                    self.debug.teleport_armed = false;
+                    self.click = None;
+                }
+                return Ok(());
+            }
             Item::FocusLight => {
                 self.debug.inspection_eye(&self.scene)?;
                 self.focus_light = true;
@@ -284,6 +309,7 @@ impl Tools {
                 if self.scene.actors.is_empty() {
                     return Err("Start a mission before teleporting".into());
                 }
+                self.debug.click_kill = false;
                 match item {
                     Item::Teleport => {
                         self.teleport = Some((self.debug.target, self.debug.snap_to_floor))
@@ -311,6 +337,11 @@ impl Tools {
         }
         if item == Item::ClickTeleport {
             self.debug.click_teleport = false;
+            return Ok(());
+        }
+        if item == Item::ClickKill {
+            self.debug.click_kill = false;
+            self.click = None;
             return Ok(());
         }
         if self.debug.reset_tool(&self.scene, item)? {
@@ -351,6 +382,7 @@ impl Tools {
             experiment::apply(&mut session.world, edits)?;
         }
         if let Some((x, y)) = self.click.take()
+            && !self.debug.photo_mode
             && let Content::Gameplay(session) = content
             && let Some(camera) = self
                 .debug
@@ -369,15 +401,18 @@ impl Tools {
                     .ok_or("No collision floor at that point")?;
                 self.debug.target = point;
                 self.teleport = Some((point, false));
-            } else if self.debug.camera.is_some() {
+            } else if self.debug.camera.is_some() || self.debug.click_kill {
                 use tenchu_core::tenchu2::collision::{BODY, DISABLED, REMOVED};
-                if let Some((_, actor)) = session
+                let picked = session
                     .world
                     .collision
                     .slots()
                     .iter()
                     .filter_map(|slot| {
                         if slot.flags & (BODY | DISABLED | REMOVED) != BODY {
+                            return None;
+                        }
+                        if self.debug.click_kill && slot.owner == Some(session.world.player) {
                             return None;
                         }
                         let p = glam::Vec3::from(slot.position.to_array().map(|v| v as f32));
@@ -387,12 +422,30 @@ impl Tools {
                             slot.owner?,
                         ))
                     })
-                    .min_by(|a, b| a.0.total_cmp(&b.0))
-                {
+                    .min_by(|a, b| a.0.total_cmp(&b.0));
+                if self.debug.click_kill {
+                    self.kill = Some(picked.ok_or("No NPC at that point")?.1);
+                }
+                if let Some((_, actor)) = picked {
                     self.debug.selected_actor = actor;
                     self.debug.inspect_actor = true;
                 }
             }
+        }
+        if let Some(actor) = self.kill.take() {
+            let Content::Gameplay(session) = content else {
+                return Err("Start a mission before killing actors".into());
+            };
+            if session.cinematic() {
+                return Err("Wait for the cinematic before killing actors".into());
+            }
+            session.world.kill_actor(actor, &session.assets)?;
+            session.reset_interpolation()?;
+            self.debug.actors_edited = true;
+            self.debug.notice = Some((
+                format!("Killed actor #{actor}. Mission objectives may advance."),
+                web_time::Instant::now(),
+            ));
         }
         if let Some((position, snap)) = self.teleport.take() {
             let Content::Gameplay(session) = content else {
@@ -411,6 +464,16 @@ impl Tools {
     }
 
     pub fn hint(&self, ctx: &egui::Context, menu_open: bool) {
+        if self.debug.click_kill && !menu_open && !self.debug.photo_mode {
+            crate::debug::overlay::paint_labels(
+                ctx,
+                &[crate::debug::Label(
+                    crate::debug::Anchor::BottomLeft([12.0, 96.0]),
+                    "KILL · click/tap an NPC · Esc/Back: cancel".into(),
+                    [1.0, 0.85, 0.2],
+                )],
+            );
+        }
         if (self.debug.teleport_armed || self.debug.click_teleport)
             && !menu_open
             && !self.debug.photo_mode

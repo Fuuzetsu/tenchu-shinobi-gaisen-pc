@@ -25,7 +25,7 @@ pub fn report(settings: &Settings, debug: &Debug, controls: &Controls) -> Value 
 
 fn debug_settings(debug: &Debug) -> Value {
     json!({"simulation_speed_percent": debug.speed, "god_mode": debug.god_mode,
-                "stealth": debug.stealth, "click_teleport": debug.click_teleport, "armor": debug.armor,
+                "stealth": debug.stealth, "click_teleport": debug.click_teleport, "click_kill": debug.click_kill, "armor": debug.armor,
                 "sight_percent": debug.sight_percent, "photo_mode": debug.photo_mode,
                 "hitboxes": debug.hitboxes, "sight": debug.sight, "sight_stance": debug.sight_stance,
                 "collision": debug.collision, "collision_only": debug.collision_only,

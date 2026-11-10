@@ -607,6 +607,16 @@ impl Application {
             }
             return;
         }
+        if matches!(command, Command::Menu(Action::Back))
+            && !self.menu.open
+            && (self.debug.click_kill || self.debug.click_teleport)
+        {
+            self.debug.click_kill = false;
+            self.debug.click_teleport = false;
+            self.release_pointer();
+            self.update_view();
+            return;
+        }
         match command {
             Command::Pause if self.simulating() && !self.faulted => {
                 self.set_paused(!self.paused);
@@ -652,6 +662,10 @@ impl Application {
                     self.toggle_randomizer();
                 } else if self.demo.is_some() {
                     self.demo_action(crate::demo::overlay::Action::Exit);
+                } else if self.debug.click_kill || self.debug.click_teleport {
+                    self.debug.click_kill = false;
+                    self.debug.click_teleport = false;
+                    self.update_view();
                 } else if self.debug.camera.is_some() || self.debug.camera_actor.is_some() {
                     self.debug.return_camera();
                     self.sync_pause();
@@ -950,7 +964,9 @@ impl ApplicationHandler for Application {
                     && !self.randomizer.open
                     && self.demo.is_none()
                     && self.focused
-                    && (self.debug.camera.is_some() || self.debug.click_teleport)
+                    && (self.debug.camera.is_some()
+                        || self.debug.click_teleport
+                        || self.debug.click_kill)
                     && !self
                         .view
                         .as_ref()
@@ -978,6 +994,7 @@ impl ApplicationHandler for Application {
             WindowEvent::MouseInput { state, button, .. }
                 if (self.debug.camera.is_some()
                     || self.debug.click_teleport
+                    || self.debug.click_kill
                     || self.orbit_enabled())
                     && self.focused =>
             {
@@ -1005,7 +1022,9 @@ impl ApplicationHandler for Application {
                     self.recenter_orbit();
                 } else if button == MouseButton::Left
                     && state == ElementState::Pressed
-                    && (self.debug.camera.is_some() || self.debug.click_teleport)
+                    && (self.debug.camera.is_some()
+                        || self.debug.click_teleport
+                        || self.debug.click_kill)
                 {
                     self.pick_debug_target();
                 }
@@ -1181,8 +1200,11 @@ impl ApplicationHandler for Application {
                         self.update_view();
                         return;
                     }
-                    if code == KeyCode::Escape && self.debug.click_teleport {
+                    if code == KeyCode::Escape
+                        && (self.debug.click_teleport || self.debug.click_kill)
+                    {
                         self.debug.click_teleport = false;
+                        self.debug.click_kill = false;
                         self.release_pointer();
                         self.update_view();
                         return;

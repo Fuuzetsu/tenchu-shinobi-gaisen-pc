@@ -50,6 +50,7 @@ impl Debug {
 
     pub fn reload(&mut self, game: &Game) -> Result<()> {
         self.click_teleport = false;
+        self.click_kill = false;
         self.update(game);
         self.return_camera();
         self.actor_imports.clear();
@@ -98,8 +99,9 @@ impl Debug {
             .expect("Gaisen player");
     }
 
-    pub fn pick_actor(&mut self, game: &Game, origin: Vec3, direction: Vec3) {
+    pub fn pick_actor(&mut self, game: &Game, origin: Vec3, direction: Vec3) -> Option<usize> {
         let mut nearest = f32::INFINITY;
+        let mut picked = None;
         for slot in &game.collision.slots[..game.collision.len] {
             let Some(actor) = slot
                 .actor()
@@ -110,6 +112,7 @@ impl Debug {
             };
             if slot.class & tenchu_core::collision::HIT != 0
                 || actor.attribute & tenchu_core::ids::ATTR_SUSPEND != 0
+                || self.click_kill && actor.id == game.player_id
             {
                 continue;
             }
@@ -126,8 +129,10 @@ impl Debug {
                 nearest = near;
                 self.selected_actor = actor.id;
                 self.inspect_actor = true;
+                picked = Some(actor.id);
             }
         }
+        picked
     }
 
     pub fn update(&mut self, game: &Game) {

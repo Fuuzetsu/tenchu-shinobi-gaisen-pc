@@ -55,6 +55,7 @@ pub struct Debug {
         std::collections::BTreeMap<String, crate::visuals::appearance::library::Imported>,
     pub actors_edited: bool,
     pub click_teleport: bool,
+    pub click_kill: bool,
     pub god_mode: bool,
     pub stealth: bool,
     pub inventory: Vec<InventorySlot>,
@@ -108,6 +109,7 @@ impl Default for Debug {
             actor_imports: Default::default(),
             actors_edited: false,
             click_teleport: false,
+            click_kill: false,
             god_mode: false,
             stealth: false,
             inventory: Vec::new(),
@@ -142,6 +144,7 @@ impl Debug {
         self.camera.is_some()
             || self.camera_actor.is_some()
             || self.click_teleport
+            || self.click_kill
             || self.hitboxes
             || self.sight
             || self.collision

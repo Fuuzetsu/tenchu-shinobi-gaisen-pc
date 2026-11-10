@@ -3179,3 +3179,16 @@ combination into that gate and retains the source Fall camera's death-wait path.
 Only the cinematic adapter changes; native actor health, state, animation and
 collision are not rewritten. Disc-backed floor surveys and direct fall fixtures
 are recorded under `private/two-releases-20261110/t1-*handoff*.log`.
+
+The optional F1 force-kill command reuses Gaisen's `MOTION.C` death motions,
+`RecordPlayerKill` classification and existing scalar corpse controller; the
+read-only reference is `~/programming/tenchu-decomp/src/main.exe/MOTION.C`.
+The TAS damage implementation and viewer's authored-actor/motion lookup were
+reviewed read-only; no architecture or code was imported from them. Native T2
+uses the existing source-backed `control::damage` death selection (including
+the random `0xb01..0xb05` fallback), `world::controls::credit` and
+`control::death` update. Kind `0x75` and swimming deaths retain their dedicated clips.
+Force kill is explicitly an experiment: it bypasses damage, invulnerability and
+resurrection, without inventing an attack contact or deleting the actor. Normal
+gameplay paths are unchanged. Direct fixture evidence is kept under
+`private/two-releases-20261110/kill-*.log`; this is not an ordinary-play recording.

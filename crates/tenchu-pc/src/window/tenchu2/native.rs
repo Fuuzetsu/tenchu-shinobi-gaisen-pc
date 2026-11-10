@@ -581,9 +581,11 @@ impl Application {
                 if native.menu.panel.open || native.menu.diagnostics {
                     native.menu.back(&mut self.controls, &mut self.presets);
                 } else if native.menu.tools.debug.click_teleport
+                    || native.menu.tools.debug.click_kill
                     || native.menu.tools.debug.teleport_armed
                 {
                     native.menu.tools.debug.click_teleport = false;
+                    native.menu.tools.debug.click_kill = false;
                     native.menu.tools.debug.teleport_armed = false;
                 } else if native.menu.tools.debug.camera.is_some()
                     || native.menu.tools.debug.camera_actor.is_some()
@@ -646,16 +648,25 @@ impl Application {
         }
         let native = self.native_tenchu2.as_mut().unwrap();
         if matches!(event, WindowEvent::KeyboardInput { ref event, .. } if event.state == ElementState::Pressed && event.physical_key == PhysicalKey::Code(KeyCode::Escape))
-            && (native.menu.tools.debug.click_teleport || native.menu.tools.debug.teleport_armed)
+            && (native.menu.tools.debug.click_teleport
+                || native.menu.tools.debug.click_kill
+                || native.menu.tools.debug.teleport_armed)
             && !native.menu.panel.open
         {
             native.menu.tools.debug.click_teleport = false;
+            native.menu.tools.debug.click_kill = false;
             native.menu.tools.debug.teleport_armed = false;
             return Ok(());
         }
         native.menu.tools.event(
             &event,
-            self.focused && !native.menu.panel.open,
+            self.focused
+                && !native.menu.panel.open
+                && !native.menu.diagnostics
+                && !self
+                    .view
+                    .as_ref()
+                    .is_some_and(|v| v.overlay.pointer_over_ui()),
             &self.settings.navigation,
         );
         if let Some(view) = &mut self.view {

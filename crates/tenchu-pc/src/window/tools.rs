@@ -2,6 +2,9 @@ use super::*;
 
 impl Application {
     pub(super) fn pick_debug_target(&mut self) {
+        if self.debug.photo_mode {
+            return;
+        }
         let Some(view) = &self.view else {
             return;
         };
@@ -37,8 +40,18 @@ impl Application {
                 self.menu.notice = "No collision floor at that point".into();
             }
         } else {
-            self.debug
+            let picked = self
+                .debug
                 .pick_actor(&self.campaign.game, origin, direction);
+            if self.debug.click_kill {
+                let result = picked
+                    .ok_or_else(|| "No NPC at that point".to_owned())
+                    .and_then(|_| self.edit_actor(Item::KillActor));
+                if let Err(error) = result {
+                    self.menu.notice = error;
+                }
+                self.debug.notice = Some((self.menu.notice.clone(), web_time::Instant::now()));
+            }
         }
         self.update_view();
     }
@@ -470,6 +483,7 @@ impl Application {
         self.set_god_mode(preset.practice)?;
         self.set_stealth(preset.practice)?;
         self.debug.click_teleport = preset.practice;
+        self.debug.click_kill = false;
         if self.debug.armor {
             self.apply_item(Item::Armor, 1)?;
         }
@@ -547,6 +561,15 @@ impl Application {
             Item::ClickTeleport => {
                 self.mission_edit()?;
                 self.debug.click_teleport = !self.debug.click_teleport;
+                self.debug.click_kill = false;
+                self.debug.pick_actor_position = false;
+            }
+            Item::ClickKill => {
+                self.mission_edit()?;
+                self.debug.click_kill = !self.debug.click_kill;
+                self.debug.click_teleport = false;
+                self.debug.teleport_armed = false;
+                self.debug.pick_actor_position = false;
             }
             Item::Inventory(slot) => {
                 let count = self
@@ -759,11 +782,14 @@ impl Application {
                 }
                 self.debug.free_camera(&self.campaign.game);
                 self.debug.teleport_armed = true;
+                self.debug.click_kill = false;
+                self.debug.pick_actor_position = false;
                 self.menu.open = false;
             }
             Item::SpawnActor
             | Item::MoveActor
             | Item::RemoveActor
+            | Item::KillActor
             | Item::ActorPosition
             | Item::PickActorPosition => self.edit_actor(item)?,
             Item::Pause => {
@@ -900,6 +926,7 @@ impl Application {
                 self.set_god_mode(false)?;
                 self.set_stealth(false)?;
                 self.debug.click_teleport = false;
+                self.debug.click_kill = false;
                 self.debug.speed = 100;
                 self.set_sight(100);
                 self.keep_enemies_active(false);

@@ -229,6 +229,8 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
             Anchor::BottomLeft([10.0, 24.0]),
             if debug.pick_actor_position {
                 "Click collision floor to choose an actor placement"
+            } else if debug.click_kill {
+                "KILL · click/tap an NPC · Esc/Back: cancel"
             } else if debug.teleport_armed || debug.click_teleport {
                 "Click collision floor to teleport"
             } else if cfg!(target_os = "android") {
@@ -244,6 +246,13 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
         lines.labels.push(Label(
             Anchor::BottomLeft([10.0, 24.0]),
             "TELEPORT  Click a floor · Esc: cancel".into(),
+            [0.7, 0.95, 1.0],
+        ));
+    }
+    if debug.click_kill && debug.camera.is_none() {
+        lines.labels.push(Label(
+            Anchor::BottomLeft([10.0, 24.0]),
+            "KILL · click/tap an NPC · Esc/Back: cancel".into(),
             [0.7, 0.95, 1.0],
         ));
     }

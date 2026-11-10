@@ -194,7 +194,7 @@ impl World {
         Ok(())
     }
 
-    fn activate_actor(&mut self, index: usize, assets: &Assets) -> Result<()> {
+    pub(super) fn activate_actor(&mut self, index: usize, assets: &Assets) -> Result<()> {
         let actor = &mut self.actors[index].actor;
         actor.flags &= !8;
         let rig = &mut self.instances[index].rig;

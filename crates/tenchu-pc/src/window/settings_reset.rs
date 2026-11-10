@@ -41,6 +41,7 @@ impl Application {
             Item::GodMode => self.set_god_mode(false)?,
             Item::Stealth => self.set_stealth(false)?,
             Item::ClickTeleport => self.debug.click_teleport = false,
+            Item::ClickKill => self.debug.click_kill = false,
             Item::Bandages => {
                 if let Some(state) = &mut self
                     .campaign

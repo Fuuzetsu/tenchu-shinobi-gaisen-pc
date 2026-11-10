@@ -23,6 +23,8 @@ impl Application {
             Item::PickActorPosition => {
                 self.debug.free_camera(game);
                 self.debug.teleport_armed = false;
+                self.debug.click_teleport = false;
+                self.debug.click_kill = false;
                 self.debug.pick_actor_position = true;
                 self.menu.open = false;
                 return Ok(());
@@ -33,6 +35,10 @@ impl Application {
         let yaw = (i32::from(self.menu.spawn_yaw) * 4096 / 360) as i16;
         let game = &mut self.campaign.game;
         match item {
+            Item::KillActor => {
+                game.kill_actor(id)?;
+                self.menu.notice = format!("Killed actor #{id}. Mission objectives may advance.");
+            }
             Item::SpawnActor => {
                 let view = self.view.as_mut().ok_or("Renderer is not ready")?;
                 let library = view

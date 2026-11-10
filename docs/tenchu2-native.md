@@ -299,6 +299,17 @@ label explains the result of its next perception update. These queries do not
 advance AI or change the world. Free-camera clicks select actors. Both games share the
 [inspection and presentation boundaries](runtime-boundaries.md).
 
+**F1 → Teleport / actor → Kill selected actor** forces a living NPC's death,
+including bosses. **Click to kill**, also under Experiment, targets NPC body
+hitboxes in the normal, follow or free camera; close F1 before clicking/tapping.
+Esc/Back cancels, teleport picking disables it, and new areas reset the mode.
+The command bypasses invulnerability and resurrection, credits the kill and runs
+the native death animation and corpse handling. Mission objectives can advance.
+Players, hidden story actors, active cutscenes and paired stealth kills are
+protected. Photo mode and clicks over menus do not target actors. Gaisen has the
+same controls; using them ends input recording and disables TRIAL records for
+that run. These are gameplay experiments; graphical presets do not enable them.
+
 **F1 → Teleport / actor** supports coordinate and click/tap destinations, optionally
 snapping to a collision floor. **Experiment → Click to teleport** also works in
 the normal camera. Escape / Back cancels picking. Teleports require a living player

@@ -6,6 +6,52 @@ use crate::{
 };
 
 impl Game {
+    pub fn kill_actor(&mut self, id: usize) -> Result<()> {
+        self.can_edit_actors()?;
+        let actor = self
+            .roster
+            .actors
+            .get(id)
+            .and_then(Option::as_ref)
+            .ok_or("Actor no longer exists")?;
+        if id == self.player_id
+            || Some(id) == self.items.dog_actor
+            || actor.scripted
+            || actor.health <= 0
+        {
+            return Err("Choose a living NPC outside a scripted scene".into());
+        }
+        let mut actor = self.roster.take(id);
+        let result = actor.force_death(
+            &mut Context {
+                mission: &mut self.mission,
+                math: &self.math,
+                body: &self.body,
+                cursor: &mut self.cursor,
+                random: &mut self.random,
+                effects: &mut self.effects,
+                scene: &mut self.scene,
+                collision: &mut self.collision,
+                camera: &mut self.camera,
+                drawing: &mut self.drawing,
+            },
+            &mut crate::actor::ActionContext {
+                walking: self.walking,
+                items: &mut self.items,
+                roster: &mut self.roster,
+                intelligence: &mut self.intelligence,
+                statistics: &mut self.statistics,
+                combat: &mut self.combat,
+                player: self.player_id,
+                selected_item: self.hud.selected,
+                selected_bandage: self.hud.bandage_selected(),
+                clock: self.clock,
+            },
+        );
+        self.roster.restore(actor);
+        result
+    }
+
     fn can_edit_actors(&self) -> Result<()> {
         if self.cinematic.active
             || self.player().scripted

@@ -2,6 +2,191 @@ use super::*;
 use winit::keyboard::KeyCode;
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; force-kill tools retain source corpses and reject stale or scripted targets"]
+fn kill_tools_complete_native_deaths_and_cancel_pending_clicks() {
+    use tenchu_core::tenchu2::{actor::State, collision::BODY};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = crate::tenchu2::native::Session::load(&disc, 9, 1).unwrap();
+    session.world.keep_all_active = true;
+    session.world.actors[session.world.player]
+        .actor
+        .invulnerable = true;
+    for _ in 0..60 {
+        session.step(0).unwrap();
+    }
+    let victim = session
+        .world
+        .actors
+        .iter()
+        .enumerate()
+        .find(|(id, a)| {
+            *id != session.world.player
+                && (0x20..0x60).contains(&a.actor.kind)
+                && a.actor.health > 0
+        })
+        .unwrap()
+        .0;
+    session.world.actors[victim].actor.invulnerable = true;
+    session.world.actors[victim].actor.inventory.resurrections = 1;
+    let mut content = Content::Gameplay(Box::new(session));
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    tools.debug.selected_actor = victim;
+    tools.change(Item::ClickTeleport, 1).unwrap();
+    tools.change(Item::ClickKill, 1).unwrap();
+    assert!(!tools.debug.click_teleport && tools.debug.click_kill);
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    let slot = session
+        .world
+        .collision
+        .slots()
+        .iter()
+        .find(|s| s.owner == Some(victim) && s.flags & BODY != 0)
+        .unwrap();
+    tools.debug.camera = Some(Camera {
+        position: glam::Vec3::from(slot.position.to_array().map(|v| v as f32))
+            - glam::Vec3::Z * 1500.0,
+        yaw: 0.0,
+        pitch: 0.0,
+        fov: 50.0,
+    });
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    // A miss must not act on the previously selected actor.
+    tools.click = Some((-10000.0, -10000.0));
+    assert!(tools.apply(&mut content, [800, 600]).is_err());
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+    tools.debug.photo_mode = true;
+    tools.click = Some((400.0, 300.0));
+    tools.apply(&mut content, [800, 600]).unwrap();
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+    tools.debug.photo_mode = false;
+    tools.click = Some((400.0, 300.0));
+    tools.apply(&mut content, [800, 600]).unwrap();
+    assert!(tools.debug.actors_edited);
+    let Content::Gameplay(session) = &mut content else {
+        unreachable!()
+    };
+    let actor = &session.world.actors[victim].actor;
+    assert_eq!((actor.health, actor.state), (0, State::Dead));
+    assert_eq!(session.world.tick, 60);
+    assert_eq!(session.world.statistics.killed, 1);
+    assert_eq!(
+        actor.inventory.resurrections, 1,
+        "force kill bypasses resurrection"
+    );
+    let after = postcard::to_allocvec(&session.world).unwrap();
+    assert!(session.world.kill_actor(victim, &session.assets).is_err());
+    assert!(
+        session
+            .world
+            .kill_actor(session.world.player, &session.assets)
+            .is_err()
+    );
+    assert!(
+        session
+            .world
+            .kill_actor(usize::MAX, &session.assets)
+            .is_err()
+    );
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), after);
+    for _ in 0..240 {
+        session.step(0).unwrap();
+    }
+    let actor = &session.world.actors[victim].actor;
+    assert_eq!(
+        (actor.health, actor.state, actor.motion.loops),
+        (0, State::Dead, i16::MIN)
+    );
+    assert_eq!(
+        session.world.statistics.killed, 1,
+        "corpse must not score twice"
+    );
+    tools.reset(Item::ClickKill).unwrap();
+    assert!(!tools.debug.click_kill);
+    tools.sync(&content, 0);
+    tools.change(Item::KillActor, 1).unwrap();
+    tools.change(Item::ClickKill, 1).unwrap();
+    tools.click = Some((400.0, 300.0));
+    tools.sync(&Content::Failed, 1);
+    assert!(tools.kill.is_none() && tools.click.is_none());
+    assert!(!tools.debug.click_kill && !tools.debug.actors_edited);
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; forced boss deaths traverse the original objective gate for every campaign boss encounter"]
+fn kill_tools_advance_native_boss_objectives() {
+    use tenchu_assets::tenchu2::campaign::{Campaign, Kind, Objective};
+    use tenchu_core::tenchu2::mission::{Outcome, Phase};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let campaign = Campaign::load(&disc).unwrap();
+    let mut count = 0;
+    for (sequence, entry) in campaign.sequences.iter().enumerate() {
+        let expected = match entry.kind {
+            Kind::Gameplay(Objective::Defeat { .. }) => Outcome::TargetsDefeated,
+            Kind::Gameplay(Objective::Weaken { .. }) => Outcome::BossWeakened,
+            _ => continue,
+        };
+        let mut session = crate::tenchu2::native::Session::load(&disc, sequence, 17).unwrap();
+        session.world.actors[session.world.player]
+            .actor
+            .invulnerable = true;
+        for _ in 0..60 {
+            session.step(0).unwrap();
+        }
+        let targets = session.world.mission.targets;
+        let mut content = Content::Gameplay(Box::new(session));
+        let mut tools = Tools::default();
+        tools.sync(&content, 0);
+        for index in targets.into_iter().flatten() {
+            let Content::Gameplay(session) = &mut content else {
+                unreachable!()
+            };
+            session.world.actors[index].actor.invulnerable = true;
+            let before = postcard::to_allocvec(&session.world).unwrap();
+            let player = session.world.player;
+            let action = session.world.actors[player].actor.motion.action;
+            session.world.actors[player].actor.motion.action = 0x920;
+            assert!(session.world.kill_actor(index, &session.assets).is_err());
+            session.world.actors[player].actor.motion.action = action;
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+            tools.debug.selected_actor = index;
+            tools.change(Item::KillActor, 1).unwrap();
+            tools
+                .apply(&mut content, [800, 600])
+                .unwrap_or_else(|e| panic!("sequence {sequence}, actor {index}: {e}"));
+            count += 1;
+        }
+        let Content::Gameplay(session) = &mut content else {
+            unreachable!()
+        };
+        for _ in 0..600 {
+            session.step(0).unwrap();
+            if !session.world.mission.input_allowed() {
+                break;
+            }
+        }
+        assert!(
+            matches!(session.world.mission.phase,
+            Phase::Ending { outcome, .. } | Phase::Finished { outcome, .. } if outcome == expected),
+            "sequence {sequence}: {:?}",
+            session.world.mission.phase
+        );
+    }
+    assert!(count >= 20, "only {count} boss targets exercised");
+    eprintln!("Force-killed {count} authored campaign boss targets through F1");
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; native camera-relative tools handle input gating, follow/aim cameras and scene boundaries"]
 fn relative_controls_share_orbit_tools_and_do_not_leak_input_through_menus() {
     let disc =

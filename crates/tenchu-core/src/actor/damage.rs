@@ -9,6 +9,30 @@ use crate::{
 use tenchu_assets::weapon::kind::KATANAL;
 
 impl Actor {
+    pub(crate) fn force_death(
+        &mut self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+    ) -> Result<()> {
+        let action = if matches!(self.motion.action, MOT_SWIM | MOT_SWIM_STROKE) {
+            MOT_DEAD_DROWN
+        } else {
+            MOT_DEAD
+        };
+        if !self.enter(ctx, action, true) {
+            return Err("This actor has no death animation".into());
+        }
+        self.clear_attack(ctx, 3)?;
+        self.health = 0;
+        self.attribute &= !ATTR_SUSPEND;
+        ctx.scene.models[self.parts[0]].attribute |= crate::scene::COLLIDE;
+        self.hit = None;
+        self.pad = Pad::default();
+        world.combat.death_sound = Some(self.id);
+        world.intelligence.voices.push((self.id, 8));
+        self.score_death(ctx, world)
+    }
+
     fn bleeding_hit(&mut self, previous: i16, source: Option<usize>, player: usize) {
         if self.id == player
             && self.health > 0

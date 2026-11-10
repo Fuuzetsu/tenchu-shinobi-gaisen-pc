@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 adds **Kill selected actor** under Teleport / actor and **Click to kill**
+  there and under Experiment, in Gaisen and native T2 (including imported T1
+  stages). These force a living NPC's death, bypassing invulnerability and
+  resurrection while retaining its death animation, corpse and mission triggers.
+  Click/tap targeting uses body hitboxes; Esc/Back cancels and new areas reset
+  the mode. Cutscenes and paired kills are protected. Gaisen ends input recording
+  before the edit and treats the run as practice without TRIAL records.
+
 ## 0.25.0 — 2026-11-10
 
 - Native T2 restores ambient water ripples and their original RNG timing.
