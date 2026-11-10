@@ -16,6 +16,7 @@ mod visibility;
 // Imported T1 scenery mechanisms; native OSD kinds remain unchanged.
 pub const GAISEN_PITFALL: i16 = 0x100;
 pub const GAISEN_OPEN_PITFALL: i16 = 0x101;
+pub const GAISEN_HEAT: i16 = 0x102;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Object {
@@ -48,6 +49,8 @@ pub struct Environment {
     pub static_phases: Vec<i16>,
     pub background_only: bool,
     pub fire: scenery::Fire,
+    #[serde(default)]
+    pub heat_phases: Vec<i16>,
     pub last_sound_vblank: u16,
     pub flame_frame: u8,
 }
@@ -213,6 +216,7 @@ impl Environment {
                 .collect(),
             background_only: false,
             fire: scenery::Fire::default(),
+            heat_phases: Vec::new(),
             last_sound_vblank: 0,
             flame_frame: 3,
         })

@@ -16,6 +16,12 @@ impl environment::Events for Sounds {
     }
 }
 
+impl Events for Sounds {
+    fn emit(&mut self, _: EventSource<'_>, _: Event, _: &mut Random) -> Result<()> {
+        Ok(())
+    }
+}
+
 pub(super) fn advance(world: &mut World, assets: &Assets, events: &mut Sounds) {
     let mut context = Context {
         map: &mut world.terrain,

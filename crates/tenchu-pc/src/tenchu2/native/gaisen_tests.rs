@@ -2,6 +2,7 @@ use super::*;
 use tenchu_assets::{game::GameAssets, stage::MissionAssets};
 
 mod doors;
+mod heat;
 mod pitfalls;
 
 #[test]

@@ -61,6 +61,18 @@ are retained. Their source meshes keep the existing common-model identities.
 The imported closed/open kinds `0x100/0x101` do not overlap any object or trigger
 kind in the 41 original Japanese scenery variants (whose kinds are 0–20).
 
+ACM damage surfaces (attribute `0x100`, after the source water precedence) map
+to reserved material `0x401` and imported trigger kind `0x102`. Grounded contacts
+feed the existing native T2 scenery `Fire` mechanism. This optional mapping uses
+the native visibility check, 46-update flame phase, shared collider allocation,
+object-hit kind 33, burn effects, damage reactions and immunity rules. Per-actor
+phases pause away from a visible hot surface and persist in world snapshots.
+It neither substitutes direct health subtraction nor copies T1's napalm cadence.
+The native routines and their existing recorded-source comparisons are unchanged.
+All three heroes on each of the four hot-floor stages match an actual native
+flame's actor state and RNG through the first hit, including the 100-to-95 health
+change; airborne and invulnerable fixtures retain native behavior.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |

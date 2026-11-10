@@ -11,12 +11,6 @@ use tenchu_core::{
     },
 };
 
-impl Events for Sounds {
-    fn emit(&mut self, _: EventSource<'_>, _: Event, _: &mut Random) -> Result<()> {
-        Ok(())
-    }
-}
-
 fn options(hero: usize) -> Options {
     Options {
         hero,

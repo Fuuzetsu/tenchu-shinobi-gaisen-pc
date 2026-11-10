@@ -192,12 +192,12 @@ impl Assets {
                     kind: 19,
                     target: 0,
                 },
-                // ACM damage floors reserve material 0x401. Keep that slot
-                // inactive until their native effect adapter is connected.
+                // ACM damage floors reserve material 0x401. Their ground
+                // contacts feed the native fire collider in update_scenery.
                 Trigger {
                     position: [0; 3],
                     angle: 0,
-                    kind: -1,
+                    kind: crate::tenchu2::environment::GAISEN_HEAT,
                     target: 0,
                 },
             ],

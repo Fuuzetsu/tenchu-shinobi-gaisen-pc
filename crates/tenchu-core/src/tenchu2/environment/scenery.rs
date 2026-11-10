@@ -1,4 +1,6 @@
-use super::{Context, Environment, Event, Events, GAISEN_OPEN_PITFALL, GAISEN_PITFALL, Object};
+use super::{
+    Context, Environment, Event, Events, GAISEN_HEAT, GAISEN_OPEN_PITFALL, GAISEN_PITFALL, Object,
+};
 use crate::{
     Result,
     math::{Matrix, Position, Vector3},
@@ -304,6 +306,18 @@ impl Environment {
                     frame
                         .sprites
                         .push(flame(flame_image, position, size, shift));
+                }
+            }
+        }
+        if self.triggers.get(1).is_some_and(|t| t.kind == GAISEN_HEAT) {
+            self.heat_phases.resize(input.actors.len(), 0);
+            for (agent, phase) in input.actors.iter().zip(&mut self.heat_phases) {
+                let actor = &agent.actor;
+                if actor.terrain.material & 0xfff == 0x401
+                    && actor.terrain.floor == Some(actor.position.y)
+                    && input.view.effect(actor.position, 0, c.math)
+                {
+                    self.fire.flame(actor.position, false, 4096, phase, c)?;
                 }
             }
         }
