@@ -31,6 +31,7 @@ impl Default for Fire {
 
 #[derive(Clone, Debug)]
 pub struct Model {
+    pub static_index: Option<usize>,
     pub model: usize,
     pub stump: bool,
     pub position: Position,
@@ -87,6 +88,7 @@ impl Environment {
                     if input.view.object(position, input.level.object_sizes[model]) =>
                 {
                     frame.models.push(Model {
+                        static_index: Some(index),
                         model,
                         stump: false,
                         position,
@@ -206,6 +208,7 @@ impl Environment {
                 });
                 if object.clock == 1 {
                     frame.models.push(Model {
+                        static_index: None,
                         model,
                         stump: false,
                         position: object.position,
@@ -216,6 +219,7 @@ impl Environment {
                         c.sound(object.position, 0x2d)?;
                     }
                     frame.models.push(Model {
+                        static_index: None,
                         model,
                         stump: true,
                         position: object.position,
@@ -243,6 +247,7 @@ impl Environment {
                         1024
                     };
                     frame.models.push(Model {
+                        static_index: None,
                         model,
                         stump: false,
                         position,
@@ -251,6 +256,7 @@ impl Environment {
                 }
             } else {
                 frame.models.push(Model {
+                    static_index: None,
                     model,
                     stump: false,
                     position: object.position,

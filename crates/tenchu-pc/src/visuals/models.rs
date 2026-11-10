@@ -438,7 +438,7 @@ impl Meshes {
             let emitter = rules
                 .iter()
                 .rev()
-                .find(|rule| rule.matches(&source))
+                .find(|rule| rule.matches(&source, vram, &region_ids))
                 .filter(|rule| rule.enabled);
             let replacement = graphics
                 .asset_pack
@@ -640,7 +640,17 @@ impl Meshes {
             }
             if let Some(rule) = emitter {
                 for triangle in vertices.chunks_exact_mut(3) {
-                    if rule.emits_surface(std::array::from_fn(|i| Vec3::from(triangle[i].position)))
+                    let selected = rule.texture.as_ref().is_none_or(|id| {
+                        triangle[0]
+                            .material
+                            .checked_sub(1)
+                            .and_then(|i| out.materials.get(i as usize))
+                            .is_some_and(|material| &material.id == id)
+                    });
+                    if selected
+                        && rule.emits_surface(std::array::from_fn(|i| {
+                            Vec3::from(triangle[i].position)
+                        }))
                     {
                         for vertex in triangle {
                             vertex.flags |= render_mesh::EMITTER;

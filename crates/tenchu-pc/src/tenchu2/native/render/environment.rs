@@ -9,7 +9,7 @@ use crate::{
     },
 };
 use glam::{Mat4, Vec3};
-use tenchu_assets::tenchu2::level::{Level, objects::StaticKind};
+use tenchu_assets::tenchu2::level::Level;
 use tenchu_core::{
     math::{Math, Matrix},
     tenchu2::world::{Assets, World},
@@ -66,16 +66,8 @@ impl Environment {
                 },
             );
         }
-        for object in &level.scene.statics {
-            if let StaticKind::Model(index) = object.kind {
-                append(
-                    &level.objects[index],
-                    Matrix {
-                        translation: object.position.into(),
-                        rotation: math.rotate_yxz(object.rotation),
-                    },
-                );
-            }
+        for (part, matrix) in super::static_models(level, math, None) {
+            append(part, matrix);
         }
         Self {
             caster: renderer.upload_shadow(&vertices),

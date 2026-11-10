@@ -2371,7 +2371,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::LampLights,
                     "Lantern / prop lights",
                     on(light.lamps),
-                    "Bright panels in named props emit light.",
+                    "Recognised bright prop panels emit light; packs can override their materials and placement.",
                 ),
                 (
                     Item::ShadowCount,

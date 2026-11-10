@@ -2192,3 +2192,87 @@ fn native_player_pool_uses_shared_death_styles_and_completed_pose() {
         "clearing recreated the player's pool"
     );
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; verifies native lantern emission, shadows and exact restoration"]
+fn native_lamps_use_shared_lighting_without_changing_source_state() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let layouts = tenchu_assets::tenchu2::layout::Layout::available(&disc).unwrap();
+    for map in [1, 12, 17] {
+        let sequence = layouts
+            .iter()
+            .find(|layout| layout.map == map)
+            .unwrap()
+            .sequence;
+        let mut session = super::super::Session::load(&disc, sequence, 1).unwrap();
+        for _ in 0..30 {
+            session.step(0).unwrap();
+        }
+        let original = postcard::to_allocvec(&session.world).unwrap();
+        let sources = lamps::defaults(&session.assets.level, &session.assets.resources.math);
+        let lamp = &sources[0];
+        let target = lamp.light.position;
+        let position = target + Vec3::new(3500.0, -1800.0, 6000.0);
+        let direction = (target + Vec3::Y * 800.0 - position).normalize();
+        let camera = crate::debug::camera::Camera {
+            position,
+            yaw: direction.x.atan2(direction.z),
+            pitch: (-direction.y).asin(),
+            fov: 43.6,
+        };
+        let mut images = Vec::new();
+        for mode in ["off", "lit", "shadows", "restored"] {
+            let mut graphics = Graphics {
+                fog: false,
+                asset_pack: false,
+                ..Default::default()
+            };
+            graphics.lighting.enabled = true;
+            graphics.lighting.fires = false;
+            graphics.lighting.lamps = matches!(mode, "lit" | "shadows");
+            graphics.lighting.shadows = mode == "shadows";
+            graphics.lighting.count = 8;
+            graphics.lighting.shadow_count = 4;
+            let path = output.join(format!("jp-lamps-map{map}-{mode}.png"));
+            capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+                let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+                drawing.camera = Some(camera);
+                drawing.show_hud = false;
+                drawing.update(&session, renderer, None)?;
+                let lights = drawing
+                    .scene
+                    .lighting
+                    .named_sources(&graphics.lighting, camera.position);
+                if graphics.lighting.lamps {
+                    assert_eq!(lights.len(), sources.len());
+                    if graphics.lighting.shadows {
+                        assert!(drawing.scene.environment.is_some());
+                    }
+                } else {
+                    assert!(lights.is_empty());
+                }
+                Ok((drawing.scene, camera.source_view(), Vec::new()))
+            })
+            .unwrap();
+            images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+            assert!(postcard::to_allocvec(&session.world).unwrap() == original);
+        }
+        let changed = |a: usize, b: usize| {
+            images[a]
+                .rgba
+                .chunks_exact(4)
+                .zip(images[b].rgba.chunks_exact(4))
+                .filter(|(a, b)| a != b)
+                .count()
+        };
+        assert_eq!(changed(0, 3), 0, "lamp toggle did not restore map {map}");
+        assert!(changed(0, 1) > 100, "lamps did not light map {map}");
+        assert!(
+            changed(1, 2) > 100,
+            "lamps did not cast shadows in map {map}"
+        );
+    }
+}

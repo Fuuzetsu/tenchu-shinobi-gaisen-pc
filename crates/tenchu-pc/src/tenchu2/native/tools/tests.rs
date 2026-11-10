@@ -370,8 +370,12 @@ fn lighting_tools_preserve_native_world_and_clear_between_scenes() {
     let Content::Gameplay(session) = &content else {
         unreachable!()
     };
-    let lamp =
-        super::super::render::lighting::nearest(&session.assets.level, camera.position).unwrap();
+    let lamp = super::super::render::lighting::nearest(
+        &session.assets.level,
+        &session.assets.resources.math,
+        camera.position,
+    )
+    .unwrap();
     let ndc = camera
         .matrix(16.0 / 9.0)
         .project_point3(lamp.light.position);

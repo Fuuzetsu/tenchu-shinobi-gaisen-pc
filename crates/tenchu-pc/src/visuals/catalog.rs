@@ -178,6 +178,7 @@ impl Role {
     }
 }
 
+#[derive(Clone)]
 pub struct ModelSource<'a> {
     pub role: Role,
     pub id: String,

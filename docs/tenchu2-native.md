@@ -50,10 +50,20 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Texture-based lamp discovery, body/weapon blood enhancements, hair/cloth physics,
+Body/weapon blood enhancements, hair/cloth physics,
 rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Lighting → Lantern / prop lights** uses the shared texture analysis and
+shadow pipeline for T2 paper, stone, hanging and red lanterns, including 3D
+cutscenes. Original material fingerprints identify the lit panels; unlit stone
+lanterns and bright walls stay unlit. Their source positions remain available
+outside the native draw list, so moving the camera does not activate them.
+Fog-off and free-camera views also draw distant static props; the original
+simulation still decides when interactive objects update.
+Artwork packs can override the same light rules as Gaisen. Modern High/Ultra
+already enable this setting; Original keeps dynamic lighting off.
 
 **F1 → Lighting → Fire / explosion lights** also lights burning characters, explosions,
 fire breath and embers. Their moving emitters share Gaisen's clustering, shadow
@@ -154,7 +164,7 @@ colour, intensity and shadow quality. **Time of day** can instead drive the ligh
 and ambient colour through a day/night cycle. Both work in gameplay and 3D
 cutscenes, use the shared terrain/model shadows, and remain presentation-only.
 The visual clock follows simulation time, including pause and fast-forward;
-changing models or artwork preserves it. Other combat/lamp emitters remain pending.
+changing models or artwork preserves it. Other combat emitters remain pending.
 
 **F1 → Overlays** provides hitboxes, actor labels and the actor inspector, with
 X-ray and photo-mode handling. The boxes come from native collision slots.

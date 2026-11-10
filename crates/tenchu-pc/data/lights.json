@@ -11,5 +11,13 @@
   { "name_contains": "RANP" },
   { "name_contains": "YAMIAKA" },
   { "name_contains": "UFO" },
-  { "name_contains": "TOROKKO", "enabled": false }
+  { "name_contains": "TOROKKO", "enabled": false },
+  { "texture": "ea97e2aed7dbc1878cca3094b93bdead", "label": "Paper lantern", "threshold": 0.65 },
+  { "texture": "10c8ffc4c96a0abc12dcfc86d377cfba", "label": "Paper lantern", "threshold": 0.65 },
+  { "texture": "04a1aa06e603e4a94737d9aebcebc7a2", "label": "Standing lantern", "threshold": 0.65 },
+  { "texture": "e03831dc7c397ebd553ca915a1853b79", "label": "Red paper lantern", "threshold": 0.18 },
+  { "texture": "2454f848b8fb5c41c9109cbc2567a850", "label": "Candle lantern", "threshold": 0.65 },
+  { "texture": "fde8b672dac126a52cc6ce52001a7fb4", "label": "Stone lantern", "threshold": 0.6 },
+  { "texture": "61a65ff9d32766d43fafd42a65da86d7", "label": "Hanging lantern", "threshold": 0.65 },
+  { "texture": "8834cb41438c9e830e1ba5320d6d3c04", "label": "Stone lantern", "threshold": 0.65 }
 ]

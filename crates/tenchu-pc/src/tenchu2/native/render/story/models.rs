@@ -12,11 +12,12 @@ use crate::{
     },
 };
 use std::{collections::BTreeMap, sync::Arc};
-use tenchu_assets::{Result, tenchu2::level::objects::StaticKind};
+use tenchu_assets::Result;
 use tenchu_core::math::Matrix;
 
 pub(super) struct Models {
     pub(super) terrain: Meshes,
+    lamps: crate::visuals::lights::Emitters,
     actors: BTreeMap<i16, Meshes>,
     weapons: BTreeMap<String, Meshes>,
     textures: Vec<AnimatedTextures>,
@@ -51,7 +52,9 @@ impl Models {
             &level.objects,
             Role::Prop,
         ));
-        let mut terrain = build(&level.vram, terrain_sources, graphics)?;
+        let (mut terrain, lamps) =
+            super::super::lamps::prepare(&level.vram, terrain_sources, graphics)?;
+        renderer.set_emitters(&lamps);
         renderer.bind_meshes(&mut terrain);
         let mut actors = BTreeMap::new();
         let mut textures = Vec::new();
@@ -130,6 +133,7 @@ impl Models {
         }
         Ok(Self {
             terrain,
+            lamps,
             actors,
             weapons,
             textures,
@@ -172,18 +176,8 @@ impl Models {
                 ModelStyle::Terrain,
             );
         }
-        for object in &level.scene.statics {
-            if let StaticKind::Model(index) = object.kind {
-                output.model(
-                    &self.terrain,
-                    &level.objects[index],
-                    Matrix {
-                        translation: object.position.into(),
-                        rotation: math.rotate_yxz(object.rotation),
-                    },
-                    ModelStyle::Terrain,
-                );
-            }
+        for (part, matrix) in super::super::static_models(level, math, None) {
+            output.model(&self.terrain, part, matrix, ModelStyle::Terrain);
         }
         for object in &level.scene.dynamic {
             output.model(
@@ -238,6 +232,7 @@ impl Models {
         );
         Ok((
             Geometry {
+                lamps: super::super::lamps::sources(&self.lamps, level, math, None),
                 backgrounds: super::super::background::geometry(
                     &level.background,
                     &level.shading,

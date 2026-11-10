@@ -64,9 +64,7 @@ impl Runtime {
             | NightAmbient
             | SunPath
             | DayRelighting => None,
-            LampLights => Some(
-                "Native Tenchu 2 currently supplies flame sources. Texture-based lamp discovery still needs its model metadata adapter.",
-            ),
+            LampLights => None,
             Weather | WeatherAmount | WeatherWind | WeatherHeading | WeatherQuality
             | WeatherDistance | Wetness | RainReflections | PuddleCoverage | PoolingSpeed
             | RainHaze | RainStreaks | SnowCover | SnowDrift | Footprints | FootprintSeconds

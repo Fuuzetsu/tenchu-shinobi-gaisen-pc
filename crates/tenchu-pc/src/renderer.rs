@@ -434,6 +434,8 @@ impl Renderer {
 
     pub fn set_emitters(&mut self, emitters: &crate::visuals::lights::Emitters) {
         self.materials.set_emissions(emitters.emissions.clone());
+        self.materials
+            .set_external_emissions(emitters.material_emissions.clone());
     }
 
     pub fn bind_models(&mut self, models: &mut crate::visuals::models::Models) {

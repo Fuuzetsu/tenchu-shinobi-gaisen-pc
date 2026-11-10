@@ -191,6 +191,7 @@ pub struct Materials {
     enabled: bool,
     upscale: u16,
     emissions: BTreeMap<Region, [f32; 4]>,
+    external_emissions: BTreeMap<String, [f32; 4]>,
 }
 
 impl Materials {
@@ -258,6 +259,7 @@ impl Materials {
             enabled: true,
             upscale: 1,
             emissions: BTreeMap::new(),
+            external_emissions: BTreeMap::new(),
         }
     }
 
@@ -294,6 +296,7 @@ impl Materials {
         self.external.clear();
         self.lookups.clear();
         self.emissions.clear();
+        self.external_emissions.clear();
         self.repack = true;
     }
 
@@ -309,6 +312,11 @@ impl Materials {
 
     pub fn set_emissions(&mut self, emissions: BTreeMap<Region, [f32; 4]>) {
         self.emissions = emissions;
+        self.repack = true;
+    }
+
+    pub fn set_external_emissions(&mut self, emissions: BTreeMap<String, [f32; 4]>) {
+        self.external_emissions = emissions;
         self.repack = true;
     }
 
@@ -598,7 +606,10 @@ impl Materials {
             ],
             emission: entry
                 .region
-                .and_then(|r| self.emissions.get(&r))
+                .map_or_else(
+                    || self.external_emissions.get(&entry.id),
+                    |r| self.emissions.get(&r),
+                )
                 .copied()
                 .unwrap_or_default(),
             relief: entry.relief(self.enabled.then(|| self.surfaces.get(&entry.id)).flatten()),

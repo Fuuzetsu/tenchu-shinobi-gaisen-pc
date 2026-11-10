@@ -1751,6 +1751,13 @@ accept `enabled`, `threshold` (0.05–1 brightness), `emission` (0–10),
 `emit_caps: true` permits emission from upward/downward surfaces for custom
 fixtures; the default excludes them. `flame: false` opts a rule out of flame
 flicker and heat shimmer (for example, an electric replacement fixture).
+Rules may also select a `texture` by its exported original texture ID, with an
+optional display `label`. Texture selectors restrict emission to that material's
+faces. Native T2 uses verified lantern-panel IDs because its prop archives lack
+names; the same selectors also work in Gaisen and the T2 scenery sandbox.
+Default T2 rules were checked against all base-map prop models: only lit paper,
+candle and stone panels emit, including red paper with a lower brightness
+threshold. The IDs describe source material identities; no disc pixels are bundled.
 Defaults derive color and position from the original mesh/texture; offsets let
 replacement authors adjust them. Reload through Visual assets. No mission
 coordinates are embedded in the renderer.

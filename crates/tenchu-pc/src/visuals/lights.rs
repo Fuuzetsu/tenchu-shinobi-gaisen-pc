@@ -16,6 +16,8 @@ mod gaisen;
 pub struct Rule {
     pub name_contains: String,
     pub model: Option<String>,
+    pub texture: Option<String>,
+    pub label: Option<String>,
     pub enabled: bool,
     pub threshold: f32,
     pub emission: f32,
@@ -31,6 +33,8 @@ impl Default for Rule {
         Self {
             name_contains: String::new(),
             model: None,
+            texture: None,
+            label: None,
             enabled: true,
             threshold: 0.65,
             emission: 1.0,
@@ -51,7 +55,12 @@ impl Rule {
         self.emit_caps || normal.y.abs() < 0.5
     }
 
-    pub fn matches(&self, model: &catalog::ModelSource<'_>) -> bool {
+    pub fn matches(
+        &self,
+        model: &catalog::ModelSource<'_>,
+        vram: &tenchu_assets::texture::Vram,
+        regions: &BTreeMap<catalog::Region, String>,
+    ) -> bool {
         self.model.as_ref().map_or_else(
             || {
                 model
@@ -60,11 +69,23 @@ impl Rule {
                     .contains(&self.name_contains.to_ascii_uppercase())
             },
             |id| id == &model.id,
-        )
+        ) && self.texture.as_ref().is_none_or(|id| {
+            model
+                .geometry
+                .iter()
+                .flat_map(render_mesh::draw_tmd_faces)
+                .any(|face| {
+                    catalog::face_region(vram, face).and_then(|r| regions.get(&r)) == Some(id)
+                })
+        })
     }
 
     pub fn validate(&self) -> Result<()> {
-        if (self.name_contains.is_empty() && self.model.is_none())
+        if (self.name_contains.is_empty() && self.model.is_none() && self.texture.is_none())
+            || self
+                .texture
+                .as_ref()
+                .is_some_and(|id| id.len() != 32 || !id.bytes().all(|c| c.is_ascii_hexdigit()))
             || !self.threshold.is_finite()
             || !(0.05..=1.0).contains(&self.threshold)
             || !self.emission.is_finite()
@@ -109,6 +130,7 @@ pub struct Emitters {
     models: BTreeMap<usize, Emitter>,
     placed: Vec<Source>,
     pub emissions: BTreeMap<catalog::Region, [f32; 4]>,
+    pub material_emissions: BTreeMap<String, [f32; 4]>,
 }
 
 impl Emitters {
@@ -118,21 +140,32 @@ impl Emitters {
         rules: &[Rule],
     ) -> Self {
         let mut out = Self::default();
+        let models: Vec<_> = models.into_iter().collect();
+        let regions = catalog::model_regions(vram, &models);
         for model in models {
-            let Some(rule) = rules.iter().rev().find(|r| r.matches(&model)) else {
+            let Some(rule) = rules
+                .iter()
+                .rev()
+                .find(|r| r.matches(&model, vram, &regions))
+            else {
                 continue;
             };
             if !rule.enabled || model.geometry.is_empty() {
                 continue;
             }
-            if let Some(emitter) = detect(&model, rule, vram, &mut out.emissions) {
+            if let Some(emitter) = detect(&model, rule, vram, &regions, &mut out.emissions) {
                 out.models.insert(model.geometry.as_ptr() as usize, emitter);
             }
         }
+        out.material_emissions = out
+            .emissions
+            .iter()
+            .map(|(region, emission)| (regions[region].clone(), *emission))
+            .collect();
         out
     }
 
-    fn source(&self, geometry: &[Geometry], matrix: impl FnOnce() -> Matrix) -> Option<Source> {
+    pub fn source(&self, geometry: &[Geometry], matrix: impl FnOnce() -> Matrix) -> Option<Source> {
         if geometry.is_empty() {
             return None;
         }
@@ -159,6 +192,7 @@ fn detect(
     model: &catalog::ModelSource<'_>,
     rule: &Rule,
     vram: &tenchu_assets::texture::Vram,
+    regions: &BTreeMap<catalog::Region, String>,
     emissions: &mut BTreeMap<catalog::Region, [f32; 4]>,
 ) -> Option<Emitter> {
     let mut position = Vec3::ZERO;
@@ -169,6 +203,10 @@ fn detect(
             let Some(region) = catalog::face_region(vram, face) else {
                 continue;
             };
+            let id = &regions[&region];
+            if rule.texture.as_ref().is_some_and(|texture| texture != id) {
+                continue;
+            }
             let texture = face.texture.unwrap();
             let order = if face.corners.len() == 4 {
                 &[0, 1, 2, 1, 3, 2][..]
@@ -229,7 +267,7 @@ fn detect(
     }
     (weight > 0.0).then(|| Emitter {
         flame: rule.flame,
-        name: model.label.clone(),
+        name: rule.label.clone().unwrap_or_else(|| model.label.clone()),
         position: position / weight + Vec3::from(rule.offset),
         color: rule
             .color

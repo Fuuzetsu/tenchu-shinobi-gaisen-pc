@@ -213,3 +213,113 @@ fn native_fire_lights_illuminate_bodies_and_scenery() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; lamp classification must select emitting panels, not bright scenery or unlit lanterns"]
+fn native_lamps_classify_disc_artwork_and_stay_visible_at_distance() {
+    use crate::visuals::lights::Emitters;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let rules = crate::visuals::lights::defaults();
+    let mut total = 0;
+    for map in Level::available(&disc).unwrap() {
+        let level = Level::load(&disc, map).unwrap();
+        let models =
+            super::super::sources("audit", &level.objects, crate::visuals::catalog::Role::Prop);
+        let emitters = Emitters::new(&level.vram, models, &rules);
+        let found: Vec<_> = level
+            .objects
+            .iter()
+            .enumerate()
+            .filter_map(|(i, p)| {
+                emitters
+                    .source(&p.geometry, tenchu_core::math::Matrix::default)
+                    .map(|source| {
+                        assert!(source.light.position.is_finite());
+                        i
+                    })
+            })
+            .collect();
+        let expected: &[usize] = match map {
+            1 => &[0, 1],
+            4 => &[12],
+            12 => &[1, 13],
+            13 => &[26],
+            15 => &[2, 3],
+            17 => &[14],
+            19 => &[13],
+            22 => &[4, 5],
+            _ => &[],
+        };
+        assert_eq!(
+            found, expected,
+            "map {map}: light-producing materials changed"
+        );
+        total += found.len();
+    }
+    assert!(total > 10);
+    let mut session = crate::tenchu2::native::Session::load(&disc, 4, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let world = postcard::to_allocvec(&session.world).unwrap();
+    let level = &session.assets.level;
+    let sources =
+        super::super::sources("props", &level.objects, crate::visuals::catalog::Role::Prop);
+    let emitters = Emitters::new(&level.vram, sources, &rules);
+    let lamps = super::super::lamps::sources(
+        &emitters,
+        level,
+        &session.assets.resources.math,
+        Some(&session.world.environment),
+    );
+    assert!(!lamps.is_empty());
+    let mut lighting = Lighting::new(level);
+    lighting.lamps = lamps.clone();
+    let settings = crate::settings::Lighting {
+        enabled: true,
+        lamps: true,
+        fires: false,
+        count: 1,
+        ..Default::default()
+    };
+    for eye in [Vec3::ZERO, Vec3::splat(100_000.0), Vec3::splat(-100_000.0)] {
+        let sources = lighting.named_sources(&settings, eye);
+        assert_eq!(
+            sources.len(),
+            lamps.len(),
+            "off-screen lamps must not depend on the native draw list"
+        );
+        for source in &sources {
+            assert!(
+                lamps
+                    .iter()
+                    .any(|lamp| lamp.light.position == source.light.position)
+            );
+        }
+        let off = crate::settings::Lighting {
+            lamps: false,
+            ..settings.clone()
+        };
+        assert!(lighting.named_sources(&off, eye).is_empty());
+    }
+    let mut disabled = rules.clone();
+    for rule in &mut disabled {
+        rule.enabled = false;
+    }
+    let emitters = Emitters::new(
+        &level.vram,
+        super::super::sources("props", &level.objects, crate::visuals::catalog::Role::Prop),
+        &disabled,
+    );
+    assert!(
+        super::super::lamps::sources(
+            &emitters,
+            level,
+            &session.assets.resources.math,
+            Some(&session.world.environment)
+        )
+        .is_empty()
+    );
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), world);
+}

@@ -31,6 +31,7 @@ mod blood;
 mod custom;
 mod environment;
 mod hud;
+mod lamps;
 pub(super) mod lighting;
 mod story;
 #[cfg(test)]
@@ -248,6 +249,7 @@ impl SceneDrawing {
         renderer: &Renderer,
         geometry: &mut Geometry,
     ) -> Vec<crate::debug::Label> {
+        self.lighting.lamps = std::mem::take(&mut geometry.lamps);
         let origin = camera.inverse() * glam::Vec4::new(0.0, 0.0, 1.0, 0.0);
         let eye = origin.truncate() / origin.w;
         self.lighting.debug_light = debug.and_then(|debug| debug.light_at(eye));
@@ -383,7 +385,11 @@ impl SceneDrawing {
             actors: renderer.upload(&geometry.actors),
             effects: renderer.upload_effects(geometry.effects),
             environment: None,
-            lighting: lighting::Lighting::new(level),
+            lighting: {
+                let mut lighting = lighting::Lighting::new(level);
+                lighting.lamps = geometry.lamps;
+                lighting
+            },
             sky: Default::default(),
         }
     }
@@ -501,6 +507,7 @@ fn capture_frame(
 pub struct Models {
     player: Option<custom::Player>,
     scenery: Meshes,
+    lamps: crate::visuals::lights::Emitters,
     bodies: BTreeMap<String, Meshes>,
     weapons: Meshes,
     imported_weapons: BTreeMap<String, Meshes>,
@@ -509,6 +516,7 @@ pub struct Models {
 }
 
 pub struct Geometry {
+    lamps: Vec<crate::lighting::Source>,
     pub backgrounds: Vec<render_effects::Geometry>,
     pub terrain: Vec<Vertex>,
     pub actors: Vec<Vertex>,
@@ -531,6 +539,35 @@ impl Default for Presentation<'_> {
             pose: None,
         }
     }
+}
+
+fn static_models<'a>(
+    level: &'a Level,
+    math: &'a tenchu_core::math::Math,
+    phases: Option<&'a [i16]>,
+) -> impl Iterator<Item = (&'a Part, Matrix)> {
+    level
+        .scene
+        .statics
+        .iter()
+        .enumerate()
+        .filter_map(move |(index, object)| {
+            let tenchu_assets::tenchu2::level::objects::StaticKind::Model(model) = object.kind
+            else {
+                return None;
+            };
+            let mut rotation = object.rotation;
+            if let Some(phases) = phases {
+                rotation = [phases[index], object.rotation[1], 0];
+            }
+            Some((
+                &level.objects[model],
+                Matrix {
+                    translation: object.position.into(),
+                    rotation: math.rotate_yxz(rotation),
+                },
+            ))
+        })
 }
 
 fn sources<'a>(name: &str, parts: &'a [Part], role: Role) -> Vec<catalog::ModelSource<'a>> {
@@ -561,14 +598,19 @@ fn prepare(
     sources: Vec<catalog::ModelSource<'_>>,
     graphics: &Graphics,
 ) -> Result<Meshes> {
-    let pack = if graphics.asset_pack {
-        Pack::for_models(vram, &sources)?
-    } else {
-        Pack::default()
-    };
-    let mut meshes = Meshes::build(vram, &pack, graphics, sources, true)?;
+    let pack = lamps::pack(vram, &sources, graphics)?;
+    prepare_pack(vram, sources, graphics, &pack)
+}
+
+fn prepare_pack(
+    vram: &Vram,
+    sources: Vec<catalog::ModelSource<'_>>,
+    graphics: &Graphics,
+    pack: &Pack,
+) -> Result<Meshes> {
+    let mut meshes = Meshes::build(vram, pack, graphics, sources, true)?;
     if graphics.asset_pack {
-        meshes.replace_textures(&pack);
+        meshes.replace_textures(pack);
     }
     meshes.inherit_palette_blending(vram);
     Ok(meshes)
@@ -599,7 +641,8 @@ impl Models {
                 Role::Prop,
             ));
         }
-        let mut scenery = build(&assets.level.vram, scenery, graphics)?;
+        let (mut scenery, lamps) = lamps::prepare(&assets.level.vram, scenery, graphics)?;
+        renderer.set_emitters(&lamps);
         renderer.bind_meshes(&mut scenery);
         let mut bodies = BTreeMap::new();
         for (name, model) in &assets.models {
@@ -656,6 +699,7 @@ impl Models {
         Ok(Self {
             player: None,
             scenery,
+            lamps,
             bodies,
             weapons,
             imported_weapons,
@@ -726,7 +770,18 @@ impl Models {
                 ModelStyle::Terrain,
             );
         }
+        let distant_props = !graphics.fog || camera.is_some();
+        if distant_props {
+            for (part, matrix) in
+                static_models(&assets.level, math, Some(&world.environment.static_phases))
+            {
+                output.model(&self.scenery, part, matrix, ModelStyle::Terrain);
+            }
+        }
         for model in &frame.scenery.models {
+            if distant_props && model.static_index.is_some() {
+                continue;
+            }
             let part = if model.stump {
                 assets.level.stumps.get(&model.model)
             } else {
@@ -1212,6 +1267,7 @@ impl Models {
             effects = rope;
         }
         Ok(Geometry {
+            lamps: lamps::sources(&self.lamps, &assets.level, math, Some(&world.environment)),
             backgrounds: background::geometry(
                 &assets.level.background,
                 &assets.level.shading,

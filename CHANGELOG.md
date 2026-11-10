@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP lanterns use the shared dynamic lighting and shadows in gameplay and 3D cutscenes. Verified emitting textures identify lamps without lighting unrelated bright scenery; light positions remain available beyond the original draw distance. Packs can select lamp surfaces by texture ID as well as model name. Static props also render outside the original camera's draw list when fog is off or free camera is in use.
+
 - Native Tenchu 2 JP can add a player death pool when the source death has none. It waits for the settled corpse pose, supports the shared death styles, size, retention and clearing, and avoids duplicating pools already created by T2.
 
 - Native Tenchu 2 JP supports Off / Original / Original HD / Modern death-pool styles, pool size and retention through the shared blood renderer. Source animation completion and pool growth are preserved, including paused style changes. Original ground splats and death pools now render from both sides, fixing missing blood caused by back-face rejection.

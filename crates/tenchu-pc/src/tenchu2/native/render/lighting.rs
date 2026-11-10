@@ -7,6 +7,7 @@ mod tests;
 
 pub(super) struct Lighting {
     fires: Vec<Vec3>,
+    pub lamps: Vec<Source>,
     pub focus: Option<Vec3>,
     pub debug_light: Option<Vec3>,
     pub transients: Vec<Source>,
@@ -24,6 +25,7 @@ impl Lighting {
                 .filter(|object| matches!(object.kind, StaticKind::Effect(0..=2 | 6)))
                 .map(|object| Vec3::from(object.position.map(|v| v as f32)) - Vec3::Y * 400.0)
                 .collect(),
+            lamps: Vec::new(),
             focus: None,
             debug_light: None,
             transients: Vec::new(),
@@ -68,6 +70,7 @@ impl Lighting {
             && settings.count > 0
             && (self.debug_light.is_some()
                 || !self.transients.is_empty()
+                || settings.lamps && !self.lamps.is_empty()
                 || settings.fires && (!self.fires.is_empty() || !self.flashes.is_empty()))
     }
 
@@ -78,7 +81,8 @@ impl Lighting {
                 self.fires.len() + self.flashes.len().min(2)
             } else {
                 0
-            } + usize::from(self.debug_light.is_some())
+            } + if settings.lamps { self.lamps.len() } else { 0 }
+                + usize::from(self.debug_light.is_some())
                 + self.transients.len())
             .min(lighting::MAX_SCENE_LIGHTS)
         } else {
@@ -108,9 +112,9 @@ impl Lighting {
             self.focus.unwrap_or(eye),
             self.debug_light,
             Sources {
+                lamps: self.lamps.clone(),
                 fires,
                 flashes: self.flashes.clone(),
-                ..Default::default()
             },
         ));
         sources.truncate(lighting::MAX_SCENE_LIGHTS);
@@ -119,15 +123,22 @@ impl Lighting {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub(in crate::tenchu2::native) fn nearest(level: &Level, eye: Vec3) -> Option<Source> {
-    Lighting::new(level)
+pub(in crate::tenchu2::native) fn nearest(
+    level: &Level,
+    math: &tenchu_core::math::Math,
+    eye: Vec3,
+) -> Option<Source> {
+    let fires = Lighting::new(level)
         .fires
         .into_iter()
+        .map(|p| fire(p, 12_000.0));
+    super::lamps::defaults(level, math)
+        .into_iter()
+        .chain(fires)
         .min_by(|a, b| {
-            eye.distance_squared(*a)
-                .total_cmp(&eye.distance_squared(*b))
+            eye.distance_squared(a.light.position)
+                .total_cmp(&eye.distance_squared(b.light.position))
         })
-        .map(|position| fire(position, 12_000.0))
 }
 
 fn fire(position: Vec3, radius: f32) -> Source {

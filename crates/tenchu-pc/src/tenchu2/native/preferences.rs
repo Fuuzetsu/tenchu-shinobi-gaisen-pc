@@ -60,10 +60,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
             ..Default::default()
         },
         sky: g.sky.clone(),
-        lighting: crate::settings::Lighting {
-            lamps: false,
-            ..g.lighting.clone()
-        },
+        lighting: g.lighting.clone(),
         ..Default::default()
     }
 }

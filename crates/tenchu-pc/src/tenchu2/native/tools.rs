@@ -298,16 +298,22 @@ impl Tools {
 
     pub fn apply(&mut self, content: &mut Content, size: [u32; 2]) -> Result<()> {
         if std::mem::take(&mut self.focus_light) {
-            let level = match content {
-                Content::Gameplay(session) => &session.assets.level,
-                Content::Story { story, .. } => &story.level,
+            let (level, math) = match content {
+                Content::Gameplay(session) => (
+                    &session.assets.level,
+                    session.assets.resources.math.as_ref(),
+                ),
+                Content::Story { story, .. } => (&story.level, &story.math),
                 _ => {
                     return Err("Start a mission or a 3D cutscene before inspecting lights.".into());
                 }
             };
-            let source =
-                super::render::lighting::nearest(level, self.debug.inspection_eye(&self.scene)?)
-                    .ok_or("No flame emitters found in this scene")?;
+            let source = super::render::lighting::nearest(
+                level,
+                math,
+                self.debug.inspection_eye(&self.scene)?,
+            )
+            .ok_or("No lamp or flame emitters found in this scene")?;
             self.debug.focus_light(&self.scene, &source)?;
         }
         if !self.edits.is_empty() {
