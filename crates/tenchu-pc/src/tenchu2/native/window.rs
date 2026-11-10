@@ -269,7 +269,7 @@ impl Application {
         let mut view = self
             .view
             .as_mut()
-            .filter(|v| v.generation == self.session.generation);
+            .filter(|v| v.generation == self.session.generation && !self.menu.actor_assets_changed);
         let graphics = &self.settings.rendering().graphics;
         let update = self.transport.frame_step(
             &mut self.session,
@@ -333,7 +333,7 @@ impl Application {
         let mut view = self
             .view
             .as_mut()
-            .filter(|v| v.generation == self.session.generation);
+            .filter(|v| v.generation == self.session.generation && !self.menu.actor_assets_changed);
         let graphics = &self.settings.rendering().graphics;
         let update = self.transport.advance(
             &mut self.session,
@@ -391,7 +391,7 @@ impl Application {
                 }
             }
         }
-        let mut models_changed = false;
+        let mut models_changed = std::mem::take(&mut self.menu.actor_assets_changed);
         if let (Content::Gameplay(session), Some(gallery)) =
             (&mut self.session.content, &mut self.gallery)
         {
@@ -404,7 +404,7 @@ impl Application {
                 &self.settings,
             ) {
                 Ok(changed) => {
-                    models_changed = changed;
+                    models_changed |= changed;
                     if changed {
                         session.reset_interpolation()?;
                     }
@@ -511,6 +511,9 @@ impl Application {
             {
                 gallery.bodies = bodies;
                 gallery.picker.clear();
+            }
+            if let Some(request) = action.spawn {
+                self.menu.apply_spawn(&mut self.session, request);
             }
             if action.reload_artwork {
                 match view.drawing.replace(

@@ -17,6 +17,7 @@ mod experiment;
 #[derive(Default)]
 pub struct Tools {
     pub debug: Debug,
+    pub actor_models: Vec<(String, String)>,
     scene: Snapshot,
     orbit: crate::navigation::Orbit,
     tick: u64,
@@ -37,6 +38,23 @@ impl Tools {
     pub fn sync(&mut self, content: &Content, generation: u64) {
         let changed = self.generation != Some(generation);
         if changed {
+            self.actor_models = match content {
+                Content::Gameplay(session) => session
+                    .assets
+                    .resources
+                    .registry
+                    .actors
+                    .iter()
+                    .filter(|a| a.kind >= 0)
+                    .map(|a| {
+                        (
+                            format!("native:{}", a.kind),
+                            format!("{} · T2 JP {:#04x}", a.model, a.kind),
+                        )
+                    })
+                    .collect(),
+                _ => Vec::new(),
+            };
             self.debug.return_camera();
             self.orbit = Default::default();
             self.debug.bookmark = None;

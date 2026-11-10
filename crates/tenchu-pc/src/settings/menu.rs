@@ -374,6 +374,7 @@ pub struct Menu {
     pub moveset_search: String,
     pub model_directory: String,
     pub spawn_model: String,
+    pub actor_models: Vec<(String, String)>,
     pub spawn_search: String,
     pub spawn_yaw: i16,
     pub artwork_status: String,

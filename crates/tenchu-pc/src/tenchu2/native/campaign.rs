@@ -53,7 +53,7 @@ pub struct Update {
 }
 
 pub struct Playback<S> {
-    disc: Disc<S>,
+    pub(super) disc: Disc<S>,
     campaign: Campaign,
     pub run: Run,
     pub content: Content,

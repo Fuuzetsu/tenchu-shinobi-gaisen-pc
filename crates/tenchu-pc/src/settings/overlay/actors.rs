@@ -15,31 +15,39 @@ pub(super) fn show(
             "Changes last until retry. Ends input recording; no TRIAL records. Story actors are protected."
         });
         available_ui(ui, runtime, Item::SpawnActor, |ui| {
-        if let Some(models) = models {
-            if let Some(library) = models.library {
-                ui.horizontal(|ui| {
-                    ui.label("Search models");
-                    ui.add(egui::TextEdit::singleline(&mut menu.spawn_search).desired_width(170.0));
-                });
-                let search = menu.spawn_search.to_lowercase();
-                let selected = library.get(&menu.spawn_model).map_or("Choose a model", |b| b.name.as_str());
-                egui::ComboBox::from_id_salt("spawn-actor-model")
-                    .width(270.0).selected_text(selected).show_ui(ui, |ui| {
-                        for body in &library.bodies {
-                            if body.name.to_lowercase().contains(&search) || body.id.to_lowercase().contains(&search) {
-                                ui.selectable_value(&mut menu.spawn_model, body.id.clone(), &body.name);
-                            }
+            let choices: Vec<_> = if runtime == Runtime::Tenchu2 {
+                menu.actor_models.iter().map(|(id, name)| (id.as_str(), name.as_str())).collect()
+            } else {
+                models.and_then(|models| models.library).into_iter()
+                    .flat_map(|library| &library.bodies)
+                    .map(|body| (body.id.as_str(), body.name.as_str())).collect()
+            };
+            if choices.is_empty() {
+                ui.label(if runtime == Runtime::Tenchu2 { "Start a mission to load its native actor catalog." } else { "Loading the disc's model library…" });
+                return;
+            }
+            ui.horizontal(|ui| {
+                ui.label("Search actors");
+                ui.add(egui::TextEdit::singleline(&mut menu.spawn_search).desired_width(170.0));
+            });
+            let search = menu.spawn_search.to_lowercase();
+            let selected = choices.iter().find(|(id, _)| *id == menu.spawn_model)
+                .map_or("Choose an actor", |(_, name)| *name);
+            egui::ComboBox::from_id_salt("spawn-actor-model")
+                .width(270.0).selected_text(selected).show_ui(ui, |ui| {
+                    for &(id, name) in &choices {
+                        if name.to_lowercase().contains(&search) || id.to_lowercase().contains(&search) {
+                            ui.selectable_value(&mut menu.spawn_model, id.to_owned(), name);
                         }
-                    });
-                ui.horizontal(|ui| {
-                    if ui.add_enabled(!menu.spawn_model.is_empty(), egui::Button::new("Place new actor")).clicked() {
-                        edits.push(Edit::Change(Item::SpawnActor, 1));
                     }
                 });
-            } else {
-                ui.label("Loading the disc's model library…");
+            let chosen = choices.iter().any(|(id, _)| *id == menu.spawn_model);
+            if ui.add_enabled(chosen, egui::Button::new("Place new actor")).clicked() {
+                edits.push(Edit::Change(Item::SpawnActor, 1));
             }
-        }
+            if runtime == Runtime::Tenchu2 {
+                ui.weak("Uses native T2 AI, weapons, animations and voices. Missing disc resources are reported when placing. Cross-game bodies are not connected to placement yet.");
+            }
         });
         ui.horizontal(|ui| {
             ui.label("Facing (degrees)");

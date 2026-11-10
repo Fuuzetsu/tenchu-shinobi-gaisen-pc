@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2's **Place new actor** offers its source actor catalog without needing
+  a Gaisen disc or model gallery. Guards, bosses, civilians, animals and scene
+  variants retain their native rigs, weapons, animations, AI and voices, including
+  actors from other stages. Placement works in imported T1 stages, preserves
+  authored story targets, and resets on retry. Horse, hawk and crow definitions
+  report the animation files missing from the Japanese disc. Cross-game body
+  selection for placement remains pending.
+
 - Native T2's F1 actor editor can copy positions, pick a floor point, move a guard
   with a new facing, and remove actors. Edits reset on retry or area change and
   also work in imported T1 stages. Moving clears the old patrol; removal leaves

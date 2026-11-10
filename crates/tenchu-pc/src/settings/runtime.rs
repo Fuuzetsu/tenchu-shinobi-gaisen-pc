@@ -53,7 +53,7 @@ impl Runtime {
             | Patrols | Events | Collision | CollisionOnly | Target(_) | PlayerPosition
             | CameraPosition | SnapFloor | Teleport | PickTeleport | ClickTeleport | KillActor
             | ClickKill | Screenshot | ActorPosition | PickActorPosition | MoveActor
-            | RemoveActor => None,
+            | RemoveActor | SpawnActor => None,
             CircleAction | CameraRelative | AlignAim | FollowActor | FollowDistance
             | RecenterOrbit | MouseSensitivity | StickSensitivity | StickDeadzone
             | InvertCameraY => None,

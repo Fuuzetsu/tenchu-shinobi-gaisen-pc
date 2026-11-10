@@ -172,37 +172,9 @@ impl Assets {
         if self.cast.len() > 11 {
             return Err("Too many Tenchu 2 voices in imported stage".into());
         }
-        let mut wanted = std::collections::BTreeSet::new();
-        for &kind in &self.cast {
-            let actor = self
-                .resources
-                .registry
-                .actor(kind)
-                .ok_or("Missing imported guard definition")?;
-            if !self.models.contains_key(&actor.model) {
-                self.models
-                    .insert(actor.model.clone(), characters::rig(disc, &actor.model)?);
-            }
-            wanted.extend(
-                actor
-                    .motions
-                    .iter()
-                    .map(|m| m.clip)
-                    .filter(|id| !self.resources.clips.contains_key(id)),
-            );
-            for name in self
-                .resources
-                .weapons
-                .parts(actor.weapon)
-                .filter_map(|p| p.model.as_ref())
-            {
-                if !self.weapons.contains_key(name) {
-                    self.weapons
-                        .insert(name.clone(), weapons::model(disc, name)?);
-                }
-            }
+        for kind in self.cast.clone() {
+            self.load_actor(disc, kind)?;
         }
-        self.resources.clips.extend(motions::collect(disc, wanted)?);
         Ok(())
     }
 

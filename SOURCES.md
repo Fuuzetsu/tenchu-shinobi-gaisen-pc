@@ -3215,3 +3215,26 @@ Force kill is explicitly an experiment: it bypasses damage, invulnerability and
 resurrection, without inventing an attack contact or deleting the actor. Normal
 gameplay paths are unchanged. Direct fixture evidence is kept under
 `private/two-releases-20261110/kill-*.log`; this is not an ordinary-play recording.
+
+Native F1 placement reuses the existing JP actor constructor (`8001b5ac`),
+layout initialization (`80064d3c`), rig/weapon binding, packed AI assignment
+(`8002fb20`) and native inventory generator. The source initialization order
+is shared with ordinary loading; no source actor arithmetic was replaced.
+The optional editor chooses a registered actor's authored AI assignment, replacing
+a patrol with LookAround because no route was placed. Unused definitions use the
+existing stationary, civilian or guard programs. Added actors have no authored
+script slot, cannot replace mission target bindings, and increase all-enemy
+quotas when their deaths can contribute. Scene-only variants retain source health.
+
+Resource loading shares the imported-stage cast loader. Missing JP horse/hawk/
+crow clips remain unsupported rather than borrowing PAL assets. Out-of-stage
+voices use the existing single-program VAB reader and source cue numbers;
+independent per-kind bark timers retain the source 30-tick suppression without
+using another stage actor's bank or changing ordinary sound allocation. Actors
+without a registered voice program do not borrow the player's voice. No retail
+assets or decoded samples are committed. Read-only references reviewed include
+Gaisen `HUMAN.C::CreateHumanoid`, the research simulator's dog item initialization,
+and `tenchu-viewer/src/actors.rs` model/motion loading. Their architectures were
+not imported. Direct placement/AI/death, audio, campaign-binding and GPU evidence
+is under `private/two-releases-20261110/spawn-*`; ordinary-play regression uses
+the existing recorded T2 input/draw-skip comparison described above.

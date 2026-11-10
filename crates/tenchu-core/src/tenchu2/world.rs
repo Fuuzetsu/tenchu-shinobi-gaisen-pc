@@ -182,62 +182,7 @@ impl World {
             .filter(|actor| cast.contains(&actor.kind))
         {
             let index = world.create_actor(entry.kind, Position::default(), 0, assets)?;
-            let agent = &mut world.actors[index];
-            let actor = &mut agent.actor;
-            if actor
-                .motion
-                .select(
-                    0x700,
-                    actor.kind,
-                    &assets.resources.registry,
-                    &assets.resources.clips,
-                )?
-                .is_some()
-            {
-                actor.motion.select(
-                    0,
-                    actor.kind,
-                    &assets.resources.registry,
-                    &assets.resources.clips,
-                )?;
-            } else {
-                actor.motion.select(
-                    0x100,
-                    actor.kind,
-                    &assets.resources.registry,
-                    &assets.resources.clips,
-                )?;
-                actor.state = State::Ready;
-                actor.flags |= 2;
-                actor.set_weapon(
-                    &mut world.instances[index].rig,
-                    index,
-                    &mut world.collision,
-                    &assets.resources,
-                    WeaponMode::Draw,
-                )?;
-            }
-            actor.position = entry.position.into();
-            actor.target =
-                (!matches!(actor.kind, 0x6a..=0x6e) && actor.kind & 0xf0 != 0x10).then_some(0);
-            agent.behavior.home = actor.position;
-            if agent.behavior.assign(
-                entry.behavior,
-                layout.map,
-                options.difficulty,
-                &mut world.random,
-            )? {
-                actor.flags |= 0x10;
-            }
-            actor.rotation.y = entry.facing;
-            agent.behavior.patrol = super::ai::Patrol::new(&entry.route, actor.position);
-            agent.slot = entry.slot as i16;
-            actor.inventory = Inventory::for_actor(actor.kind, &assets.loot, &mut world.random);
-            // Layout coordinates alias the source root translation. Its matrix
-            // keeps the constructor's rotation until the actor first updates.
-            world
-                .scene
-                .set_translation(world.instances[index].rig.root, actor.position);
+            world.configure_actor(index, entry, assets)?;
         }
         world.environment = super::environment::Environment::new(
             &assets.level,
@@ -257,6 +202,68 @@ impl World {
         world.initialize_activation(assets)?;
         world.mission.initialize(&world.actors, options.hero);
         Ok(world)
+    }
+
+    fn configure_actor(
+        &mut self,
+        index: usize,
+        entry: &tenchu_assets::tenchu2::layout::Actor,
+        assets: &Assets,
+    ) -> Result<()> {
+        let agent = &mut self.actors[index];
+        let actor = &mut agent.actor;
+        if actor
+            .motion
+            .select(
+                0x700,
+                actor.kind,
+                &assets.resources.registry,
+                &assets.resources.clips,
+            )?
+            .is_some()
+        {
+            actor.motion.select(
+                0,
+                actor.kind,
+                &assets.resources.registry,
+                &assets.resources.clips,
+            )?;
+        } else {
+            actor.motion.select(
+                0x100,
+                actor.kind,
+                &assets.resources.registry,
+                &assets.resources.clips,
+            )?;
+            actor.state = State::Ready;
+            actor.flags |= 2;
+            actor.set_weapon(
+                &mut self.instances[index].rig,
+                index,
+                &mut self.collision,
+                &assets.resources,
+                WeaponMode::Draw,
+            )?;
+        }
+        actor.position = entry.position.into();
+        actor.target = (!matches!(actor.kind, 0x6a..=0x6e) && actor.kind & 0xf0 != 0x10)
+            .then_some(self.player);
+        agent.behavior.home = actor.position;
+        if agent
+            .behavior
+            .assign(entry.behavior, self.map, self.difficulty, &mut self.random)?
+        {
+            actor.flags |= 0x10;
+        }
+        actor.rotation.y = entry.facing;
+        agent.behavior.patrol = super::ai::Patrol::new(&entry.route, actor.position);
+        agent.slot = entry.slot as i16;
+        actor.inventory = Inventory::for_actor(actor.kind, &assets.loot, &mut self.random);
+        // Layout coordinates alias the source root translation. Its matrix
+        // keeps the constructor's rotation until the actor first updates.
+        self.scene
+            .set_translation(self.instances[index].rig.root, actor.position);
+        Ok(())
     }
 
     fn create_actor(

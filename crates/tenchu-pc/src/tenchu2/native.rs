@@ -1,4 +1,8 @@
-use std::{collections::BTreeSet, path::Path, sync::Arc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+    sync::Arc,
+};
 use tenchu_assets::audio::voice::{Dialect, Sourced, VoiceSet};
 use tenchu_assets::{
     ReadAt, Result,
@@ -50,6 +54,8 @@ mod results;
 pub(crate) mod save;
 #[cfg(not(target_arch = "wasm32"))]
 mod selection;
+#[cfg(not(target_arch = "wasm32"))]
+mod spawning;
 mod story;
 #[cfg(test)]
 mod tests;
@@ -66,6 +72,7 @@ pub struct Session {
     pub frame: Frame,
     contact: contact::History,
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
+    actor_voices: BTreeMap<usize, Option<Arc<VoiceSet>>>,
     pub pending: BTreeSet<String>,
     pub interpolation: Option<crate::visuals::interpolation::History>,
     pub navigation: Option<navigation::Input>,
@@ -173,6 +180,7 @@ impl Session {
             frame: Frame::default(),
             contact: Default::default(),
             bank,
+            actor_voices: BTreeMap::new(),
             pending: BTreeSet::new(),
             interpolation: None,
             navigation: None,
@@ -227,6 +235,7 @@ impl Session {
             voice: self.models.voice.as_ref(),
             #[cfg(target_arch = "wasm32")]
             voice: None,
+            actor_voices: &self.actor_voices,
             listener: self.world.listener(),
             requests: Vec::new(),
             wounds: Vec::new(),
@@ -258,6 +267,7 @@ impl Session {
         for &position in &self.frame.effects.blood_sounds {
             events.requests.push(SoundRequest {
                 source: None,
+                extra_voice: None,
                 id: 29,
                 listener: self.world.listener(),
                 position: Some(position),
@@ -269,6 +279,11 @@ impl Session {
             if let Some((direction, volume)) = request
                 .listener
                 .parameters(request.position, &self.assets.resources.math)?
+                && request.extra_voice.is_none_or(|kind| {
+                    self.world
+                        .audio
+                        .extra_voice_ready(kind, request.id & 15, tick)
+                })
                 && let Some(sound) = self.world.audio.play(
                     request.id,
                     direction,
@@ -374,6 +389,7 @@ fn gaisen_bank(
 struct Output<'a> {
     player: usize,
     voice: Option<&'a Arc<VoiceSet>>,
+    actor_voices: &'a BTreeMap<usize, Option<Arc<VoiceSet>>>,
     listener: Listener,
     requests: Vec<SoundRequest>,
     wounds: Vec<contact::Wound>,
@@ -383,6 +399,7 @@ struct Output<'a> {
 
 struct SoundRequest {
     source: Option<(Arc<tenchu_assets::audio::bank::Bank>, u8)>,
+    extra_voice: Option<i16>,
     id: u8,
     listener: Listener,
     position: Option<Position>,
@@ -417,12 +434,23 @@ impl Events for Output<'_> {
         let position = (source.index != source.listener.actor).then_some(source.actor.position);
         let mut volume = None;
         let mut bank = None;
+        let mut extra_voice = None;
         let (id, position) = match event {
             Event::Voice(id) | Event::Combat(CombatCue::Voice(id)) => {
-                if id < 16
-                    && source.index == self.player
-                    && let Some(voice) = self.voice
-                {
+                let voice = if id < 16 {
+                    if let Some(voice) = self.actor_voices.get(&source.index) {
+                        let Some(voice) = voice else { return Ok(()) };
+                        extra_voice = Some(source.actor.kind);
+                        Some(voice)
+                    } else {
+                        (source.index == self.player)
+                            .then_some(self.voice)
+                            .flatten()
+                    }
+                } else {
+                    None
+                };
+                if let Some(voice) = voice {
                     bank = Some((
                         voice.bank.clone(),
                         voice.cue(Dialect::Tenchu2, id, source.actor.health == 0) as u8,
@@ -455,6 +483,7 @@ impl Events for Output<'_> {
         };
         self.requests.push(SoundRequest {
             source: bank,
+            extra_voice,
             id,
             listener: source.listener,
             position,
@@ -469,6 +498,7 @@ impl environment::Events for Output<'_> {
         if let environment::Event::Sound { position, id } = event {
             self.requests.push(SoundRequest {
                 source: None,
+                extra_voice: None,
                 id,
                 listener: self.listener,
                 position: Some(position),

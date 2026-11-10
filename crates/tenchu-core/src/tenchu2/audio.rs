@@ -52,9 +52,20 @@ pub struct Audio {
     last_base: i32,
     base_slot: u8,
     variant_slot: u8,
+    #[serde(default)]
+    extra_voice_ticks: std::collections::BTreeMap<i16, i32>,
 }
 
 impl Audio {
+    pub fn extra_voice_ready(&mut self, kind: i16, cue: u8, tick: u32) -> bool {
+        let previous = self.extra_voice_ticks.entry(kind).or_default();
+        if kind >= 3 && (6..=9).contains(&cue) && (tick as i32).wrapping_sub(*previous) <= 29 {
+            return false;
+        }
+        *previous = tick as i32;
+        true
+    }
+
     pub fn play(
         &mut self,
         id: u8,

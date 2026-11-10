@@ -46,6 +46,50 @@ pub struct Assets {
 }
 
 impl Assets {
+    pub fn load_actor(&mut self, disc: &Disc<impl ReadAt>, kind: i16) -> Result<()> {
+        let actor = self
+            .resources
+            .registry
+            .actor(kind)
+            .ok_or("Unknown Tenchu 2 actor definition")?;
+        let wanted = actor
+            .motions
+            .iter()
+            .map(|m| m.clip)
+            .filter(|id| !self.resources.clips.contains_key(id))
+            .collect();
+        self.resources.clips.extend(motions::collect(disc, wanted)?);
+        let missing: std::collections::BTreeSet<_> = actor
+            .motions
+            .iter()
+            .filter(|m| !self.resources.clips.contains_key(&m.clip))
+            .map(|m| format!("{:#x}", m.clip))
+            .collect();
+        if !missing.is_empty() {
+            return Err(format!(
+                "{} ({kind:#x}) is unavailable: the Japanese disc omits animation clips {}",
+                actor.model,
+                missing.into_iter().collect::<Vec<_>>().join(", ")
+            ));
+        }
+        if !self.models.contains_key(&actor.model) {
+            self.models
+                .insert(actor.model.clone(), characters::rig(disc, &actor.model)?);
+        }
+        for name in self
+            .resources
+            .weapons
+            .parts(actor.weapon)
+            .filter_map(|p| p.model.as_ref())
+        {
+            if !self.weapons.contains_key(name) {
+                self.weapons
+                    .insert(name.clone(), weapons::model(disc, name)?);
+            }
+        }
+        Ok(())
+    }
+
     pub fn load(disc: &Disc<impl ReadAt>, hero: usize, layout: &Layout) -> Result<Self> {
         Self::equipped(disc, hero, layout, false)
     }

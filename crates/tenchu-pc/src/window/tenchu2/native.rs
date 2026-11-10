@@ -161,7 +161,8 @@ impl Application {
             &self.settings.navigation,
             self.focused && !native.menu.panel.open,
         );
-        let ready = native.generation == Some(native.playback.generation);
+        let ready = native.generation == Some(native.playback.generation)
+            && !native.menu.actor_assets_changed;
         let graphics = &self.settings.rendering().graphics;
         let update = native.transport.frame_step(
             &mut native.playback,
@@ -230,7 +231,8 @@ impl Application {
             .playback
             .content
             .interpolate(self.settings.rendering().graphics.interpolation)?;
-        let ready = native.generation == Some(native.playback.generation);
+        let ready = native.generation == Some(native.playback.generation)
+            && !native.menu.actor_assets_changed;
         let graphics = &self.settings.rendering().graphics;
         let update = native.transport.advance(
             &mut native.playback,
@@ -285,7 +287,7 @@ impl Application {
         if wants_models && view.model_library.is_none() {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
         }
-        let mut models_changed = false;
+        let mut models_changed = std::mem::take(&mut native.menu.actor_assets_changed);
         if let Content::Gameplay(session) = &mut native.playback.content
             && let Some(library) = &view.model_library
             && (native.donor.is_some()
@@ -304,7 +306,7 @@ impl Application {
                 &self.settings,
             ) {
                 Ok(changed) => {
-                    models_changed = changed;
+                    models_changed |= changed;
                     if changed {
                         session.reset_interpolation()?;
                     }
@@ -449,6 +451,9 @@ impl Application {
             if let Some(bodies) = actions.models {
                 view.bodies = bodies;
                 view.model_picker.clear();
+            }
+            if let Some(request) = actions.spawn {
+                native.menu.apply_spawn(&mut native.playback, request);
             }
             reload_artwork |= actions.reload_artwork;
             save_diagnostics |= actions.save_diagnostics;

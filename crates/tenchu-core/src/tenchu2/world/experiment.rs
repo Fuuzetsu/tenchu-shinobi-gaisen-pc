@@ -9,6 +9,74 @@ use crate::{
 };
 
 impl World {
+    pub fn place_actor(
+        &mut self,
+        kind: i16,
+        behavior: u16,
+        position: Position,
+        yaw: i16,
+        snap: bool,
+        assets: &Assets,
+    ) -> Result<usize> {
+        let player = &self.actors[self.player].actor;
+        if !self.mission.input_allowed()
+            || player.health <= 0
+            || self.controls.stealth.is_some()
+            || (0x920..=0x92f).contains(&player.motion.action)
+        {
+            return Err(
+                "Placing actors requires a living player outside a cutscene or stealth kill".into(),
+            );
+        }
+        let mut next = self.clone();
+        next.collision.allow_expansion();
+        let index = next.create_actor(kind, Position::default(), 0, assets)?;
+        let actor = &next.actors[index].actor;
+        let (position, probe) =
+            next.edit_destination(position, actor.width, actor.height, snap, assets)?;
+        next.configure_actor(
+            index,
+            &tenchu_assets::tenchu2::layout::Actor {
+                kind,
+                slot: 0,
+                behavior,
+                position: position.to_array(),
+                facing: yaw,
+                route: Vec::new(),
+            },
+            assets,
+        )?;
+        let actor = &mut next.actors[index];
+        actor.slot = -1 - i16::try_from(index).map_err(|_| "Too many placed actors")?;
+        actor.actor.previous = position;
+        actor.actor.terrain = probe;
+        actor.sight.destination = position;
+        next.activate_actor(index, assets)?;
+        next.publish(index, assets);
+        next.collision.compute(|id| next.scene.world(id))?;
+        for foot in &mut next.instances[index].feet {
+            foot.position = position;
+            foot.floor = next.actors[index].actor.terrain.floor;
+        }
+        // Added actors never replace the campaign's authored target bindings.
+        // Their kills still count, so an all-enemies quota must include them.
+        if matches!(
+            next.mission.objective,
+            tenchu_assets::tenchu2::campaign::Objective::EliminateAll
+        ) && next.actors[index].actor.health > 0
+            && !matches!(kind & 0xf0, 0x10 | 0x60 | 0x70)
+        {
+            if u16::from(next.mission.population.guards) + u16::from(next.mission.population.bosses)
+                >= 255
+            {
+                return Err("This mission's enemy quota is full".into());
+            }
+            next.mission.population.guards += 1;
+        }
+        *self = next;
+        Ok(index)
+    }
+
     fn editable_actor(&self, index: usize) -> Result<()> {
         let player = &self.actors[self.player].actor;
         let actor = &self

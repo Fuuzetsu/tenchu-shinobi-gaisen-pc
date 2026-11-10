@@ -73,6 +73,7 @@ pub struct Menu {
     pub diagnostics: bool,
     pub fast_forward: bool,
     pub screenshot: bool,
+    pub actor_assets_changed: bool,
     pub tools: super::tools::Tools,
     pending: Option<Navigation>,
 }
@@ -95,6 +96,7 @@ pub struct State<'a> {
 
 #[derive(Default)]
 pub struct Action {
+    pub spawn: Option<super::spawning::Request>,
     pub leave: bool,
     pub select_mission: bool,
     pub step: bool,
@@ -107,6 +109,24 @@ pub struct Action {
 }
 
 impl Menu {
+    pub fn apply_spawn(
+        &mut self,
+        playback: &mut super::campaign::Playback<impl tenchu_assets::ReadAt>,
+        request: super::spawning::Request,
+    ) {
+        self.panel.notice = match playback.spawn_actor(request) {
+            Ok(id) => {
+                self.actor_assets_changed = true;
+                self.tools.sync(&playback.content, playback.generation);
+                self.tools.debug.actors_edited = true;
+                self.tools.debug.selected_actor = id;
+                format!("Placed actor #{id}. Retry restores the original layout.")
+            }
+            Err(error) => error,
+        };
+        self.tools.debug.notice = Some((self.panel.notice.clone(), web_time::Instant::now()));
+    }
+
     pub fn request_screenshot(&mut self) {
         self.screenshot = true;
         self.panel.open = false;
@@ -256,6 +276,7 @@ impl Menu {
         if !self.panel.open {
             return action;
         }
+        self.panel.actor_models.clone_from(&self.tools.actor_models);
         if self.panel.artwork_status.is_empty() {
             self.panel.artwork_status = crate::visuals::pack::configured_tenchu2_root().map_or_else(
                 || "Install tenchu2-hd.tar.zst beside the game, or import it in the Android launcher. The Gaisen pack does not contain Tenchu 2 artwork.".into(),
@@ -503,6 +524,20 @@ impl Menu {
                             self.request_screenshot();
                             Ok(())
                         }
+                        Item::SpawnActor => self
+                            .panel
+                            .spawn_model
+                            .strip_prefix("native:")
+                            .and_then(|kind| kind.parse::<i16>().ok())
+                            .ok_or_else(|| "Choose a native T2 actor first".into())
+                            .map(|kind| {
+                                action.spawn = Some(super::spawning::Request {
+                                    kind,
+                                    position: self.tools.debug.target,
+                                    yaw: (i32::from(self.panel.spawn_yaw) * 4096 / 360) as i16,
+                                    snap: self.tools.debug.snap_to_floor,
+                                })
+                            }),
                         Item::ActorPosition
                         | Item::PickActorPosition
                         | Item::MoveActor
