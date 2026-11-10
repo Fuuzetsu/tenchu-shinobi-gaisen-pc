@@ -69,6 +69,7 @@ pub struct Drawing {
 }
 
 struct SceneDrawing {
+    draw_distance: i32,
     backgrounds: Vec<crate::renderer::EffectMesh>,
     terrain: crate::renderer::Mesh,
     props: crate::renderer::Mesh,
@@ -525,6 +526,7 @@ impl SceneDrawing {
 
     fn new(geometry: Geometry, renderer: &mut Renderer, level: &Level) -> Self {
         Self {
+            draw_distance: level.draw_distance,
             backgrounds: geometry
                 .backgrounds
                 .into_iter()
@@ -578,7 +580,11 @@ impl SceneDrawing {
     ) -> Result<()> {
         let eye = camera.inverse().project_point3(glam::Vec3::ZERO);
         let lights = self.lighting.sources(&renderer.graphics().lighting, eye);
-        renderer.draw_lit(
+        let end =
+            ((self.draw_distance * i32::from(renderer.graphics().fog_distance) / 100) >> 4) * 16;
+        let range = atmosphere(renderer.graphics()).then_some([(end - 4096) as f32, end as f32]);
+        let previous_fog = std::mem::replace(&mut renderer.linear_fog, range);
+        let result = renderer.draw_lit(
             target,
             camera,
             crate::renderer::SceneMeshes {
@@ -592,7 +598,9 @@ impl SceneDrawing {
                 .environment
                 .as_ref()
                 .map_or_else(Vec::new, |e| vec![&e.caster, &self.props, &self.actors]),
-        )
+        );
+        renderer.linear_fog = previous_fog;
+        result
     }
 }
 
@@ -1169,10 +1177,15 @@ struct Builder {
     shading: Shading,
     rgb_scenery: bool,
     fog_start: Option<i32>,
+    atmosphere: bool,
     surfaces: Vec<Surface>,
     terrain: Vec<Vertex>,
     props: Vec<Vertex>,
     actors: Vec<Vertex>,
+}
+
+fn atmosphere(graphics: &Graphics) -> bool {
+    graphics.post.enabled && (graphics.post.fog_tint != 0 || graphics.post.haze != 0)
 }
 
 #[derive(Clone, Copy)]
@@ -1224,6 +1237,7 @@ impl Builder {
             fog_start: graphics.fog.then(|| {
                 ((level.draw_distance * i32::from(graphics.fog_distance) / 100) >> 4) - 256
             }),
+            atmosphere: atmosphere(graphics),
             surfaces: Vec::new(),
             terrain: Vec::new(),
             props: Vec::new(),
@@ -1253,7 +1267,14 @@ impl Builder {
         ]
     }
 
-    fn surface(&mut self, vertices: Vec<Vertex>, blend: u8) {
+    fn surface(&mut self, mut vertices: Vec<Vertex>, blend: u8) {
+        if self.atmosphere {
+            for vertex in &mut vertices {
+                if vertex.flags & render_mesh::SCREEN == 0 {
+                    vertex.flags |= render_mesh::FOG;
+                }
+            }
+        }
         let depth = vertices
             .iter()
             .map(|v| {
@@ -1309,6 +1330,9 @@ impl Builder {
                     vertex.color = vertex.color.map(|c| (c - fade as f32 / 128.0).max(0.0));
                 } else {
                     palette_color(vertex, &self.shading, fade);
+                }
+                if self.atmosphere {
+                    vertex.flags |= render_mesh::FOG | render_mesh::BAKED_FOG;
                 }
             }
             if matches!(

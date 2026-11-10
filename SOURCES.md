@@ -3033,6 +3033,17 @@ training opening, backgrounds, opaque night geometry, animated facial materials
 and original/HD water. Triangle subdivision and interpolation use the PC renderer;
 the mode2 subtractive ordering-table fog overlay is not reproduced pixel-for-pixel.
 
+The optional native F1 fog tint/haze adapter retains that source palette
+subtraction and far rejection. It adds the selected atmosphere after shading,
+using the same stage-depth interval (`limit - 4096` through `limit` in world
+units). A baked-fog vertex tag prevents the shared renderer from applying a
+second distance reduction; native world sprites use the normal fog path.
+Forward and deferred lighting preserve that tag. This is a presentation option,
+not a change to the source fog algorithm, simulation or Original preset.
+Native F9/F1 capture redraws the same ContentDrawing and egui overlay through
+the existing PNG readback, without stepping the world. No source code or assets
+are imported for these adapters.
+
 ### Cross-game hero movesets
 
 The optional Gaisen moveset adapter reads each installed T2 edition's hero

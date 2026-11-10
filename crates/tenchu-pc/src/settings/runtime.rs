@@ -46,12 +46,13 @@ impl Runtime {
             | Fog | FogDistance | Textures | Shading | Exposure | Filtering | Interpolation
             | Magnification | SurfaceDetail | SurfaceStrength | Antialiasing | AssetPack
             | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion | OcclusionRadius
-            | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | CutsceneSpeed
-            | Pause | Step | Speed | FreeCamera | FlightSpeed | Fov | FocusPlayer | FocusActor
-            | Actor | Overhead | SaveCamera | RestoreCamera | PhotoMode | Hitboxes | Labels
-            | InspectActor | Xray | Trail | Sight | SightStance | Patrols | Events | Collision
-            | CollisionOnly | Target(_) | PlayerPosition | CameraPosition | SnapFloor
-            | Teleport | PickTeleport | ClickTeleport | KillActor | ClickKill => None,
+            | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | FogTint | Haze
+            | CutsceneSpeed | Pause | Step | Speed | FreeCamera | FlightSpeed | Fov
+            | FocusPlayer | FocusActor | Actor | Overhead | SaveCamera | RestoreCamera
+            | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Trail | Sight | SightStance
+            | Patrols | Events | Collision | CollisionOnly | Target(_) | PlayerPosition
+            | CameraPosition | SnapFloor | Teleport | PickTeleport | ClickTeleport | KillActor
+            | ClickKill | Screenshot => None,
             CircleAction | CameraRelative | AlignAim | FollowActor | FollowDistance
             | RecenterOrbit | MouseSensitivity | StickSensitivity | StickDeadzone
             | InvertCameraY => None,

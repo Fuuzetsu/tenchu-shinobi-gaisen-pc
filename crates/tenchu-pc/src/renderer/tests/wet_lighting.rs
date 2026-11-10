@@ -2,6 +2,82 @@ use super::*;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires GPU; source palette fog must survive forward/deferred lighting without a second distance fade"]
+fn baked_palette_fog_preserves_shading_across_lighting_paths() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    if renderer.gl {
+        return;
+    }
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.post.enabled = true;
+    graphics.lighting.enabled = true;
+    graphics.lighting.shadows = true;
+    graphics.lighting.resolution = 256;
+    graphics.lighting.source_size = 100;
+    graphics.weather.mode = crate::settings::WeatherMode::Rain;
+    renderer.weather.wet = 1.0;
+    renderer.linear_fog = Some([1000.0, 3000.0]);
+    let mut vertices = rectangle(2000, 128, None, false, false, true);
+    for v in &mut vertices {
+        v.flags |= render_mesh::SCENERY | render_mesh::FOG | render_mesh::BAKED_FOG;
+    }
+    let mesh = renderer.upload(&vertices);
+    let mut modes = Vec::new();
+    for mode in ["no-fog", "baked", "tint", "haze"] {
+        graphics.fog = mode != "no-fog";
+        graphics.post.fog_tint = u16::from(mode == "tint");
+        graphics.post.haze = if mode == "haze" { 80 } else { 0 };
+        let mut captures = Vec::new();
+        for (cached, shared) in [(false, false), (false, true), (true, true)] {
+            renderer.skip_wet_lighting = !cached;
+            graphics.rendering.shared_forward_lighting = shared;
+            renderer.configure(&graphics);
+            assert!(crate::renderer::wet_lighting::useful(
+                &renderer,
+                camera,
+                &[&mesh]
+            ));
+            renderer
+                .draw_lit(
+                    &view,
+                    camera,
+                    SceneMeshes::new(&[&mesh], &[]),
+                    None,
+                    &[],
+                    &[&mesh],
+                )
+                .unwrap();
+            captures.push(read_pixels(&renderer, &target));
+        }
+        for comparison in &captures[1..] {
+            let maximum = captures[0]
+                .iter()
+                .zip(comparison)
+                .map(|(a, b)| a.abs_diff(*b))
+                .max()
+                .unwrap();
+            assert!(maximum <= 2, "{mode}: lighting paths differ by {maximum}");
+        }
+        modes.push(captures.remove(0));
+    }
+    assert!(
+        modes[0] == modes[1],
+        "baked fog must not darken source colors twice"
+    );
+    assert!(modes[1] != modes[2], "tint must change the scene");
+    assert!(modes[1] != modes[3], "haze must change the scene");
+    assert!(
+        modes[3]
+            .iter()
+            .zip(&modes[1])
+            .all(|(haze, base)| haze <= base),
+        "black haze must not reveal palette-darkened geometry"
+    );
+}
+
+#[test]
 #[ignore = "requires a GPU; coarse shadows must preserve thin receivers, actors, light changes and resize/toggle restoration"]
 fn quarter_resolution_shadows_preserve_receiver_boundaries() {
     let mut vram = Vram::default();

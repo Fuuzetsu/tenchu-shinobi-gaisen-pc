@@ -369,6 +369,7 @@ impl Application {
         )?;
         timing.prepare = prepare.elapsed().as_secs_f32() * 1000.0;
         let phase = Instant::now();
+        let screenshot = std::mem::take(&mut native.menu.screenshot);
         let mut leave = false;
         let mut step = false;
         let mut reload_artwork = false;
@@ -532,6 +533,31 @@ impl Application {
         })? {
             timing.draw = draw;
             self.fps_frames += 1;
+        }
+        if screenshot {
+            let result = (|| {
+                let path = crate::capture::screenshot_path(&format!(
+                    "tenchu2-{}-{}",
+                    native.playback.run.sequence,
+                    native.playback.content.tick()
+                ))?;
+                crate::capture::render_to_png(
+                    &mut view.renderer,
+                    view.size,
+                    view.config.format,
+                    &path,
+                    |renderer, target| {
+                        native.drawing.as_ref().unwrap().draw(
+                            &native.playback.content,
+                            target,
+                            renderer,
+                        )?;
+                        view.overlay.draw(renderer, target);
+                        Ok(())
+                    },
+                )
+            })();
+            native.menu.screenshot_result(result);
         }
         self.performance.record_at(
             now,
@@ -743,6 +769,14 @@ impl Application {
                                 .menu
                                 .tools
                                 .change(settings::menu::Item::PhotoMode, 1)?;
+                            return Ok(());
+                        }
+                        KeyCode::F9 => {
+                            self.native_tenchu2
+                                .as_mut()
+                                .unwrap()
+                                .menu
+                                .request_screenshot();
                             return Ok(());
                         }
                         KeyCode::F6 => return self.leave_native_tenchu2(),

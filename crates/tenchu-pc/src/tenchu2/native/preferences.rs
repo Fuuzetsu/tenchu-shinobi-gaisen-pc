@@ -72,6 +72,7 @@ pub struct Menu {
     pub panel: SharedMenu,
     pub diagnostics: bool,
     pub fast_forward: bool,
+    pub screenshot: bool,
     pub tools: super::tools::Tools,
     pending: Option<Navigation>,
 }
@@ -106,6 +107,22 @@ pub struct Action {
 }
 
 impl Menu {
+    pub fn request_screenshot(&mut self) {
+        self.screenshot = true;
+        self.panel.open = false;
+    }
+
+    pub fn screenshot_result(&mut self, result: Result<(), String>) {
+        self.panel.notice = match result {
+            Ok(()) => "Screenshot saved; path in terminal".into(),
+            Err(error) => {
+                eprintln!("Screenshot: {error}");
+                format!("Screenshot: {error}")
+            }
+        };
+        self.tools.debug.notice = Some((self.panel.notice.clone(), web_time::Instant::now()));
+    }
+
     pub fn new(settings: &Settings) -> Self {
         let mut menu = Self::default();
         menu.panel
@@ -471,6 +488,10 @@ impl Menu {
                             self.panel.open = false;
                             Ok(())
                         }
+                        Item::Screenshot => {
+                            self.request_screenshot();
+                            Ok(())
+                        }
                         Item::Tenchu2Missions => {
                             action.select_mission = true;
                             Ok(())
@@ -705,6 +726,11 @@ mod tests {
         assert!(action.select_mission && !action.leave);
         menu.apply(Edit::Change(Item::Step, 1), &mut state, &mut action);
         assert!(action.step && *state.paused && !menu.panel.open);
+        menu.panel.open = true;
+        let before = state.settings.clone();
+        menu.apply(Edit::Change(Item::Screenshot, 1), &mut state, &mut action);
+        assert!(menu.screenshot && !menu.panel.open && *state.paused);
+        assert_eq!(*state.settings, before);
     }
 
     #[test]

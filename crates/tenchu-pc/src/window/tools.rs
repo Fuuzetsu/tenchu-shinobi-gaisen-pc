@@ -955,20 +955,12 @@ impl Application {
     pub(super) fn save_screenshot(&mut self) {
         self.screenshot = false;
         let result = (|| -> Result<_> {
-            let directory = std::env::var_os("TENCHU_SCREENSHOTS")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| PathBuf::from("screenshots"));
-            std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-            let time = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|e| e.to_string())?
-                .as_nanos();
-            let name = if let Some(demo) = &self.demo {
-                format!("demo-{}-{:05}-{time}.png", demo.clip().id, demo.frame)
+            let prefix = if let Some(demo) = &self.demo {
+                format!("demo-{}-{:05}", demo.clip().id, demo.frame)
             } else {
-                format!("tenchu-{}-{time}.png", self.campaign.game.tick)
+                format!("tenchu-{}", self.campaign.game.tick)
             };
-            let path = directory.join(name);
+            let path = crate::capture::screenshot_path(&prefix)?;
             self.view.as_mut().ok_or("Window is not ready")?.capture(
                 &self.campaign.game,
                 &self.debug,

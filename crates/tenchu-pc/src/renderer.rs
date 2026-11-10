@@ -120,6 +120,8 @@ impl<'a> SceneMeshes<'a> {
 }
 
 pub struct Renderer {
+    /// Optional start/end distances measured along the camera's forward axis.
+    pub linear_fog: Option<[f32; 2]>,
     #[cfg(any(target_os = "android", all(test, not(target_arch = "wasm32"))))]
     preparation: Option<configuration::Preparation>,
     wet_lighting: Option<wet_lighting::WetLighting>,
@@ -338,6 +340,7 @@ impl Renderer {
         crate::android::graphics_stage("Creating GPU timing queries");
         let timings = timing::Timer::new(&device, &queue);
         let mut renderer = Self {
+            linear_fog: None,
             #[cfg(any(target_os = "android", all(test, not(target_arch = "wasm32"))))]
             preparation: None,
             wet_lighting: None,
@@ -674,6 +677,12 @@ impl Renderer {
             u8::from(self.post.is_some()) as f32,
             f32::from(self.graphics.magnification),
         ]);
+        let linear_fog = self
+            .linear_fog
+            .filter(|_| self.graphics.fog)
+            .map_or([0.0; 2], |[start, end]| {
+                [start, 1.0 / (end - start).max(1.0)]
+            });
         camera.extend([
             if self.graphics.fog {
                 DEPTH_CUE[0] as f32 * f32::from(DISTANCE) / 256.0
@@ -687,8 +696,8 @@ impl Renderer {
             } else {
                 0.0
             },
-            0.0,
-            0.0,
+            linear_fog[0],
+            linear_fog[1],
         ]);
         camera.extend([
             if self.post.is_some() {

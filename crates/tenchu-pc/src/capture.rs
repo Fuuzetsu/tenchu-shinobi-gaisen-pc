@@ -12,6 +12,45 @@ pub mod models;
 pub(crate) mod review;
 pub mod sprites;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn screenshot_path(prefix: &str) -> Result<std::path::PathBuf> {
+    let directory = std::env::var_os("TENCHU_SCREENSHOTS")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| "screenshots".into());
+    std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
+    let time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_nanos();
+    Ok(directory.join(format!("{prefix}-{time}.png")))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn render_to_png(
+    renderer: &mut Renderer,
+    size: [u32; 2],
+    format: wgpu::TextureFormat,
+    path: &Path,
+    draw: impl FnOnce(&mut Renderer, &wgpu::TextureView) -> Result<()>,
+) -> Result<()> {
+    let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Screenshot"),
+        size: wgpu::Extent3d {
+            width: size[0],
+            height: size[1],
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    draw(renderer, &texture.create_view(&Default::default()))?;
+    read_texture(renderer, &texture, path)
+}
+
 pub fn render(assets: &GameAssets<DiscSource>, destination: &Path, options: Options) -> Result<()> {
     let mut game = options.load(assets)?;
     for _ in 0..30 {

@@ -4,6 +4,7 @@ const TRANSLUCENT: u32 = 4u;
 const SCREEN_WIDE: u32 = 8u;
 const DOUBLE_SIDED: u32 = 16u;
 const FOG: u32 = 32u;
+const BAKED_FOG: u32 = 268435456u;
 const DEBUG: u32 = 64u;
 const XRAY: u32 = 128u;
 const UI: u32 = 256u;
@@ -28,6 +29,26 @@ fn original_hd_blood(flags: u32) -> bool {
 }
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32>, motion: vec4<f32>, rays: mat4x4<f32> }
+
+fn distance_fog(depth: f32) -> f32 {
+    if camera.fog.w > 0.0 {
+        return clamp((depth - camera.fog.z) * camera.fog.w, 0.0, 1.0);
+    }
+    return clamp(camera.fog.x / max(depth, 1.0) + camera.fog.y, 0.0, 1.0);
+}
+
+fn baked_fog(flags: u32) -> bool {
+    return (flags & (FOG | BAKED_FOG | FOLIAGE)) == (FOG | BAKED_FOG);
+}
+
+fn fog_color(color: vec3<f32>, depth: f32, baked: bool, hdr: bool) -> vec3<f32> {
+    let fog = distance_fog(depth);
+    let haze = select(0.0, 1.0 - exp(-max(depth, 0.0) * camera.fog_color.w / 50000.0), hdr);
+    if baked && camera.fog.w > 0.0 {
+        return mix(color + camera.fog_color.rgb * fog, camera.fog_color.rgb, haze);
+    }
+    return mix(color, camera.fog_color.rgb, 1.0 - (1.0 - fog) * (1.0 - haze));
+}
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -244,9 +265,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
     }
     if (v.flags & WET_CONTACT) != 0u { color = color * 0.62 + surface_reflection(v.world, normal, surface_normal, 0.15) * 0.45; }
     if (v.flags & (FOG | SCREEN)) == FOG {
-        let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
-        let haze = select(0.0, 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0), HDR_ENABLED);
-        color = mix(color, camera.fog_color.rgb, 1.0 - (1.0 - fog) * (1.0 - haze));
+        color = fog_color(color, v.depth, baked_fog(v.flags), HDR_ENABLED);
     }
     if !screen {
         color = rain_atmosphere(color, v.world, linear_lighting, precomputed_weather, rain_enabled);
@@ -276,7 +295,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
 
 @fragment fn scenery(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     var v = input;
-    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATER | WATERFALL | FOLIAGE | UNLIT)) | SCENERY;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | BAKED_FOG | EMITTER | WATER | WATERFALL | FOLIAGE | UNLIT)) | SCENERY;
     let color = shade(v, front_facing, false, false, true, true, false);
     return vec4(color.rgb, 1.0);
 }

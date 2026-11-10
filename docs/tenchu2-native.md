@@ -183,6 +183,15 @@ shadows in gameplay and 3D cutscenes.
 Artwork packs can override the same light rules as Gaisen. Modern High/Ultra
 already enable this setting; Original keeps dynamic lighting off.
 
+**F1 → Lighting → Distance fog color / Atmospheric haze** adds the selected
+atmosphere to T2's original palette shading, using the stage's own fog range.
+These options affect gameplay and 3D cutscenes, including imported T1 stages;
+disabling Image effects restores the original shading.
+**F9 / F1 → Simulation → Screenshot** saves the current view as a PNG, including HD
+text, the selected camera, visual effects and HUD/photo settings. It also works
+in equipment, results and narration screens. Files are written to `screenshots/`
+or the directory selected by `TENCHU_SCREENSHOTS`.
+
 **F1 → Lighting → Fire / explosion lights** also lights burning characters, explosions,
 fire breath and embers. Their moving emitters share Gaisen's clustering, shadow
 selection and surface lighting. Light follows the source effect's position and

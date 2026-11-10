@@ -136,15 +136,13 @@ fn forward_weather(v: Fragment, surface: SurfaceMaterial) -> vec4<f32> {
     let material = prepare_terrain(v, surface);
     var shaded = light_terrain(material, v.world, InterpolatedShadows(vec4(0.0), vec4(0.0), false));
     if (v.flags & FOG) != 0u {
-        let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
-        let haze = 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0);
-        shaded = mix(shaded, camera.fog_color.rgb, 1.0 - (1.0 - fog) * (1.0 - haze));
+        shaded = fog_color(shaded, v.depth, baked_fog(v.flags), true);
     }
     return vec4(max(rain_atmosphere(shaded, v.world, true, true, true) * camera.options.x, vec3(0.0)), 1.0);
 }
 
 @fragment fn scenery_weather(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     var v = input;
-    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | FOLIAGE)) | SCENERY;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | BAKED_FOG | EMITTER | FOLIAGE)) | SCENERY;
     return forward_weather(v, prepare_material(v, front_facing, false, false));
 }

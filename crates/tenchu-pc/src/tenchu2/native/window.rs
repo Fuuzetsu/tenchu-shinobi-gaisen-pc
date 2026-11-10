@@ -129,6 +129,7 @@ impl View {
             Err(wgpu::SurfaceError::Timeout) => return Ok(preferences::Action::default()),
             Err(error) => return Err(error.to_string()),
         };
+        let screenshot = std::mem::take(&mut menu.screenshot);
         let phase = Instant::now();
         let target = frame.texture.create_view(&Default::default());
         self.drawing
@@ -196,6 +197,35 @@ impl View {
                 pixels_per_point: output.pixels_per_point,
             },
         );
+        if screenshot {
+            let result = (|| {
+                let path = crate::capture::screenshot_path(&format!(
+                    "tenchu2-{}-{}",
+                    session.run.sequence,
+                    session.content.tick()
+                ))?;
+                crate::capture::render_to_png(
+                    &mut self.renderer,
+                    [self.config.width, self.config.height],
+                    self.config.format,
+                    &path,
+                    |renderer, target| {
+                        self.drawing.draw(&session.content, target, renderer)?;
+                        renderer.draw_overlay(
+                            target,
+                            &mut self.overlay,
+                            &jobs,
+                            &egui_wgpu::ScreenDescriptor {
+                                size_in_pixels: [self.config.width, self.config.height],
+                                pixels_per_point: output.pixels_per_point,
+                            },
+                        );
+                        Ok(())
+                    },
+                )
+            })();
+            menu.screenshot_result(result);
+        }
         timing.draw.submit += phase.elapsed().as_secs_f32() * 1000.0;
         let phase = Instant::now();
         self.window.pre_present_notify();
@@ -713,6 +743,7 @@ impl ApplicationHandler for Application {
                                     self.fail(error);
                                 }
                             }
+                            KeyCode::F9 => self.menu.request_screenshot(),
                             KeyCode::F3 => self.paused = !self.paused,
                             KeyCode::F4 if self.paused && self.error.is_none() => {
                                 if let Err(error) = self.step() {

@@ -40,15 +40,14 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
     let base = textureLoad(surface_diffuse, p, 0);
     if data.w == FORWARD_SURFACE { return vec4(base.rgb, 1.0); }
     let unlit_color = textureLoad(surface_emission, p, 0);
-    let depth = bitcast<f32>(data.w);
+    let stored_depth = bitcast<f32>(data.w);
+    let depth = abs(stored_depth);
     let position = surface_position(pixel.xy, depth);
     let material = TerrainSurface(base.rgb, unlit_color.rgb, oct_unpack(data.x), oct_unpack(data.y), oct_unpack(data.z), abs(base.w), unlit_color.w);
     let filtered = interpolate_shadows(pixel.xy, position, material.surface);
     var color = light_terrain(material, position, filtered);
     if base.w < 0.0 {
-        let fog = clamp(camera.fog.x / max(depth, 1.0) + camera.fog.y, 0.0, 1.0);
-        let haze = select(0.0, 1.0 - exp(-max(depth, 0.0) * camera.fog_color.w / 50000.0), HDR_ENABLED);
-        color = mix(color, camera.fog_color.rgb, 1.0 - (1.0 - fog) * (1.0 - haze));
+        color = fog_color(color, depth, stored_depth < 0.0, HDR_ENABLED);
     }
     color = rain_atmosphere(color, position, true, true, true) * camera.options.x;
     return vec4(max(color, vec3(0.0)), 1.0);
@@ -56,7 +55,7 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
 
 @fragment fn deferred_fallback(input: Fragment, @builtin(front_facing) front_facing: bool) -> PreparedSurface {
     var v = input;
-    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATER | WATERFALL | FOLIAGE | UNLIT)) | SCENERY;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | BAKED_FOG | EMITTER | WATER | WATERFALL | FOLIAGE | UNLIT)) | SCENERY;
     var result: PreparedSurface;
     result.diffuse = vec4(shade(v, front_facing, false, false, true, true, false).rgb, 0.0);
     result.geometry.w = FORWARD_SURFACE;
@@ -65,11 +64,13 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
 
 @fragment fn deferred_material(input: Fragment, @builtin(front_facing) front_facing: bool) -> PreparedSurface {
     var v = input;
-    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATER | WATERFALL | FOLIAGE)) | SCENERY;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | BAKED_FOG | EMITTER | WATER | WATERFALL | FOLIAGE)) | SCENERY;
     let material = prepare_terrain(v, prepare_material(v, front_facing, false, false));
     var result: PreparedSurface;
     result.diffuse = vec4(material.diffuse, select(material.power, -material.power, (v.flags & FOG) != 0u));
-    result.geometry = vec4(oct_pack(material.normal), oct_pack(material.wet_normal), oct_pack(material.surface), bitcast<u32>(v.depth));
+    // Visible forward depth is positive; its sign preserves the baked-fog tag.
+    let depth = select(v.depth, -v.depth, baked_fog(v.flags));
+    result.geometry = vec4(oct_pack(material.normal), oct_pack(material.wet_normal), oct_pack(material.surface), bitcast<u32>(depth));
     result.emission = vec4(material.emission, material.specular);
     return result;
 }

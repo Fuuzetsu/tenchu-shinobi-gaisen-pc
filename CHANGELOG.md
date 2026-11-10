@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **F9 / Screenshot** in gameplay, cutscenes and menus,
+  retaining the current camera, HD text, HUD/photo settings and visual effects.
+  PNG files go to `screenshots/` or `TENCHU_SCREENSHOTS`.
+- Native T2's **Distance fog color** and **Atmospheric haze** now affect scene geometry,
+  using the stage's original fog range while preserving its palette shading.
+  Original rendering and game state remain unchanged.
+
 - F1 adds **Kill selected actor** under Teleport / actor and **Click to kill**
   there and under Experiment, in Gaisen and native T2 (including imported T1
   stages). These force a living NPC's death, bypassing invulnerability and
