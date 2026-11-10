@@ -49,7 +49,7 @@ impl Application {
             drawing: None,
             generation: None,
             graphics: preferences::graphics(&self.settings),
-            menu: preferences::Menu::default(),
+            menu: preferences::Menu::new(&self.settings),
             transport: Transport::default(),
             error: None,
             donor: None,
@@ -207,6 +207,7 @@ impl Application {
                 &mut session.assets,
                 native.donor.as_mut().unwrap(),
                 library,
+                &view.bodies,
                 &self.settings,
             ) {
                 Ok(changed) => {
@@ -276,6 +277,7 @@ impl Application {
         )?;
         let mut leave = false;
         let mut step = false;
+        let mut reload_artwork = false;
         let was_open = native.menu.panel.open;
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
@@ -334,6 +336,11 @@ impl Application {
                     }),
                 },
             );
+            if let Some(bodies) = actions.models {
+                view.bodies = bodies;
+                view.model_picker.clear();
+            }
+            reload_artwork |= actions.reload_artwork;
             if actions.clear_weather || actions.clear_footprints {
                 native
                     .drawing
@@ -374,6 +381,18 @@ impl Application {
                 .layout(ctx.screen_rect(), self.settings.touch, mode, false, false);
             self.touch.paint(ctx, self.settings.touch);
         });
+        if reload_artwork {
+            match native.drawing.as_mut().unwrap().replace(
+                &native.playback.content,
+                native.playback.vram(),
+                &graphics,
+                &mut view.renderer,
+                true,
+            ) {
+                Ok(()) => native.menu.panel.notice = "Artwork reloaded".into(),
+                Err(error) => native.menu.panel.notice = error,
+            }
+        }
         if let Some(audio) = &self.audio {
             let (ambience, thunder) = native
                 .drawing

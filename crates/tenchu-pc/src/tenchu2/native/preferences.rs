@@ -75,9 +75,38 @@ pub struct Action {
     pub step: bool,
     pub clear_weather: bool,
     pub clear_footprints: bool,
+    pub models: Option<std::sync::Arc<crate::visuals::pack::Pack>>,
+    pub reload_artwork: bool,
 }
 
 impl Menu {
+    pub fn new(settings: &Settings) -> Self {
+        let mut menu = Self::default();
+        menu.panel
+            .model_directory
+            .clone_from(&settings.model_directory);
+        menu
+    }
+
+    fn reload_models(
+        &mut self,
+        settings: &mut Settings,
+        action: &mut Action,
+    ) -> Result<(), String> {
+        let pack = crate::visuals::pack::Pack::bodies(&self.panel.model_directory)?;
+        if let Some(id) = settings.player_model.strip_prefix("pack:")
+            && !pack.player_models.contains_key(id)
+        {
+            settings.player_model.clear();
+        }
+        settings
+            .model_directory
+            .clone_from(&self.panel.model_directory);
+        self.panel.notice = format!("{} folder models loaded", pack.player_models.len());
+        action.models = Some(pack);
+        Ok(())
+    }
+
     pub fn apply_tools(&mut self, content: &mut super::campaign::Content, size: [u32; 2]) {
         if let Err(error) = self.tools.apply(content, size) {
             self.panel.notice = error.clone();
@@ -182,9 +211,6 @@ impl Menu {
         if let Some(models) = &state.models {
             self.panel.player_models =
                 crate::visuals::appearance::choices(models.game, models.bodies, models.library);
-            self.panel
-                .player_models
-                .retain(|(id, _)| !id.starts_with("pack:"));
             self.panel.moveset_models = vec![(String::new(), "Selected player body".into())];
             if let Some(library) = models.library {
                 self.panel.moveset_models.extend(
@@ -368,6 +394,11 @@ impl Menu {
                                 Ok(())
                             }
                         }
+                        Item::ReloadModels => self.reload_models(state.settings, action),
+                        Item::ReloadAssets => {
+                            action.reload_artwork = true;
+                            Ok(())
+                        }
                         Item::ClearWeather => {
                             state.settings.graphics.weather.mode = settings::WeatherMode::Clear;
                             action.clear_weather = true;
@@ -427,6 +458,47 @@ mod tests {
             "tenchu-native-menu-presets-{}.json",
             std::process::id()
         )))
+    }
+
+    #[test]
+    fn model_folder_reload_is_transactional_and_keeps_shared_settings() {
+        let root =
+            std::env::temp_dir().join(format!("tenchu-native-folder-menu-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let mut settings = Settings {
+            model_directory: "previous".into(),
+            player_model: "pack:removed".into(),
+            ..Default::default()
+        };
+        let mut menu = Menu::new(&settings);
+        assert_eq!(menu.panel.model_directory, "previous");
+        let mut action = Action::default();
+        menu.panel.model_directory = root.to_string_lossy().into_owned();
+        let original = settings.clone();
+        assert!(menu.reload_models(&mut settings, &mut action).is_err());
+        assert_eq!(settings, original);
+        assert!(action.models.is_none());
+        let parts: Vec<_> = (0..15).map(|i| serde_json::json!({"file": null, "parent": (i != 0).then_some(0), "position": [0, 0, 0]})).collect();
+        std::fs::write(
+            root.join("pack.json"),
+            serde_json::to_vec(&serde_json::json!({
+                "version": 1, "player_models": {"custom": {"name": "Custom", "parts": parts}}
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        menu.reload_models(&mut settings, &mut action).unwrap();
+        assert_eq!(settings.model_directory, root.to_string_lossy());
+        assert!(settings.player_model.is_empty());
+        assert!(
+            action
+                .models
+                .as_ref()
+                .unwrap()
+                .player_models
+                .contains_key("custom")
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

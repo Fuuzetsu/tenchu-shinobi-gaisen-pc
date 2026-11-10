@@ -64,14 +64,9 @@ impl Runtime {
             PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts => {
                 None
             }
-            ReloadModels => Some(
-                "Reopen the mission after changing model files. Custom folder rigs are not connected to native Tenchu 2 yet.",
-            ),
+            ReloadModels | ReloadAssets => None,
             Rewind | RewindHistory | RewindSpeed | SaveState | LoadState | StateSlot => Some(
                 "Native Tenchu 2 JP does not yet support mid-mission saves or rewind. Campaign progress still saves normally.",
-            ),
-            ReloadAssets => Some(
-                "Reloading artwork during native Tenchu 2 JP play is not implemented yet. Restart after changing the Tenchu 2 pack.",
             ),
             _ => Some(
                 "Not implemented in native Tenchu 2 JP yet. Available in Gaisen; saved preferences are preserved.",

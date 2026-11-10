@@ -87,7 +87,9 @@ impl Environment {
     ) {
         let mut replacement = Self::new(level, meshes, math, renderer);
         replacement.weather = std::mem::take(&mut self.weather);
+        replacement.footprints = std::mem::take(&mut self.footprints);
         replacement.tick = self.tick;
+        replacement.thunder = self.thunder.take();
         *self = replacement;
     }
 
@@ -277,6 +279,24 @@ mod tests {
                             "pause must freeze accumulation"
                         );
                         assert_eq!(renderer.weather.wet, sample.wet);
+                        let environment = drawing.scene.environment.as_ref().unwrap();
+                        let footprints = postcard::to_allocvec(&environment.footprints).unwrap();
+                        let weather = postcard::to_allocvec(&environment.weather).unwrap();
+                        let mut rebuilt =
+                            super::super::Drawing::new(&session, &graphics, renderer)?;
+                        rebuilt.preserve_environment(&mut drawing);
+                        rebuilt.update(&session, renderer, None)?;
+                        let environment = rebuilt.scene.environment.as_ref().unwrap();
+                        assert_eq!(
+                            postcard::to_allocvec(&environment.footprints).unwrap(),
+                            footprints,
+                            "visual rebuild removed or advanced tracks"
+                        );
+                        assert_eq!(
+                            postcard::to_allocvec(&environment.weather).unwrap(),
+                            weather
+                        );
+                        drawing = rebuilt;
                     }
                     assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
                     Ok((drawing.scene, session.world.camera.view, Vec::new()))

@@ -61,6 +61,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
                     &mut session.assets,
                     &mut donor,
                     &library,
+                    &Arc::default(),
                     &settings
                 )
                 .unwrap(),
@@ -233,6 +234,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
                 &mut session.assets,
                 &mut donor,
                 &library,
+                &Arc::default(),
                 &Settings::default()
             )
             .unwrap()
@@ -257,6 +259,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
                     &mut session.assets,
                     &mut donor,
                     &library,
+                    &Arc::default(),
                     &settings,
                 )
                 .unwrap();
@@ -311,6 +314,7 @@ fn imported_native_attacks_damage_guards() {
                     &mut session.assets,
                     &mut donor,
                     &library,
+                    &Arc::default(),
                     &settings
                 )
                 .unwrap()
@@ -445,6 +449,7 @@ fn native_heroes_restore_their_weapons_and_movement() {
                             &mut session.assets,
                             &mut donor,
                             &library,
+                            &Arc::default(),
                             &settings
                         )
                         .unwrap()

@@ -9,6 +9,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Camera and inspection commands | `debug/inspection.rs`, `debug/camera.rs` | `debug/gaisen.rs`; native `tools.rs` and `inspection.rs` |
 | Follow/orbit camera and terrain avoidance | `navigation.rs` consumes an actor target and retained surfaces | Gaisen/native adapters supply actor identity, position, facing and simulation tick; Gaisen movement steering stays in `navigation/gaisen.rs` |
 | Pose interpolation | `visuals/interpolation.rs` blends keyed matrices and detects teleports/camera cuts | Gaisen snapshots live in `visuals/interpolation/gaisen.rs`; native gameplay/story snapshots live in `tenchu2/native/interpolation.rs` |
+| Custom model folders | `visuals/pack.rs`, `visuals/appearance.rs` and the shared gallery load, skin and retarget the same packs | Native `render/custom.rs` maps JP bone order to the common rig; only displayed poses and attachments change |
 | Overlay geometry and readable labels | `debug/overlay.rs` | `debug/gaisen/overlay.rs`; native `inspection.rs` |
 | Settings edits and availability | `settings/edit.rs`, `settings/runtime.rs` | Runtime-specific command handlers for gameplay changes |
 | Experiment inventory UI | `settings/menu.rs` uses named, numbered inventory slots | Gaisen/native adapters supply their own items and quantity rules; queued native commands edit actual player state |

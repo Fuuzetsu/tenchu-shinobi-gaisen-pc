@@ -118,6 +118,21 @@ impl Selection {
 }
 
 impl Pack {
+    pub fn bodies(directory: &str) -> Result<Arc<Self>> {
+        let pack = if directory.is_empty() {
+            Self::default()
+        } else {
+            let pack = Self::load(std::path::Path::new(directory))?;
+            if pack.player_models.is_empty() {
+                return Err(
+                    "This folder contains no player_models; export assets to create a template"
+                        .into(),
+                );
+            }
+            pack
+        };
+        Ok(Arc::new(pack))
+    }
     pub fn interface_from_env(originals: BTreeMap<String, Image>) -> Result<Self> {
         Self::configured(Selection {
             max_pixels: MAX_INTERFACE_PIXELS,

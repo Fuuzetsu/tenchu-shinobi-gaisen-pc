@@ -63,10 +63,18 @@ paired stealth kills and unmapped actions. Character-local voice/weapon cues use
 the selected moveset’s own disc bank, with translations between the games’ cue
 slots; global world effects and event scheduling still follow the host. Movesets carry their source
 weapon models, textures, handles and sheaths, including T2 HD-pack replacements
-and source draw/holster attachment rules. Scripted/projectile-only moves and custom-folder
-bodies are not connected to the native runtime yet. A body without a supported
+and source draw/holster attachment rules. Scripted/projectile-only moves
+are not connected to the native runtime yet. A body without a supported
 moveset keeps the host's moves. The standalone `play-t2-jp` preview needs a
 remembered Gaisen disc; open it once through `play` to connect the gallery.
+
+The same **Model folder → Load / reload** control accepts Gaisen-format custom
+model packs, including OBJ parts, textures and optional skin weights. Select a
+body in **Custom folder**; an independent moveset source still works with it.
+These swaps only change presentation. Weapons, held items and grapple ropes
+follow the displayed hand positions while collision keeps the source rig.
+**Visual assets → Reload artwork** rereads the installed packs during play.
+Reloads preserve weather accumulation, footprints and the visual clock.
 
 **F1 → Lighting** uses the shared dynamic-light and shadow renderer for native
 stage flames, with the same intensity, ambient, radius, light/shadow counts,

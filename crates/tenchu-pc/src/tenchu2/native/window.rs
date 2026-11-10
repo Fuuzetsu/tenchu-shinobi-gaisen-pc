@@ -291,7 +291,7 @@ impl Application {
             || !self.settings.player_model.is_empty()
             || self.settings.moveset_id().is_some();
         if wants_models && self.gallery.is_none() && self.gallery_error.is_none() {
-            match super::models::Gallery::remembered() {
+            match super::models::Gallery::remembered(&self.settings.model_directory) {
                 Ok(gallery) => self.gallery = Some(gallery),
                 Err(error) => {
                     self.menu.panel.notice = error.clone();
@@ -308,6 +308,7 @@ impl Application {
                 &mut session.assets,
                 &mut gallery.game,
                 &gallery.library,
+                &gallery.bodies,
                 &self.settings,
             ) {
                 Ok(changed) => {
@@ -406,6 +407,24 @@ impl Application {
                 self.error.as_deref(),
                 self.fps,
             )?;
+            if let Some(bodies) = action.models
+                && let Some(gallery) = &mut self.gallery
+            {
+                gallery.bodies = bodies;
+                gallery.picker.clear();
+            }
+            if action.reload_artwork {
+                match view.drawing.replace(
+                    &self.session.content,
+                    self.session.vram(),
+                    &graphics,
+                    &mut view.renderer,
+                    true,
+                ) {
+                    Ok(()) => self.menu.panel.notice = "Artwork reloaded".into(),
+                    Err(error) => self.menu.panel.notice = error,
+                }
+            }
             if action.clear_weather || action.clear_footprints {
                 view.drawing.clear_weather(!action.clear_weather);
             }
@@ -617,6 +636,7 @@ pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
     if let Some(audio) = &audio {
         audio.send(Command::Volume(settings.volume));
     }
+    let menu = preferences::Menu::new(&settings);
     let mut application = Application {
         session,
         settings,
@@ -628,7 +648,7 @@ pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
         last: Instant::now(),
         paused: false,
         focused: true,
-        menu: preferences::Menu::default(),
+        menu,
         presets: crate::settings::library::Manager::new(crate::storage::UserFile::Presets.path()?),
         fps: 0.0,
         fps_time: 0.0,

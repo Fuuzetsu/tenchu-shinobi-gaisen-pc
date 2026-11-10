@@ -72,7 +72,6 @@ pub fn choices(
     pack: &Pack,
     library: Option<&library::Library>,
 ) -> Vec<(String, String)> {
-    let rig = parents(&game.mission.models[&game.player().kind]);
     let mut choices = vec![(String::new(), "Original (follow equipment/disguise)".into())];
     if let Some(library) = library {
         choices.extend(
@@ -91,15 +90,13 @@ pub fn choices(
         }
     }
     for (id, body) in &pack.player_models {
-        if body.parts.iter().map(|p| p.parent).eq(rig.iter().copied()) {
-            choices.push((format!("pack:{id}"), format!("{} — folder", body.name)));
-        }
+        choices.push((format!("pack:{id}"), format!("{} — folder", body.name)));
     }
     choices
 }
 
-pub(super) struct Appearance {
-    parts: Vec<model::Part>,
+pub(crate) struct Appearance {
+    pub(crate) parts: Vec<model::Part>,
     parents: Vec<Option<usize>>,
     pub meshes: Meshes,
 }
@@ -175,12 +172,11 @@ impl Appearance {
             .map(|body| Pack::for_models(&body.vram, &body.sources()))
             .transpose()?;
         let vram = body.map_or(&game.mission.vram, |b| &b.vram);
-        let (parts, ids, pack, custom) = if let Some(body) = body {
+        let (parts, ids, pack) = if let Some(body) = body {
             (
                 body.parts.clone(),
                 body.sources().into_iter().map(|s| s.id).collect(),
                 own_pack.as_ref().unwrap_or(pack),
-                false,
             )
         } else if let Some(kind) = selection.strip_prefix("disc:") {
             let kind: i16 = kind.parse().map_err(|_| "Invalid disc body")?;
@@ -193,32 +189,9 @@ impl Appearance {
             let ids = (0..parts.len())
                 .map(|i| format!("actors/{kind:04x}/{i}"))
                 .collect::<Vec<_>>();
-            (parts, ids, pack, false)
+            (parts, ids, pack)
         } else if let Some(id) = selection.strip_prefix("pack:") {
-            let body = bodies
-                .player_models
-                .get(id)
-                .ok_or("Selected body is missing from the model folder")?;
-            let parts = body
-                .parts
-                .iter()
-                .enumerate()
-                .map(|(i, p)| model::Part {
-                    parent: p.parent.map_or(-1, |v| v as i16),
-                    child: i as i16,
-                    position: p.position,
-                    geometry: vec![model::Geometry {
-                        joints: Vec::new(),
-                        vertices: Vec::new(),
-                        normals: Vec::new(),
-                        faces: Vec::new(),
-                    }],
-                })
-                .collect::<Vec<_>>();
-            let ids = (0..parts.len())
-                .map(|i| format!("player/{id}/{i}"))
-                .collect();
-            (parts, ids, bodies, true)
+            return Self::custom(id, bodies, vram, graphics).map(Some);
         } else {
             return Err("Unknown player model selection".into());
         };
@@ -233,11 +206,7 @@ impl Appearance {
                 geometry: &p.geometry,
             })
             .collect();
-        let mut options = graphics.clone();
-        if custom {
-            options.asset_pack = true;
-        }
-        let mut meshes = Meshes::build(vram, pack, &options, sources, true)?;
+        let mut meshes = Meshes::build(vram, pack, graphics, sources, true)?;
         meshes.skin(&parts);
         if body.is_some() {
             meshes.detach_textures();
@@ -250,6 +219,53 @@ impl Appearance {
             parents: parent,
             meshes,
         }))
+    }
+
+    pub(crate) fn custom(
+        id: &str,
+        pack: &Pack,
+        vram: &tenchu_assets::texture::Vram,
+        graphics: &Graphics,
+    ) -> Result<Self> {
+        let body = pack
+            .player_models
+            .get(id)
+            .ok_or("Selected body is missing from the model folder")?;
+        body.validate()?;
+        let parts = body
+            .parts
+            .iter()
+            .enumerate()
+            .map(|(i, p)| model::Part {
+                parent: p.parent.map_or(-1, |v| v as i16),
+                child: i as i16,
+                position: p.position,
+                geometry: vec![model::Geometry {
+                    joints: Vec::new(),
+                    vertices: Vec::new(),
+                    normals: Vec::new(),
+                    faces: Vec::new(),
+                }],
+            })
+            .collect::<Vec<_>>();
+        let sources = parts
+            .iter()
+            .enumerate()
+            .map(|(i, p)| ModelSource {
+                id: format!("player/{id}/{i}"),
+                label: String::new(),
+                geometry: &p.geometry,
+            })
+            .collect();
+        let mut options = graphics.clone();
+        options.asset_pack = true;
+        let mut meshes = Meshes::build(vram, pack, &options, sources, true)?;
+        meshes.skin(&parts);
+        Ok(Self {
+            parents: parents(&parts),
+            parts,
+            meshes,
+        })
     }
 
     fn offsets(
@@ -307,26 +323,33 @@ impl Appearance {
     fn transforms(&self, game: &Game, inspection: bool, frame: Option<&Frame>) -> Vec<Matrix> {
         let player = rendered_player(game, inspection);
         let source = &game.mission.models[&player.rendered_mesh_kind];
-        let source_parents = parents(source);
         let matrices = rendered_matrices(&player, inspection, frame);
-        let root =
-            rotation(matrices[0]) * rotation(game.scene.models[player.parts[0]].local).inverse();
-        let origin = Vec3::from(matrices[0].translation.map(|n| n as f32).to_array())
-            - root
-                * Vec3::from(
-                    game.scene.models[player.parts[0]]
-                        .local
-                        .translation
-                        .map(|n| n as f32)
-                        .to_array(),
-                );
+        self.retarget(
+            source,
+            &matrices,
+            game.scene.models[player.parts[0]].local,
+            player.severed.as_ref().map(|part| part.index),
+        )
+    }
+
+    pub(crate) fn retarget(
+        &self,
+        source: &[model::Part],
+        matrices: &[Matrix],
+        root_local: Matrix,
+        detached: Option<usize>,
+    ) -> Vec<Matrix> {
+        let source_parents = parents(source);
+        let root = rotation(matrices[0]) * rotation(root_local).inverse();
+        let origin = Vec3::from(matrices[0].translation.to_array().map(|n| n as f32))
+            - root * Vec3::from(root_local.translation.to_array().map(|n| n as f32));
         let mut result = vec![None; self.parts.len()];
         for _ in 0..self.parts.len() {
             for (i, part) in self.parts.iter().enumerate() {
                 if result[i].is_some() {
                     continue;
                 }
-                if player.severed.as_ref().is_some_and(|part| part.index == i) {
+                if detached == Some(i) {
                     result[i] = Some((
                         rotation(matrices[i]),
                         Vec3::from(matrices[i].translation.to_array().map(|n| n as f32)),
@@ -349,7 +372,7 @@ impl Appearance {
                 });
                 let mut offset = Vec3::from(part.position.map(f32::from));
                 if i == 0 && source[0].position[1] != 0 {
-                    let translation = game.scene.models[player.parts[0]].local.translation;
+                    let translation = root_local.translation;
                     offset.x = translation.x as f32;
                     offset.y *= translation.y as f32 / f32::from(source[0].position[1]);
                     offset.z = translation.z as f32;
@@ -369,6 +392,19 @@ impl Appearance {
                 }
             })
             .collect()
+    }
+}
+
+pub(crate) fn relocate(matrix: Matrix, source: Matrix, target: Matrix) -> Matrix {
+    let relative = rotation(target) * rotation(source).inverse();
+    let point = |m: Matrix| Vec3::from(m.translation.to_array().map(|n| n as f32));
+    let position = point(target) + relative * (point(matrix) - point(source));
+    let rotation = relative * rotation(matrix);
+    Matrix {
+        rotation: std::array::from_fn(|r| {
+            std::array::from_fn(|c| (rotation.col(c)[r] * 4096.0).round() as i16)
+        }),
+        translation: position.to_array().map(|n| n.round() as i32).into(),
     }
 }
 
@@ -467,18 +503,7 @@ pub(super) fn visit_parts_filtered(
                             },
                             player.rendered[index],
                         );
-                        let relative = rotation(*target) * rotation(source).inverse();
-                        let position = Vec3::from(target.translation.map(|n| n as f32).to_array())
-                            + relative
-                                * (Vec3::from(matrix.translation.map(|n| n as f32).to_array())
-                                    - Vec3::from(source.translation.map(|n| n as f32).to_array()));
-                        let r = relative * rotation(matrix);
-                        matrix = Matrix {
-                            rotation: std::array::from_fn(|row| {
-                                std::array::from_fn(|col| (r.col(col)[row] * 4096.0).round() as i16)
-                            }),
-                            translation: position.to_array().map(|n| n.round() as i32).into(),
-                        };
+                        matrix = relocate(matrix, source, *target);
                         break;
                     }
                     parent = game.scene.models[id].parent;

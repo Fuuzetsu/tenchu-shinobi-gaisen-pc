@@ -5,6 +5,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP can use custom-folder player models through the shared F1 gallery, including weighted meshes and adjusted body proportions. Weapons, held items and grapple ropes follow the displayed hands; visual swaps leave collision and gameplay unchanged. Model folders and artwork can be reloaded during play, preserving snow, rain and footprints.
 - Native Tenchu 2 JP now uses shared visual interpolation for actors, weapons, held items and the gameplay/follow cameras. Cutscene characters also interpolate while authored camera cuts remain exact. Enable Smooth model motion or a Modern preset; collisions, source updates and RNG are unchanged.
 - Enable native Tenchu 2 JP simulation-speed controls: 25%, 50%, normal, 2×, 4× and Unlimited. Every original update still runs; pause and frame-step remain exact, and menus keep their normal input rate.
 - Enable native Tenchu 2 JP Follow Actor with the shared orbit camera, terrain avoidance, mouse/right-stick controls, distance and sensitivity settings. Following a guard survives player death; switching actors, recentering and returning to the original view leave gameplay unchanged.

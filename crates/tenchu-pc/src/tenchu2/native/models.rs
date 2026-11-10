@@ -1,8 +1,12 @@
+use crate::visuals::pack::Pack;
 use crate::{
     settings::Settings,
     visuals::appearance::library::{Body, Library},
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 use tenchu_assets::{
     Result,
     model::Part,
@@ -37,9 +41,39 @@ struct Selection {
 #[derive(Default)]
 pub struct Override {
     applied: Selection,
+    pub custom: Option<Custom>,
     pub voice: Option<std::sync::Arc<tenchu_assets::audio::voice::VoiceSet>>,
     original: Option<Original>,
     weapon_pool: Vec<Vec<usize>>,
+}
+
+pub struct Custom {
+    pub id: String,
+    pub pack: Arc<Pack>,
+}
+
+impl Custom {
+    fn selected(selection: &str, pack: &Arc<Pack>) -> Result<Option<Self>> {
+        let Some(id) = selection.strip_prefix("pack:") else {
+            return Ok(None);
+        };
+        pack.player_models
+            .get(id)
+            .ok_or("Selected body is missing from the model folder")?
+            .validate()?;
+        Ok(Some(Self {
+            id: id.into(),
+            pack: pack.clone(),
+        }))
+    }
+
+    fn same(a: Option<&Self>, b: Option<&Self>) -> bool {
+        match (a, b) {
+            (Some(a), Some(b)) => a.id == b.id && Arc::ptr_eq(&a.pack, &b.pack),
+            (None, None) => true,
+            _ => false,
+        }
+    }
 }
 
 struct Original {
@@ -56,22 +90,31 @@ impl Override {
         assets: &mut Assets,
         donor: &mut Game,
         library: &Library,
+        bodies: &Arc<Pack>,
         settings: &Settings,
     ) -> Result<bool> {
+        let custom = Custom::selected(&settings.player_model, bodies)?;
+        let custom_changed = !Custom::same(self.custom.as_ref(), custom.as_ref());
+        let body_id = if custom.is_some() {
+            ""
+        } else {
+            settings.player_model.as_str()
+        };
         let moveset_id = settings.moveset_id().unwrap_or_default();
         let options = if settings.model_moveset {
             settings.model_moveset_options
         } else {
             Options::default()
         };
-        if self.applied.body == settings.player_model
+        if self.applied.body == body_id
             && self.applied.moveset == moveset_id
             && self.applied.options == options
         {
-            return Ok(false);
+            self.custom = custom;
+            return Ok(custom_changed);
         }
         let selection = Selection {
-            body: settings.player_model.clone(),
+            body: body_id.into(),
             moveset: moveset_id.into(),
             options,
         };
@@ -277,6 +320,7 @@ impl Override {
         world.publish(owner, assets);
         world.scene.finish_tick();
         self.voice = moveset.and_then(|body| body.moveset_voice()).cloned();
+        self.custom = custom;
         self.applied = selection;
         Ok(true)
     }
@@ -289,13 +333,13 @@ mod tests;
 pub struct Gallery {
     pub library: Library,
     pub game: Game,
-    pub bodies: crate::visuals::pack::Pack,
+    pub bodies: Arc<Pack>,
     pub picker: crate::visuals::appearance::picker::Picker,
 }
 
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 impl Gallery {
-    pub fn remembered() -> Result<Self> {
+    pub fn remembered(directory: &str) -> Result<Self> {
         let saved = crate::storage::UserFile::LastDisc.path()?;
         let path = crate::startup::remembered_path(&saved)
             .ok_or("Open Gaisen once with play to connect its disc to the cross-game gallery.")?;
@@ -305,7 +349,7 @@ impl Gallery {
         Ok(Self {
             library,
             game,
-            bodies: Default::default(),
+            bodies: Pack::bodies(directory)?,
             picker: Default::default(),
         })
     }

@@ -594,3 +594,189 @@ fn native_interpolated_geometry_matches_current_pose_at_endpoint() {
     assert_ne!(vertices[1], vertices[2]);
     assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC, Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; custom rigs and reloads must not change source logic"]
+fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
+    use crate::settings::Settings;
+    use crate::tenchu2::native::models;
+    use crate::visuals::appearance::library::Library;
+    use std::sync::Arc;
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    let folder = output.join("custom-models");
+    let mut donor = models::donor(&gaisen).unwrap();
+    crate::visuals::export(&donor.mission, &folder).unwrap();
+    let mut manifest: crate::visuals::pack::Manifest =
+        serde_json::from_slice(&std::fs::read(folder.join("pack.json")).unwrap()).unwrap();
+    let body = manifest.player_models.get_mut("0000").unwrap();
+    body.name = "Attachment check".into();
+    body.parts[13].position[0] += 300;
+    body.parts[14].position[0] -= 300;
+    std::fs::write(
+        folder.join("pack.json"),
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+    let pack = Pack::bodies(folder.to_str().unwrap()).unwrap();
+    let settings = Settings {
+        player_model: "pack:0000".into(),
+        ..Default::default()
+    };
+    let graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        ..Default::default()
+    };
+    let layout = tenchu_assets::tenchu2::layout::Layout::available(&disc).unwrap();
+    for player in 0..3 {
+        let sequence = layout
+            .iter()
+            .find(|l| match player {
+                0 => l.sequence < 100,
+                1 => (100..185).contains(&l.sequence),
+                _ => l.sequence >= 185,
+            })
+            .unwrap()
+            .sequence;
+        let mut session = super::super::Session::load(&disc, sequence, 1).unwrap();
+        let mut reference = super::super::Session::load(&disc, sequence, 1).unwrap();
+        let library = Library::default();
+        let before = serde_json::to_vec(&session.world).unwrap();
+        assert!(
+            session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &pack,
+                    &settings
+                )
+                .unwrap()
+        );
+        assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
+        assert!(
+            !session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &pack,
+                    &settings
+                )
+                .unwrap()
+        );
+        for tick in 0..75 {
+            let input = match tick {
+                30..=45 => tenchu_core::tenchu2::input::UP,
+                55 => tenchu_core::tenchu2::input::ATTACK,
+                _ => 0,
+            };
+            session.step(input).unwrap();
+            reference.step(input).unwrap();
+        }
+        let before = serde_json::to_vec(&reference.world).unwrap();
+        assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
+        capture_frame(
+            &session.assets.sprites.vram,
+            &graphics,
+            &output.join(format!("jp-custom-{player}.png")),
+            |renderer| {
+                let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+                let custom = drawing.models.player.as_ref().unwrap();
+                let actor = &session.world.actors[session.world.player].actor;
+                let rig = &session.world.instances[session.world.player].rig;
+                let mut scene = session.world.scene.clone();
+                let matrices = rig
+                    .joints
+                    .iter()
+                    .map(|&j| scene.world(j))
+                    .collect::<tenchu_assets::Result<Vec<_>>>()?;
+                let target = custom.pose(&matrices, scene.models[rig.joints[0]].local);
+                let point = |p: Position| Vec3::from(p.to_array().map(|v| v as f32));
+                for root in rig.weapons.iter().take(3).flatten() {
+                    let parent = scene.models[*root].parent.unwrap();
+                    let bone = rig.joints.iter().position(|&j| j == parent).unwrap();
+                    let index = tenchu_assets::tenchu2::BONES
+                        .iter()
+                        .position(|&j| j == bone)
+                        .unwrap();
+                    let hand = custom::Player::attach(matrices[bone], bone, &matrices, &target);
+                    assert!(
+                        point(hand.translation).distance_squared(point(target[index].translation))
+                            < 9.0
+                    );
+                    let weapon = scene.world(*root)?;
+                    let moved = custom::Player::attach(weapon, bone, &matrices, &target);
+                    let source_distance =
+                        point(weapon.translation).distance(point(matrices[bone].translation));
+                    let target_distance =
+                        point(moved.translation).distance(point(target[index].translation));
+                    assert!((source_distance - target_distance).abs() < 5.0);
+                }
+                let center =
+                    Vec3::from(actor.position.to_array().map(|v| v as f32)) - Vec3::Y * 1100.0;
+                let mut camera =
+                    crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+                camera.focus(center, false);
+                drawing.camera = Some(camera);
+                drawing.show_hud = false;
+                drawing.update(&session, renderer, None)?;
+                assert!(drawing.models.player.is_some());
+                Ok((drawing.scene, camera.source_view(), Vec::new()))
+            },
+        )
+        .unwrap();
+        assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
+        let reload = Pack::bodies(folder.to_str().unwrap()).unwrap();
+        assert!(!Arc::ptr_eq(&reload, &pack));
+        assert!(
+            session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &reload,
+                    &settings
+                )
+                .unwrap()
+        );
+        assert!(
+            session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &Arc::default(),
+                    &settings
+                )
+                .is_err()
+        );
+        assert!(session.models.custom.is_some());
+        assert!(
+            session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &pack,
+                    &Settings::default()
+                )
+                .unwrap()
+        );
+        assert!(session.models.custom.is_none());
+        assert_eq!(serde_json::to_vec(&session.world).unwrap(), before);
+    }
+}

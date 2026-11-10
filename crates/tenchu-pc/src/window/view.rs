@@ -80,7 +80,7 @@ pub(super) struct View {
     pack: Pack,
     pack_error: Option<String>,
     pub(super) models: Models,
-    pub(super) bodies: Pack,
+    pub(super) bodies: Arc<Pack>,
     pub(super) model_library: Option<crate::visuals::appearance::library::Library>,
     pub(super) model_picker: crate::visuals::appearance::picker::Picker,
     pub(super) player_models: Vec<(String, String)>,
@@ -434,9 +434,9 @@ impl View {
                 pack = Pack::default();
                 Models::build(&game.mission, &pack, &settings.graphics).unwrap()
             });
-        let bodies = load_bodies(&settings.model_directory).unwrap_or_else(|error| {
+        let bodies = Pack::bodies(&settings.model_directory).unwrap_or_else(|error| {
             eprintln!("Player models: {error}; using disc bodies");
-            Pack::default()
+            Arc::default()
         });
         let player_models = crate::visuals::appearance::choices(game, &bodies, None);
         models = models
@@ -631,7 +631,7 @@ impl View {
     ) -> Result<()> {
         let rendered = settings.rendering();
         let settings = &*rendered;
-        let bodies = load_bodies(directory)?;
+        let bodies = Pack::bodies(directory)?;
         let choices =
             crate::visuals::appearance::choices(game, &bodies, self.model_library.as_ref());
         if !directory.is_empty() && choices.iter().all(|(id, _)| !id.starts_with("pack:")) {
@@ -1359,14 +1359,6 @@ impl View {
             });
         self.render(&texture.create_view(&Default::default()), game, debug)?;
         crate::capture::read_texture(&self.renderer, &texture, path)
-    }
-}
-
-fn load_bodies(directory: &str) -> Result<Pack> {
-    if directory.is_empty() {
-        Ok(Pack::default())
-    } else {
-        Pack::load(std::path::Path::new(directory))
     }
 }
 

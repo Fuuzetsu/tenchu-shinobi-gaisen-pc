@@ -344,7 +344,9 @@ impl ContentDrawing {
         } else {
             None
         };
-        renderer.reset_vram(vram);
+        if !preserve_environment {
+            renderer.reset_vram(vram);
+        }
         let mut replacement = if let Content::Results(results) = content {
             Self::Results(results::Drawing::new(results, backdrop))
         } else {

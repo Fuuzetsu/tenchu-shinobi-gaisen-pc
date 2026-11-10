@@ -23,6 +23,7 @@ use tenchu_core::{
 };
 
 mod background;
+mod custom;
 mod environment;
 mod hud;
 mod lighting;
@@ -92,6 +93,14 @@ impl Drawing {
         renderer: &mut Renderer,
     ) -> Result<Self> {
         let models = Models::new(&session.assets, &session.world, graphics, renderer)?;
+        #[cfg(not(target_arch = "wasm32"))]
+        let models = {
+            let mut models = models;
+            if let Some(custom) = &session.models.custom {
+                models.custom(&custom.id, &custom.pack, session, graphics, renderer)?;
+            }
+            models
+        };
         renderer.visual_time = session.world.tick as f32 / 30.0;
         let geometry = models.geometry(
             &session.world,
@@ -418,6 +427,7 @@ fn capture_frame(
 }
 
 pub struct Models {
+    player: Option<custom::Player>,
     scenery: Meshes,
     bodies: BTreeMap<String, Meshes>,
     weapons: Meshes,
@@ -548,6 +558,7 @@ impl Models {
             );
         }
         Ok(Self {
+            player: None,
             scenery,
             bodies,
             weapons,
@@ -555,6 +566,34 @@ impl Models {
             items,
             weapon_names,
         })
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn custom(
+        &mut self,
+        id: &str,
+        pack: &Pack,
+        session: &super::Session,
+        graphics: &Graphics,
+        renderer: &mut Renderer,
+    ) -> Result<()> {
+        let actor = &session.world.actors[session.world.player].actor;
+        let definition = session
+            .assets
+            .resources
+            .registry
+            .actor(actor.definition_kind())
+            .ok_or("Missing player definition")?;
+        let body = &session.assets.models[&definition.model];
+        self.player = Some(custom::Player::new(
+            id,
+            pack,
+            &body.parts,
+            &body.vram,
+            graphics,
+            renderer,
+        )?);
+        Ok(())
     }
 
     pub fn geometry(
@@ -609,7 +648,8 @@ impl Models {
         }
         // Presentation must not refresh the simulation's cached coordinate matrices.
         let mut scene = world.scene.clone();
-        for (agent, instance) in world.actors.iter().zip(&world.instances) {
+        let mut player_hand = None;
+        for (owner, (agent, instance)) in world.actors.iter().zip(&world.instances).enumerate() {
             let actor = &agent.actor;
             if actor.flags & 8 != 0 {
                 continue;
@@ -635,29 +675,48 @@ impl Models {
                     })
                 })
                 .collect::<Result<Vec<_>>>()?;
-            meshes.pose_skin(&matrices, None);
-            for (part, &matrix) in body.parts.iter().zip(&matrices) {
-                output.model(
-                    meshes,
-                    part,
-                    matrix,
-                    if assets
-                        .model_sources
-                        .get(&definition.model)
-                        .is_some_and(|ids| {
-                            ids.iter()
-                                .any(|id| !id.is_empty() && !id.starts_with("tenchu2/"))
-                        })
-                    {
+            let custom = self.player.as_ref().filter(|_| owner == world.player);
+            let custom_pose = custom
+                .map(|player| player.pose(&matrices, scene.models[instance.rig.joints[0]].local));
+            if let (Some(player), Some(target)) = (custom, &custom_pose) {
+                let appearance = &player.appearance;
+                appearance.meshes.pose_skin(target, None);
+                for (part, &matrix) in appearance.parts.iter().zip(target) {
+                    output.model(
+                        &appearance.meshes,
+                        part,
+                        matrix,
                         ModelStyle::Imported {
                             concealed: instance.translucent,
-                        }
-                    } else if instance.translucent {
-                        ModelStyle::Concealed
-                    } else {
-                        ModelStyle::Actor
-                    },
-                );
+                        },
+                    );
+                }
+                player_hand = Some(custom::Player::attach(matrices[11], 11, &matrices, target));
+            } else {
+                meshes.pose_skin(&matrices, None);
+                for (part, &matrix) in body.parts.iter().zip(&matrices) {
+                    output.model(
+                        meshes,
+                        part,
+                        matrix,
+                        if assets
+                            .model_sources
+                            .get(&definition.model)
+                            .is_some_and(|ids| {
+                                ids.iter()
+                                    .any(|id| !id.is_empty() && !id.starts_with("tenchu2/"))
+                            })
+                        {
+                            ModelStyle::Imported {
+                                concealed: instance.translucent,
+                            }
+                        } else if instance.translucent {
+                            ModelStyle::Concealed
+                        } else {
+                            ModelStyle::Actor
+                        },
+                    );
+                }
             }
             for root in instance.rig.weapons.iter().take(3).flatten() {
                 let name = self
@@ -666,18 +725,29 @@ impl Models {
                     .ok_or("Missing native weapon instance")?;
                 let parts = &assets.weapons[name];
                 for (index, part) in parts.iter().enumerate() {
+                    let mut matrix = PoseFrame::transform(
+                        pose,
+                        interpolation::part(
+                            instance.rig.root,
+                            root + 1 + index,
+                            actor.definition_kind(),
+                        ),
+                        scene.world(root + 1 + index)?,
+                    );
+                    if let Some(target) = &custom_pose {
+                        let mut parent = scene.models[*root].parent;
+                        while let Some(id) = parent {
+                            if let Some(bone) = instance.rig.joints.iter().position(|&j| j == id) {
+                                matrix = custom::Player::attach(matrix, bone, &matrices, target);
+                                break;
+                            }
+                            parent = scene.models[id].parent;
+                        }
+                    }
                     output.model(
                         self.imported_weapons.get(name).unwrap_or(&self.weapons),
                         part,
-                        PoseFrame::transform(
-                            pose,
-                            interpolation::part(
-                                instance.rig.root,
-                                root + 1 + index,
-                                actor.definition_kind(),
-                            ),
-                            scene.world(root + 1 + index)?,
-                        ),
+                        matrix,
                         if assets
                             .weapon_imports
                             .get(name)
@@ -712,6 +782,11 @@ impl Models {
                 scene.world(hand)?,
             )
             .translation;
+            if hook.owner == world.player
+                && let Some(hand) = player_hand
+            {
+                previous = hand.translation;
+            }
             for &point in &hook.rope {
                 output.line(previous, point);
                 previous = point;
@@ -734,7 +809,7 @@ impl Models {
                 ),
                 scene.world(hand)?,
             );
-            output.parts(&self.items, parts, transform, math)?;
+            output.parts(&self.items, parts, player_hand.unwrap_or(transform), math)?;
         }
         for entry in &world.items.entries {
             use tenchu_core::tenchu2::items::{State, arrow::Phase};
