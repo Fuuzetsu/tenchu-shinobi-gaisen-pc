@@ -20,7 +20,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   floors or seabed artwork. Wooden floors stay dry. F6 offers these stages under
   **Shinobi Gaisen → Gameplay rules → Tenchu 2 (JP)**, with all three T2 heroes,
   difficulty, water depth and native equipment selection. Both games' saved
-  campaigns are preserved. Other stage interactions are still being connected.
+  campaigns are preserved. Original medicine, grenade and smoke-bomb placements
+  supply their T2 equivalents, with native pickup animations, inventory and HUD
+  notices. Other stage interactions are still being connected.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
   item readouts, equipment quantities and results numbers, plus clearer

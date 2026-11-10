@@ -231,6 +231,7 @@ impl Models {
                     &weapon.parts,
                     matrices[attachment.bone],
                     math,
+                    false,
                 )?;
             }
         }

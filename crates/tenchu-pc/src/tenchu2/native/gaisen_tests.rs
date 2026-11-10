@@ -3,6 +3,7 @@ use tenchu_assets::{game::GameAssets, stage::MissionAssets};
 
 mod doors;
 mod heat;
+mod pickups;
 mod pitfalls;
 mod scrolling;
 mod water;

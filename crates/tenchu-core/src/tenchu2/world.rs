@@ -238,6 +238,13 @@ impl World {
             &mut world.random,
         )?;
         world.environment.texture_scrolls = assets.gaisen_scrolls.clone();
+        for &(item, position) in &assets.gaisen_pickups {
+            world.items.insert(
+                super::items::State::Pickup(super::items::pickup::Pickup::new(item, position)),
+                &mut world.scene,
+                &mut world.collision,
+            )?;
+        }
         world.update_camera(assets, true)?;
         world.initialize_activation(assets)?;
         world.mission.initialize(&world.actors, options.hero);

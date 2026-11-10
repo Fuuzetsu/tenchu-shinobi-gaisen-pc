@@ -11,6 +11,7 @@ pub mod gun;
 pub mod invisibility;
 pub mod marker;
 pub mod mine;
+pub mod pickup;
 pub mod powder;
 pub mod projectile;
 pub mod resurrection;
@@ -70,6 +71,7 @@ pub enum State {
     Resurrection(resurrection::Resurrection),
     Cloud(cloud::Cloud),
     Spear(trap::Spear),
+    Pickup(pickup::Pickup),
 }
 
 #[derive(Default)]
@@ -162,6 +164,10 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::Pickup(pickup) => {
+                scene.update(model, pickup.transform);
+                pickup.register(model, collision)?;
+            }
             State::Spear(spear) => {
                 spear.flight.floor = floor;
                 scene.update(model, spear.transform);
@@ -297,6 +303,7 @@ impl Items {
         let entry = self.entries.remove(index);
         collision.remove(entry.model);
         let floor = match entry.state {
+            State::Pickup(pickup) => pickup.flight.floor,
             State::Spear(spear) => spear.flight.floor,
             State::Marker(marker) => marker.floor.unwrap_or(entry.unused_floor),
             State::Resurrection(resurrection) => resurrection.floor,

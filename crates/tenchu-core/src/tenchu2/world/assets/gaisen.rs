@@ -147,6 +147,22 @@ impl Assets {
     }
 
     fn import_stage(&mut self, source: &MissionAssets) -> Result<()> {
+        let mut cursor = crate::terrain::Cursor::new(&source.terrain);
+        for spawn in &source.pickups {
+            let Some(mut position) =
+                crate::items::layout_position(&source.terrain, &mut cursor, spawn.position.into())?
+            else {
+                continue;
+            };
+            position.y = crate::terrain::level(&source.terrain, &mut cursor, position, 0)?;
+            let item = match spawn.kind {
+                3 => 1,
+                4 => 6,
+                5 => 10,
+                _ => return Err("Unsupported imported Gaisen pickup".into()),
+            };
+            self.gaisen_pickups.push((item, position));
+        }
         let level = &mut self.level;
         level.id = 24 + source.stage.id;
         level.gaisen = Some(source.stage.clone());

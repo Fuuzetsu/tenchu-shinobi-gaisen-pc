@@ -51,6 +51,10 @@ impl World {
             };
             let mut resurrection_voice = None;
             let (mut alive, pickup) = match &mut entry.state {
+                State::Pickup(pickup) => {
+                    pickup.advance(model, &mut context)?;
+                    (true, !pickup.falling)
+                }
                 State::Spear(spear) => (
                     spear.advance(model, &mut context, |event| {
                         sink.emit(event, &mut self.random)
@@ -337,8 +341,9 @@ impl World {
     ) -> Result<bool> {
         let entry = &self.items.entries[index];
         let (item, position, owner) = match &entry.state {
-            State::Projectile(p) => (p.model() as usize, p.flight.position, p.owner),
-            State::Grenade(g) => (6, g.flight.position, g.owner),
+            State::Pickup(p) => (usize::from(p.item), p.flight.position, None),
+            State::Projectile(p) => (p.model() as usize, p.flight.position, Some(p.owner)),
+            State::Grenade(g) => (6, g.flight.position, Some(g.owner)),
             _ => return Ok(false),
         };
         let model = entry.model;
@@ -374,7 +379,7 @@ impl World {
                 .collision
                 .get_mut(model)
                 .is_some_and(|s| s.flags & WEAPON != 0);
-            if dangerous && taker != owner {
+            if dangerous && Some(taker) != owner {
                 continue;
             }
             let actor = &self.actors[taker].actor;

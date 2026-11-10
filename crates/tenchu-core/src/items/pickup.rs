@@ -3,6 +3,31 @@ use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{collision, ids::MOT_STATE_PICKUP, scene::CONFLICT};
 
+pub(crate) fn layout_position(
+    map: &tenchu_assets::terrain::AreaMap,
+    cursor: &mut terrain::Cursor,
+    position: Position,
+) -> Result<Option<Position>> {
+    let floor = terrain::level(map, cursor, position, terrain::STEP_DOWN)?;
+    let valid =
+        |floor: i32| floor != terrain::NONE && floor.wrapping_sub(position.y).wrapping_abs() < 1000;
+    if valid(floor) {
+        return Ok(Some(Position::new(position.x, floor, position.z)));
+    }
+    for [x, z] in [[-1, -1], [1, -1], [-1, 1], [1, 1]] {
+        let offset = Position::new(
+            position.x.wrapping_add(x * 1000),
+            position.y,
+            position.z.wrapping_add(z * 1000),
+        );
+        let floor = terrain::level(map, cursor, offset, terrain::STEP_DOWN)?;
+        if valid(floor) {
+            return Ok(Some(Position::new(offset.x, floor, offset.z)));
+        }
+    }
+    Ok(None)
+}
+
 impl Items {
     pub(crate) fn drop(
         &mut self,

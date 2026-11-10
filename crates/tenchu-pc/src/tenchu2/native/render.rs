@@ -941,7 +941,7 @@ impl Models {
         let mut rope = None;
         if let Some(hook) = world.items.grapple() {
             if let Some(parts) = assets.items.model(0) {
-                output.parts(&self.items, parts, hook.transform, math)?;
+                output.parts(&self.items, parts, hook.transform, math, false)?;
             }
             let hand = *world.instances[hook.owner]
                 .rig
@@ -993,11 +993,18 @@ impl Models {
                 ),
                 scene.world(hand)?,
             );
-            output.parts(&self.items, parts, player_hand.unwrap_or(transform), math)?;
+            output.parts(
+                &self.items,
+                parts,
+                player_hand.unwrap_or(transform),
+                math,
+                false,
+            )?;
         }
         for entry in &world.items.entries {
             use tenchu_core::tenchu2::items::{State, arrow::Phase};
             let (model, transform, rotation) = match &entry.state {
+                State::Pickup(p) => (p.item, p.transform, [0; 3]),
                 State::Projectile(p) => (p.model(), p.transform, p.rotation),
                 State::Grenade(g) if g.visible => (6, g.transform, [0; 3]),
                 State::Mine(m) => (7, m.transform, [0; 3]),
@@ -1061,7 +1068,13 @@ impl Models {
                     rotation: math.rotate_yxz(rotation),
                     ..Default::default()
                 });
-                output.parts(&self.items, parts, transform, math)?;
+                output.parts(
+                    &self.items,
+                    parts,
+                    transform,
+                    math,
+                    matches!(entry.state, State::Pickup(_)),
+                )?;
             }
         }
         for sprite in &frame.scenery.sprites {
@@ -1522,12 +1535,27 @@ impl Builder {
         parts: &[Part],
         matrix: Matrix,
         math: &tenchu_core::math::Math,
+        grounded: bool,
     ) -> Result<()> {
         let mut scene = tenchu_core::scene::Scene::default();
         let root = scene.add(None, matrix);
         let joints = tenchu_core::motion::Pose::new(parts)?.bind(&mut scene, root, math);
+        let mut bottom = None;
+        if grounded {
+            // The original hand attachment origin can put the entire item below ground.
+            for (part, &joint) in parts.iter().zip(&joints) {
+                let transform = scene.world(joint)?;
+                for vertex in part.geometry.iter().flat_map(|g| &g.vertices) {
+                    let y = transform.transform(*vertex).y;
+                    bottom = Some(bottom.map_or(y, |old: i32| old.max(y)));
+                }
+            }
+        }
+        let offset = bottom.map_or(0, |bottom| bottom.wrapping_sub(matrix.translation.y));
         for (part, joint) in parts.iter().zip(joints) {
-            self.model(meshes, part, scene.world(joint)?, ModelStyle::Actor);
+            let mut transform = scene.world(joint)?;
+            transform.translation.y = transform.translation.y.wrapping_sub(offset);
+            self.model(meshes, part, transform, ModelStyle::Actor);
         }
         Ok(())
     }

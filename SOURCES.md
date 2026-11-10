@@ -101,6 +101,20 @@ responses are unchanged; recorded native movement and swimming comparisons
 remain their algorithm reference. This is a gameplay setting, independent of
 Original/Modern graphical presets and their water demos.
 
+Imported pickups share the port's `ITEM.C::RestoreItemLayout` floor resolver,
+including its four fallback offsets, strict 1,000-unit acceptance test and probe
+order. All 33 authored layouts contain only medicine, grenades and smoke bombs;
+these map to T2 inventory/model IDs 1, 6 and 10. Their placed, unlit items reuse
+native resting-item settlement and pickup contacts, animation eligibility,
+inventory arithmetic, selection, sound and HUD notifications. The optional-mode
+mapping and scene-item wrapper are new code. T1's billboard presentation and
+ten-tick transfer controller are not imported into the native T2 simulation.
+Placed supplies use the resting grenade's 400-unit contact extents. Presentation
+aligns the native models' lowest vertices with the floor, since their original
+hand attachment origins can bury them. The existing native item meshes and
+replacement identities supply presentation, independently of graphical presets.
+No item placement data is checked in.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |
@@ -116,6 +130,9 @@ Read-only references rechecked for this adapter:
 | `tenchu-viewer` | `src/renderer.rs` | `aa50e228ffe51c24af55a29d9fd7eec5bdfc79912db0c3aa8efba9a5d8e2d092` |
 | `tenchu-decomp` | `src/main.exe/game_types.h` | `556374b199511fc9889eb560c7ed04db694362674c6a2071ed9fc095e55385f3` |
 | `tenchu-decomp` | `src/main.exe/MOTION.C` | `7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82` |
+| `tenchu-decomp` | `src/main.exe/ITEM.C` | `fd5a6d31ef3e5628d792a4f05604d7e40ff588663c339651858e161bee57e78a` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/items/rolling.rs` | `aaceee4bfbc8aeb7a5dde8b1c5caaa20c6a68c670f2e5ebcc9da448a81b62365` |
+| `tenchu-viewer` | `src/world_items.rs` | `bf112a0dceb2c4d75fa6e54d6eb83f6721f7ebde5ab71a780aa16c8271526bd8` |
 
 ## Asset, scalar and renderer checkpoint (2026-10-20)
 

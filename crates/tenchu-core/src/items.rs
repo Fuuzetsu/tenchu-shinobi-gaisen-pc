@@ -16,6 +16,7 @@ pub use kind::Kind;
 mod medicine;
 mod napalm;
 mod pickup;
+pub(crate) use pickup::layout_position;
 mod poison;
 mod projectile;
 mod rice;
@@ -494,41 +495,12 @@ impl Items {
             self.dispose(id, actors, ctx)?;
         }
         for spawn in ctx.mission.pickups.clone() {
-            let mut position = spawn.position;
-            let floor = terrain::level(
-                &ctx.mission.terrain,
-                ctx.cursor,
-                position.into(),
-                terrain::STEP_DOWN,
-            )?;
-            let valid = |floor: i32| {
-                floor != terrain::NONE && floor.wrapping_sub(position[1]).wrapping_abs() < 1000
+            let Some(position) =
+                layout_position(&ctx.mission.terrain, ctx.cursor, spawn.position.into())?
+            else {
+                continue;
             };
-            if valid(floor) {
-                position[1] = floor;
-            } else {
-                let mut found = None;
-                for [x, z] in [[-1, -1], [1, -1], [-1, 1], [1, 1]] {
-                    let offset = [
-                        position[0].wrapping_add(x * 1000),
-                        position[1],
-                        position[2].wrapping_add(z * 1000),
-                    ];
-                    let floor = terrain::level(
-                        &ctx.mission.terrain,
-                        ctx.cursor,
-                        offset.into(),
-                        terrain::STEP_DOWN,
-                    )?;
-                    if valid(floor) {
-                        found = Some([offset[0], floor, offset[2]]);
-                        break;
-                    }
-                }
-                let Some(found) = found else { continue };
-                position = found;
-            }
-            self.stay(Kind::try_from(spawn.kind)?, position.into(), actors, ctx)?;
+            self.stay(Kind::try_from(spawn.kind)?, position, actors, ctx)?;
         }
         Ok(())
     }
