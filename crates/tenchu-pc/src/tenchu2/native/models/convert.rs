@@ -54,6 +54,7 @@ pub(super) fn convert_moves(
     assets.resources.weapons.attacks.retain(|a| a.clip >= 0);
     let mut attacks = BTreeMap::new();
     let mut mapped = BTreeMap::new();
+    let mut weapon_frames = Vec::new();
     let owns_attack = character
         .motions
         .iter()
@@ -82,7 +83,8 @@ pub(super) fn convert_moves(
             .retain(|r| !(0x900..0x917).contains(&r.action));
     }
     for &(gaisen, native) in T2_ACTIONS {
-        if options.player_movement && native < 0x900 && !matches!(native, 0 | 0x100) {
+        if options.player_movement && native < 0x900 && !matches!(native, 0 | 0x100 | 0x700 | 0x701)
+        {
             continue;
         }
         let Some(registration) = character.motions.iter().find(|m| m.action == gaisen) else {
@@ -115,6 +117,19 @@ pub(super) fn convert_moves(
                 bones,
             },
         );
+        if matches!(native, 0x700 | 0x701) {
+            let frame = body
+                .imported_moveset
+                .as_ref()
+                .and_then(|moveset| {
+                    moveset
+                        .weapon_frames
+                        .iter()
+                        .find(|&&(source, _)| source == clip.id)
+                })
+                .map_or(clip.duration / 2, |&(_, event)| event.frame);
+            weapon_frames.push((id, frame));
+        }
         if native >= 0x900 {
             let Some(attack) = donor
                 .mission
@@ -195,6 +210,10 @@ pub(super) fn convert_moves(
             *next = next.filter(|action| supported.contains(action));
         }
     }
+    assets
+        .resources
+        .registry
+        .replace_imported_weapon_frames(weapon_frames);
     Ok(attacks)
 }
 

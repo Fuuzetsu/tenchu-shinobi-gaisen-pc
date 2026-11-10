@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Selected movesets now use their own draw/sheath animations when available,
+  including Tenchu 2 heroes imported into Gaisen. Weapon swaps follow the source
+  animation's event frame; switching back restores the original fallback motions.
+  Imported draw/sheath motions also retain their timing in native T2.
+
 - Native Tenchu 2 JP supports **Keep all enemies active** in F1. Distant actors
   continue patrolling, fighting and animating without the original distance or
   actor-budget suspension. Scripted holds and deaths remain intact; disabling
@@ -90,7 +95,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Player moveset overrides now use the selected character’s disc-backed voice and weapon sounds in both Gaisen and native Tenchu 2 JP, including JP/EU T2 banks and Gaisen characters from other missions. Other actors, world effects and ambience keep their own sounds. Imported audio also works in recordings and restored Gaisen savestates.
 
 - Imported Tenchu 2 movesets now carry their own disc-backed weapons, handles and sheaths into Gaisen and native JP, including edition-specific textures and HD-pack replacements. Attachments follow source draw/holster rules; Gaisen weapon blood and reflections recognize the imported blades. Changing only the moveset refreshes its rendering resources too.
-- Update the mid-mission savestate format for imported weapon, sound and water-material resources. Earlier mid-mission states require their original build; campaign progress and settings are unaffected.
+- Update the mid-mission savestate format for imported weapon, sound, water-material and moveset transition resources. Earlier mid-mission states require their original build; campaign progress and settings are unaffected.
 - Connect native Tenchu 2 JP to the shared sun/moon lighting, directional shadows and time-of-day controls, including 3D cutscenes. The visual clock follows simulation time through pause and fast-forward; model/artwork changes preserve it.
 - Enable native JP god mode, armour protection and mission inventory editing in the shared F1 Experiment tab. The inventory lists T2's own items; edits preserve active effects and leave campaign stock unchanged. God mode prevents combat, poison, drowning and fall damage without refilling health or removing hit reactions.
 - Native Tenchu 2 JP gains collision, patrol, mission-destination and surface-trigger overlays. Guard sight overlays use JP terrain checks, show obstruction points and explain the selected guard's next perception check without changing gameplay.

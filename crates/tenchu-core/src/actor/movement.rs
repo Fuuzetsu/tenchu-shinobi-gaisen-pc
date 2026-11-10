@@ -526,6 +526,35 @@ impl Actor {
         match self.motion.action {
             MOT_STATE_DRAW | MOT_STATE_SHEATHE => {
                 let drawing = self.motion.action == MOT_STATE_DRAW;
+                let clip = &ctx.mission.clips[self.motion.clip.unwrap()];
+                let duration = clip.duration;
+                let imported_frame = ctx
+                    .mission
+                    .weapons
+                    .imported_weapon_frames
+                    .get(&clip.id)
+                    .copied();
+                if let Some(event) = imported_frame {
+                    if count == event.frame && (self.attribute & ATTR_WEAPON_DRAWN != 0) != drawing
+                    {
+                        self.clear_attack(ctx, 3)?;
+                        self.equip(ctx, drawing);
+                        if event.sound {
+                            world
+                                .intelligence
+                                .voices
+                                .push((self.id, i16::from(!drawing)));
+                        }
+                    }
+                    return Ok((self.motion.loops != 0).then_some((
+                        if drawing {
+                            MOT_ENGAGE_STANCE
+                        } else {
+                            MOT_NORMAL
+                        },
+                        true,
+                    )));
+                }
                 if count == 1 {
                     self.clear_attack(ctx, 3)?;
                     if drawing && (2..7).contains(&self.kind) {
@@ -541,7 +570,7 @@ impl Actor {
                             true,
                         )));
                     }
-                } else if count == ctx.mission.clips[self.motion.clip.unwrap()].duration / 2 {
+                } else if count == duration / 2 {
                     world
                         .intelligence
                         .voices

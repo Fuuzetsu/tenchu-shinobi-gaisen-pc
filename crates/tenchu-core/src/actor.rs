@@ -108,6 +108,7 @@ pub struct Actor {
     pub(crate) suppress_idle_taunts: bool,
     #[serde(default)]
     pub(crate) imported_holster: bool,
+    pub(crate) sheathing_motions: Vec<(i16, usize)>,
     pub max_health: i16,
     pub attribute: u16,
     pub status: State,
@@ -228,6 +229,7 @@ impl Actor {
             severed: None,
             suppress_idle_taunts: false,
             imported_holster: false,
+            sheathing_motions: Vec::new(),
             map,
             pad: Pad::default(),
             motion,
@@ -499,7 +501,7 @@ impl Actor {
                 .and_then(|s| s.unarmed_clip(action))
                 .map_or(-1, |index| ctx.mission.clips[index].id);
         }
-        if let Some(index) = self.sheathing.as_ref().and_then(|s| s.clip(action)) {
+        if let Some(index) = self.sheathing_clip(action) {
             return ctx.mission.clips[index].id;
         }
         let clip = ctx.mission.characters[self.definition]
@@ -527,7 +529,7 @@ impl Actor {
             };
             Some(index)
         } else {
-            self.sheathing.as_ref().and_then(|s| s.clip(action))
+            self.sheathing_clip(action)
         };
         let entered = self.enter_definition(ctx, self.definition, action, movement, optional);
         if entered && self.imported_attack(ctx).is_some() {
@@ -615,6 +617,15 @@ impl Actor {
         } else {
             action
         }
+    }
+
+    fn sheathing_clip(&self, action: i16) -> Option<usize> {
+        let fallback = self.sheathing.as_ref()?;
+        self.sheathing_motions
+            .iter()
+            .find(|&&(id, _)| id == action)
+            .map(|&(_, clip)| clip)
+            .or_else(|| fallback.clip(action))
     }
 
     pub(crate) fn sheathed_settings(&self) -> Option<crate::game::sheathing::Settings> {

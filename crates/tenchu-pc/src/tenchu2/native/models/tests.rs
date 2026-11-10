@@ -2,6 +2,101 @@ use super::*;
 use tenchu_core::tenchu2::input::{ATTACK, UP};
 
 #[test]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; imported native draw/stow transitions keep source event timing"]
+fn native_imported_sheathing_keeps_source_event_frames() {
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&gaisen).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let mut donor = donor(&gaisen).unwrap();
+    for id in [
+        "tenchu2-jp:rikimaru",
+        "tenchu2-jp:ayame",
+        "tenchu2-jp:tatumaru",
+    ] {
+        let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+        for _ in 0..30 {
+            session.step(0).unwrap();
+        }
+        let settings = Settings {
+            moveset_model: id.into(),
+            model_moveset: true,
+            model_moveset_options: Options {
+                player_movement: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        session
+            .models
+            .sync(
+                &mut session.world,
+                &mut session.assets,
+                &mut donor,
+                &library,
+                &Arc::default(),
+                &settings,
+            )
+            .unwrap();
+        let source = library.get(id).unwrap().imported_moveset.as_ref().unwrap();
+        let owner = session.world.player;
+        for (drawn, action, host_action) in [
+            (true, 0x700, tenchu_core::ids::MOT_STATE_DRAW),
+            (false, 0x701, tenchu_core::ids::MOT_STATE_SHEATHE),
+        ] {
+            let source_id = source
+                .character
+                .motions
+                .iter()
+                .find(|m| m.action == host_action)
+                .unwrap()
+                .clip;
+            let expected_frame = source
+                .weapon_frames
+                .iter()
+                .find(|&&(id, _)| id == source_id)
+                .unwrap()
+                .1
+                .frame;
+            let actor = &mut session.world.actors[owner].actor;
+            actor
+                .set_weapon(
+                    &mut session.world.instances[owner].rig,
+                    owner,
+                    &mut session.world.collision,
+                    &session.assets.resources,
+                    if drawn {
+                        WeaponMode::Sheathe
+                    } else {
+                        WeaponMode::Draw
+                    },
+                )
+                .unwrap();
+            actor
+                .change_motion(action, actor::Velocity::Motion, &session.assets.resources)
+                .unwrap();
+            assert!(actor.motion.clip.unwrap() < 0);
+            let mut swaps = Vec::new();
+            for _ in 0..150 {
+                let actor = &session.world.actors[owner].actor;
+                let before = actor.weapon_drawn();
+                let frame = actor.motion.frame;
+                session.step(0).unwrap();
+                if before != session.world.actors[owner].actor.weapon_drawn() {
+                    swaps.push(frame);
+                }
+            }
+            assert_eq!(swaps, [expected_frame], "{id} action {action:x}");
+            assert_eq!(
+                session.world.actors[owner].actor.motion.action,
+                if drawn { 0x100 } else { 0 }
+            );
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; cross-game motion, contacts, rig reuse and restoration"]
 fn cross_game_models_move_attack_and_restore_in_native_t2() {
     let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
@@ -353,14 +448,16 @@ fn imported_native_attacks_damage_guards() {
         session.world.publish(1, &session.assets);
         // Draw first, then attack without a paired stealth kill.
         session.step(ATTACK).unwrap();
-        for tick in 0..180 {
+        let mut began_attack = false;
+        for _ in 0..240 {
             let player = &session.world.actors[owner].actor;
             let attack = player
                 .motion
                 .clip
                 .and_then(|id| session.assets.resources.weapons.attack(id));
-            let press =
-                tick == 60 || attack.is_some_and(|a| player.motion.frame == i16::from(a.combo));
+            let press = (!began_attack && player.state == State::Ready && player.weapon_drawn())
+                || attack.is_some_and(|a| player.motion.frame == i16::from(a.combo));
+            began_attack |= press;
             session.step(if press { ATTACK } else { 0 }).unwrap();
         }
         assert!(

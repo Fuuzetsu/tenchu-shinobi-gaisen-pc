@@ -3,6 +3,132 @@ use tenchu_assets::game::GameAssets;
 use tenchu_core::input::*;
 
 #[test]
+#[ignore = "requires TENCHU_DISC and TENCHU2_DISC; source draw/stow clips, weapon event frames, setting order and save continuation"]
+fn imported_sheathing_uses_source_motions_and_weapon_frames() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let registry = Registry::load(&disc).unwrap();
+    let weapons = Weapons::load(&disc).unwrap();
+    let sources = load(&disc).unwrap();
+    let assets = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    for character in 0..2 {
+        for kind in 0..3 {
+            for configure_first in [false, true] {
+                let source = &sources[&kind];
+                let mut game = crate::session::Options {
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                game.events = Default::default();
+                game.intelligence.ignore_player = true;
+                for _ in 0..30 {
+                    game.step(0).unwrap();
+                }
+                let settings = tenchu_core::game::sheathing::Settings {
+                    enabled: true,
+                    ..Default::default()
+                };
+                if configure_first {
+                    crate::sheathing::configure(&mut game, &assets, settings).unwrap();
+                }
+                game.set_imported_player_moveset(source, Default::default())
+                    .unwrap();
+                crate::sheathing::configure(&mut game, &assets, settings).unwrap();
+                for (drawing, action, native) in [
+                    (false, MOT_STATE_SHEATHE, 0x701),
+                    (true, MOT_STATE_DRAW, 0x700),
+                ] {
+                    let id = source
+                        .character
+                        .motions
+                        .iter()
+                        .find(|m| m.action == action)
+                        .unwrap()
+                        .clip;
+                    let expected = source.clips.iter().find(|c| c.id == id).unwrap();
+                    let native_id = registry.clip(kind, native).unwrap();
+                    let frame = registry.weapon_frame_30hz(native_id, expected.duration);
+                    game.roster
+                        .get_mut(game.player_id)
+                        .sheathing
+                        .as_mut()
+                        .unwrap()
+                        .input(true);
+                    game.step(0).unwrap();
+                    game.roster
+                        .get_mut(game.player_id)
+                        .sheathing
+                        .as_mut()
+                        .unwrap()
+                        .input(false);
+                    assert_eq!(game.player().motion.action, action);
+                    let actual = &game.mission.clips[game.player().motion.clip.unwrap()];
+                    assert_eq!(
+                        actual, expected,
+                        "hero {character}, source {kind}, action {action:x}"
+                    );
+                    let saved = crate::savestate::encode(&game).unwrap();
+                    let mut restored: tenchu_core::game::Game =
+                        crate::savestate::decode(&saved).unwrap();
+                    let mut swaps = Vec::new();
+                    let mut voices = 0;
+                    for _ in 0..150 {
+                        let before = game.player().attribute & ATTR_WEAPON_DRAWN;
+                        let count = game.player().motion.count;
+                        game.step(0).unwrap();
+                        restored.step(0).unwrap();
+                        if before != game.player().attribute & ATTR_WEAPON_DRAWN {
+                            swaps.push(count);
+                        }
+                        voices += game
+                            .intelligence
+                            .voices
+                            .iter()
+                            .filter(|&&(actor, cue)| {
+                                actor == game.player_id && cue == i16::from(!drawing)
+                            })
+                            .count();
+                    }
+                    assert_eq!(swaps, [frame], "source {kind}, action {action:x}");
+                    assert_eq!(
+                        voices,
+                        usize::from(
+                            weapons
+                                .parts(registry.actor(kind).unwrap().weapon)
+                                .next()
+                                .is_some_and(|part| part.model.is_some())
+                        ),
+                        "source {kind}, action {action:x}"
+                    );
+                    assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN != 0, drawing);
+                    assert_eq!(
+                        postcard::to_allocvec(&game).unwrap(),
+                        postcard::to_allocvec(&restored).unwrap()
+                    );
+                }
+                game.set_player_moveset(None, &[], Default::default())
+                    .unwrap();
+                game.roster
+                    .get_mut(game.player_id)
+                    .sheathing
+                    .as_mut()
+                    .unwrap()
+                    .input(true);
+                game.step(0).unwrap();
+                let fallback = game.mission.clips[game.player().motion.clip.unwrap()].id;
+                assert!(!source.clips.iter().any(|clip| clip.id == fallback));
+                assert_eq!(game.player().motion.action, MOT_STATE_SHEATHE);
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and TENCHU2_DISC; imports real hero motions and exercises them in Gaisen"]
 fn imported_heroes_move_fight_and_restore_in_gaisen() {
     let disc = std::env::var_os("TENCHU2_DISC").expect("TENCHU2_DISC");

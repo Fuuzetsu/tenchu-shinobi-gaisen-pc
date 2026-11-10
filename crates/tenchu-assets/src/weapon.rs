@@ -83,6 +83,12 @@ pub struct ImportedAttack {
 }
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub struct WeaponTransition {
+    pub frame: i16,
+    pub sound: bool,
+}
+
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Draw {
     Fixed,
     Single,
@@ -132,6 +138,7 @@ pub struct Weapons {
     pub bow_timing: [[i16; 2]; 2],
     #[serde(default)]
     pub imported_attacks: BTreeMap<i16, ImportedAttack>,
+    pub imported_weapon_frames: BTreeMap<i16, WeaponTransition>,
     pub imported_models: Arc<BTreeMap<i16, Arc<ImportedModel>>>,
 }
 
@@ -148,6 +155,7 @@ impl Weapons {
             attacks,
             bow_timing,
             imported_attacks,
+            imported_weapon_frames,
             imported_models,
         } = self;
         out.shared_arc(models, true)?;
@@ -157,6 +165,7 @@ impl Weapons {
         out.value(attacks)?;
         out.value(bow_timing)?;
         out.value(imported_attacks)?;
+        out.value(imported_weapon_frames)?;
         out.shared_arc(imported_models, true)
     }
 
@@ -241,6 +250,7 @@ impl Weapons {
                     hitboxes,
                     attacks,
                     imported_attacks: BTreeMap::new(),
+                    imported_weapon_frames: BTreeMap::new(),
                     imported_models: Arc::default(),
                     bow_timing: [
                         [

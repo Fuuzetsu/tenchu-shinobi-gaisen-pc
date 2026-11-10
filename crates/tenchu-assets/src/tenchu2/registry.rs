@@ -161,6 +161,19 @@ impl Registry {
                 Edition::Japan => frame,
             })
     }
+
+    /// Authored 30 Hz timing, before the PAL runtime's 25 Hz conversion.
+    pub fn weapon_frame_30hz(&self, clip: i16, duration: i16) -> i16 {
+        self.weapon_frames
+            .iter()
+            .find(|&&(id, _)| id == clip)
+            .map_or(duration / 3, |&(_, frame)| frame)
+    }
+
+    pub fn replace_imported_weapon_frames(&mut self, frames: impl IntoIterator<Item = (i16, i16)>) {
+        self.weapon_frames.retain(|&(clip, _)| clip >= 0);
+        self.weapon_frames.extend(frames);
+    }
 }
 
 fn motions(data: &[u8], at: usize) -> Result<Vec<Registration>> {

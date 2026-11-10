@@ -73,7 +73,7 @@ impl Actor {
                         )?;
                         let kind = resources
                             .registry
-                            .actor(self.kind)
+                            .actor(self.definition_kind())
                             .ok_or("Unknown Tenchu 2 actor")?
                             .weapon;
                         if resources

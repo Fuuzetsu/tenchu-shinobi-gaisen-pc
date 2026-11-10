@@ -171,6 +171,8 @@ impl Override {
                     assets,
                 )?);
             }
+        } else {
+            assets.resources.registry.replace_imported_weapon_frames([]);
         }
         if let Some(body) = body {
             let name = "override-player".to_owned();

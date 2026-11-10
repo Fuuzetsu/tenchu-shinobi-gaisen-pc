@@ -6,6 +6,7 @@ pub struct Imported {
     pub voice: Option<std::sync::Arc<tenchu_assets::audio::voice::VoiceSet>>,
     pub character: Character,
     pub clips: Vec<Clip>,
+    pub weapon_frames: Vec<(i16, tenchu_assets::weapon::WeaponTransition)>,
     pub attacks: Vec<(
         tenchu_assets::weapon::Attack,
         tenchu_assets::weapon::ImportedAttack,
@@ -45,6 +46,10 @@ impl Game {
             return Ok(());
         }
         self.set_player_moveset(Some(&source.character), &source.clips, options)?;
+        self.mission
+            .weapons
+            .imported_weapon_frames
+            .extend(source.weapon_frames.iter().copied());
         for (attack, contacts) in &source.attacks {
             let attacks = &mut self.mission.weapons.attacks;
             if let Some(existing) = attacks.iter_mut().find(|a| a.clip == attack.clip) {
@@ -186,6 +191,27 @@ impl Game {
         } else {
             actor.definition = original;
         }
+        actor.sheathing_motions = character
+            .into_iter()
+            .flat_map(|source| &source.motions)
+            .filter(|r| {
+                matches!(
+                    r.action,
+                    MOT_NORMAL
+                        | MOT_NORMAL_TURN_L
+                        | MOT_NORMAL_TURN_R
+                        | MOT_STATE_DRAW
+                        | MOT_STATE_SHEATHE
+                )
+            })
+            .filter_map(|r| {
+                ctx.mission
+                    .clips
+                    .iter()
+                    .position(|clip| clip.id == r.clip)
+                    .map(|clip| (r.action, clip))
+            })
+            .collect();
         actor.rebuild_weapons(&mut ctx, &mut self.moveset.weapons)?;
         actor.motion = Motion::new(&ctx.mission.models[&actor.mesh_kind])?;
         let action = actor.return_normal(&mut ctx, self.player_id)?;
@@ -255,6 +281,8 @@ pub const T2_ACTIONS: &[(i16, i16)] = &[
     (MOT_JUMP_WALLKICK, 0x605),
     (MOT_JUMP_RUN, 0x606),
     (MOT_JUMP_FLIP, 0x607),
+    (MOT_STATE_DRAW, 0x700),
+    (MOT_STATE_SHEATHE, 0x701),
     (MOT_ATTACK, 0x900),
     (MOT_ATTACK_SLASH2, 0x901),
     (MOT_ATTACK_SLASH2_RIGHT, 0x902),

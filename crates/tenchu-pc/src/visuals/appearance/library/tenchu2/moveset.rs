@@ -76,6 +76,7 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
         };
         let mut converted = BTreeMap::new();
         let mut attacks = Vec::new();
+        let mut weapon_frames = Vec::new();
         let mut ids = BTreeMap::new();
         for &(action, original) in ACTIONS {
             let Some(id) = registry.clip(kind, original) else {
@@ -111,6 +112,18 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
                 .map_err(|_| "Tenchu 2 blend out of range")?;
             clip.forward_speed = source.forward_speed;
             clip.side_speed = source.side_speed;
+            if matches!(original, 0x700 | 0x701) {
+                weapon_frames.push((
+                    clip.id,
+                    tenchu_assets::weapon::WeaponTransition {
+                        frame: registry.weapon_frame_30hz(id, source.duration),
+                        sound: weapons
+                            .parts(actor.weapon)
+                            .next()
+                            .is_some_and(|part| part.model.is_some()),
+                    },
+                ));
+            }
             if original >= 0x900 {
                 let Some(source_attack) = weapons.attack(id) else {
                     continue;
@@ -210,6 +223,7 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
                 voice: voices.get(&kind).cloned(),
                 character,
                 clips: converted.into_values().collect(),
+                weapon_frames,
                 attacks,
                 equipment: equipment(disc, &weapons, actor.weapon, &vram, &mut models)?,
             }),

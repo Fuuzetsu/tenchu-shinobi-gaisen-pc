@@ -2906,3 +2906,15 @@ those numbers as Gaisen alert barks. The presentation adapter leaves source
 simulation event timing, audio allocation and RNG calls intact; it does not claim
 that every imported motion has acquired its original game's event script.
 Global world effects and paired-kill event scheduling remain host-owned.
+
+### Cross-game draw/sheath transitions (2026-11-10)
+
+The shared action map now includes T2 actions `0x700`/`0x701`. Imported clips
+retain the disc registry's weapon event frames, using authored 30 Hz timing for
+both JP and EU clips in Gaisen (before PAL's load-time 25 Hz patch). Source
+`control/special.rs` supplies weapon-state gating, sound eligibility and the
+loop-completion transition, including zero-duration unarmed motions. Original
+Gaisen transitions keep `src/main.exe/MOTION.C`'s half-duration event. The
+optional sheathing fallback yields to selected source registrations and is
+restored when the moveset is removed. Native JP imports preserve those event
+frames through their remapped clip IDs. No source assets are checked in.
