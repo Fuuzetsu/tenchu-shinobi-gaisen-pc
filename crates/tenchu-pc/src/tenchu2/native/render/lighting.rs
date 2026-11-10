@@ -75,6 +75,22 @@ impl Lighting {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
+    pub fn update_gaisen(
+        &mut self,
+        game: &tenchu_core::game::Game,
+        settings: &crate::settings::Lighting,
+    ) {
+        let radius = f32::from(settings.radius) * 1000.0;
+        self.fires = lighting::fire_sources(game, radius)
+            .map(|source| source.light.position)
+            .collect();
+        if settings.enabled && settings.fires && settings.count > 0 {
+            self.flashes
+                .extend(lighting::transients::sources(game, radius));
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn count(&self, settings: &crate::settings::Lighting) -> usize {
         if self.active(settings) {
             (if settings.fires {

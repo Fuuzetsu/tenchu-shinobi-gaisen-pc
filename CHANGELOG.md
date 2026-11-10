@@ -29,8 +29,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   their native poses during scenes. Collected supplies stay gone; remaining
   pickups and loose native items retain their models, positions and artwork
   through cutscenes. Active native particles and their lights remain frozen
-  through scenes, retaining their original or HD artwork. Other stage
-  interactions are still being connected.
+  through scenes, retaining their original or HD artwork. Authored fire,
+  bonfires, steam, snow, decorative sprites and ambient sounds also run during
+  T2 gameplay, with their T1 artwork and sound banks. Existing fire lighting
+  and weather settings apply. Other stage interactions are still being connected.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
   item readouts, equipment quantities and results numbers, plus clearer

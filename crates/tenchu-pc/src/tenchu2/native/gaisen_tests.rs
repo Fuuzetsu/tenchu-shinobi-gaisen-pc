@@ -1,6 +1,7 @@
 use super::*;
 use tenchu_assets::{game::GameAssets, stage::MissionAssets};
 
+mod ambient;
 mod director;
 mod doors;
 mod heat;

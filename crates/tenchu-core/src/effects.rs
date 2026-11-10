@@ -570,7 +570,31 @@ impl Effects {
         scene: &mut Scene,
         env: &mut Environment,
     ) -> Result<()> {
+        self.advance(rng, view, scene, env, true)
+    }
+
+    pub(crate) fn step_ambient(
+        &mut self,
+        rng: &mut Random,
+        view: View,
+        scene: &mut Scene,
+        env: &mut Environment,
+    ) -> Result<()> {
+        self.advance(rng, view, scene, env, false)
+    }
+
+    fn advance(
+        &mut self,
+        rng: &mut Random,
+        view: View,
+        scene: &mut Scene,
+        env: &mut Environment,
+        scrolling: bool,
+    ) -> Result<()> {
         for i in 0..200 {
+            if !scrolling && matches!(&self.slots[i], Some(Effect::TextureScroll(_))) {
+                continue;
+            }
             let Some(mut effect) = self.slots[i].take() else {
                 continue;
             };

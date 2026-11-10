@@ -8,8 +8,8 @@ fn output() -> std::path::PathBuf {
 }
 
 #[test]
-#[ignore = "requires both discs, TENCHU_GAISEN_REVIEW and GPU; original/HD native sprite materials survive the source VRAM switch"]
-fn imported_cinematic_particle_materials_keep_native_artwork() {
+#[ignore = "requires both discs, TENCHU_GAISEN_REVIEW and GPU; original/HD sprite materials from both games survive VRAM switches"]
+fn imported_particle_materials_keep_both_games_artwork() {
     let output = output();
     let session = tests::session(0);
     let graphics = Graphics {
@@ -17,92 +17,105 @@ fn imported_cinematic_particle_materials_keep_native_artwork() {
         ..Default::default()
     };
     let source = &session.gaisen.as_ref().unwrap().director.source;
-    for hd in [false, true] {
-        let mut images = Vec::new();
-        for cinematic in [false, true] {
-            let path = output.join(format!(
-                "particle-materials-hd-{hd}-cinematic-{cinematic}.png"
-            ));
-            capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
-                let mut textures = sprites::Sprites::new(
-                    &session.assets.sprites.vram,
-                    session
-                        .assets
-                        .sprites
-                        .effects
-                        .iter()
-                        .chain(&session.assets.sprites.items)
-                        .copied(),
-                    renderer,
-                );
-                let mut drawing = Builder::new(Matrix::default(), &session.assets.level, &graphics);
-                for (i, &image) in session
+    for original in [false, true] {
+        let (vram, other, sprites): (_, _, Vec<_>) = if original {
+            (
+                &source.mission.vram,
+                &session.assets.sprites.vram,
+                source
+                    .mission
+                    .images
+                    .iter()
+                    .copied()
+                    .filter(|i| i.size.into_iter().all(|v| v > 0))
+                    .collect(),
+            )
+        } else {
+            (
+                &session.assets.sprites.vram,
+                &source.mission.vram,
+                session
                     .assets
                     .sprites
                     .effects
                     .iter()
                     .chain(&session.assets.sprites.items)
-                    .enumerate()
-                {
-                    drawing.screen_sprite(
-                        [
-                            ((i % 16) as f32 - 7.5) * 18.0,
-                            ((i / 16) as f32 - 3.0) * 18.0,
-                            4000.0,
-                        ],
-                        image.size.map(f32::from),
-                        image.size.map(|v| 12.0 / f32::from(v)),
-                        0,
-                        [1.0; 3],
-                        Some(image),
-                        2,
-                    );
-                    if hd {
-                        drawing.blood_original_hd();
+                    .copied()
+                    .collect(),
+            )
+        };
+        for hd in [false, true] {
+            let mut images = Vec::new();
+            for cinematic in [false, true] {
+                let path = output.join(format!(
+                    "particle-materials-original-{original}-hd-{hd}-cinematic-{cinematic}.png"
+                ));
+                capture_frame(vram, &graphics, &path, |renderer| {
+                    let mut textures =
+                        sprites::Sprites::new(vram, sprites.iter().copied(), renderer);
+                    let mut drawing =
+                        Builder::new(Matrix::default(), &session.assets.level, &graphics);
+                    for (i, &image) in sprites.iter().enumerate() {
+                        drawing.screen_sprite(
+                            [
+                                ((i % 16) as f32 - 7.5) * 18.0,
+                                ((i / 16) as f32 - 3.0) * 18.0,
+                                4000.0,
+                            ],
+                            image.size.map(f32::from),
+                            image.size.map(|v| 12.0 / f32::from(v)),
+                            0,
+                            [1.0; 3],
+                            Some(image),
+                            2,
+                        );
+                        if hd {
+                            drawing.blood_original_hd();
+                        }
                     }
-                }
-                if cinematic {
-                    renderer.update_vram(&source.mission.vram);
-                    textures.retain(&mut drawing.surfaces, renderer)?;
-                }
-                let geometry = Geometry {
-                    lamps: Vec::new(),
-                    backgrounds: Vec::new(),
-                    terrain: Vec::new(),
-                    props: Vec::new(),
-                    actors: Vec::new(),
-                    effects: render_effects::surface_geometry(drawing.surfaces),
-                };
-                Ok((
-                    SceneDrawing::new(geometry, renderer, &session.assets.level),
-                    Matrix::default(),
-                    Vec::new(),
-                ))
-            })
-            .unwrap();
-            images.push(
-                crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
-                    .unwrap()
-                    .rgba,
+                    if cinematic {
+                        renderer.update_vram(other);
+                        textures.retain(&mut drawing.surfaces, renderer)?;
+                    }
+                    let geometry = Geometry {
+                        lamps: Vec::new(),
+                        backgrounds: Vec::new(),
+                        terrain: Vec::new(),
+                        props: Vec::new(),
+                        actors: Vec::new(),
+                        effects: render_effects::surface_geometry(drawing.surfaces),
+                    };
+                    Ok((
+                        SceneDrawing::new(geometry, renderer, &session.assets.level),
+                        Matrix::default(),
+                        Vec::new(),
+                    ))
+                })
+                .unwrap();
+                images.push(
+                    crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                        .unwrap()
+                        .rgba,
+                );
+            }
+            let changed = images[0]
+                .chunks_exact(4)
+                .zip(images[1].chunks_exact(4))
+                .filter(|(a, b)| a != b)
+                .count();
+            let difference = images[0]
+                .iter()
+                .zip(&images[1])
+                .map(|(&a, &b)| a.abs_diff(b))
+                .max()
+                .unwrap();
+            // Original GPU VRAM decoding retains five-bit precision until output;
+            // detached RGBA8 material channels have already rounded to eight bits.
+            assert!(
+                difference <= 1,
+                "Original {original} HD {hd}: {changed} changed pixels, largest channel difference {difference}"
             );
         }
-        let changed = images[0]
-            .chunks_exact(4)
-            .zip(images[1].chunks_exact(4))
-            .filter(|(a, b)| a != b)
-            .count();
-        let difference = images[0]
-            .iter()
-            .zip(&images[1])
-            .map(|(&a, &b)| a.abs_diff(b))
-            .max()
-            .unwrap();
-        // Original GPU VRAM decoding retains five-bit precision until output;
-        // detached RGBA8 material channels have already rounded to eight bits.
-        assert!(
-            difference <= 1,
-            "HD {hd}: {changed} changed pixels, largest channel difference {difference}"
-        );
     }
 }
 

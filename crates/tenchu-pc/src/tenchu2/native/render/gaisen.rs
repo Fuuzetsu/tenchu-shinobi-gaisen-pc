@@ -4,6 +4,7 @@ use tenchu_core::game::Game;
 pub(super) struct Drawing {
     models: crate::visuals::models::Models,
     sprites: sprites::Sprites,
+    ambient: sprites::Sprites,
 }
 
 impl Drawing {
@@ -32,11 +33,54 @@ impl Drawing {
                 .copied(),
             renderer,
         );
-        Ok(Self { models, sprites })
+        let ambient = sprites::Sprites::new(
+            &game.mission.vram,
+            game.mission
+                .images
+                .iter()
+                .copied()
+                .filter(|image| image.size.into_iter().all(|v| v > 0)),
+            renderer,
+        );
+        Ok(Self {
+            models,
+            sprites,
+            ambient,
+        })
     }
 }
 
 impl super::Drawing {
+    pub(super) fn ambient(
+        &mut self,
+        session: &super::super::Session,
+        renderer: &mut Renderer,
+        view: Matrix,
+    ) -> Result<Vec<Surface>> {
+        let Some(scene) = &session.gaisen else {
+            return Ok(Vec::new());
+        };
+        let drawing = self
+            .gaisen
+            .as_mut()
+            .ok_or("Missing original stage sprites")?;
+        let graphics = renderer.graphics();
+        let view = self.camera.map_or(view, |c| c.source_view());
+        let mut surfaces = render_effects::ambient(
+            &scene.director.source,
+            view,
+            render_effects::Style {
+                blood: graphics.blood,
+                ..Default::default()
+            },
+        );
+        if graphics.weather.mode != crate::settings::WeatherMode::Original {
+            surfaces.retain(|s| s.vertices[0].flags & render_mesh::ORIGINAL_WEATHER == 0);
+        }
+        drawing.ambient.retain(&mut surfaces, renderer)?;
+        Ok(surfaces)
+    }
+
     pub(super) fn update_gaisen(
         &mut self,
         session: &super::super::Session,
@@ -73,6 +117,9 @@ impl super::Drawing {
                 ..Default::default()
             },
         );
+        if graphics.weather.mode != crate::settings::WeatherMode::Original {
+            effects.remove_flag(render_mesh::ORIGINAL_WEATHER);
+        }
         // Native mechanisms retain their exact current transforms across the scene.
         // Original miscellaneous effects still run, but do not draw another hatch.
         let mut native = Builder::new(view, &session.assets.level, graphics);
@@ -126,6 +173,9 @@ impl super::Drawing {
             &session.frame.effects.emitters,
             &renderer.graphics().lighting,
         );
+        self.scene
+            .lighting
+            .update_gaisen(source, &renderer.graphics().lighting);
         self.scene.lighting.focus = self
             .camera
             .is_none()
@@ -569,5 +619,7 @@ mod tests {
     }
 }
 
+#[cfg(test)]
+mod ambient_tests;
 #[cfg(test)]
 mod particles_tests;

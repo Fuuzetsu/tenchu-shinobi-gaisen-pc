@@ -201,8 +201,8 @@ impl Session {
             let presenting = scene
                 .director
                 .update(&mut self.world, &self.assets, buttons)?;
-            scene.audio.step(&scene.director.source)?;
             if presenting {
+                scene.audio.step(&scene.director.source, None)?;
                 self.navigation = None;
                 return Ok(Vec::new());
             }
@@ -237,6 +237,19 @@ impl Session {
         self.frame = self
             .world
             .step([buttons, 0], &mut self.assets, &mut events)?;
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(scene) = &mut self.gaisen {
+            scene.director.advance_ambient(&mut self.world)?;
+            let listener = self.world.listener();
+            scene.audio.step(
+                &scene.director.source,
+                Some(tenchu_core::audio::Listener {
+                    position: listener.position,
+                    yaw: listener.yaw,
+                    direction: None,
+                }),
+            )?;
+        }
         self.contact
             .record(u64::from(self.world.tick), &self.frame.effects);
         self.contact.record_player(&self.world);

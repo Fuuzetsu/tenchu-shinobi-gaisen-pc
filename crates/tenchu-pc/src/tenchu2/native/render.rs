@@ -252,6 +252,10 @@ impl Drawing {
         let view = pose
             .as_ref()
             .map_or(session.world.camera.view, |frame| frame.view);
+        #[cfg(not(target_arch = "wasm32"))]
+        let ambient = self.ambient(session, renderer, view)?;
+        #[cfg(target_arch = "wasm32")]
+        let ambient = Vec::new();
         let mut geometry = self.models.geometry(
             &session.world,
             &session.assets,
@@ -268,6 +272,7 @@ impl Drawing {
                 camera: self.camera,
                 pose: pose.as_ref(),
                 motion: Some(&motion),
+                ambient,
             },
         )?;
         self.texts = if self.show_hud && self.sharp_text {
@@ -282,6 +287,12 @@ impl Drawing {
             &session.frame.effects.emitters,
             &renderer.graphics().lighting,
         );
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(scene) = &session.gaisen {
+            self.scene
+                .lighting
+                .update_gaisen(&scene.director.source, &renderer.graphics().lighting);
+        }
         self.scene.lighting.focus = self.camera.is_none().then(|| {
             glam::Vec3::from(
                 session.world.actors[session.world.player]
@@ -676,6 +687,7 @@ pub struct Presentation<'a> {
     pub camera: Option<crate::debug::camera::Camera>,
     pub pose: Option<&'a PoseFrame>,
     pub motion: Option<&'a crate::visuals::motion::Frame>,
+    pub ambient: Vec<Surface>,
 }
 
 impl Default for Presentation<'_> {
@@ -687,6 +699,7 @@ impl Default for Presentation<'_> {
             camera: None,
             pose: None,
             motion: None,
+            ambient: Vec::new(),
         }
     }
 }
@@ -917,6 +930,7 @@ impl Models {
             camera,
             pose,
             motion,
+            ambient,
         } = presentation;
         let view = camera.map_or_else(
             || pose.map_or(world.camera.view, |frame| frame.view),
@@ -1098,6 +1112,7 @@ impl Models {
                 vertex.flags |= render_mesh::UI | render_mesh::SCREEN_WIDE;
             }
         }
+        output.surfaces.extend(ambient);
         let mut effects = render_effects::surface_geometry(output.surfaces);
         if let Some(mut rope) = rope {
             rope.append(effects);

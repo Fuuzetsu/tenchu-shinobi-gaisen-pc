@@ -72,10 +72,7 @@ impl Sprites {
                 size: std::array::from_fn(|i| high[i] - low[i] + 1),
             };
             let hd = render_mesh::original_hd_blood(first.flags);
-            let binding = self
-                .0
-                .get_mut(&image)
-                .ok_or("Unbound native cinematic sprite")?;
+            let binding = self.0.get_mut(&image).ok_or("Unbound cross-game sprite")?;
             let region = binding.region;
             let handle = if hd {
                 *binding

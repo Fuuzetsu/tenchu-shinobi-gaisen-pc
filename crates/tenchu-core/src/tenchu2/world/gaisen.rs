@@ -122,6 +122,53 @@ impl Director {
         self.bindings.get(source_actor).copied().flatten()
     }
 
+    /// Run after a native gameplay update. Original ambient callbacks retain
+    /// their order and shared RNG; native mechanisms and scrolling run in World.
+    pub fn advance_ambient(&mut self, world: &mut World) -> Result<()> {
+        if self.presenting {
+            return Err("Cannot advance native ambience during an original cinematic".into());
+        }
+        let source = &mut self.source;
+        source.clock = world.tick as i32;
+        source.random = world.random;
+        source.camera.position = world.camera.eye;
+        source.camera.reference = world.camera.look;
+        source.camera.view = world.camera.view;
+        source.rendered_view = world.camera.view;
+        source.effects.step_ambient(
+            &mut source.random,
+            crate::effects::View {
+                position: source.camera.position,
+                matrix: source.camera.view,
+            },
+            &mut source.scene,
+            &mut crate::effects::Environment {
+                terrain: &source.mission.terrain,
+                cursor: &mut source.cursor,
+                clock: source.clock,
+                owner_position: world.actors[world.player].actor.position,
+                reference: source.camera.reference,
+            },
+        )?;
+        source.misc.step_ambient(
+            source.clock,
+            &mut Context {
+                mission: &mut source.mission,
+                math: &source.math,
+                body: &source.body,
+                cursor: &mut source.cursor,
+                random: &mut source.random,
+                effects: &mut source.effects,
+                scene: &mut source.scene,
+                collision: &mut source.collision,
+                camera: &mut source.camera,
+                drawing: &mut source.drawing,
+            },
+        )?;
+        world.random = source.random;
+        Ok(())
+    }
+
     /// Returns true when this tick belongs to the original cinematic. The caller
     /// advances the native world and mission only on false. Input uses T2 pad order.
     pub fn update(&mut self, world: &mut World, assets: &Assets, input: u16) -> Result<bool> {

@@ -119,6 +119,13 @@ impl Geometry {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn ambient(game: &Game, view: Matrix, style: Style) -> Vec<Surface> {
+    let mut surfaces = Vec::new();
+    world::sprites(&mut surfaces, game, view, style, None);
+    surfaces
+}
+
 pub fn panel(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32; 3])]) -> Geometry {
     let mut vertices = screen_band(-120.0, 120.0, [0.018, 0.025, 0.034], 0);
     for vertex in &mut vertices {

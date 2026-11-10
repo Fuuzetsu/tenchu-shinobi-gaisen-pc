@@ -10,7 +10,7 @@ use tenchu_core::{
     },
 };
 
-fn fixture(
+pub(super) fn fixture(
     game: &GameAssets<impl ReadAt>,
     disc: &Disc<impl ReadAt>,
     stage: usize,

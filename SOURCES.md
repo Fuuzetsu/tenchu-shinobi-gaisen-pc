@@ -124,7 +124,7 @@ movement, combat, AI, inventory and health. Positive script health thresholds
 are scaled to the counterpart's maximum HP with integer division; death-status
 and player-attack gates still use the original event predicates.
 
-Only cinematic ticks run the original actor/camera/effect code. Native gameplay
+Only cinematic ticks run the original actor and camera controllers. Native gameplay
 pauses until the authored scene and audio tail finish; affected actors then
 receive the resulting placement, visibility, health and weapon state. Native
 motions, collision probes and cameras resume at that boundary. The shared RNG
@@ -135,6 +135,27 @@ boss phases. A scripted native objective waits for original success/death
 events, then uses native ending/results machinery. Snapshot fixtures serialize
 the director and native world together; this does not yet add a native F1 save
 format.
+
+Native gameplay also runs the existing scalar `EFFECT.C`/`MISC.C` ambient
+callbacks after T2's update, sharing its RNG and gameplay clock. Fire, puff,
+snowfall, decorative sprite, bonfire and sound callbacks retain their original
+order, pauses, emission schedules and off-screen RNG consumption. The original
+door/pitfall callbacks and texture-scroll advancement are excluded here because
+the native World owns those mechanisms; reserved scroll slots stay occupied.
+Source effects continue through the original cinematic runner, including retail
+clock restoration at event handoff. No extra source actor, AI or item update is
+introduced. Original sound-bank cues use the current native listener; cinematic
+audio still uses its original listener and XA tracks.
+
+The shared source sprite renderer supplies world-space billboards for the native
+presented camera, so their positions and depth follow native scenery under every
+preset. Retained materials preserve image identities
+across the T1/T2 VRAM switch, and enter the native particle/HUD depth ordering.
+Existing fire and transient-light discovery is reused; replacement weather hides
+original snow. Source routines and sprite scaling were rechecked against the
+read-only sibling `MISC.C`, research `misc.rs` and viewer `effects.rs` (hashes below).
+The adapter is new scalar orchestration over existing owned state, not an imported
+research simulation architecture. No retail asset data is added to Git.
 
 Both native hosts construct a fresh original Game from the selected stage,
 layout, story and language on start/retry. Shared Gaisen mesh/effect/caption
@@ -177,6 +198,7 @@ Read-only references rechecked for this adapter:
 | `tenchu-decomp` | `src/main.exe/EFFECT.C` | `a50b850d80090eda8cc39770d9d3026dc6888936eb2b1324d6c2821348d4da17` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/effects.rs` | `2ea6b3ddc3a00760d8c7f9f44d306649fd32d25fb8990c9e9b10f8096f6a88a4` |
 | `tenchu-viewer` | `src/renderer.rs` | `aa50e228ffe51c24af55a29d9fd7eec5bdfc79912db0c3aa8efba9a5d8e2d092` |
+| `tenchu-viewer` | `src/effects.rs` | `5ed301115352dc99e18741d6ee56274f9c1a8d5c1a892f9e336269488b254c48` |
 | `tenchu-decomp` | `src/main.exe/game_types.h` | `556374b199511fc9889eb560c7ed04db694362674c6a2071ed9fc095e55385f3` |
 | `tenchu-decomp` | `src/main.exe/MOTION.C` | `7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82` |
 | `tenchu-decomp` | `src/main.exe/ITEM.C` | `fd5a6d31ef3e5628d792a4f05604d7e40ff588663c339651858e161bee57e78a` |

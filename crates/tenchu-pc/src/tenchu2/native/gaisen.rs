@@ -108,9 +108,17 @@ impl Audio {
         })
     }
 
-    pub fn step(&mut self, game: &Game) -> Result<()> {
+    pub fn step(
+        &mut self,
+        game: &Game,
+        listener: Option<tenchu_core::audio::Listener>,
+    ) -> Result<()> {
         self.tick = game.tick;
-        self.sounds = game.audio_with_burning(game.effects.sounds.iter().copied(), None)?;
+        self.sounds = if let Some(listener) = listener {
+            game.audio_with_listener(listener, game.effects.sounds.iter().copied(), None)?
+        } else {
+            game.audio_with_burning(game.effects.sounds.iter().copied(), None)?
+        };
         for sound in &mut self.sounds {
             if sound.bank.is_none() {
                 sound.bank = Some(self.bank.clone());
@@ -202,7 +210,7 @@ mod tests {
             game.tick = 60;
             game.music = vec![Some(cue)];
             game.effects.sounds = vec![(game.player().position, 0x40)];
-            audio.step(game).unwrap();
+            audio.step(game, None).unwrap();
             assert!(!audio.sounds.is_empty());
             assert!(
                 audio
@@ -226,7 +234,7 @@ mod tests {
             );
             game.tick += 90;
             game.music.clear();
-            audio.step(game).unwrap();
+            audio.step(game, None).unwrap();
             audio.synchronize(Some(&output), false, true);
             let commands: Vec<_> = received.try_iter().collect();
             assert!(
@@ -240,7 +248,7 @@ mod tests {
                     .any(|c| matches!(c, Command::SeekMusic(seconds) if *seconds == 3.0))
             );
             game.music = vec![None];
-            audio.step(game).unwrap();
+            audio.step(game, None).unwrap();
             audio.synchronize(Some(&output), false, false);
             assert!(matches!(
                 received.try_recv().unwrap(),

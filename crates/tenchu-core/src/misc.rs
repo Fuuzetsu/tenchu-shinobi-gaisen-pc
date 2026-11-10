@@ -102,10 +102,21 @@ impl Misc {
     }
 
     pub fn step(&mut self, clock: i32, ctx: &mut Context) -> Result<()> {
+        self.advance(clock, ctx, true)
+    }
+
+    pub(crate) fn step_ambient(&mut self, clock: i32, ctx: &mut Context) -> Result<()> {
+        self.advance(clock, ctx, false)
+    }
+
+    fn advance(&mut self, clock: i32, ctx: &mut Context, hinged: bool) -> Result<()> {
+        let include = |object: &Object| {
+            hinged || !matches!(object.kind, Kind::Door { .. } | Kind::Pitfall { .. })
+        };
         self.models.clear();
         self.drawings.clear();
         if clock % 10 == 0 {
-            for object in &mut self.objects {
+            for object in self.objects.iter_mut().filter(|o| include(o)) {
                 let paused = !(0..3).all(|axis| {
                     ctx.camera.reference[axis]
                         .wrapping_sub(object.position[axis])
@@ -123,7 +134,7 @@ impl Misc {
             position: ctx.camera.position,
             matrix: ctx.camera.view,
         };
-        for object in &mut self.objects {
+        for object in self.objects.iter_mut().filter(|o| include(o)) {
             if object.paused {
                 continue;
             }

@@ -152,6 +152,15 @@ impl Game {
             yaw: self.player().rotation[1],
             direction: (self.camera.mode == Mode::Direction).then_some(self.camera.direction[1]),
         };
+        self.audio_with_listener(listener, effects, burning)
+    }
+
+    pub fn audio_with_listener(
+        &self,
+        listener: Listener,
+        effects: impl IntoIterator<Item = (Position, i16)>,
+        burning: Option<BurningSound>,
+    ) -> Result<Vec<Sourced<Sound>>> {
         let mut sounds = Vec::new();
         for &(id, mut sound) in &self.intelligence.voices {
             let Some(actor) = self.roster.actors.get(id).and_then(Option::as_ref) else {
