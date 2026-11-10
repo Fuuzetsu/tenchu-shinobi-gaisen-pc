@@ -158,6 +158,24 @@ impl Assets {
         level.stumps.clear();
         level.background = Background::default();
         level.vram = source.vram.clone();
+        self.gaisen_scrolls = source
+            .misc
+            .spawns
+            .iter()
+            .filter_map(|spawn| match spawn.kind {
+                tenchu_assets::misc::Kind::TextureScroll {
+                    rect,
+                    source,
+                    velocity,
+                } => Some(crate::effects::TextureScroll {
+                    offset: [0; 2],
+                    destination: rect,
+                    source,
+                    velocity,
+                }),
+                _ => None,
+            })
+            .collect();
         level.object_sizes = level
             .objects
             .iter()

@@ -43,6 +43,7 @@ struct Entry {
     scroll: Option<[u16; 2]>,
     animation: Option<tenchu_assets::texture::TextureScroll>,
     phase: [f32; 2],
+    manual_phase: Option<[f32; 2]>,
     scrolling: bool,
     uv_tile: bool,
     world_tile: Option<[f32; 2]>,
@@ -363,6 +364,7 @@ impl Materials {
                 scroll: None,
                 animation: material.animation,
                 phase: [0.0; 2],
+                manual_phase: None,
                 scrolling: false,
                 uv_tile: false,
                 world_tile: None,
@@ -378,6 +380,15 @@ impl Materials {
         entry.animation = material.animation;
         entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
         id
+    }
+
+    pub fn set_phase(&mut self, material: u32, phase: [f32; 2]) {
+        if let Some(entry) = material
+            .checked_sub(1)
+            .and_then(|id| self.entries.get_mut(id as usize))
+        {
+            entry.manual_phase = Some(phase);
+        }
     }
 
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
@@ -471,6 +482,7 @@ impl Materials {
             scroll: region.scroll_offset(&self.vram),
             animation: None,
             phase: [0.0; 2],
+            manual_phase: None,
             scrolling: false,
             uv_tile: false,
             world_tile: None,
@@ -491,9 +503,11 @@ impl Materials {
         }
         for entry in &mut self.entries {
             if let Some(animation) = entry.animation {
-                let offset = animation.offset((time * 30.0).round() as u32);
-                entry.phase = std::array::from_fn(|axis| {
-                    f32::from(offset[axis]) / f32::from(animation.image.size[axis])
+                entry.phase = entry.manual_phase.unwrap_or_else(|| {
+                    let offset = animation.offset((time * 30.0).round() as u32);
+                    std::array::from_fn(|axis| {
+                        f32::from(offset[axis]) / f32::from(animation.image.size[axis])
+                    })
                 });
             }
             if !entry.dirty {

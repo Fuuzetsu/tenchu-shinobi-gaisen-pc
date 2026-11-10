@@ -51,6 +51,8 @@ pub struct Environment {
     pub fire: scenery::Fire,
     #[serde(default)]
     pub heat_phases: Vec<i16>,
+    #[serde(default)]
+    pub texture_scrolls: Vec<crate::effects::TextureScroll>,
     pub last_sound_vblank: u16,
     pub flame_frame: u8,
 }
@@ -217,6 +219,7 @@ impl Environment {
             background_only: false,
             fire: scenery::Fire::default(),
             heat_phases: Vec::new(),
+            texture_scrolls: Vec::new(),
             last_sound_vblank: 0,
             flame_frame: 3,
         })

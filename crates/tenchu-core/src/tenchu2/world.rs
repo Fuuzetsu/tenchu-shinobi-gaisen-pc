@@ -237,6 +237,7 @@ impl World {
             &assets.resources.math,
             &mut world.random,
         )?;
+        world.environment.texture_scrolls = assets.gaisen_scrolls.clone();
         world.update_camera(assets, true)?;
         world.initialize_activation(assets)?;
         world.mission.initialize(&world.actors, options.hero);

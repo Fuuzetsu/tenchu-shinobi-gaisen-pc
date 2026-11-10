@@ -32,8 +32,7 @@ pub(super) fn prepare(
         sources.iter().cloned(),
         &lights::rules(&pack, graphics.asset_pack),
     );
-    let mut meshes = super::prepare_pack(vram, sources, graphics, &pack)?;
-    meshes.detach_textures();
+    let meshes = super::prepare_pack(vram, sources, graphics, &pack)?;
     Ok((meshes, emitters))
 }
 

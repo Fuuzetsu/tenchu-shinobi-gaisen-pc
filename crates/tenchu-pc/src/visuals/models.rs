@@ -437,6 +437,10 @@ impl Meshes {
     pub fn materials(&self) -> &[Material] {
         &self.materials
     }
+
+    pub fn materials_mut(&mut self) -> &mut [Material] {
+        &mut self.materials
+    }
     pub fn build(
         vram: &tenchu_assets::texture::Vram,
         pack: &Pack,

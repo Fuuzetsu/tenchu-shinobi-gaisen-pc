@@ -55,6 +55,7 @@ impl Models {
         let (mut terrain, lamps) =
             super::super::lamps::prepare(&level.vram, terrain_sources, graphics)?;
         renderer.set_emitters(&lamps);
+        terrain.detach_textures();
         renderer.bind_meshes(&mut terrain);
         let mut actors = BTreeMap::new();
         let mut textures = Vec::new();

@@ -11,7 +11,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   are required. Original single and paired doors and pitfall flaps open through
   T2 body contacts, retaining their meshes and replacement artwork. Pitfalls
   preserve the authored holes and native T2 falling/death behavior. Hot floors
-  cause native T2 fire contacts, damage and reactions. Other stage
+  cause native T2 fire contacts, damage and reactions. Water and other scrolling
+  textures retain their original speeds and wrapping, independent of rendering
+  cadence. Other stage
   interactions and F6 selection are still being connected.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and

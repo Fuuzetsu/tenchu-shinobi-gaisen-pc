@@ -35,6 +35,7 @@ mod lamps;
 pub(super) mod lighting;
 mod motion;
 mod scenery;
+mod scrolling;
 mod story;
 #[cfg(test)]
 mod tests;
@@ -193,6 +194,9 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
+        self.models
+            .scrolling
+            .update(&session.world.environment.texture_scrolls, renderer);
         let blood = renderer.graphics().blood;
         self.prepare_wounds(session, &blood, renderer);
         self.tick(session, renderer.graphics())?;
@@ -608,6 +612,7 @@ pub struct Models {
     player: Option<custom::Player>,
     scenery: Meshes,
     lamps: crate::visuals::lights::Emitters,
+    scrolling: scrolling::Scrolling,
     bodies: BTreeMap<String, Meshes>,
     weapons: Meshes,
     imported_weapons: BTreeMap<String, Meshes>,
@@ -762,7 +767,8 @@ impl Models {
         }
         let (mut scenery, lamps) = lamps::prepare(&assets.level.vram, scenery, graphics)?;
         renderer.set_emitters(&lamps);
-        renderer.bind_meshes(&mut scenery);
+        let scrolling =
+            scrolling::Scrolling::bind(&mut scenery, &world.environment.texture_scrolls, renderer);
         let mut bodies = BTreeMap::new();
         for (name, model) in &assets.models {
             let mut model_sources = sources(&format!("actors/{name}"), &model.parts, Role::Actor);
@@ -819,6 +825,7 @@ impl Models {
             player: None,
             scenery,
             lamps,
+            scrolling,
             bodies,
             weapons,
             imported_weapons,

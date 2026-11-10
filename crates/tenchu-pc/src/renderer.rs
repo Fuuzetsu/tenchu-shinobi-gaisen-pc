@@ -450,6 +450,10 @@ impl Renderer {
         self.materials.bind(material)
     }
 
+    pub fn set_material_phase(&mut self, material: u32, phase: [f32; 2]) {
+        self.materials.set_phase(material, phase);
+    }
+
     pub fn reset_vram(&mut self, vram: &Vram) {
         self.decals.clear();
         self.decal_sources.clear();

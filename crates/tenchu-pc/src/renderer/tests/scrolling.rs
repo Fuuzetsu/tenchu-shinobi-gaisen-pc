@@ -463,5 +463,19 @@ fn imported_texture_scroll_preserves_static_materials_and_rewinds() {
             draw(&mut renderer, 5),
             "water did not seek backwards"
         );
+        renderer.set_material_phase(animated, [0.0, 0.5]);
+        for tick in [0, 5, 13, 10000] {
+            assert_eq!(
+                draw(&mut renderer, tick),
+                moved,
+                "explicit source phase depends on presentation time"
+            );
+        }
+        renderer.set_material_phase(animated, [0.0; 2]);
+        assert_eq!(
+            draw(&mut renderer, 10000),
+            initial,
+            "source phase restores exactly"
+        );
     }
 }

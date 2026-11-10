@@ -73,6 +73,18 @@ All three heroes on each of the four hot-floor stages match an actual native
 flame's actor state and RNG through the first hit, including the 100-to-95 health
 change; airborne and invulnerable fixtures retain native behavior.
 
+Imported texture scrolling reuses `effects::TextureScroll`, following
+`EFFECT.C::UpdateTexScroll`: signed 16-bit accumulators, unsigned remainder,
+four fractional bits and VRAM-word horizontal coordinates. Native world logic
+ticks advance those small owned states; presentation applies their quantized
+offsets to the original or replacement material, without changing the source
+texture or consuming RNG. Material keys retain the image coordinates so identical
+artwork at different VRAM destinations can move independently. The existing
+source-C arithmetic oracle also covers non-power-of-two rectangles and negative
+and overflowing accumulators. No TAS allocation or batched-state machinery is
+imported. This adds no gameplay setting or graphical preset override; existing
+water presentation and demo controls retain their meanings.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |
@@ -83,6 +95,9 @@ Read-only references rechecked for this adapter:
 | `tenchu-decomp` | `src/main.exe/MISC.C` | `6460e4ee09a9c4764b9842013ecacaa5abf0551c8729357a9e18ba2de9ef4455` |
 | `tenchu-viewer` | `src/doors.rs` | `cbce5960352c61e09f65783ced7e12222329c1b0d4620aea1dcf2ac156381ed0` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/misc.rs` | `270e0d5c5b8a71ae29a625acce5e9e594bef984db25e532b61270b7d69776d66` |
+| `tenchu-decomp` | `src/main.exe/EFFECT.C` | `a50b850d80090eda8cc39770d9d3026dc6888936eb2b1324d6c2821348d4da17` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/effects.rs` | `2ea6b3ddc3a00760d8c7f9f44d306649fd32d25fb8990c9e9b10f8096f6a88a4` |
+| `tenchu-viewer` | `src/renderer.rs` | `aa50e228ffe51c24af55a29d9fd7eec5bdfc79912db0c3aa8efba9a5d8e2d092` |
 
 ## Asset, scalar and renderer checkpoint (2026-10-20)
 
