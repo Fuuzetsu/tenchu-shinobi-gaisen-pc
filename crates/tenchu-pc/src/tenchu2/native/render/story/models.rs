@@ -146,6 +146,7 @@ impl Models {
         renderer: &mut Renderer,
         camera: Option<crate::debug::camera::Camera>,
         pose: Option<&PoseFrame>,
+        motion: Option<&crate::visuals::motion::Frame>,
     ) -> Result<(Geometry, Vec<fonts::Text>)> {
         let resources = &story.resources;
         let level = &story.level;
@@ -210,8 +211,16 @@ impl Models {
                 .collect();
             let mesh = &self.actors[&animation.model];
             mesh.pose_skin(&matrices, None);
-            for (part, &matrix) in model.parts.iter().zip(&matrices) {
-                output.model(mesh, part, matrix, ModelStyle::Actor);
+            for (joint, (part, &matrix)) in model.parts.iter().zip(&matrices).enumerate() {
+                let deformation = motion.and_then(|frame| {
+                    mesh.deformation(
+                        frame,
+                        interpolation::part(slot, joint, animation.model),
+                        part.geometry.as_ptr() as usize,
+                        matrix,
+                    )
+                });
+                output.deformed_model(mesh, part, matrix, ModelStyle::Actor, deformation.as_ref());
             }
             for attachment in resources.attachments.iter().filter(|a| a.actor == slot) {
                 let weapon = &resources.weapons[&attachment.model];
@@ -248,6 +257,40 @@ impl Models {
             },
             texts,
         ))
+    }
+
+    pub fn motion_inputs(
+        &self,
+        story: &Story,
+        options: &crate::settings::Motion,
+    ) -> Result<Vec<crate::visuals::motion::Input>> {
+        let mut inputs = Vec::new();
+        if !options.actors() {
+            return Ok(inputs);
+        }
+        for (slot, animation) in story.resources.script.actors.iter().enumerate() {
+            let Some(meshes) = self.actors.get(&animation.model).filter(|m| m.has_motion()) else {
+                continue;
+            };
+            let Some(matrices) = story.matrices(slot)? else {
+                continue;
+            };
+            let model = &story.resources.models[&animation.model];
+            for (joint, (part, matrix)) in model.parts.iter().zip(matrices).enumerate() {
+                let geometry = part.geometry.as_ptr() as usize;
+                if let Some(rules) = meshes.motion_rules(geometry) {
+                    crate::visuals::motion::Input::append(
+                        &mut inputs,
+                        interpolation::part(slot, joint, animation.model),
+                        geometry,
+                        matrix,
+                        rules,
+                        options,
+                    );
+                }
+            }
+        }
+        Ok(inputs)
     }
 }
 

@@ -20,7 +20,7 @@ fn opening_scene_uses_its_own_distance_palette() {
         let path = output.join(format!("jp-opening-palette-fog-{fog}.png"));
         capture_frame(&story.level.vram, &graphics, &path, |renderer| {
             let mut models = models::Models::new(&story, &graphics, renderer)?;
-            let (geometry, texts) = models.geometry(&story, renderer, None, None)?;
+            let (geometry, texts) = models.geometry(&story, renderer, None, None, None)?;
             assert!(
                 geometry
                     .terrain
@@ -159,6 +159,89 @@ fn cutscene_movable_lights_follow_camera_and_hide_markers_in_photo_mode() {
             assert!(drawing.labels.is_empty());
             assert_eq!(postcard::to_allocvec(&story.state).unwrap(), before);
             Ok((drawing.scene, moved.source_view(), drawing.texts))
+        },
+    )
+    .unwrap();
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MOTION_REVIEW and GPU; actor motion in cutscenes shares the fixed-tick solver and leaves scripts unchanged"]
+fn native_story_secondary_motion_tracks_authored_poses() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let out = std::path::PathBuf::from(std::env::var_os("TENCHU_MOTION_REVIEW").unwrap());
+    std::fs::create_dir_all(&out).unwrap();
+    let graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        motion: crate::settings::Motion {
+            hair: true,
+            cloth: true,
+            equipment: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let mut story = Story::load(&disc, 0, 201, 17).unwrap();
+    let vram = story.level.vram.clone();
+    capture_frame(
+        &vram,
+        &graphics,
+        &out.join("story-motion.png"),
+        |renderer| {
+            let mut drawing = Drawing::new(&story, &graphics, renderer)?;
+            let mut changed = false;
+            for tick in 0..160 {
+                story.step(true)?;
+                let before = postcard::to_allocvec(&story.state).unwrap();
+                drawing.tick(&story, &graphics.motion)?;
+                let frame = drawing.motion.sample(1.0);
+                if tick % 10 == 0 {
+                    let (moving, _) =
+                        drawing
+                            .models
+                            .geometry(&story, renderer, None, None, Some(&frame))?;
+                    let (rigid, _) = drawing
+                        .models
+                        .geometry(&story, renderer, None, None, None)?;
+                    changed |= moving
+                        .actors
+                        .iter()
+                        .zip(&rigid.actors)
+                        .any(|(a, b)| a.position != b.position);
+                }
+                assert_eq!(postcard::to_allocvec(&story.state).unwrap(), before);
+            }
+            assert!(
+                changed,
+                "no cutscene motion; models: {:?}",
+                story
+                    .resources
+                    .models
+                    .values()
+                    .map(|m| &m.name)
+                    .collect::<Vec<_>>()
+            );
+            let before = postcard::to_allocvec(&drawing.motion).unwrap();
+            let hero = story
+                .resources
+                .script
+                .actors
+                .iter()
+                .position(|a| story.resources.models[&a.model].name == "rikimaru")
+                .unwrap();
+            let chest = story.matrices(hero)?.unwrap()[1].translation;
+            let center = glam::Vec3::from(chest.to_array().map(|v| v as f32));
+            let mut camera = crate::debug::camera::Camera::from_view(story.state.view, 300.0);
+            camera.position = center + glam::Vec3::new(1800.0, -400.0, 2200.0);
+            let forward = (center - camera.position).normalize();
+            camera.yaw = forward.x.atan2(forward.z);
+            camera.pitch = (-forward.y).asin();
+            drawing.camera = Some(camera);
+            drawing.update(&story, renderer, None)?;
+            drawing.update(&story, renderer, None)?;
+            assert_eq!(postcard::to_allocvec(&drawing.motion).unwrap(), before);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
         },
     )
     .unwrap();

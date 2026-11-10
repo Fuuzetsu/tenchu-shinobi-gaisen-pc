@@ -170,11 +170,38 @@ impl<'a> Deformation<'a> {
     }
 }
 
-struct Input {
+pub(crate) struct Input {
     key: (Part, usize),
     geometry: usize,
     anchor: Vec3,
     limit: f32,
+}
+
+impl Input {
+    pub fn append(
+        inputs: &mut Vec<Self>,
+        part: Part,
+        geometry: usize,
+        matrix: Matrix,
+        rules: &[BoundRule],
+        options: &settings::Motion,
+    ) {
+        let orientation = rotation(matrix);
+        let translation = Vec3::from(matrix.translation.map(|v| v as f32).to_array());
+        inputs.extend(
+            rules
+                .iter()
+                .take(4)
+                .enumerate()
+                .filter(|(_, bound)| bound.rule.kind.enabled(options))
+                .map(|(i, bound)| Self {
+                    key: (part.canonical(), i),
+                    geometry,
+                    anchor: orientation * Vec3::from(bound.rule.anchor) + translation,
+                    limit: bound.rule.limit * f32::from(options.strength) / 100.0,
+                }),
+        );
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -230,9 +257,21 @@ impl Spring {
 pub struct Motion {
     tick: Option<u64>,
     springs: BTreeMap<(Part, usize), Spring>,
+    #[serde(skip)]
+    options: Option<settings::Motion>,
 }
 
 impl Motion {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn current(&self, tick: u64, options: &settings::Motion) -> bool {
+        self.tick == Some(tick) && self.options.as_ref() == Some(options)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn invalidate(&mut self) {
+        self.options = None;
+    }
+
     pub fn rebind(
         &mut self,
         game: &Game,
@@ -259,26 +298,25 @@ impl Motion {
         if options.actors() {
             appearance::visit_parts(game, true, Some(models), frame, |key, geometry, matrix| {
                 if let Some(rules) = models.motion_rules(geometry.as_ptr() as usize) {
-                    let orientation = rotation(matrix);
-                    let translation = Vec3::from(matrix.translation.map(|v| v as f32).to_array());
-                    for (i, bound) in rules.iter().enumerate() {
-                        if bound.rule.kind.enabled(options) {
-                            inputs.push(Input {
-                                key: (key.canonical(), i),
-                                geometry: geometry.as_ptr() as usize,
-                                anchor: orientation * Vec3::from(bound.rule.anchor) + translation,
-                                limit: bound.rule.limit * f32::from(options.strength) / 100.0,
-                            });
-                        }
-                    }
+                    Input::append(
+                        &mut inputs,
+                        key,
+                        geometry.as_ptr() as usize,
+                        matrix,
+                        rules,
+                        options,
+                    );
                 }
             });
         }
-        inputs.truncate(256);
         self.update(game.tick, &inputs, options);
     }
 
-    fn update(&mut self, tick: u64, inputs: &[Input], options: &settings::Motion) {
+    pub(crate) fn update(&mut self, tick: u64, inputs: &[Input], options: &settings::Motion) {
+        self.options = Some(options.clone());
+        let inputs = &inputs[..inputs.len().min(256)];
+        let active: BTreeSet<_> = inputs.iter().map(|input| input.key).collect();
+        self.springs.retain(|key, _| active.contains(key));
         if self.tick == Some(tick) {
             return;
         }
@@ -286,8 +324,6 @@ impl Motion {
             self.springs.clear();
         }
         self.tick = Some(tick);
-        let active: BTreeSet<_> = inputs.iter().map(|input| input.key).collect();
-        self.springs.retain(|key, _| active.contains(key));
         let time = tick as f64 / 30.0;
         for input in inputs {
             let phase = (input.anchor.x + input.anchor.z) * 0.001;

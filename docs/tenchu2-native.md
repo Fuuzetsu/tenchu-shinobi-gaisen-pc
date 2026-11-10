@@ -57,10 +57,22 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Body/weapon blood enhancements, hair/cloth physics,
+Body/weapon blood enhancements,
 rewind, randomizer, enemy-behaviour cheats
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Secondary motion** uses the same bounded hair, cloth and equipment springs
+as Gaisen, during gameplay and 3D cutscenes. Strength, response and breeze work
+without changing animations, weapon contacts, collision or RNG. Motion advances
+once per game update, including fast-forward, and interpolates for display;
+pausing freezes it and disabling the options restores rigid geometry immediately.
+The authored regions cover Rikimaru's hair and loose shoulder gear, Ayame's hair
+and bow, and Tatsumaru's ponytail. Faces and rigid weapon attachments stay intact.
+These rules also work when importing the T2 bodies into Gaisen. Other models need
+matching material/part rules; custom folders can provide the same `motion` rules
+in `pack.json`. Modern High/Ultra already enable these controls; Original keeps
+them off.
 
 **F1 → Lighting → Lantern / prop lights** uses the shared texture analysis and
 shadow pipeline for T2 paper, stone, hanging and red lanterns, including 3D

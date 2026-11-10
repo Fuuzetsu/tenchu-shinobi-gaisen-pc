@@ -123,10 +123,18 @@ impl Application {
             &self.settings.navigation,
             self.focused && !native.menu.panel.open,
         );
+        let ready = native.generation == Some(native.playback.generation);
+        let motion = &self.settings.rendering().graphics.motion;
         let update = native.transport.frame_step(
             &mut native.playback,
             buttons,
             self.audio.as_ref().map(|audio| audio.output()),
+            |content| {
+                if let Some(drawing) = native.drawing.as_mut().filter(|_| ready) {
+                    drawing.tick(content, motion)?;
+                }
+                Ok(())
+            },
         )?;
         if update.changed {
             self.last_frame = Instant::now();
@@ -182,11 +190,19 @@ impl Application {
             .playback
             .content
             .interpolate(self.settings.rendering().graphics.interpolation)?;
+        let ready = native.generation == Some(native.playback.generation);
+        let motion = &self.settings.rendering().graphics.motion;
         let update = native.transport.advance(
             &mut native.playback,
             elapsed,
             input,
             self.audio.as_ref().map(|audio| audio.output()),
+            |content| {
+                if let Some(drawing) = native.drawing.as_mut().filter(|_| ready) {
+                    drawing.tick(content, motion)?;
+                }
+                Ok(())
+            },
         )?;
         native
             .menu

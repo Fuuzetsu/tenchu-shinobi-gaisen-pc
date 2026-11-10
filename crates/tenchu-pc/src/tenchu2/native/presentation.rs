@@ -271,6 +271,14 @@ pub(crate) enum ContentDrawing {
 }
 
 impl ContentDrawing {
+    pub fn tick(&mut self, content: &Content, motion: &crate::settings::Motion) -> Result<()> {
+        match (self, content) {
+            (Self::Gameplay(drawing), Content::Gameplay(session)) => drawing.tick(session, motion),
+            (Self::Story(drawing), Content::Story { story, .. }) => drawing.tick(story, motion),
+            _ => Ok(()),
+        }
+    }
+
     pub fn interpolate(&mut self, alpha: f32) {
         match self {
             Self::Gameplay(drawing) => drawing.alpha = alpha,

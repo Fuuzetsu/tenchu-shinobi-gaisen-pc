@@ -743,6 +743,10 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
     body.name = "Attachment check".into();
     body.parts[13].position[0] += 300;
     body.parts[14].position[0] -= 300;
+    for part in 0..3 {
+        let rules = manifest.motion[&format!("actors/0000/{part}")].clone();
+        manifest.motion.insert(format!("player/0000/{part}"), rules);
+    }
     std::fs::write(
         folder.join("pack.json"),
         serde_json::to_vec_pretty(&manifest).unwrap(),
@@ -756,6 +760,13 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
     let graphics = Graphics {
         fog: false,
         asset_pack: false,
+        motion: crate::settings::Motion {
+            hair: true,
+            cloth: true,
+            equipment: true,
+            wind: 80,
+            ..Default::default()
+        },
         ..Default::default()
     };
     let layout = tenchu_assets::tenchu2::layout::Layout::available(&disc).unwrap();
@@ -857,6 +868,19 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
                 drawing.show_hud = false;
                 drawing.update(&session, renderer, None)?;
                 assert!(drawing.models.player.is_some());
+                let motion = drawing.motion.sample(1.0);
+                assert!(
+                    motion
+                        .values()
+                        .any(|p| p.offsets.iter().any(|v| v.length() > 0.0))
+                );
+                for part in 0..3 {
+                    assert!(motion.contains_key(&interpolation::part(
+                        rig.root,
+                        rig.joints[tenchu_assets::tenchu2::BONES[part]],
+                        actor.definition_kind(),
+                    )));
+                }
                 Ok((drawing.scene, camera.source_view(), Vec::new()))
             },
         )

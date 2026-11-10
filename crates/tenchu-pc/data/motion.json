@@ -216,5 +216,241 @@
         "125bf04f46edcffb7cf0ddb89436485a"
       ]
     }
+  ],
+  "tenchu2/actors/rikimaru/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        -1,
+        0
+      ],
+      "start": 105,
+      "end": 190,
+      "anchor": [
+        0,
+        -155,
+        0
+      ],
+      "limit": 8,
+      "materials": [
+        "c026726825baca3d085ac3baacfee720",
+        "99887082efa8855af2054997d64e2a44",
+        "46950965b135e9a1777e430e090bdddd",
+        "481b39b8ef0aa6365fc75596bf5cdb9e"
+      ]
+    }
+  ],
+  "tenchu2/actors/rikimaru/1": [
+    {
+      "kind": "equipment",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "start": 80,
+      "end": 161,
+      "anchor": [
+        120,
+        -430,
+        70
+      ],
+      "limit": 5,
+      "materials": [
+        "8ae5a011fda229f178fd135c316c2156"
+      ]
+    }
+  ],
+  "tenchu2/actors/ayame/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "start": 60,
+      "end": 194,
+      "anchor": [
+        80,
+        -70,
+        130
+      ],
+      "limit": 20,
+      "materials": [
+        "4f11c15acf5ecf684d59d1959d0214c6",
+        "bfdbe64fb2d2671731a7681b6637d60f"
+      ]
+    }
+  ],
+  "tenchu2/actors/ayame/1": [
+    {
+      "kind": "cloth",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 0,
+      "end": 147,
+      "anchor": [
+        0,
+        100,
+        170
+      ],
+      "limit": 18,
+      "materials": [
+        "b0e03934ae48f59d35c8200f3389c9bf"
+      ]
+    }
+  ],
+  "tenchu2/actors/ayamea/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "start": 60,
+      "end": 194,
+      "anchor": [
+        80,
+        -70,
+        130
+      ],
+      "limit": 20,
+      "materials": [
+        "0b1e07a648b40552004bd702d17f70cc",
+        "a4f8f2b40100a6768f9ad145fc65c3c2"
+      ]
+    }
+  ],
+  "tenchu2/actors/tatumaru/15": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 35,
+      "end": 286,
+      "anchor": [
+        0,
+        180,
+        85
+      ],
+      "limit": 25,
+      "materials": [
+        "052e6f7093623eb0c093a33c4751e66d"
+      ]
+    }
+  ],
+  "tenchu2/actors/tatumaru/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 70,
+      "end": 278,
+      "anchor": [
+        0,
+        180,
+        150
+      ],
+      "limit": 25,
+      "materials": [
+        "052e6f7093623eb0c093a33c4751e66d"
+      ]
+    }
+  ],
+  "tenchu2/actors/tatu2/15": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 35,
+      "end": 286,
+      "anchor": [
+        0,
+        180,
+        85
+      ],
+      "limit": 25,
+      "materials": [
+        "052e6f7093623eb0c093a33c4751e66d"
+      ]
+    }
+  ],
+  "tenchu2/actors/tatu2/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 70,
+      "end": 278,
+      "anchor": [
+        0,
+        180,
+        150
+      ],
+      "limit": 25,
+      "materials": [
+        "052e6f7093623eb0c093a33c4751e66d"
+      ]
+    }
+  ],
+  "tenchu2/actors/tatu2_m/15": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 35,
+      "end": 286,
+      "anchor": [
+        0,
+        180,
+        85
+      ],
+      "limit": 25,
+      "materials": [
+        "052e6f7093623eb0c093a33c4751e66d"
+      ]
+    }
+  ],
+  "tenchu2/actors/tatu2_m/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 70,
+      "end": 278,
+      "anchor": [
+        0,
+        180,
+        150
+      ],
+      "limit": 25,
+      "materials": [
+        "052e6f7093623eb0c093a33c4751e66d"
+      ]
+    }
   ]
 }

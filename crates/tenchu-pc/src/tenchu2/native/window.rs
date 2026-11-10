@@ -232,9 +232,22 @@ impl Application {
             &self.settings.navigation,
             self.focused && !self.menu.panel.open,
         );
-        let update = self
-            .transport
-            .frame_step(&mut self.session, buttons, self.audio.as_ref())?;
+        let mut view = self
+            .view
+            .as_mut()
+            .filter(|v| v.generation == self.session.generation);
+        let motion = &self.settings.rendering().graphics.motion;
+        let update = self.transport.frame_step(
+            &mut self.session,
+            buttons,
+            self.audio.as_ref(),
+            |content| {
+                if let Some(view) = &mut view {
+                    view.drawing.tick(content, motion)?;
+                }
+                Ok(())
+            },
+        )?;
         self.menu
             .tools
             .sync(&self.session.content, self.session.generation);
@@ -281,9 +294,23 @@ impl Application {
         self.session
             .content
             .interpolate(self.settings.rendering().graphics.interpolation)?;
-        let update =
-            self.transport
-                .advance(&mut self.session, elapsed, input, self.audio.as_ref())?;
+        let mut view = self
+            .view
+            .as_mut()
+            .filter(|v| v.generation == self.session.generation);
+        let motion = &self.settings.rendering().graphics.motion;
+        let update = self.transport.advance(
+            &mut self.session,
+            elapsed,
+            input,
+            self.audio.as_ref(),
+            |content| {
+                if let Some(view) = &mut view {
+                    view.drawing.tick(content, motion)?;
+                }
+                Ok(())
+            },
+        )?;
         self.menu
             .tools
             .sync(&self.session.content, self.session.generation);

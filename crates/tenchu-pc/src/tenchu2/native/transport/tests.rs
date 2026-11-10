@@ -46,7 +46,13 @@ fn cutscene_acceleration_preserves_ticks_rng_and_content_boundaries() {
         let mut transport = Transport::default();
         for _ in 0..10000 {
             let update = transport
-                .advance(&mut fast, Duration::from_millis(34), input(speed), None)
+                .advance(
+                    &mut fast,
+                    Duration::from_millis(34),
+                    input(speed),
+                    None,
+                    |_| Ok(()),
+                )
                 .unwrap();
             if update.changed {
                 break;
@@ -85,6 +91,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
             Duration::from_secs(1),
             input(4),
             Some(&output),
+            |_| Ok(()),
         )
         .unwrap();
     assert!(
@@ -103,6 +110,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(4)
             },
             Some(&output),
+            |_| Ok(()),
         )
         .unwrap();
     assert_eq!(playback.content.tick(), tick);
@@ -120,6 +128,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(1)
             },
             Some(&output),
+            |_| Ok(()),
         )
         .unwrap();
     assert!(
@@ -128,7 +137,13 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
             .any(|c| matches!(c, Command::Music(None, false)))
     );
     transport
-        .advance(&mut playback, Duration::ZERO, input(1), Some(&output))
+        .advance(
+            &mut playback,
+            Duration::ZERO,
+            input(1),
+            Some(&output),
+            |_| Ok(()),
+        )
         .unwrap();
     assert!(
         received
@@ -148,6 +163,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(16)
             },
             None,
+            |_| Ok(()),
         )
         .unwrap();
     assert_eq!(gameplay.content.tick(), tick + 1);
@@ -160,11 +176,12 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(0)
             },
             None,
+            |_| Ok(()),
         )
         .unwrap();
     assert_eq!(gameplay.content.tick(), tick + 1);
     transport
-        .advance(&mut gameplay, Duration::ZERO, input(1), None)
+        .advance(&mut gameplay, Duration::ZERO, input(1), None, |_| Ok(()))
         .unwrap();
     assert_eq!(gameplay.content.tick(), tick + 1);
 }
@@ -199,17 +216,23 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
         };
         if speed == 0 {
             transport
-                .advance(&mut playback, Duration::ZERO, input, None)
+                .advance(&mut playback, Duration::ZERO, input, None, |_| Ok(()))
                 .unwrap();
             assert!(playback.content.tick() > 0);
         } else {
             for _ in 0..10 {
                 transport
-                    .advance(&mut playback, Duration::from_millis(100), input, None)
+                    .advance(
+                        &mut playback,
+                        Duration::from_millis(100),
+                        input,
+                        None,
+                        |_| Ok(()),
+                    )
                     .unwrap();
                 while transport.clock.interpolation() >= 1.0 {
                     transport
-                        .advance(&mut playback, Duration::ZERO, input, None)
+                        .advance(&mut playback, Duration::ZERO, input, None, |_| Ok(()))
                         .unwrap();
                 }
             }
@@ -225,10 +248,13 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
                     ..input
                 },
                 None,
+                |_| Ok(()),
             )
             .unwrap();
         assert_eq!(playback.content.tick(), tick);
-        transport.frame_step(&mut playback, 0, None).unwrap();
+        transport
+            .frame_step(&mut playback, 0, None, |_| Ok(()))
+            .unwrap();
         assert_eq!(playback.content.tick(), tick + 1);
         assert!(transport.clock.step().is_none());
         for _ in 0..playback.content.tick() {
@@ -256,11 +282,17 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
         )
         .unwrap();
         transport
-            .advance(&mut menu, Duration::from_nanos(33_333_334), input, None)
+            .advance(
+                &mut menu,
+                Duration::from_nanos(33_333_334),
+                input,
+                None,
+                |_| Ok(()),
+            )
             .unwrap();
         while transport.clock.interpolation() >= 1.0 {
             transport
-                .advance(&mut menu, Duration::ZERO, input, None)
+                .advance(&mut menu, Duration::ZERO, input, None, |_| Ok(()))
                 .unwrap();
         }
         reference.step(0).unwrap();
@@ -274,4 +306,92 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
             serde_json::to_value(&expected.state).unwrap()
         );
     }
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; presentation observes every update during catch-up, pause/step and scene changes without altering source state"]
+fn presentation_observer_follows_logic_ticks_instead_of_redraws() {
+    let mut playback = start(9, false);
+    let mut reference = start(9, false);
+    let mut transport = Transport::default();
+    let mut observed = Vec::new();
+    for _ in 0..6 {
+        transport
+            .advance(
+                &mut playback,
+                Duration::from_millis(100),
+                input(1),
+                None,
+                |content| {
+                    observed.push(content.tick());
+                    Ok(())
+                },
+            )
+            .unwrap();
+        while transport.clock.interpolation() >= 1.0 {
+            transport
+                .advance(&mut playback, Duration::ZERO, input(1), None, |content| {
+                    observed.push(content.tick());
+                    Ok(())
+                })
+                .unwrap();
+        }
+    }
+    assert_eq!(observed, (1..=18).collect::<Vec<_>>());
+    transport
+        .advance(
+            &mut playback,
+            Duration::from_secs(1),
+            Input {
+                paused: true,
+                ..input(1)
+            },
+            None,
+            |_| panic!("pause advanced presentation"),
+        )
+        .unwrap();
+    transport
+        .frame_step(&mut playback, 0, None, |content| {
+            observed.push(content.tick());
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(observed.last(), Some(&19));
+    for _ in 0..19 {
+        reference.step(0).unwrap();
+    }
+    let (Content::Gameplay(actual), Content::Gameplay(expected)) =
+        (&playback.content, &reference.content)
+    else {
+        panic!("unexpected scene")
+    };
+    assert_eq!(
+        postcard::to_allocvec(&actual.world).unwrap(),
+        postcard::to_allocvec(&expected.world).unwrap()
+    );
+    let mut cinematic = start(0, true);
+    let mut transport = Transport::default();
+    let mut reached_boundary = false;
+    for _ in 0..10000 {
+        let update = transport
+            .advance(
+                &mut cinematic,
+                Duration::from_millis(34),
+                input(0),
+                None,
+                |content| {
+                    assert!(
+                        matches!(content, Content::Prologue(_)),
+                        "new scene reached old drawing"
+                    );
+                    Ok(())
+                },
+            )
+            .unwrap();
+        if update.changed {
+            reached_boundary = true;
+            break;
+        }
+    }
+    assert!(reached_boundary);
 }

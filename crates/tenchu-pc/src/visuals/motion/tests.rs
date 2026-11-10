@@ -132,3 +132,72 @@ fn deformation_keeps_anchors_uvs_materials_and_normals_valid() {
     invalid.limit = 100.0;
     assert!(invalid.validate().is_err());
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; T2 hair/cloth rules follow swapped bodies on either Gaisen hero without changing gameplay"]
+fn imported_t2_secondary_motion_uses_the_same_rules_in_gaisen() {
+    let assets = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = appearance::library::Library::load(&assets).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let graphics = settings::Graphics {
+        motion: settings::Motion {
+            hair: true,
+            cloth: true,
+            equipment: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    for character in 0..2 {
+        for id in [
+            "tenchu2-jp:rikimaru",
+            "tenchu2-jp:ayame",
+            "tenchu2-jp:tatumaru",
+            "tenchu2-jp:ayamea",
+        ] {
+            let mut game = crate::session::Options {
+                character,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            game.events = Default::default();
+            let mut models = Models::default()
+                .with_player(
+                    &game,
+                    id,
+                    &Pack::default(),
+                    &Pack::default(),
+                    &graphics,
+                    Some(&library),
+                )
+                .unwrap();
+            let mut motion = Motion::default();
+            let mut changed = false;
+            for tick in 0..60 {
+                game.step(if tick < 30 { tenchu_core::input::UP } else { 0 })
+                    .unwrap();
+                let before = crate::session::tests::state(&game);
+                motion.tick(&game, &models, &graphics.motion, None);
+                models.motion = motion.sample(1.0);
+                if tick % 10 == 0 {
+                    let moving =
+                        crate::render_mesh::characters_presented(&game, Some(&models), true, None);
+                    let frame = std::mem::take(&mut models.motion);
+                    let original =
+                        crate::render_mesh::characters_presented(&game, Some(&models), true, None);
+                    models.motion = frame;
+                    assert_eq!(moving.len(), original.len());
+                    changed |= moving
+                        .iter()
+                        .zip(&original)
+                        .any(|(a, b)| a.position != b.position);
+                }
+                assert_eq!(before, crate::session::tests::state(&game));
+            }
+            assert!(changed, "{id} on player {character} has no authored motion");
+        }
+    }
+}

@@ -385,6 +385,30 @@ pub(crate) struct Meshes {
     skin: Option<skin::Pose>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl Meshes {
+    pub fn has_motion(&self) -> bool {
+        !self.motion.is_empty()
+    }
+
+    pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
+        self.motion.get(&geometry).map(Vec::as_slice)
+    }
+
+    pub fn deformation<'a>(
+        &'a self,
+        frame: &'a super::motion::Frame,
+        part: super::interpolation::Part,
+        geometry: usize,
+        matrix: Matrix,
+    ) -> Option<super::motion::Deformation<'a>> {
+        let pose = frame
+            .get(&part.canonical())
+            .filter(|p| p.geometry == geometry)?;
+        super::motion::Deformation::new(self.motion_rules(geometry)?, pose, matrix)
+    }
+}
+
 impl Meshes {
     pub fn skin(&mut self, parts: &[tenchu_assets::model::Part]) {
         if !self.meshes.values().any(|m| m.skin.is_some()) {

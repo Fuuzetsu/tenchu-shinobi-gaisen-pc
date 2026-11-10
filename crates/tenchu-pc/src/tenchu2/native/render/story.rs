@@ -12,6 +12,7 @@ mod tests;
 
 pub(crate) struct Drawing {
     models: models::Models,
+    motion: crate::visuals::motion::Motion,
     pub(super) scene: SceneDrawing,
     pub texts: Vec<fonts::Text>,
     pub labels: Vec<crate::debug::Label>,
@@ -37,13 +38,16 @@ impl Drawing {
     }
     pub fn preserve_environment(&mut self, previous: &mut Self) {
         self.scene.preserve_environment(&mut previous.scene);
+        self.motion = std::mem::take(&mut previous.motion);
+        self.motion.invalidate();
     }
 
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         let mut models = models::Models::new(story, graphics, renderer)?;
-        let (geometry, texts) = models.geometry(story, renderer, None, None)?;
+        let (geometry, texts) = models.geometry(story, renderer, None, None, None)?;
         Ok(Self {
             models,
+            motion: Default::default(),
             scene: SceneDrawing::new(geometry, renderer, &story.level),
             texts,
             labels: Vec::new(),
@@ -59,6 +63,12 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
+        self.tick(story, &renderer.graphics().motion)?;
+        let motion = self.motion.sample(if renderer.graphics().interpolation {
+            self.alpha
+        } else {
+            1.0
+        });
         let pose = story
             .interpolation
             .as_ref()
@@ -66,7 +76,7 @@ impl Drawing {
             .and_then(|history| history.sample(story.state.frame.max(0) as u64, self.alpha));
         let (mut geometry, texts) =
             self.models
-                .geometry(story, renderer, self.camera, pose.as_ref())?;
+                .geometry(story, renderer, self.camera, pose.as_ref(), Some(&motion))?;
         let camera = super::camera_matrix(story.state.view, self.camera, renderer.size());
         self.labels = self
             .scene
@@ -88,6 +98,19 @@ impl Drawing {
         self.scene.update(geometry, renderer);
         self.texts = texts;
         self.view = story.state.view;
+        Ok(())
+    }
+
+    pub fn tick(&mut self, story: &Story, options: &crate::settings::Motion) -> Result<()> {
+        if self
+            .motion
+            .current(story.state.frame.max(0) as u64, options)
+        {
+            return Ok(());
+        }
+        let inputs = self.models.motion_inputs(story, options)?;
+        self.motion
+            .update(story.state.frame.max(0) as u64, &inputs, options);
         Ok(())
     }
 

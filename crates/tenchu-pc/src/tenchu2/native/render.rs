@@ -33,6 +33,7 @@ mod environment;
 mod hud;
 mod lamps;
 pub(super) mod lighting;
+mod motion;
 mod scenery;
 mod story;
 #[cfg(test)]
@@ -42,6 +43,7 @@ pub(super) use story::capture as capture_story;
 
 pub struct Drawing {
     models: Models,
+    motion: crate::visuals::motion::Motion,
     scene: SceneDrawing,
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
@@ -97,6 +99,8 @@ impl Drawing {
     }
     pub fn preserve_environment(&mut self, previous: &mut Self) {
         self.scene.preserve_environment(&mut previous.scene);
+        self.motion = std::mem::take(&mut previous.motion);
+        self.motion.invalidate();
     }
 
     pub fn new(
@@ -126,6 +130,7 @@ impl Drawing {
         )?;
         Ok(Self {
             models,
+            motion: Default::default(),
             scene: SceneDrawing::new(geometry, renderer, &session.assets.level),
             view: session.world.camera.view,
             show_hud: true,
@@ -141,6 +146,12 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
+        self.tick(session, &renderer.graphics().motion)?;
+        let motion = self.motion.sample(if renderer.graphics().interpolation {
+            self.alpha
+        } else {
+            1.0
+        });
         let pose = session
             .interpolation
             .as_ref()
@@ -163,6 +174,7 @@ impl Drawing {
                 },
                 camera: self.camera,
                 pose: pose.as_ref(),
+                motion: Some(&motion),
             },
         )?;
         self.scene.lighting.update_emitters(
@@ -533,6 +545,7 @@ pub struct Presentation<'a> {
     pub show_hud: bool,
     pub camera: Option<crate::debug::camera::Camera>,
     pub pose: Option<&'a PoseFrame>,
+    pub motion: Option<&'a crate::visuals::motion::Frame>,
 }
 
 impl Default for Presentation<'_> {
@@ -542,6 +555,7 @@ impl Default for Presentation<'_> {
             show_hud: false,
             camera: None,
             pose: None,
+            motion: None,
         }
     }
 }
@@ -754,6 +768,7 @@ impl Models {
             show_hud,
             camera,
             pose,
+            motion,
         } = presentation;
         let view = camera.map_or_else(
             || pose.map_or(world.camera.view, |frame| frame.view),
@@ -803,121 +818,18 @@ impl Models {
         }
         // Presentation must not refresh the simulation's cached coordinate matrices.
         let mut scene = world.scene.clone();
-        let mut player_hand = None;
-        for (owner, (agent, instance)) in world.actors.iter().zip(&world.instances).enumerate() {
-            let actor = &agent.actor;
-            if actor.flags & 8 != 0 {
-                continue;
-            }
-            let definition = assets
-                .resources
-                .registry
-                .actor(actor.definition_kind())
-                .ok_or("Missing native actor definition")?;
-            let body = &assets.models[&definition.model];
-            let meshes = &self.bodies[&definition.model];
-            let matrices = instance
-                .rig
-                .joints
-                .iter()
-                .map(|&joint| {
-                    scene.world(joint).map(|matrix| {
-                        PoseFrame::transform(
-                            pose,
-                            interpolation::part(instance.rig.root, joint, actor.definition_kind()),
-                            matrix,
-                        )
-                    })
-                })
-                .collect::<Result<Vec<_>>>()?;
-            let custom = self.player.as_ref().filter(|_| owner == world.player);
-            let custom_pose = custom
-                .map(|player| player.pose(&matrices, scene.models[instance.rig.joints[0]].local));
-            if let (Some(player), Some(target)) = (custom, &custom_pose) {
-                let appearance = &player.appearance;
-                appearance.meshes.pose_skin(target, None);
-                for (part, &matrix) in appearance.parts.iter().zip(target) {
-                    output.model(
-                        &appearance.meshes,
-                        part,
-                        matrix,
-                        ModelStyle::Imported {
-                            concealed: instance.translucent,
-                        },
-                    );
-                }
-                player_hand = Some(custom::Player::attach(matrices[11], 11, &matrices, target));
-            } else {
-                meshes.pose_skin(&matrices, None);
-                for (part, &matrix) in body.parts.iter().zip(&matrices) {
-                    output.model(
-                        meshes,
-                        part,
-                        matrix,
-                        if assets
-                            .model_sources
-                            .get(&definition.model)
-                            .is_some_and(|ids| {
-                                ids.iter()
-                                    .any(|id| !id.is_empty() && !id.starts_with("tenchu2/"))
-                            })
-                        {
-                            ModelStyle::Imported {
-                                concealed: instance.translucent,
-                            }
-                        } else if instance.translucent {
-                            ModelStyle::Concealed
-                        } else {
-                            ModelStyle::Actor
-                        },
-                    );
-                }
-            }
-            for root in instance.rig.weapons.iter().take(3).flatten() {
-                let name = self
-                    .weapon_names
-                    .get(root)
-                    .ok_or("Missing native weapon instance")?;
-                let parts = &assets.weapons[name];
-                for (index, part) in parts.iter().enumerate() {
-                    let mut matrix = PoseFrame::transform(
-                        pose,
-                        interpolation::part(
-                            instance.rig.root,
-                            root + 1 + index,
-                            actor.definition_kind(),
-                        ),
-                        scene.world(root + 1 + index)?,
-                    );
-                    if let Some(target) = &custom_pose {
-                        let mut parent = scene.models[*root].parent;
-                        while let Some(id) = parent {
-                            if let Some(bone) = instance.rig.joints.iter().position(|&j| j == id) {
-                                matrix = custom::Player::attach(matrix, bone, &matrices, target);
-                                break;
-                            }
-                            parent = scene.models[id].parent;
-                        }
-                    }
-                    output.model(
-                        self.imported_weapons.get(name).unwrap_or(&self.weapons),
-                        part,
-                        matrix,
-                        if assets
-                            .weapon_imports
-                            .get(name)
-                            .is_some_and(|m| !m.source_id.starts_with("tenchu2/"))
-                        {
-                            ModelStyle::Imported {
-                                concealed: instance.translucent,
-                            }
-                        } else {
-                            ModelStyle::Actor
-                        },
-                    );
-                }
-            }
-        }
+        let player_hand = self.visit_actors(
+            world,
+            assets,
+            &mut scene,
+            pose,
+            |key, meshes, part, matrix, style| {
+                let deformation = motion.and_then(|frame| {
+                    meshes.deformation(frame, key, part.geometry.as_ptr() as usize, matrix)
+                });
+                output.deformed_model(meshes, part, matrix, style, deformation.as_ref());
+            },
+        )?;
         let mut rope = None;
         if let Some(hook) = world.items.grapple() {
             if let Some(parts) = assets.items.model(0) {
@@ -1421,8 +1333,19 @@ impl Builder {
     }
 
     fn model(&mut self, meshes: &Meshes, part: &Part, matrix: Matrix, style: ModelStyle) {
+        self.deformed_model(meshes, part, matrix, style, None);
+    }
+
+    fn deformed_model(
+        &mut self,
+        meshes: &Meshes,
+        part: &Part,
+        matrix: Matrix,
+        style: ModelStyle,
+        deformation: Option<&crate::visuals::motion::Deformation<'_>>,
+    ) {
         let terrain = matches!(style, ModelStyle::Terrain | ModelStyle::Prop);
-        meshes.visit(&part.geometry, matrix, false, 0, None, |triangle| {
+        meshes.visit(&part.geometry, matrix, false, 0, deformation, |triangle| {
             let mut triangle = triangle.map(|v| *v);
             let depths = triangle.map(|v| self.depth(v.position).max(0.0) as i32 >> 4);
             if self

@@ -84,6 +84,8 @@ impl Runtime {
             }
             ReloadModels | ReloadAssets | SmoothModels | ModelDetail | CharacterRefinement
             | WeaponReflections => None,
+            HairMotion | ClothMotion | EquipmentMotion | MotionStrength | MotionResponse
+            | MotionWind => None,
             Rewind | RewindHistory | RewindSpeed | SaveState | LoadState | StateSlot => Some(
                 "Native Tenchu 2 JP does not yet support mid-mission saves or rewind. Campaign progress still saves normally.",
             ),

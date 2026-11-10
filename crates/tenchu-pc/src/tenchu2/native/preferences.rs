@@ -41,6 +41,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
             ..Default::default()
         },
         weapon_reflections: g.weapon_reflections,
+        motion: g.motion.clone(),
         interpolation: g.interpolation,
         bilinear: g.bilinear,
         mipmaps: g.mipmaps,

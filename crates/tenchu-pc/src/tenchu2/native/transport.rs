@@ -78,11 +78,12 @@ impl Transport {
         self.accelerated = accelerated;
     }
 
-    pub fn step(
+    fn step(
         &mut self,
         playback: &mut Playback<impl ReadAt>,
         buttons: u16,
         output: Option<&Output>,
+        observed: &mut impl FnMut(&Content) -> Result<()>,
     ) -> Result<Update> {
         super::diagnostics::record(&mut self.recent, playback, buttons);
         let generation = playback.generation;
@@ -91,10 +92,13 @@ impl Transport {
         if changed {
             self.recent.reset(playback.generation);
             self.clock.discard_host_backlog();
-        } else if !self.accelerated
-            && let Some(output) = output
-        {
-            update.play_audio(output);
+        } else {
+            observed(&playback.content)?;
+            if !self.accelerated
+                && let Some(output) = output
+            {
+                update.play_audio(output);
+            }
         }
         Ok(Update {
             changed,
@@ -107,9 +111,10 @@ impl Transport {
         playback: &mut Playback<impl ReadAt>,
         buttons: u16,
         output: Option<&Output>,
+        mut observed: impl FnMut(&Content) -> Result<()>,
     ) -> Result<Update> {
         self.audio(playback, false, output);
-        let update = self.step(playback, buttons, output)?;
+        let update = self.step(playback, buttons, output, &mut observed)?;
         self.audio(playback, false, output);
         self.clock.discard_host_backlog();
         Ok(update)
@@ -121,6 +126,7 @@ impl Transport {
         elapsed: Duration,
         input: Input,
         output: Option<&Output>,
+        mut observed: impl FnMut(&Content) -> Result<()>,
     ) -> Result<Update> {
         let (speed, muted) = input.pacing(&playback.content);
         self.audio(playback, muted && !input.paused, output);
@@ -139,7 +145,7 @@ impl Transport {
             if speed != 0.0 && self.clock.step().is_none() {
                 break;
             }
-            let update = self.step(playback, input.buttons, output)?;
+            let update = self.step(playback, input.buttons, output, &mut observed)?;
             if update.changed || update.quit {
                 // Discard accumulated time at scene boundaries; the next scene chooses its own rate.
                 let (_, accelerated) = input.pacing(&playback.content);

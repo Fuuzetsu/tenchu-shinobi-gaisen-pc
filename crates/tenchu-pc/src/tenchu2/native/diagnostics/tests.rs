@@ -25,7 +25,9 @@ fn native_reports_preserve_source_state_and_reset_inputs_at_scene_boundaries() {
         } else {
             0
         };
-        transport.step(&mut playback, buttons, None).unwrap();
+        transport
+            .frame_step(&mut playback, buttons, None, |_| Ok(()))
+            .unwrap();
         reference.step(buttons).unwrap();
     }
     let Content::Gameplay(session) = &playback.content else {
@@ -68,7 +70,9 @@ fn native_reports_preserve_source_state_and_reset_inputs_at_scene_boundaries() {
     assert!(filename(&playback).contains("t2jp-s119-tick90"));
 
     playback.action = Some(super::super::campaign::Action::SelectMission);
-    transport.step(&mut playback, 0, None).unwrap();
+    transport
+        .frame_step(&mut playback, 0, None, |_| Ok(()))
+        .unwrap();
     assert!(transport.recent.inputs.is_empty());
     assert_eq!(
         report(&playback, &transport, &menu, &settings, &controls)["runtime"]["screen"],
@@ -77,7 +81,9 @@ fn native_reports_preserve_source_state_and_reset_inputs_at_scene_boundaries() {
 
     let mut story = self::playback(10);
     for _ in 0..10 {
-        transport.step(&mut story, 0, None).unwrap();
+        transport
+            .frame_step(&mut story, 0, None, |_| Ok(()))
+            .unwrap();
     }
     let Content::Story { story: content, .. } = &story.content else {
         panic!("story");
