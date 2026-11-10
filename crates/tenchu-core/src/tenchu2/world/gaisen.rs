@@ -30,6 +30,14 @@ impl Director {
         {
             return Err("Gaisen director requires a fresh matching scripted world".into());
         }
+        // Placements already belong to the native inventory. The cinematic world
+        // must neither collect them again nor show supplies that are already gone.
+        for item in &mut source.items.slots {
+            if matches!(item.behavior, crate::items::Behavior::Pickup { .. }) {
+                source.collision.remove(&mut source.scene, item.model);
+                item.behavior = crate::items::Behavior::Inactive;
+            }
+        }
         let mut bindings = vec![None; source.roster.actors.len()];
         bindings[source.player_id] = Some(world.player);
         for (index, agent) in world

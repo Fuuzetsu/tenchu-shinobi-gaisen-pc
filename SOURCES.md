@@ -146,6 +146,15 @@ loader and resume at the source tick after acceleration. T2 input, mission time
 and simulation pause through the original cinematic tail. Original scenes keep
 their authored cast; Tatsumaru uses Rikimaru's story.
 
+Initial T1 pickup instances are retired in the imported director after their
+placements have been transferred to T2. Removal uses the same collision cleanup
+as the existing scalar `Items::dispose` pickup branch; later cinematic item
+requests remain available. The shared native loose-item draw path freezes native
+props throughout original scenes, including parented arrows. Flame sprites keep
+detached T2 artwork when source cinematics select T1 VRAM. Item simulation,
+collection and inventory remain native. The sibling `ITEM.C`, research `items.rs`
+and viewer `world_items.rs` disposal/ownership paths were rechecked read-only.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |
@@ -164,6 +173,7 @@ Read-only references rechecked for this adapter:
 | `tenchu-decomp` | `src/main.exe/ITEM.C` | `fd5a6d31ef3e5628d792a4f05604d7e40ff588663c339651858e161bee57e78a` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/items/rolling.rs` | `aaceee4bfbc8aeb7a5dde8b1c5caaa20c6a68c670f2e5ebcc9da448a81b62365` |
 | `tenchu-viewer` | `src/world_items.rs` | `bf112a0dceb2c4d75fa6e54d6eb83f6721f7ebde5ab71a780aa16c8271526bd8` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/items.rs` | `cb7f3506016645724a7f30592114f74fc29c2121beefb71ac21c0f392c722837` |
 | `tenchu-decomp` | `src/main.exe/STAGE.C` | `dc1573257be1b02eeaaa96cd1e3c6ce8b952da3dbd4a122e669a29e4d819a391` |
 | `tenchu-decomp` | `src/main.exe/CHRANIM.C` | `5e8c2a7548b441bdb68b16b54b7ac2fb6c9dd5f791868295d625c3fb2297c825` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/stage.rs` | `3c2078b66fbb1c5d48a105d13a04ebf899a27811449e94e8fbb3e58fe52655bc` |

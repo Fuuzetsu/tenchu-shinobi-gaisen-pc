@@ -3,10 +3,16 @@ use tenchu_core::game::Game;
 
 pub(super) struct Drawing {
     models: crate::visuals::models::Models,
+    arrow_flames: [u32; 4],
 }
 
 impl Drawing {
-    pub fn new(game: &Game, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
+    pub fn new(
+        game: &Game,
+        assets: &Assets,
+        graphics: &Graphics,
+        renderer: &mut Renderer,
+    ) -> Result<Self> {
         let pack = if graphics.asset_pack {
             Pack::from_env(&game.mission)?
         } else {
@@ -16,7 +22,58 @@ impl Drawing {
         renderer.set_asset_pack(&pack);
         renderer.update_vram(&game.mission.vram);
         models.bind(|material| renderer.bind_material(material));
-        Ok(Self { models })
+        let arrow_flames = std::array::from_fn(|i| {
+            let image = assets.sprites.effects[12 + i];
+            let region = catalog::Region {
+                page: image.page,
+                palette: image.palette,
+                rect: [
+                    u16::from(image.uv[0]),
+                    u16::from(image.uv[1]),
+                    image.size[0],
+                    image.size[1],
+                ],
+            };
+            renderer.bind_material(&crate::visuals::models::Material {
+                id: format!("tenchu2/cinematic/arrow-flame/{i}"),
+                region: None,
+                image: std::sync::Arc::new(crate::visuals::pixels::Image {
+                    size: image.size.map(u32::from),
+                    rgba: region.pixels(&assets.sprites.vram),
+                }),
+                animation: None,
+            })
+        });
+        Ok(Self {
+            models,
+            arrow_flames,
+        })
+    }
+
+    fn loose_items(
+        &self,
+        models: &Models,
+        world: &World,
+        assets: &Assets,
+        output: &mut Builder,
+    ) -> Result<()> {
+        let start = output.surfaces.len();
+        models.loose_items(world, assets, &mut world.scene.clone(), output)?;
+        // Loose meshes have detached textures already. Their flame sprites must
+        // also keep T2 artwork while the original cinematic occupies shared VRAM.
+        let phase = (world.tick.wrapping_sub(1) & 3) as usize;
+        let image = assets.sprites.effects[12 + phase];
+        for vertex in output.surfaces[start..]
+            .iter_mut()
+            .flat_map(|s| &mut s.vertices)
+        {
+            vertex.material = self.arrow_flames[phase];
+            // Sprite UVs address texel edges; retain the shader's nearest-sample bias.
+            vertex.uv = std::array::from_fn(|i| {
+                (vertex.uv[i] + 0.001 - f32::from(image.uv[i])) / f32::from(image.size[i]) - 0.5
+            });
+        }
+        Ok(())
     }
 }
 
@@ -72,18 +129,21 @@ impl super::Drawing {
                 )?;
             }
         }
+        drawing.loose_items(&self.models, &session.world, &session.assets, &mut native)?;
         effects.append(render_effects::surface_geometry(native.surfaces));
+        let mut actors = render_mesh::characters_presented(
+            source,
+            Some(&drawing.models),
+            self.camera.is_some(),
+            None,
+        );
+        actors.extend(native.actors);
         let mut geometry = Geometry {
             lamps: Vec::new(),
             backgrounds: Vec::new(),
             terrain: render_mesh::stage(&source.mission, &source.math, Some(&drawing.models)),
             props: native.props,
-            actors: render_mesh::characters_presented(
-                source,
-                Some(&drawing.models),
-                self.camera.is_some(),
-                None,
-            ),
+            actors,
             effects,
         };
         let camera = camera_matrix(source.rendered_view, self.camera, renderer.size());
@@ -131,11 +191,15 @@ mod tests {
     use tenchu_core::tenchu2::world::Options;
 
     fn session(character: i16) -> Session {
+        session_layout(character, 1)
+    }
+
+    fn session_layout(character: i16, layout: usize) -> Session {
         let source = Source::open(
             std::env::var_os("TENCHU_DISC").unwrap().as_ref(),
             0,
             character,
-            1,
+            layout,
             Language::English,
         )
         .unwrap();
@@ -173,6 +237,227 @@ mod tests {
             }
         }
         panic!("No authored caption");
+    }
+
+    #[test]
+    #[ignore = "requires both discs, TENCHU_GAISEN_REVIEW and GPU; loose native pickups remain visible during original cinematics"]
+    fn imported_host_cinematic_keeps_native_pickups() {
+        let output = std::path::PathBuf::from(std::env::var_os("TENCHU_GAISEN_REVIEW").unwrap());
+        std::fs::create_dir_all(&output).unwrap();
+        let graphics = Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        for character in 0..2 {
+            let mut session = session_layout(character, 3);
+            let initial = session.world.clone();
+            for &(item, position) in &session.assets.gaisen_pickups.clone() {
+                let mut camera = crate::debug::camera::Camera {
+                    position: glam::Vec3::from_array(position.to_array().map(|v| v as f32))
+                        - glam::Vec3::Y * 60.0,
+                    yaw: 0.5,
+                    pitch: -0.7,
+                    fov: 45.0,
+                };
+                camera.position -= camera.forward() * 1800.0;
+                let mut images = Vec::new();
+                for present in [true, false] {
+                    session.world = initial.clone();
+                    if !present {
+                        session.world.items.entries.clear();
+                    }
+                    let world = postcard::to_allocvec(&session.world).unwrap();
+                    let source =
+                        postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap();
+                    let path = output.join(format!(
+                        "cinematic-source-{character}-pickup-{item}-present-{present}.png"
+                    ));
+                    capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+                        let mut drawing =
+                            super::super::Drawing::new(&session, &graphics, renderer)?;
+                        drawing.camera = Some(camera);
+                        drawing.update(&session, renderer, None)?;
+                        Ok((drawing.scene, camera.source_view(), Vec::new()))
+                    })
+                    .unwrap();
+                    images.push(
+                        crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                            .unwrap()
+                            .rgba,
+                    );
+                    assert_eq!(world, postcard::to_allocvec(&session.world).unwrap());
+                    assert_eq!(
+                        source,
+                        postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap()
+                    );
+                }
+                let changed = images[0]
+                    .chunks_exact(4)
+                    .zip(images[1].chunks_exact(4))
+                    .filter(|(a, b)| a != b)
+                    .count();
+                assert!(
+                    changed > 20,
+                    "source {character}, item {item}: invisible native pickup ({changed} pixels)"
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires both discs, TENCHU_GAISEN_REVIEW and GPU; loose meshes and every arrow flame phase retain native pixels under cinematic VRAM"]
+    fn imported_host_cinematic_keeps_native_loose_item_textures() {
+        use tenchu_core::tenchu2::items::{
+            State,
+            arrow::{Arrow, Phase},
+            flight::Flight,
+            grenade::Grenade,
+        };
+        let output = std::path::PathBuf::from(std::env::var_os("TENCHU_GAISEN_REVIEW").unwrap());
+        std::fs::create_dir_all(&output).unwrap();
+        let mut session = session(0);
+        let world = &mut session.world;
+        while !world.items.entries.is_empty() {
+            world.items.remove(0, &mut world.collision);
+        }
+        let mut arrow = Arrow::launch(
+            [0, 0, 4000].into(),
+            [0, 0, 4096].into(),
+            i32::MIN,
+            &session.assets.resources.math,
+            &mut world.random,
+        );
+        arrow.flame = true;
+        world
+            .items
+            .insert(
+                State::Arrow(arrow.clone()),
+                &mut world.scene,
+                &mut world.collision,
+            )
+            .unwrap();
+        let parent = world.scene.add(
+            None,
+            Matrix {
+                translation: [1000, 0, 4000].into(),
+                ..Default::default()
+            },
+        );
+        arrow.flame = false;
+        arrow.fire_model = false;
+        arrow.transform.translation = [0, 0, 0].into();
+        arrow.phase = Phase::Embedded {
+            age: 10,
+            parent: Some(parent),
+        };
+        world
+            .items
+            .insert(State::Arrow(arrow), &mut world.scene, &mut world.collision)
+            .unwrap();
+        world
+            .items
+            .insert(
+                State::Grenade(Grenade::launch(
+                    world.player,
+                    Flight {
+                        position: [-1000, 0, 4000].into(),
+                        ..Default::default()
+                    },
+                )),
+                &mut world.scene,
+                &mut world.collision,
+            )
+            .unwrap();
+        let graphics = Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        let source = &session.gaisen.as_ref().unwrap().director.source;
+        let mut phases = Vec::new();
+        for phase in 0..4 {
+            session.world.tick = phase + 1;
+            let before = postcard::to_allocvec(&session.world).unwrap();
+            let mut images = Vec::new();
+            for cinematic in [false, true] {
+                let path = output.join(format!(
+                    "loose-items-phase-{phase}-cinematic-{cinematic}.png"
+                ));
+                capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+                    let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
+                    let cinematic_models =
+                        Drawing::new(source, &session.assets, &graphics, renderer)?;
+                    let mut output =
+                        Builder::new(Matrix::default(), &session.assets.level, &graphics);
+                    if cinematic {
+                        cinematic_models.loose_items(
+                            &models,
+                            &session.world,
+                            &session.assets,
+                            &mut output,
+                        )?;
+                    } else {
+                        renderer.update_vram(&session.assets.sprites.vram);
+                        models.loose_items(
+                            &session.world,
+                            &session.assets,
+                            &mut session.world.scene.clone(),
+                            &mut output,
+                        )?;
+                    }
+                    assert!(!output.actors.is_empty());
+                    assert_eq!(output.surfaces.len(), 1);
+                    let geometry = Geometry {
+                        lamps: Vec::new(),
+                        backgrounds: Vec::new(),
+                        terrain: Vec::new(),
+                        props: output.props,
+                        actors: output.actors,
+                        effects: render_effects::surface_geometry(output.surfaces),
+                    };
+                    Ok((
+                        SceneDrawing::new(geometry, renderer, &session.assets.level),
+                        Matrix::default(),
+                        Vec::new(),
+                    ))
+                })
+                .unwrap();
+                images.push(
+                    crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                        .unwrap()
+                        .rgba,
+                );
+                assert_eq!(before, postcard::to_allocvec(&session.world).unwrap());
+            }
+            let changed = images[0]
+                .chunks_exact(4)
+                .zip(images[1].chunks_exact(4))
+                .filter(|(a, b)| a != b)
+                .count();
+            let difference = images[0]
+                .iter()
+                .zip(&images[1])
+                .map(|(&a, &b)| a.abs_diff(b))
+                .max()
+                .unwrap();
+            // Detached RGBA8 artwork rounds five-bit channels before the GPU;
+            // shared VRAM decodes them directly to float. Coverage stays exact.
+            assert!(
+                difference <= 1,
+                "phase {phase}: {changed} changed pixels, largest channel difference {difference}"
+            );
+            assert!(
+                images[0]
+                    .chunks_exact(4)
+                    .zip(images[1].chunks_exact(4))
+                    .all(|(a, b)| { (a[..3] == [0; 3]) == (b[..3] == [0; 3]) }),
+                "phase {phase}: flame coverage changed"
+            );
+            phases.push(images.remove(0));
+        }
+        assert!(
+            phases.windows(2).all(|p| p[0] != p[1]),
+            "arrow flame was invisible"
+        );
     }
 
     #[test]

@@ -43,6 +43,83 @@ fn fixture(
 }
 
 #[test]
+#[ignore = "requires both discs; native collection and inventory survive an original cinematic without duplicate source pickups"]
+fn imported_director_keeps_native_item_ownership() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    let game = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for hero in 0..3 {
+        let (mut director, mut world, mut assets) =
+            fixture(&game, &disc, 0, i16::from(hero == 1), hero, 3);
+        assert_eq!(world.items.entries.len(), 3);
+        assert!(director.source.items.slots.iter().all(|item| {
+            matches!(item.behavior, tenchu_core::items::Behavior::Inactive)
+                && director.source.scene.models[item.model].conflict.is_none()
+        }));
+        assert!(!director.update(&mut world, &assets, 0).unwrap());
+        // Collect medicine and leave the grenade and smoke bomb in place.
+        let (model, position) = world
+            .items
+            .entries
+            .iter()
+            .find_map(|entry| match &entry.state {
+                ItemState::Pickup(p) if p.item == 1 => Some((entry.model, p.flight.position)),
+                _ => None,
+            })
+            .unwrap();
+        let player = &mut world.actors[world.player].actor;
+        let count = player.inventory.counts[1];
+        player.position = position;
+        player.previous = position;
+        player.state = State::Normal;
+        world.scene.finish_tick();
+        world.publish(world.player, &assets);
+        world.collision.compute(|m| world.scene.world(m)).unwrap();
+        world.update_items(&assets, &mut Sounds::default()).unwrap();
+        assert_eq!(
+            world.actors[world.player].actor.inventory.counts[1],
+            count.wrapping_add(1)
+        );
+        assert!(!world.items.entries.iter().any(|e| e.model == model));
+        let items = postcard::to_allocvec(&world.items).unwrap();
+        let inventory = postcard::to_allocvec(&world.actors[world.player].actor.inventory).unwrap();
+        force_next(&director, &mut world, &assets);
+        assert!(director.update(&mut world, &assets, 0).unwrap());
+        for _ in 0..6000 {
+            assert_eq!(items, postcard::to_allocvec(&world.items).unwrap());
+            assert_eq!(
+                inventory,
+                postcard::to_allocvec(&world.actors[world.player].actor.inventory).unwrap()
+            );
+            assert!(director.source.items.slots.iter().all(|item| {
+                !matches!(item.behavior, tenchu_core::items::Behavior::Pickup { .. })
+            }));
+            if !director.source.cinematic.active {
+                break;
+            }
+            assert!(director.update(&mut world, &assets, 0).unwrap());
+        }
+        assert!(!director.source.cinematic.active);
+        let mut native = world.clone();
+        assert!(!director.update(&mut world, &assets, 0).unwrap());
+        world
+            .step([0; 2], &mut assets, &mut Sounds::default())
+            .unwrap();
+        native
+            .step([0; 2], &mut assets, &mut Sounds::default())
+            .unwrap();
+        assert_eq!(
+            postcard::to_allocvec(&world).unwrap(),
+            postcard::to_allocvec(&native).unwrap()
+        );
+    }
+}
+
+#[test]
 #[ignore = "requires both discs; checks complete original casts, script-hidden bosses, native health and both activation modes on every stage/layout/hero"]
 fn imported_director_preserves_cast_and_hidden_actors() {
     let game = GameAssets::open(
@@ -58,6 +135,10 @@ fn imported_director_preserves_cast_and_hidden_actors() {
                 for layout in 1..=3 {
                     let (director, mut world, assets) =
                         fixture(&game, &disc, stage, character, hero, layout);
+                    assert!(director.source.items.slots.iter().all(|item| {
+                        !matches!(item.behavior, tenchu_core::items::Behavior::Pickup { .. })
+                    }));
+                    assert_eq!(world.items.entries.len(), assets.gaisen_pickups.len());
                     assert_eq!(
                         director.native_actor(director.source.player_id),
                         Some(world.player)

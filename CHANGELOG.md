@@ -26,8 +26,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   scenes now run in both F6 and the command-line player. Cutscenes retain their
   T1 cast, camera, captions and disc audio; T2 gameplay resumes at the authored
   handoff. Tatsumaru follows Rikimaru's story. Open doors and trap flaps retain
-  their native poses during scenes. Other stage interactions are still being
-  connected.
+  their native poses during scenes. Collected supplies stay gone; remaining
+  pickups and loose native items retain their models, positions and artwork
+  through cutscenes. Other stage interactions are still being connected.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
   item readouts, equipment quantities and results numbers, plus clearer
