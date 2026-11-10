@@ -148,6 +148,7 @@ impl Session {
             listener: self.world.listener(),
             requests: Vec::new(),
             wounds: Vec::new(),
+            melee_hits: BTreeSet::new(),
             pending: &mut self.pending,
         };
         let tick = self.world.tick;
@@ -158,6 +159,7 @@ impl Session {
             .record(u64::from(self.world.tick), &self.frame.effects);
         self.contact.record_player(&self.world);
         self.contact.wounds = events.wounds;
+        self.contact.melee_hits = events.melee_hits;
         for &position in &self.frame.effects.blood_sounds {
             events.requests.push(SoundRequest {
                 source: None,
@@ -261,6 +263,7 @@ struct Output<'a> {
     listener: Listener,
     requests: Vec<SoundRequest>,
     wounds: Vec<(usize, Position)>,
+    melee_hits: BTreeSet<usize>,
     pending: &'a mut BTreeSet<String>,
 }
 
@@ -283,6 +286,10 @@ impl Output<'_> {
 }
 
 impl Events for Output<'_> {
+    fn melee_hit(&mut self, attacker: usize) {
+        self.melee_hits.insert(attacker);
+    }
+
     fn blood(&mut self, actor: usize, position: Position) {
         self.wounds.push((actor, position));
     }

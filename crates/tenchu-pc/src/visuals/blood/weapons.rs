@@ -92,8 +92,7 @@ impl Weapons {
                 let Some(&matrix) = transforms.get(&key) else {
                     continue;
                 };
-                if let std::collections::btree_map::Entry::Vacant(entry) = self.coatings.entry(key)
-                {
+                self.contact(key, matrix, game.tick, settings, || {
                     let mut vertices = Vec::new();
                     render_mesh::append_geometry(
                         &mut vertices,
@@ -101,82 +100,113 @@ impl Weapons {
                         Matrix::default(),
                         Some(models),
                     );
-                    let has_metal = vertices
-                        .iter()
-                        .any(|v| v.flags & render_mesh::WEAPON_METAL != 0);
-                    let mut vertices: Vec<_> = vertices
-                        .chunks_exact(3)
-                        .filter(|t| {
-                            t[0].flags & render_mesh::TRANSLUCENT == 0
-                                && (!settings.weapon_metal_only
-                                    || !has_metal
-                                    || t[0].flags & render_mesh::WEAPON_METAL != 0)
-                        })
-                        .flat_map(|t| t.iter().copied())
-                        .collect();
-                    if vertices.is_empty() {
-                        continue;
-                    }
-                    let tip = Vec3::from(
-                        vertices
-                            .iter()
-                            .max_by(|a, b| {
-                                Vec3::from(a.position)
-                                    .length_squared()
-                                    .total_cmp(&Vec3::from(b.position).length_squared())
-                            })
-                            .unwrap()
-                            .position,
-                    );
-                    for triangle in vertices.chunks_exact_mut(3) {
-                        let [a, b, c] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
-                        let normal = (b - a).cross(c - a).normalize_or_zero();
-                        for v in triangle {
-                            if Vec3::from(v.normal).length_squared() < 0.001 {
-                                v.normal = normal.to_array();
-                            }
-                        }
-                    }
-                    let backs: Vec<_> = vertices
-                        .chunks_exact(3)
-                        .filter(|t| t[0].flags & render_mesh::DOUBLE_SIDED != 0)
-                        .flat_map(|t| {
-                            [t[0], t[2], t[1]].map(|mut v| {
-                                v.normal = v.normal.map(|n| -n);
-                                v
-                            })
-                        })
-                        .collect();
-                    vertices.extend(backs);
-                    for v in &mut vertices {
-                        let p = Vec3::from(v.position);
-                        v.position =
-                            (p + Vec3::from(v.normal).normalize_or_zero() * 1.2).to_array();
-                        v.color = [p.x * 0.008 + p.z * 0.003, p.y * 0.006 + p.z * 0.007, 0.0];
-                        v.flags = (v.flags & (render_mesh::WEAPON_METAL | render_mesh::TEXTURED))
-                            | render_mesh::WEAPON_COAT
-                            | render_mesh::FOG
-                            | render_mesh::STAIN
-                            | render_mesh::ALPHA
-                            | render_mesh::DOUBLE_SIDED;
-                    }
-                    entry.insert(Coating {
-                        vertices,
-                        tip,
-                        previous: rotation(matrix) * tip + translation(matrix),
-                        flow: Vec3::ZERO,
-                        previous_flow: Vec3::ZERO,
-                        amount: 0.0,
-                        wet: 0.0,
-                        hit: game.tick,
-                    });
-                }
-                let coating = self.coatings.get_mut(&key).unwrap();
-                coating.amount = (coating.amount + 0.7).min(1.0);
-                coating.wet = 1.0;
-                coating.hit = game.tick;
+                    vertices
+                });
             }
         }
+        self.advance(game.tick, &live, transforms, drops, settings);
+    }
+
+    fn contact(
+        &mut self,
+        key: Part,
+        matrix: Matrix,
+        tick: u64,
+        settings: &settings::Blood,
+        geometry: impl FnOnce() -> Vec<Vertex>,
+    ) {
+        if let std::collections::btree_map::Entry::Vacant(entry) = self.coatings.entry(key) {
+            let vertices = geometry();
+            let has_metal = vertices
+                .iter()
+                .any(|v| v.flags & render_mesh::WEAPON_METAL != 0);
+            let mut vertices: Vec<_> = vertices
+                .chunks_exact(3)
+                .filter(|t| {
+                    t[0].flags & render_mesh::TRANSLUCENT == 0
+                        && (!settings.weapon_metal_only
+                            || !has_metal
+                            || t[0].flags & render_mesh::WEAPON_METAL != 0)
+                })
+                .flat_map(|t| t.iter().copied())
+                .collect();
+            if vertices.is_empty() {
+                return;
+            }
+            let tip = Vec3::from(
+                vertices
+                    .iter()
+                    .max_by(|a, b| {
+                        Vec3::from(a.position)
+                            .length_squared()
+                            .total_cmp(&Vec3::from(b.position).length_squared())
+                    })
+                    .unwrap()
+                    .position,
+            );
+            for triangle in vertices.chunks_exact_mut(3) {
+                let [a, b, c] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
+                // Lighting normals may face inward; offset toward the clockwise front face.
+                let normal = (c - a).cross(b - a).normalize_or_zero();
+                for v in triangle {
+                    let supplied = Vec3::from(v.normal);
+                    v.normal = if supplied.length_squared() < 0.001 {
+                        normal
+                    } else if supplied.dot(normal) < 0.0 {
+                        -supplied
+                    } else {
+                        supplied
+                    }
+                    .to_array();
+                }
+            }
+            let backs: Vec<_> = vertices
+                .chunks_exact(3)
+                .filter(|t| t[0].flags & render_mesh::DOUBLE_SIDED != 0)
+                .flat_map(|t| {
+                    [t[0], t[2], t[1]].map(|mut v| {
+                        v.normal = v.normal.map(|n| -n);
+                        v
+                    })
+                })
+                .collect();
+            vertices.extend(backs);
+            for v in &mut vertices {
+                let p = Vec3::from(v.position);
+                v.position = (p + Vec3::from(v.normal).normalize_or_zero() * 1.2).to_array();
+                v.color = [p.x * 0.008 + p.z * 0.003, p.y * 0.006 + p.z * 0.007, 0.0];
+                v.flags = (v.flags & (render_mesh::WEAPON_METAL | render_mesh::TEXTURED))
+                    | render_mesh::WEAPON_COAT
+                    | render_mesh::FOG
+                    | render_mesh::STAIN
+                    | render_mesh::ALPHA
+                    | render_mesh::DOUBLE_SIDED;
+            }
+            entry.insert(Coating {
+                vertices,
+                tip,
+                previous: rotation(matrix) * tip + translation(matrix),
+                flow: Vec3::ZERO,
+                previous_flow: Vec3::ZERO,
+                amount: 0.0,
+                wet: 0.0,
+                hit: tick,
+            });
+        }
+        let coating = self.coatings.get_mut(&key).unwrap();
+        coating.amount = (coating.amount + 0.7).min(1.0);
+        coating.wet = 1.0;
+        coating.hit = tick;
+    }
+
+    fn advance(
+        &mut self,
+        tick: u64,
+        live: &BTreeMap<Part, bool>,
+        transforms: &BTreeMap<Part, Matrix>,
+        drops: &mut Vec<Drop>,
+        settings: &settings::Blood,
+    ) {
         self.coatings.retain(|key, c| {
             let Some(&attacking) = live.get(key) else {
                 return false;
@@ -199,7 +229,7 @@ impl Weapons {
             }
             let swing = attacking && velocity.length() > 75.0 && velocity.length() < 1500.0;
             let drip_interval = (60.0 / (1.0 + flow)).round() as u64;
-            if swing && game.tick.is_multiple_of(2) || game.tick.is_multiple_of(drip_interval) {
+            if swing && tick.is_multiple_of(2) || tick.is_multiple_of(drip_interval) {
                 let position = if flow > 0.0 && !swing {
                     c.vertices
                         .iter()
@@ -273,6 +303,44 @@ impl Weapons {
 
     pub fn is_empty(&self) -> bool {
         self.coatings.is_empty()
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Blood {
+    pub(crate) fn weapon_parts(&self) -> impl Iterator<Item = Part> + '_ {
+        self.weapons.parts()
+    }
+
+    pub(crate) fn coat_weapon(
+        &mut self,
+        key: Part,
+        matrix: Matrix,
+        tick: u64,
+        geometry: impl FnOnce() -> Vec<Vertex>,
+    ) {
+        self.weapons
+            .contact(key, matrix, tick, &self.settings, geometry);
+    }
+
+    pub(crate) fn advance_weapons(
+        &mut self,
+        tick: u64,
+        live: &BTreeMap<Part, bool>,
+        transforms: &BTreeMap<Part, Matrix>,
+    ) {
+        self.weapons
+            .advance(tick, live, transforms, &mut self.drops, &self.settings);
+    }
+
+    pub(crate) fn append_weapon_blood(
+        &self,
+        vertices: &mut Vec<Vertex>,
+        transforms: &BTreeMap<Part, Matrix>,
+        alpha: f32,
+    ) {
+        self.weapons
+            .append(vertices, transforms, &self.settings, alpha);
     }
 }
 

@@ -18,9 +18,10 @@ impl Blood {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub(crate) fn invalidate_body(&mut self) {
+    pub(crate) fn invalidate_models(&mut self) {
         self.clear_model_stains();
         self.wounds.clear();
+        self.weapons.clear();
     }
 
     pub(crate) fn wound_body(

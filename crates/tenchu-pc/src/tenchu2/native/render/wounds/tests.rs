@@ -1,3 +1,32 @@
+use tenchu_core::{
+    random::Random,
+    tenchu2::{
+        environment,
+        world::controls::{Event, EventSource, Events},
+    },
+};
+#[derive(Default)]
+struct Hits {
+    wounds: Vec<(usize, Position)>,
+    melee: BTreeSet<usize>,
+}
+impl environment::Events for Hits {
+    fn emit(&mut self, _: environment::Event, _: &mut Random) -> Result<()> {
+        Ok(())
+    }
+}
+impl Events for Hits {
+    fn emit(&mut self, _: EventSource<'_>, _: Event, _: &mut Random) -> Result<()> {
+        Ok(())
+    }
+    fn blood(&mut self, actor: usize, position: Position) {
+        self.wounds.push((actor, position));
+    }
+    fn melee_hit(&mut self, attacker: usize) {
+        self.melee.insert(attacker);
+    }
+}
+
 use super::*;
 use tenchu_core::tenchu2::rig::WeaponMode;
 
@@ -516,28 +545,6 @@ fn weapon_hit(
     attacker: usize,
     victim: usize,
 ) -> Result<()> {
-    use tenchu_core::{
-        random::Random,
-        tenchu2::{
-            environment,
-            world::controls::{Event, EventSource, Events},
-        },
-    };
-    #[derive(Default)]
-    struct Hits(Vec<(usize, Position)>);
-    impl environment::Events for Hits {
-        fn emit(&mut self, _: environment::Event, _: &mut Random) -> Result<()> {
-            Ok(())
-        }
-    }
-    impl Events for Hits {
-        fn emit(&mut self, _: EventSource<'_>, _: Event, _: &mut Random) -> Result<()> {
-            Ok(())
-        }
-        fn blood(&mut self, actor: usize, position: Position) {
-            self.0.push((actor, position));
-        }
-    }
     use tenchu_core::tenchu2::{actor::Velocity, collision::WEAPON, physics::HIT};
     // Supply a contact from an actual equipped weapon, then let the original
     // damage/hurt controllers choose the health change, joint, sound and spurt.
@@ -589,7 +596,8 @@ fn weapon_hit(
     session
         .contact
         .record(u64::from(world.tick), &session.frame.effects);
-    session.contact.wounds = hits.0;
+    session.contact.wounds = hits.wounds;
+    session.contact.melee_hits = hits.melee;
     if let Some(history) = &mut session.interpolation {
         history.record(crate::tenchu2::native::interpolation::gameplay(
             &session.world,
@@ -598,3 +606,6 @@ fn weapon_hit(
     }
     Ok(())
 }
+
+#[path = "tests/weapons.rs"]
+mod weapon_tests;

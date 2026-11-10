@@ -170,6 +170,8 @@ pub trait Events: crate::tenchu2::environment::Events {
 
     /// Observe source blood emission without consuming gameplay randomness.
     fn blood(&mut self, _actor: usize, _position: Position) {}
+
+    fn melee_hit(&mut self, _attacker: usize) {}
 }
 
 impl World {

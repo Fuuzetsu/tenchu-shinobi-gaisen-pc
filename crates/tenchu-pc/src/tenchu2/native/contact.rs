@@ -23,6 +23,7 @@ pub struct History {
     pub blood: blood::History,
     pub player_corpse: Option<Corpse>,
     pub wounds: Vec<(usize, Position)>,
+    pub melee_hits: std::collections::BTreeSet<usize>,
 }
 
 impl History {

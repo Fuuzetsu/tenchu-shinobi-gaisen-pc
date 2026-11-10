@@ -116,6 +116,7 @@ impl<E: Events> Driver<'_, E> {
             attacker,
         };
         let mut resurrect = false;
+        let health = actor.health;
         actor.apply_damage(
             request,
             &mut damage,
@@ -200,6 +201,12 @@ impl<E: Events> Driver<'_, E> {
                 DamageCue::Blood { joint, angle } => c.blood(actor, joint, Some(angle), random),
             },
         )?;
+        if damage.hit == Hit::Weapon
+            && actor.health < health
+            && let Some(owner) = owner
+        {
+            c.events.melee_hit(owner);
+        }
         if resurrect {
             use crate::tenchu2::items::{self, resurrection};
             let markers = c

@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports shared weapon blood, coverage, metal-only coating
+  and wet flow. Native and imported blades stain on successful melee hits and
+  bloody stealth-kill events, follow their animated hands and shed droplets on
+  swings. Sheaths and unarmed accessories stay clean; the existing ground style,
+  retention and Clear blood controls apply without changing gameplay or RNG.
+- Fix blood coatings being hidden inside single-sided weapon faces, including
+  native T2 blades and smoothed weapons.
+
 - Native Tenchu 2 JP supports shared wound drips and pulsing jets, with independent
   Original, Original HD and Modern styles, duration and strength. Drops follow
   animated wounds, stop after the configured time and use the selected ground

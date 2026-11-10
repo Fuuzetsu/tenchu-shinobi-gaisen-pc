@@ -131,4 +131,67 @@ fn weapon_reflections_and_blood_are_isolated_to_marked_surfaces() {
     assert_ne!(wet, dry);
     assert_ne!(wet, flowed);
     assert_eq!(draw_coating(&mut renderer, 0.0, [0.2, -0.6], 1.0), original);
+    // Asset normals may be absent: the generated coating must sit outside a
+    // clockwise face, otherwise the opaque blade completely hides it.
+    let key = crate::visuals::interpolation::Part::Actor {
+        root: 1,
+        model: 2,
+        kind: 0,
+        inspection: false,
+    };
+    for supplied_normals in [false, true] {
+        let mut blood = crate::visuals::blood::Blood::default();
+        blood.configure(&crate::settings::Blood {
+            weapons: true,
+            weapon_coverage: 100,
+            ..Default::default()
+        });
+        blood.coat_weapon(key, Matrix::default(), 1, || {
+            let mut mesh = plain.clone();
+            if supplied_normals {
+                for triangle in mesh.chunks_exact_mut(3) {
+                    let [a, b, c] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
+                    let normal = (b - a).cross(c - a).normalize_or_zero().to_array();
+                    for vertex in triangle {
+                        vertex.normal = normal;
+                    }
+                }
+            }
+            mesh
+        });
+        let mut coating = Vec::new();
+        blood.append_weapon_blood(
+            &mut coating,
+            &std::collections::BTreeMap::from([(key, Matrix::default())]),
+            1.0,
+        );
+        let count = coating.len() as u32;
+        let effects = renderer.upload_effects(render_effects::Geometry {
+            vertices: coating,
+            batches: vec![render_effects::Batch {
+                blend: 5,
+                range: 0..count,
+            }],
+        });
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                SceneMeshes::new(&[], &[&matte]),
+                Some(&effects),
+                &[light],
+                &[],
+            )
+            .unwrap();
+        let actual = read_pixels(&renderer, &target);
+        assert!(
+            actual
+                .chunks_exact(4)
+                .zip(original.chunks_exact(4))
+                .filter(|(a, b)| a[1] < b[1] && a[0] > a[1])
+                .count()
+                > 100,
+            "generated coating was hidden inside its opaque receiver (supplied normals {supplied_normals})"
+        );
+    }
 }

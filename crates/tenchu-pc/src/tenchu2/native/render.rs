@@ -38,6 +38,7 @@ mod scenery;
 mod story;
 #[cfg(test)]
 mod tests;
+mod weapons;
 mod wounds;
 pub(super) use story::Drawing as StoryDrawing;
 pub(super) use story::capture as capture_story;
@@ -112,7 +113,7 @@ impl Drawing {
         self.motion = std::mem::take(&mut previous.motion);
         self.motion.invalidate();
         if let Some(environment) = &mut self.scene.environment {
-            environment.blood.invalidate_body();
+            environment.blood.invalidate_models();
         }
     }
 
@@ -163,7 +164,7 @@ impl Drawing {
         settings: &crate::settings::Blood,
         renderer: &mut Renderer,
     ) {
-        if settings.wounds() {
+        if settings.wounds() || settings.weapons && settings.amount != 0 {
             self.scene.environment(
                 &session.assets.level,
                 &self.models.scenery,
@@ -237,7 +238,8 @@ impl Drawing {
         let camera = camera_matrix(view, self.camera, renderer.size());
         if let Some(environment) = &self.scene.environment
             && (environment.blood.attached_parts().next().is_some()
-                || environment.blood.has_drops())
+                || environment.blood.has_drops()
+                || environment.blood.weapon_parts().next().is_some())
         {
             geometry.effects.append(wounds::geometry(
                 &environment.blood,

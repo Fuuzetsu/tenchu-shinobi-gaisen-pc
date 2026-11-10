@@ -66,8 +66,7 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Weapon blood enhancements,
-rewind, randomizer, broader enemy-behaviour options
+Rewind, randomizer, broader enemy-behaviour options
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
 
@@ -79,7 +78,7 @@ their displayed joints, interpolation and secondary motion. Body stains remain
 separate from the hit-spurt and ground styles. Turning the option off or using
 Clear blood removes them; rebuilding model geometry also clears body stains while
 preserving ground blood and weather. Modern High/Ultra already enable this;
-Original stays unchanged. Weapon coating is pending.
+Original stays unchanged.
 
 **Wound drips**, **Wound bleeding** and **Wound spurt strength** share Gaisen's
 finite bleeding simulation. Original, Original HD and Modern affect the extra
@@ -91,6 +90,17 @@ removes active wound bleeding; a model rebuild clears body-local emitters while
 already falling drops and ground stains remain. Modern High/Ultra enable wound
 drips; Original remains unchanged. Extra death gushes and severed-part emitters
 are still unavailable in native JP.
+
+**Blood on weapons**, **Weapon blood on metal only**, **Weapon blood coverage**
+and **Wet weapon blood flow** share the Gaisen coating and droplet simulation.
+Successful native melee hits stain the attacking blades; paired kills wait for
+source blood emission. Native and imported weapons on players and enemies use
+their own geometry, including both blades of dual weapons. Sheaths and unarmed
+accessories stay clean. Coatings follow animated hands and shed droplets during
+swings; the ground-blood settings control their stains. Clear blood and disabling
+the option remove coatings and loose weapon drops. Rebuilding models clears blade
+coatings alongside body attachments. Modern High/Ultra enable the option;
+Original stays unchanged.
 
 **F1 → Simulation → Enemy sight distance** scales native notice, recognition,
 forgetting and corpse-detection distances from 0–400%, including guards approaching
@@ -157,7 +167,7 @@ Source contacts survive fast-forward, and pausing or changing model detail does
 not duplicate or erase them. **Death pool / star** independently selects Off,
 Original, Original HD or Modern for source death pools, with the shared size and
 retention controls. Their appearance and growth follow the native death event;
-Modern pools fit visible terrain and both original styles use T2 artwork. Body/weapon stains and wound bleeding remain pending.
+Modern pools fit visible terrain and both original styles use T2 artwork.
 **Death pool beneath player** adds a pool when the native death does not create
 one. It waits for the finished, grounded corpse pose and uses the selected style,
 size and retention. Normal T2 deaths already create pools: those remain controlled

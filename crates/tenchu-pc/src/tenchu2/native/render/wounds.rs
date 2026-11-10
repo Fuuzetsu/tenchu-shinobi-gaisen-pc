@@ -31,7 +31,7 @@ impl Wounds {
         let world = &session.world;
         environment.configure_blood(settings);
         let blood = &mut environment.blood;
-        if !settings.wounds() {
+        if !settings.wounds() && !(settings.weapons && settings.amount != 0) {
             self.clear();
             self.health.clear();
             if self.tick != Some(world.tick) {
@@ -63,15 +63,17 @@ impl Wounds {
         for (agent, instance) in world.actors.iter().zip(&world.instances) {
             let root = instance.rig.root;
             let actor = &agent.actor;
-            if !matches!(actor.state, State::Hurt | State::Dead)
+            if !settings.wounds()
+                || !matches!(actor.state, State::Hurt | State::Dead)
                 || actor.state == State::Dead && actor.motion.loops < 0
             {
                 self.pending.remove(&root);
             }
-            if self
-                .health
-                .get(&root)
-                .is_some_and(|&old| old > actor.health)
+            if settings.wounds()
+                && self
+                    .health
+                    .get(&root)
+                    .is_some_and(|&old| old > actor.health)
             {
                 self.pending.insert(root);
             }
@@ -84,13 +86,28 @@ impl Wounds {
         });
         let mut contacts = BTreeMap::new();
         for &(owner, position) in &session.contact.wounds {
-            if let Some(instance) = world.instances.get(owner)
+            if settings.wounds()
+                && let Some(instance) = world.instances.get(owner)
                 && self.pending.remove(&instance.rig.root)
             {
                 contacts.insert(instance.rig.root, (owner, point(position)));
             }
         }
-        let needed: BTreeSet<_> = blood.wound_parts().collect();
+        let weapons = if settings.weapons
+            && settings.amount != 0
+            && (!session.contact.melee_hits.is_empty()
+                || !session.contact.wounds.is_empty()
+                || blood.weapon_parts().next().is_some())
+        {
+            weapons::Weapons::new(session, models)?
+        } else {
+            Default::default()
+        };
+        let needed: BTreeSet<_> = blood
+            .wound_parts()
+            .chain(blood.weapon_parts())
+            .chain(weapons.hits.iter().copied())
+            .collect();
         let mut transforms = BTreeMap::new();
         let mut bodies: BTreeMap<usize, Vec<BodyPart>> = BTreeMap::new();
         if !contacts.is_empty() || !needed.is_empty() {
@@ -102,6 +119,22 @@ impl Wounds {
                 |key, meshes, part, matrix, _| {
                     if needed.contains(&key) {
                         transforms.insert(key, matrix);
+                    }
+                    if weapons.hits.contains(&key) {
+                        blood.coat_weapon(key, matrix, u64::from(world.tick), || {
+                            let mut vertices = Vec::new();
+                            meshes.visit(
+                                &part.geometry,
+                                Matrix::default(),
+                                false,
+                                0,
+                                None,
+                                |triangle| {
+                                    vertices.extend(triangle.into_iter().copied());
+                                },
+                            );
+                            vertices
+                        });
                     }
                     let PartId::Actor { root, model, .. } = key else {
                         return;
@@ -149,6 +182,7 @@ impl Wounds {
                 .map(|p| (p - position).normalize_or_zero());
             blood.wound_body(parts, position, approach, settings);
         }
+        blood.advance_weapons(u64::from(world.tick), &weapons.live, &transforms);
         self.advance(session, environment, &transforms);
         Ok(())
     }
@@ -208,7 +242,7 @@ pub(super) fn geometry(
     motion: &crate::visuals::motion::Frame,
     view: View,
 ) -> Result<render_effects::Geometry> {
-    let needed: BTreeSet<_> = blood.attached_parts().collect();
+    let needed: BTreeSet<_> = blood.attached_parts().chain(blood.weapon_parts()).collect();
     let mut poses = BTreeMap::new();
     if !needed.is_empty() {
         models.visit_actors(
@@ -239,6 +273,14 @@ pub(super) fn geometry(
             })
         },
         &mut vertices,
+    );
+    blood.append_weapon_blood(
+        &mut vertices,
+        &poses
+            .iter()
+            .map(|(&key, &(_, _, matrix))| (key, matrix))
+            .collect(),
+        view.alpha,
     );
     blood.append_drops(
         view.camera.unwrap_or(session.world.camera.view),
