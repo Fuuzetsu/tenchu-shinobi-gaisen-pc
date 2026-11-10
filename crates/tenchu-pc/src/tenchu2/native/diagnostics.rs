@@ -141,8 +141,20 @@ pub fn report(
             report["game"] = world(&session.world);
             report["pending_integration"] = json!(session.pending);
             report["model_override"] = session.models.diagnostic_snapshot();
+            if let Some(scene) = &session.gaisen {
+                let source = &scene.director.source;
+                report["gaisen"] = json!({"stage": source.mission.stage.id,
+                    "character": source.player().kind, "tick": source.tick,
+                    "presenting": scene.director.presenting,
+                    "sequence": source.cinematic.sequence, "elapsed": source.cinematic.elapsed,
+                    "tail": source.cinematic.tail, "view": source.rendered_view,
+                    "events": source.events, "random": source.random,
+                    "script_hidden": session.world.script_hidden});
+            }
             if playback.death.waiting() {
                 "death-hold"
+            } else if session.cinematic() {
+                "gaisen-cinematic"
             } else {
                 "playing"
             }

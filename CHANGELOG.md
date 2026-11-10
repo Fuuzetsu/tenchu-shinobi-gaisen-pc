@@ -22,7 +22,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   difficulty, water depth and native equipment selection. Both games' saved
   campaigns are preserved. Original medicine, grenade and smoke-bomb placements
   supply their T2 equivalents, with native pickup animations, inventory and HUD
-  notices. Other stage interactions are still being connected.
+  notices. Original mission objectives, scripted encounters, success and death
+  scenes now run in both F6 and the command-line player. Cutscenes retain their
+  T1 cast, camera, captions and disc audio; T2 gameplay resumes at the authored
+  handoff. Tatsumaru follows Rikimaru's story. Open doors and trap flaps retain
+  their native poses during scenes. Other stage interactions are still being
+  connected.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
   item readouts, equipment quantities and results numbers, plus clearer

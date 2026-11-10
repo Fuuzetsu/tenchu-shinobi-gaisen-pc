@@ -40,7 +40,9 @@ pub(super) fn sync(debug: &mut Debug, content: &Content) {
     debug.armor = false;
     debug.sight_percent = 100;
     debug.stealth = false;
-    if let Content::Gameplay(session) = content {
+    if let Content::Gameplay(session) = content
+        && !session.cinematic()
+    {
         let world = &session.world;
         let actor = &world.actors[world.player].actor;
         debug.god_mode = actor.invulnerable;

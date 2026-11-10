@@ -52,6 +52,20 @@ impl Tools {
         self.player_orbit = false;
         experiment::sync(&mut self.debug, content);
         let view = match content {
+            Content::Gameplay(session) if session.cinematic() => {
+                self.tick = session.presentation_tick();
+                self.debug.follow_camera = None;
+                self.debug.clear_trail();
+                Some(
+                    session
+                        .gaisen
+                        .as_ref()
+                        .unwrap()
+                        .director
+                        .source
+                        .rendered_view,
+                )
+            }
             Content::Gameplay(session) => {
                 self.player_orbit = session.world.player_can_orbit()
                     && session.world.actors[session.world.player].actor.pad.held
@@ -106,7 +120,7 @@ impl Tools {
         let enabled = active && self.debug.camera.is_none();
         if let Content::Gameplay(session) = content {
             session.navigation = None;
-            if enabled && settings.camera_relative {
+            if enabled && settings.camera_relative && !session.cinematic() {
                 let target = self.debug.followed_inspection(&self.scene).or_else(|| {
                     super::inspection::actors(session).find(|a| a.id == session.world.player)
                 });
@@ -331,6 +345,9 @@ impl Tools {
             let Content::Gameplay(session) = content else {
                 return Err("Start a mission before editing the player or equipment.".into());
             };
+            if session.cinematic() {
+                return Err("Wait for the cinematic before editing the player or equipment".into());
+            }
             experiment::apply(&mut session.world, edits)?;
         }
         if let Some((x, y)) = self.click.take()
@@ -381,6 +398,9 @@ impl Tools {
             let Content::Gameplay(session) = content else {
                 return Err("Start a mission before teleporting".into());
             };
+            if session.cinematic() {
+                return Err("Wait for the cinematic before teleporting".into());
+            }
             session
                 .world
                 .teleport_player(position, snap, &session.assets)?;

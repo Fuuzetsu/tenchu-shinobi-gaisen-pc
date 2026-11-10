@@ -171,6 +171,27 @@ impl Director {
         let source = &mut self.source;
         source.clock = world.tick as i32;
         source.random = world.random;
+        source.effects.texture_moves.clear();
+        for effect in source.effects.slots.iter_mut().flatten() {
+            if let crate::effects::Effect::TextureScroll(scroll) = effect
+                && let Some(native) = world
+                    .environment
+                    .texture_scrolls
+                    .iter()
+                    .find(|s| s.destination == scroll.destination)
+            {
+                *scroll = native.clone();
+                source.mission.vram.copy_rect(
+                    [
+                        scroll.source[0].wrapping_add((scroll.offset[0] / 16) as u16),
+                        scroll.source[1].wrapping_add((scroll.offset[1] / 16) as u16),
+                        scroll.destination[2],
+                        scroll.destination[3],
+                    ],
+                    [scroll.destination[0], scroll.destination[1]],
+                )?;
+            }
+        }
         source.intelligence.found = i16::from(world.ai.detections);
         source.statistics.criticals = i16::from(world.statistics.stealth_kills);
         source.statistics.murders = i16::from(world.statistics.combat_kills);
@@ -266,6 +287,17 @@ impl Director {
 
     fn resume(&mut self, world: &mut World, assets: &Assets) -> Result<()> {
         world.random = self.source.random;
+        for effect in self.source.effects.slots.iter().flatten() {
+            if let crate::effects::Effect::TextureScroll(scroll) = effect
+                && let Some(native) = world
+                    .environment
+                    .texture_scrolls
+                    .iter_mut()
+                    .find(|s| s.destination == scroll.destination)
+            {
+                *native = scroll.clone();
+            }
+        }
         world.scene.finish_tick();
         for &id in &self.affected {
             let index = self.bindings[id].ok_or("Missing Gaisen cinematic binding")?;

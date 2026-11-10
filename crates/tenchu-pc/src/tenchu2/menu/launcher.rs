@@ -214,7 +214,7 @@ impl Menu {
                             });
                         }
                         if self.imported() {
-                            ui.small("Experimental: T1 stages with T2 guards, movement, AI and HUD. Original mission objectives and pickups are still being connected.");
+                            ui.small("Experimental: T1 missions and cutscenes with T2 guards, movement, AI and HUD. Cutscenes retain the original cast; Tatsumaru follows Rikimaru's story.");
                         }
                         ui.horizontal(|ui| {
                             ui.label(selected(4, "Mission"));

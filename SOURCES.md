@@ -134,7 +134,17 @@ all-active override. Source population adjustments exclude scripted duplicate
 boss phases. A scripted native objective waits for original success/death
 events, then uses native ending/results machinery. Snapshot fixtures serialize
 the director and native world together; this does not yet add a native F1 save
-format or connect cinematic presentation to the launcher.
+format.
+
+Both native hosts construct a fresh original Game from the selected stage,
+layout, story and language on start/retry. Shared Gaisen mesh/effect/caption
+rendering presents its cinematics; the native renderer retains its own door and
+pitfall transforms, avoiding closed duplicate scenery. Source scroll accumulators
+and VRAM copies follow the imported stage phase across the handoff. T1 sound cues
+carry their own bank; XA dialogue and music use the existing cancellable disc
+loader and resume at the source tick after acceleration. T2 input, mission time
+and simulation pause through the original cinematic tail. Original scenes keep
+their authored cast; Tatsumaru uses Rikimaru's story.
 
 Read-only references rechecked for this adapter:
 

@@ -59,20 +59,24 @@ impl Transport {
 
     fn audio(
         &mut self,
-        playback: &Playback<impl ReadAt>,
+        playback: &mut Playback<impl ReadAt>,
         accelerated: bool,
         output: Option<&Output>,
     ) {
-        if self.generation == Some(playback.generation) && self.accelerated == accelerated {
-            return;
-        }
-        if let Some(output) = output {
+        let restart =
+            self.generation != Some(playback.generation) || self.accelerated != accelerated;
+        if restart && let Some(output) = output {
             if accelerated {
                 output.send(Command::Clear);
                 output.send(Command::Music(None, false));
             } else {
                 playback.content.resume_audio(output);
             }
+        }
+        if let Content::Gameplay(session) = &mut playback.content
+            && let Some(scene) = &mut session.gaisen
+        {
+            scene.audio.synchronize(output, accelerated, restart);
         }
         self.generation = Some(playback.generation);
         self.accelerated = accelerated;
@@ -87,11 +91,12 @@ impl Transport {
     ) -> Result<Update> {
         super::diagnostics::record(&mut self.recent, playback, buttons);
         let generation = playback.generation;
+        let cutscene = playback.content.cutscene();
         let update = playback.step(buttons)?;
-        let changed = playback.generation != generation;
-        if changed {
+        let replaced = playback.generation != generation;
+        let changed = replaced || playback.content.cutscene() != cutscene;
+        if replaced {
             self.recent.reset(playback.generation);
-            self.clock.discard_host_backlog();
         } else {
             observed(&playback.content)?;
             if !self.accelerated
@@ -99,6 +104,9 @@ impl Transport {
             {
                 update.play_audio(output);
             }
+        }
+        if changed {
+            self.clock.discard_host_backlog();
         }
         Ok(Update {
             changed,

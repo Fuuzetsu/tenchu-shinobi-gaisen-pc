@@ -30,6 +30,8 @@ pub(crate) mod diagnostics;
 mod equipment;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod gaisen;
 #[cfg(test)]
 mod gaisen_tests;
 mod inspection;
@@ -69,10 +71,20 @@ pub struct Session {
     pub navigation: Option<navigation::Input>,
     pub circle_action: tenchu_core::input::CircleAction,
     #[cfg(not(target_arch = "wasm32"))]
+    pub gaisen: Option<gaisen::Scene>,
+    #[cfg(not(target_arch = "wasm32"))]
     pub models: models::Override,
 }
 
 impl Session {
+    pub fn presentation_tick(&self) -> u64 {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(scene) = &self.gaisen {
+            return scene.director.source.tick;
+        }
+        u64::from(self.world.tick)
+    }
+
     pub fn load(disc: &Disc<impl ReadAt>, sequence: usize, seed: u32) -> Result<Self> {
         let hero = if sequence >= 185 {
             2
@@ -135,7 +147,7 @@ impl Session {
         )
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub fn gaisen_with_water_depth(
         disc: &Disc<impl ReadAt>,
         source: &tenchu_assets::stage::MissionAssets,
@@ -145,19 +157,7 @@ impl Session {
     ) -> Result<Self> {
         let (mut assets, layout) = Assets::gaisen(disc, source, options.hero, alternate)?;
         assets.level.collision.set_gaisen_water_depth(water_depth)?;
-        let mut bank = Audio::load(disc, options.hero, 8)?.bank;
-        bank.programs.truncate(5);
-        let voices = tenchu_assets::tenchu2::audio::voices_for(
-            disc,
-            &assets.resources.registry,
-            &assets.cast,
-        )?;
-        for &kind in &assets.cast {
-            let voice = voices
-                .get(&kind)
-                .ok_or_else(|| format!("Missing imported guard voice {kind:#x}"))?;
-            bank.import_program(&voice.bank, 0)?;
-        }
+        let bank = gaisen_bank(disc, &assets, options.hero)?;
         let world = World::new(&layout, options, &assets)?;
         Ok(Self::from_parts(world, assets, Arc::new(bank)))
     }
@@ -178,6 +178,8 @@ impl Session {
             navigation: None,
             circle_action: Default::default(),
             #[cfg(not(target_arch = "wasm32"))]
+            gaisen: None,
+            #[cfg(not(target_arch = "wasm32"))]
             models: Default::default(),
         }
     }
@@ -193,6 +195,22 @@ impl Session {
     }
 
     fn step_world(&mut self, buttons: u16, observing_death: bool) -> Result<Vec<Sourced<Sound>>> {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(scene) = &mut self.gaisen {
+            let was_presenting = scene.director.presenting;
+            let presenting = scene
+                .director
+                .update(&mut self.world, &self.assets, buttons)?;
+            scene.audio.step(&scene.director.source)?;
+            if presenting {
+                self.navigation = None;
+                return Ok(Vec::new());
+            }
+            if was_presenting {
+                self.contact = Default::default();
+                self.reset_interpolation()?;
+            }
+        }
         #[cfg(not(target_arch = "wasm32"))]
         let t2_moveset = self.models.uses_t2_moveset();
         #[cfg(target_arch = "wasm32")]
@@ -321,6 +339,25 @@ impl Session {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn gaisen_bank(
+    disc: &Disc<impl ReadAt>,
+    assets: &Assets,
+    hero: usize,
+) -> Result<tenchu_assets::audio::bank::Bank> {
+    let mut bank = Audio::load(disc, hero, 8)?.bank;
+    bank.programs.truncate(5);
+    let voices =
+        tenchu_assets::tenchu2::audio::voices_for(disc, &assets.resources.registry, &assets.cast)?;
+    for &kind in &assets.cast {
+        let voice = voices
+            .get(&kind)
+            .ok_or_else(|| format!("Missing imported guard voice {kind:#x}"))?;
+        bank.import_program(&voice.bank, 0)?;
+    }
+    Ok(bank)
+}
+
 struct Output<'a> {
     player: usize,
     voice: Option<&'a Arc<VoiceSet>>,
@@ -437,7 +474,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nExperimental T1 stage mode: --gaisen GAISEN.cue --stage 0 --hero 0 --layout 1\nT1 scenery, doors, pitfalls and hot floors with T2 actors, AI, movement, HUD and results. Water supports native swimming/diving with added underwater collision (default depth 4000 game units; --water-depth 0–16000 in multiples of 10, 0 disables it). Mission objectives and pickups are still being connected. Requires both discs.\nF1 shows current native JP feature availability. Normal play-t2 and F6 also use native JP by default for Japanese discs."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nExperimental T1 stage mode: --gaisen GAISEN.cue --stage 0 --hero 0 --layout 1\nT1 scenery, doors, pitfalls and hot floors with T2 actors, AI, movement, HUD and results. Water supports native swimming/diving with added underwater collision (default depth 4000 game units; --water-depth 0–16000 in multiples of 10, 0 disables it). Original objectives and cutscenes retain T1 dialogue and models; Tatsumaru follows Rikimaru's story. Pickups supply their T2 equivalents. Requires both discs.\nF1 shows current native JP feature availability. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }
@@ -528,12 +565,12 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         {
             return Err("Use --gaisen CUE with --stage 0–10, --hero 0–2 and --layout 1–3, without --menu or --sequence".into());
         }
-        let game = tenchu_assets::game::GameAssets::open(crate::source::open_disc(&path)?)?;
-        let source = tenchu_assets::stage::MissionAssets::load(
-            &game,
+        let source = gaisen::Source::open(
+            &path,
             stage,
             usize::from(hero == 1) as i16,
             layout,
+            tenchu_assets::script::Language::English,
         )?;
         let mut items = [0; 21];
         items[0] = 255;
@@ -543,9 +580,8 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         if capture {
             let alternate = items[19] != 0;
             items[19] = 0;
-            let mut session = Session::gaisen_with_water_depth(
+            let mut session = source.session(
                 &disc,
-                &source,
                 Options {
                     hero,
                     difficulty: 2,

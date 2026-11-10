@@ -110,7 +110,7 @@ fn imported_director_preserves_cast_and_hidden_actors() {
     eprintln!("{count} original stage/layout/hero casts retained script visibility");
 }
 
-fn force_next(director: &Director, world: &mut World, assets: &Assets) {
+pub(super) fn force_next(director: &Director, world: &mut World, assets: &Assets) {
     let Some((event, target)) = director.source.events.active().next() else {
         return;
     };
@@ -336,6 +336,44 @@ fn imported_director_preserves_native_ticks_and_scene_continuations() {
         }
         force_next(&director, &mut world, &assets);
         assert!(director.update(&mut world, &assets, 0).unwrap());
+        for native in &world.environment.texture_scrolls {
+            let mut expected = native.clone();
+            expected.step();
+            let original = director
+                .source
+                .effects
+                .active_slots()
+                .iter()
+                .flatten()
+                .find_map(|e| {
+                    if let tenchu_core::effects::Effect::TextureScroll(s) = e
+                        && s.destination == native.destination
+                    {
+                        Some(s)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
+            assert_eq!(
+                original.offset, expected.offset,
+                "Scene restarted its texture animation"
+            );
+            let [x, y, width, height] = native.destination.map(usize::from);
+            let src = [
+                native.source[0].wrapping_add((native.offset[0] / 16) as u16),
+                native.source[1].wrapping_add((native.offset[1] / 16) as u16),
+            ]
+            .map(usize::from);
+            for row in 0..height {
+                assert_eq!(
+                    &director.source.mission.vram.words
+                        [(y + row) * 1024 + x..(y + row) * 1024 + x + width],
+                    &assets.level.vram.words
+                        [(src[1] + row) * 1024 + src[0]..(src[1] + row) * 1024 + src[0] + width]
+                );
+            }
+        }
         for _ in 0..99 {
             director.update(&mut world, &assets, 0).unwrap();
         }
@@ -359,6 +397,28 @@ fn imported_director_preserves_native_ticks_and_scene_continuations() {
             postcard::to_allocvec(&director).unwrap(),
             postcard::to_allocvec(&restored).unwrap()
         );
+        for native in &world.environment.texture_scrolls {
+            let original = director
+                .source
+                .effects
+                .active_slots()
+                .iter()
+                .flatten()
+                .find_map(|e| {
+                    if let tenchu_core::effects::Effect::TextureScroll(s) = e
+                        && s.destination == native.destination
+                    {
+                        Some(s)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
+            assert_eq!(
+                original.offset, native.offset,
+                "Gameplay lost cinematic scroll progress"
+            );
+        }
         assert!(!director.update(&mut world, &assets, 0).unwrap());
         let (_, id) = director.source.events.active().next().unwrap();
         assert_eq!(director.source.roster.get(id).kind, 0x81);

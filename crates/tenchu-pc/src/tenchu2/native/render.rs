@@ -30,6 +30,8 @@ mod background;
 mod blood;
 mod custom;
 mod environment;
+#[cfg(not(target_arch = "wasm32"))]
+mod gaisen;
 mod hud;
 mod lamps;
 pub(super) mod lighting;
@@ -56,6 +58,10 @@ pub struct Drawing {
     pub sharp_text: bool,
     pub texts: Vec<crate::fonts::Text>,
     pub labels: Vec<crate::debug::Label>,
+    #[cfg(not(target_arch = "wasm32"))]
+    gaisen: Option<gaisen::Drawing>,
+    #[cfg(not(target_arch = "wasm32"))]
+    cinematic: bool,
 }
 
 struct SceneDrawing {
@@ -134,7 +140,7 @@ impl Drawing {
             }
             models
         };
-        renderer.visual_time = session.world.tick as f32 / 30.0;
+        renderer.visual_time = session.presentation_tick() as f32 / 30.0;
         let geometry = models.geometry(
             &session.world,
             &session.assets,
@@ -157,7 +163,19 @@ impl Drawing {
             camera: None,
             alpha: 1.0,
             labels: Vec::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            gaisen: session
+                .gaisen
+                .as_ref()
+                .map(|s| gaisen::Drawing::new(&s.director.source, graphics, renderer))
+                .transpose()?,
+            #[cfg(not(target_arch = "wasm32"))]
+            cinematic: false,
         };
+        #[cfg(not(target_arch = "wasm32"))]
+        if session.gaisen.is_some() {
+            renderer.update_vram(&session.assets.sprites.vram);
+        }
         drawing.prepare_wounds(session, &graphics.blood, renderer);
         drawing.tick(session, graphics)?;
         Ok(drawing)
@@ -180,6 +198,10 @@ impl Drawing {
     }
 
     pub fn tick(&mut self, session: &super::Session, graphics: &Graphics) -> Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        if session.cinematic() {
+            return Ok(());
+        }
         self.tick_motion(session, &graphics.motion)?;
         if let Some(environment) = &mut self.scene.environment {
             self.wounds
@@ -194,6 +216,17 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if session.cinematic() {
+                return self.update_gaisen(session, renderer, debug);
+            }
+            if self.cinematic {
+                renderer.update_vram(&session.assets.sprites.vram);
+                self.motion.invalidate();
+                self.cinematic = false;
+            }
+        }
         self.models
             .scrolling
             .update(&session.world.environment.texture_scrolls, renderer);
@@ -314,7 +347,7 @@ impl Drawing {
             self.labels.extend(overlay.labels);
         }
         self.scene.update(geometry, renderer);
-        renderer.visual_time = session.world.tick as f32 / 30.0;
+        renderer.visual_time = session.presentation_tick() as f32 / 30.0;
         self.view = view;
         Ok(())
     }
@@ -557,7 +590,8 @@ pub fn capture(
         drawing.show_hud = settings.show_hud;
         drawing.sharp_text = settings.sharp_text;
         drawing.update(session, renderer, None)?;
-        Ok((drawing.scene, session.world.camera.view, drawing.texts))
+        let view = drawing.view;
+        Ok((drawing.scene, view, drawing.texts))
     })?;
     eprintln!(
         "Native JP tick {}: position {:?}; {} actors; radar {:?}; pending {:?}",

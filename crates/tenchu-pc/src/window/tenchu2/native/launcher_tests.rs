@@ -163,11 +163,17 @@ fn f6_launches_gaisen_stages_with_native_t2_rules() {
             let Content::Gameplay(session) = &mut playback.content else {
                 unreachable!()
             };
-            let population = session.world.mission.population;
             session.world.actors[session.world.player]
                 .actor
                 .invulnerable = true;
-            session.world.statistics.killed = population.guards + population.bosses;
+            session
+                .gaisen
+                .as_mut()
+                .unwrap()
+                .director
+                .source
+                .events
+                .outcome = tenchu_core::game::events::Outcome::Complete;
             for _ in 0..200 {
                 playback.step(0).unwrap();
                 if matches!(playback.content, Content::Results(_)) {

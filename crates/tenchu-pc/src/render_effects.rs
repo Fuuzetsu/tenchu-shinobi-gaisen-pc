@@ -542,12 +542,12 @@ pub fn build_presented(
             2,
         );
     }
-    for &(index, matrix) in game
-        .items
-        .models
-        .iter()
-        .chain(game.misc.models.iter().filter(|_| !style.distant_doors))
-    {
+    for &(index, matrix) in game.items.models.iter().chain(
+        game.misc
+            .models
+            .iter()
+            .filter(|_| style.hinged && !style.distant_doors),
+    ) {
         let matrix = frame.map_or(matrix, |frame| frame.hinged(index, matrix));
         mesh_surfaces(
             &mut surfaces,
@@ -559,7 +559,7 @@ pub fn build_presented(
             models,
         );
     }
-    if style.distant_doors {
+    if style.hinged && style.distant_doors {
         render_mesh::visit_hinged_parts(game, |key, geometry, matrix| {
             if !matches!(key, crate::visuals::interpolation::Part::Hinge { .. }) {
                 return;

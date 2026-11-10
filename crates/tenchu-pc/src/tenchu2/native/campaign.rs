@@ -46,6 +46,7 @@ pub enum Action {
 #[derive(Default)]
 pub struct Update {
     pub sounds: Vec<tenchu_assets::audio::voice::Sourced<Sound>>,
+    pub original_sounds: Vec<tenchu_assets::audio::voice::Sourced<tenchu_core::audio::Sound>>,
     pub stop_music: bool,
     pub music: Option<Arc<Clip>>,
     pub quit: bool,
@@ -66,7 +67,7 @@ pub struct Playback<S> {
     pub death: death::Hold,
     keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
-    gaisen: Option<Arc<tenchu_assets::stage::MissionAssets>>,
+    gaisen: Option<super::gaisen::Source>,
     gaisen_water_depth: i16,
 }
 
@@ -103,7 +104,7 @@ impl<S: ReadAt> Playback<S> {
 
     pub fn gaisen(
         disc: Disc<S>,
-        source: tenchu_assets::stage::MissionAssets,
+        source: super::gaisen::Source,
         hero: usize,
         difficulty: u8,
         seed: u32,
@@ -114,9 +115,8 @@ impl<S: ReadAt> Playback<S> {
         inventory[0] = 255;
         let alternate = inventory[19] != 0;
         inventory[19] = 0;
-        let mut session = Session::gaisen_with_water_depth(
+        let mut session = source.session(
             &disc,
-            &source,
             tenchu_core::tenchu2::world::Options {
                 hero,
                 difficulty,
@@ -133,7 +133,7 @@ impl<S: ReadAt> Playback<S> {
         run.carry.alternate = alternate;
         run.restore_area(&mut session.world, &session.assets, true)?;
         let mut playback = Self::state(disc, campaign, run, loadout, None);
-        playback.gaisen = Some(Arc::new(source));
+        playback.gaisen = Some(source);
         playback.gaisen_water_depth = water_depth;
         playback.content = Content::Gameplay(Box::new(session));
         playback.generation = 1;
@@ -242,9 +242,8 @@ impl<S: ReadAt> Playback<S> {
                         }
                     }
                     let session = if let Some(source) = &self.gaisen {
-                        let mut session = Session::gaisen_with_water_depth(
+                        let mut session = source.session(
                             &self.disc,
-                            source,
                             tenchu_core::tenchu2::world::Options {
                                 hero: self.run.hero,
                                 difficulty: self.run.difficulty,
@@ -466,6 +465,9 @@ impl<S: ReadAt> Playback<S> {
                     Some(self.run.finish_area(&session.world, &self.campaign)?)
                 } else {
                     update.sounds = session.step(buttons)?;
+                    if let Some(scene) = &mut session.gaisen {
+                        update.original_sounds = std::mem::take(&mut scene.audio.sounds);
+                    }
                     self.death.begin(session, &self.run, &self.campaign)?;
                     None
                 }

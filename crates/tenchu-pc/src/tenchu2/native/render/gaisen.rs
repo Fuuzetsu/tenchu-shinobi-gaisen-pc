@@ -1,0 +1,306 @@
+use super::*;
+use tenchu_core::game::Game;
+
+pub(super) struct Drawing {
+    models: crate::visuals::models::Models,
+}
+
+impl Drawing {
+    pub fn new(game: &Game, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
+        let pack = if graphics.asset_pack {
+            Pack::from_env(&game.mission)?
+        } else {
+            Pack::default()
+        };
+        let mut models = crate::visuals::models::Models::build(&game.mission, &pack, graphics)?;
+        renderer.set_asset_pack(&pack);
+        renderer.update_vram(&game.mission.vram);
+        models.bind(|material| renderer.bind_material(material));
+        Ok(Self { models })
+    }
+}
+
+impl super::Drawing {
+    pub(super) fn update_gaisen(
+        &mut self,
+        session: &super::super::Session,
+        renderer: &mut Renderer,
+        debug: Option<&crate::debug::Debug>,
+    ) -> Result<()> {
+        let source = &session
+            .gaisen
+            .as_ref()
+            .ok_or("Missing original cinematic")?
+            .director
+            .source;
+        let drawing = self
+            .gaisen
+            .as_ref()
+            .ok_or("Missing original cinematic models")?;
+        renderer.update_vram(&source.mission.vram);
+        self.cinematic = true;
+        let view = self
+            .camera
+            .map_or(source.rendered_view, |c| c.source_view());
+        let graphics = renderer.graphics();
+        let mut effects = render_effects::build_presented(
+            source,
+            false,
+            self.camera.map(|c| c.source_view()),
+            graphics.blob_shadows,
+            Some(&drawing.models),
+            None,
+            render_effects::Style {
+                sharp_text: self.sharp_text,
+                blood: graphics.blood,
+                hinged: false,
+                ..Default::default()
+            },
+        );
+        // Native mechanisms retain their exact current transforms across the scene.
+        // Original miscellaneous effects still run, but do not draw another hatch.
+        let mut native = Builder::new(view, &session.assets.level, graphics);
+        for (index, object) in session.world.environment.objects.iter().enumerate() {
+            if let Some(model) =
+                tenchu_core::tenchu2::environment::scenery::Model::object(index, object)
+            {
+                native.scenery(
+                    &self.models.scenery,
+                    &session.assets.level,
+                    &session.assets.resources.math,
+                    &model,
+                )?;
+            }
+        }
+        effects.append(render_effects::surface_geometry(native.surfaces));
+        let mut geometry = Geometry {
+            lamps: Vec::new(),
+            backgrounds: Vec::new(),
+            terrain: render_mesh::stage(&source.mission, &source.math, Some(&drawing.models)),
+            props: native.props,
+            actors: render_mesh::characters_presented(
+                source,
+                Some(&drawing.models),
+                self.camera.is_some(),
+                None,
+            ),
+            effects,
+        };
+        let camera = camera_matrix(source.rendered_view, self.camera, renderer.size());
+        self.scene
+            .lighting
+            .update_emitters(&[], &renderer.graphics().lighting);
+        self.scene.lighting.focus = self
+            .camera
+            .is_none()
+            .then(|| glam::Vec3::from(source.player().position.to_array().map(|v| v as f32)));
+        self.labels = self
+            .scene
+            .inspect_lights(debug, camera, renderer, &mut geometry);
+        self.scene.prepare_environment(
+            &mut geometry,
+            environment::Frame {
+                level: &session.assets.level,
+                meshes: &self.models.scenery,
+                math: &source.math,
+                tick: u64::from(session.world.tick),
+                camera,
+                alpha: self.alpha,
+                contact: None,
+                world: None,
+            },
+            renderer,
+        );
+        self.scene.update(geometry, renderer);
+        self.texts = if self.sharp_text {
+            crate::fonts::game_text(source, false)
+        } else {
+            Vec::new()
+        };
+        self.view = source.rendered_view;
+        renderer.visual_time = source.tick as f32 / 30.0;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tenchu2::native::{Session, gaisen::Source};
+    use tenchu_assets::script::Language;
+    use tenchu_core::tenchu2::world::Options;
+
+    fn session(character: i16) -> Session {
+        let source = Source::open(
+            std::env::var_os("TENCHU_DISC").unwrap().as_ref(),
+            0,
+            character,
+            1,
+            Language::English,
+        )
+        .unwrap();
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let mut session = source
+            .session(
+                &disc,
+                Options {
+                    hero: 2,
+                    difficulty: 2,
+                    seed: 1,
+                    inventory: Default::default(),
+                },
+                false,
+                4000,
+            )
+            .unwrap();
+        session.step(0).unwrap();
+        let scene = session.gaisen.as_ref().unwrap();
+        let (event, target) = scene.director.source.events.active().next().unwrap();
+        let event = &scene.director.source.mission.scripts.events[event];
+        assert_eq!(event.mode, 1);
+        let index = scene.director.native_actor(target).unwrap();
+        let position = event
+            .bounds
+            .map(|[low, high]| (i32::from(low) + i32::from(high)) / 2 * 1000)
+            .into();
+        session.world.actors[index].actor.position = position;
+        for _ in 0..2000 {
+            session.step(0).unwrap();
+            let game = &session.gaisen.as_ref().unwrap().director.source;
+            if game.cinematic.elapsed > 30 && crate::fonts::caption_sprites(game) > 0 {
+                return session;
+            }
+        }
+        panic!("No authored caption");
+    }
+
+    #[test]
+    #[ignore = "requires both discs, TENCHU_GAISEN_REVIEW and GPU; original captions/scenery and cached return to native gameplay"]
+    fn imported_host_draws_cinematics_and_restores_native_materials() {
+        let output = std::path::PathBuf::from(std::env::var_os("TENCHU_GAISEN_REVIEW").unwrap());
+        std::fs::create_dir_all(&output).unwrap();
+        for character in 0..2 {
+            let mut session = session(character);
+            let mut settings = crate::settings::Settings::default();
+            settings.graphics.asset_pack = false;
+            let world = postcard::to_allocvec(&session.world).unwrap();
+            let source = postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap();
+            for sharp in [false, true] {
+                settings.sharp_text = sharp;
+                super::super::capture(
+                    &session,
+                    &settings,
+                    &output.join(format!("source-{character}-caption-{sharp}.png")),
+                )
+                .unwrap();
+                assert_eq!(world, postcard::to_allocvec(&session.world).unwrap());
+                assert_eq!(
+                    source,
+                    postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap()
+                );
+            }
+            let cached = output.join(format!("source-{character}-native-cached.png"));
+            let fresh = output.join(format!("source-{character}-native-fresh.png"));
+            let vram = session.assets.sprites.vram.clone();
+            capture_frame(&vram, &settings.graphics, &cached, |renderer| {
+                let mut drawing =
+                    super::super::Drawing::new(&session, &settings.graphics, renderer)?;
+                drawing.sharp_text = true;
+                drawing.update(&session, renderer, None)?;
+                assert!(!drawing.texts.is_empty());
+                for _ in 0..6000 {
+                    session.step(0)?;
+                    if !session.cinematic() {
+                        break;
+                    }
+                }
+                assert!(!session.cinematic());
+                drawing.update(&session, renderer, None)?;
+                Ok((drawing.scene, drawing.view, drawing.texts))
+            })
+            .unwrap();
+            super::super::capture(&session, &settings, &fresh).unwrap();
+            assert_eq!(
+                std::fs::read(cached).unwrap(),
+                std::fs::read(fresh).unwrap(),
+                "Native frame changed after cinematic material handoff"
+            );
+        }
+    }
+
+    #[test]
+    #[ignore = "requires both discs, TENCHU_GAISEN_REVIEW and GPU; native door poses remain visible beneath original cinematic effects"]
+    fn imported_host_cinematic_does_not_cover_open_native_doors() {
+        let output = std::path::PathBuf::from(std::env::var_os("TENCHU_GAISEN_REVIEW").unwrap());
+        std::fs::create_dir_all(&output).unwrap();
+        let mut session = session(0);
+        let source = &session.gaisen.as_ref().unwrap().director.source;
+        let spawn = source
+            .mission
+            .misc
+            .spawns
+            .iter()
+            .find(|s| matches!(s.kind, tenchu_assets::misc::Kind::Door { .. }))
+            .unwrap();
+        let tenchu_assets::misc::Kind::Door { rotation, .. } = spawn.kind else {
+            unreachable!()
+        };
+        let mut camera = crate::debug::camera::Camera {
+            position: glam::Vec3::from_array(spawn.position.map(|v| v as f32)),
+            yaw: f32::from(rotation) * std::f32::consts::TAU / 4096.0,
+            pitch: 0.0,
+            fov: 45.0,
+        };
+        camera.position -= camera.forward() * 6500.0;
+        camera.position.y -= 1500.0;
+        let graphics = Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        let source_before =
+            postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap();
+        let mut images = Vec::new();
+        for opened in [false, true] {
+            if opened {
+                for (index, object) in session
+                    .world
+                    .environment
+                    .objects
+                    .iter_mut()
+                    .take(2)
+                    .enumerate()
+                {
+                    object.yaw = object
+                        .yaw
+                        .wrapping_add(if index == 0 { 1024 } else { -1024 });
+                }
+            }
+            let path = output.join(format!("cinematic-door-open-{opened}.png"));
+            capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+                let mut drawing = super::super::Drawing::new(&session, &graphics, renderer)?;
+                drawing.camera = Some(camera);
+                drawing.update(&session, renderer, None)?;
+                Ok((drawing.scene, camera.source_view(), Vec::new()))
+            })
+            .unwrap();
+            images.push(
+                crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                    .unwrap()
+                    .rgba,
+            );
+            assert_eq!(
+                source_before,
+                postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap()
+            );
+        }
+        assert!(
+            images[0]
+                .chunks_exact(4)
+                .zip(images[1].chunks_exact(4))
+                .filter(|(a, b)| a != b)
+                .count()
+                > 1000
+        );
+    }
+}

@@ -76,11 +76,14 @@ impl Application {
             if !(1..=3).contains(&options.layout) {
                 return Err("Select a Gaisen layout from 1 to 3".into());
             }
-            let source = tenchu_assets::stage::MissionAssets::load(
-                &self.assets,
+            let source = crate::tenchu2::native::gaisen::Source::open(
+                &self.disc,
                 stage,
                 i16::from(self.tenchu2.gaisen_hero == 1),
                 options.layout,
+                options
+                    .language
+                    .unwrap_or(self.campaign.game.mission.scripts.language),
             )?;
             Playback::gaisen(
                 disc,

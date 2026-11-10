@@ -4,6 +4,7 @@ use tenchu_assets::{game::GameAssets, stage::MissionAssets};
 mod director;
 mod doors;
 mod heat;
+mod host;
 mod pickups;
 mod pitfalls;
 mod scrolling;
@@ -89,13 +90,16 @@ fn gaisen_stages_load_and_advance_native_worlds() {
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; imported stages finish through native results and retry their own geometry and loadout"]
 fn gaisen_results_and_retry_keep_the_imported_stage() {
     use super::campaign::{Action, Content, Playback};
-    let game = GameAssets::open(
-        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
-    )
-    .unwrap();
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let source = MissionAssets::load(&game, 0, 0, 2).unwrap();
+    let source = gaisen::Source::open(
+        std::env::var_os("TENCHU_DISC").unwrap().as_ref(),
+        0,
+        0,
+        2,
+        tenchu_assets::script::Language::English,
+    )
+    .unwrap();
     let mut items = [0; 21];
     items[0] = 255;
     items[4] = 7;
@@ -103,14 +107,17 @@ fn gaisen_results_and_retry_keep_the_imported_stage() {
     let Content::Gameplay(session) = &mut playback.content else {
         panic!("missing imported gameplay")
     };
-    let population = session.world.mission.population;
     assert_eq!(
         session.world.terrain.gaisen.as_ref().unwrap().water_depth,
         6000
     );
-    session.world.statistics.killed = population.guards + population.bosses;
-    session.world.statistics.stealth_kills = session.world.statistics.killed;
-    for _ in 0..200 {
+    for _ in 0..15000 {
+        if let Content::Gameplay(session) = &mut playback.content {
+            let scene = session.gaisen.as_ref().unwrap();
+            if !session.cinematic() && scene.director.source.tick > 0 {
+                director::force_next(&scene.director, &mut session.world, &session.assets);
+            }
+        }
         playback.step(0).unwrap();
         if matches!(playback.content, Content::Results(_)) {
             break;
@@ -119,7 +126,7 @@ fn gaisen_results_and_retry_keep_the_imported_stage() {
     let Content::Results(results) = &playback.content else {
         panic!("missing native results")
     };
-    assert!(results.values.summary.kills.killed > 0);
+    assert!(results.values.summary.population.bosses > 0);
     playback.action = Some(Action::Retry);
     for _ in 0..40 {
         playback.step(0).unwrap();

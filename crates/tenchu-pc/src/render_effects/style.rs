@@ -9,6 +9,7 @@ pub struct Style {
     pub gunfire: bool,
     pub sparks: Option<u16>,
     pub distant_doors: bool,
+    pub hinged: bool,
     pub alpha: f32,
 }
 
@@ -21,6 +22,7 @@ impl Default for Style {
             gunfire: false,
             sparks: None,
             distant_doors: false,
+            hinged: true,
             alpha: 1.0,
         }
     }

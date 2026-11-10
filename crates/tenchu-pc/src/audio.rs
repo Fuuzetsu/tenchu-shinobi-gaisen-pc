@@ -1,5 +1,5 @@
 #[cfg_attr(target_arch = "wasm32", path = "web/audio_loader.rs")]
-mod loader;
+pub(crate) mod loader;
 pub(crate) mod output;
 use output::Command;
 

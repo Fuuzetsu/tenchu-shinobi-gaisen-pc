@@ -29,6 +29,9 @@ impl Update {
         for sound in &self.sounds {
             output.send(Command::Tenchu2Effect(sound.clone()));
         }
+        for sound in &self.original_sounds {
+            output.send(Command::Effect(sound.clone()));
+        }
     }
 }
 
@@ -42,10 +45,11 @@ impl Content {
     }
 
     pub fn cutscene(&self) -> bool {
-        matches!(
-            self,
-            Self::Prologue(_) | Self::Introduction(_) | Self::Movie(_) | Self::Story { .. }
-        )
+        matches!(self, Self::Gameplay(session) if session.cinematic())
+            || matches!(
+                self,
+                Self::Prologue(_) | Self::Introduction(_) | Self::Movie(_) | Self::Story { .. }
+            )
     }
 
     pub fn resume_audio(&self, output: &Output) {
@@ -64,7 +68,7 @@ impl Content {
         match self {
             Self::MissionSelection(selection) => i64::from(selection.state.tick),
             Self::Prologue(intro) => i64::from(intro.state.tick),
-            Self::Gameplay(session) => session.world.tick as i64,
+            Self::Gameplay(session) => session.presentation_tick() as i64,
             Self::Equipment(selection) => i64::from(selection.state.tick),
             Self::Story { story, .. } => i64::from(story.state.frame),
             Self::Introduction(intro) => i64::from(intro.state.tick),
