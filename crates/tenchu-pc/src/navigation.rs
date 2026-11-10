@@ -51,6 +51,49 @@ pub(crate) fn directions(v: Vec2) -> u16 {
     bits
 }
 
+pub(crate) fn movement_vector(buttons: u16, analog: Vec2, deadzone: u16) -> Vec2 {
+    let digital = Vec2::new(
+        (i32::from(buttons & input::RIGHT != 0) - i32::from(buttons & input::LEFT != 0)) as f32,
+        (i32::from(buttons & input::UP != 0) - i32::from(buttons & input::DOWN != 0)) as f32,
+    );
+    if digital != Vec2::ZERO {
+        digital.normalize()
+    } else {
+        stick(analog, deadzone)
+    }
+}
+
+pub(crate) fn heading(yaw: f32) -> i16 {
+    ((yaw + std::f32::consts::PI) * 4096.0 / std::f32::consts::TAU).round() as i16
+}
+
+pub(crate) fn relative_movement(
+    yaw: f32,
+    buttons: u16,
+    v: Vec2,
+    facing: i16,
+    steer: bool,
+) -> (u16, Option<i16>) {
+    let buttons = buttons & !(input::UP | input::DOWN | input::LEFT | input::RIGHT);
+    if v == Vec2::ZERO {
+        return (buttons, None);
+    }
+    let (sin, cos) = yaw.sin_cos();
+    let world = Vec2::new(cos, -sin) * v.x + Vec2::new(sin, cos) * v.y;
+    if steer && buttons & input::SQUARE == 0 {
+        let yaw = (-world.x).atan2(-world.y) * 4096.0 / std::f32::consts::TAU;
+        (buttons | input::UP, Some(yaw.round() as i16))
+    } else {
+        let yaw = f32::from(facing) * std::f32::consts::TAU / 4096.0;
+        let forward = Vec2::new(-yaw.sin(), -yaw.cos());
+        let local = Vec2::new(
+            world.dot(Vec2::new(forward.y, -forward.x)),
+            world.dot(forward),
+        );
+        (buttons | directions(local.normalize_or_zero()), None)
+    }
+}
+
 impl Orbit {
     pub fn observe(&mut self, tick: u64, target: impl Into<Target>) {
         let target = target.into();

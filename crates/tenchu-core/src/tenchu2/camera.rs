@@ -41,6 +41,8 @@ pub struct Camera {
     pub mode: i16,
     pub previous: i16,
     pub direction: [i16; 2],
+    #[serde(default)]
+    pub initial_pitch: Option<i16>,
     pub snap: bool,
     pub underwater: bool,
     pub view: Matrix,
@@ -62,6 +64,7 @@ impl Camera {
             mode: 0,
             previous: 0,
             direction: [0; 2],
+            initial_pitch: None,
             snap: true,
             underwater: false,
             view: Matrix::default(),

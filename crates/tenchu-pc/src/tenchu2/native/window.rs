@@ -202,15 +202,15 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
-        let update = self.transport.frame_step(
-            &mut self.session,
-            if self.menu.tools.debug.camera.is_some() {
-                0
-            } else {
-                self.controls.buttons().swap_bytes()
-            },
-            self.audio.as_ref(),
-        )?;
+        let buttons = self.menu.tools.input(
+            &mut self.session.content,
+            &mut self.controls,
+            &self.settings.navigation,
+            self.focused && !self.menu.panel.open,
+        );
+        let update = self
+            .transport
+            .frame_step(&mut self.session, buttons, self.audio.as_ref())?;
         self.menu
             .tools
             .sync(&self.session.content, self.session.generation);
@@ -243,14 +243,12 @@ impl Application {
             || self.controls.editor.open
             || self.presets.open;
         let input = PlaybackInput {
-            buttons: if self.menu.panel.open
-                || self.menu.tools.debug.camera.is_some()
-                || !self.focused
-            {
-                0
-            } else {
-                self.controls.buttons().swap_bytes()
-            },
+            buttons: self.menu.tools.input(
+                &mut self.session.content,
+                &mut self.controls,
+                &self.settings.navigation,
+                self.focused && !self.menu.panel.open,
+            ),
             cutscene_speed: self.settings.cutscene_speed,
             simulation_speed: self.menu.tools.debug.speed,
             fast_forward: self.controls.held(KeyCode::Backspace) || self.menu.fast_forward,

@@ -19,6 +19,11 @@ impl Camera {
         }
         let delta = match self.mode {
             6 | 20 => {
+                if self.mode != self.previous
+                    && let Some(pitch) = self.initial_pitch
+                {
+                    self.direction[0] = pitch.clamp(-796, 910);
+                }
                 match self.previous {
                     12 => self.direction[1] = -1024,
                     11 => self.direction[1] = 1024,

@@ -26,6 +26,7 @@ mod experiment;
 mod frame;
 mod items;
 mod mission;
+mod navigation;
 mod ribbons;
 mod update;
 pub use assets::Assets;

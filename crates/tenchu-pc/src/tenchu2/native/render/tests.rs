@@ -644,41 +644,53 @@ fn native_follow_camera_uses_the_shared_scene_surfaces() {
         fog: false,
         ..Default::default()
     };
-    capture_frame(
-        &session.assets.sprites.vram,
-        &graphics,
-        &output.join("jp-follow-guard.png"),
-        |renderer| {
-            let mut drawing = ContentDrawing::new(&content, &graphics, renderer)?;
-            tools.update_camera(
-                &content,
-                &mut drawing,
-                &Default::default(),
-                1.0 / 60.0,
-                renderer,
-            );
-            let camera = tools.debug.follow_camera.expect("follow camera");
-            drawing.update(&content, renderer, &tools.debug, false)?;
-            let ContentDrawing::Gameplay(drawing) = drawing else {
-                unreachable!()
-            };
-            let target = Vec3::from(
-                session.world.actors[guard]
+    for relative in [false, true] {
+        if relative {
+            tools.debug.return_camera();
+        }
+        capture_frame(
+            &session.assets.sprites.vram,
+            &graphics,
+            &output.join(format!("jp-orbit-relative-{relative}.png")),
+            |renderer| {
+                let mut drawing = ContentDrawing::new(&content, &graphics, renderer)?;
+                tools.update_camera(
+                    &content,
+                    &mut drawing,
+                    &crate::settings::Navigation {
+                        camera_relative: relative,
+                        ..Default::default()
+                    },
+                    1.0 / 60.0,
+                    renderer,
+                );
+                let camera = tools.debug.follow_camera.expect("follow camera");
+                drawing.update(&content, renderer, &tools.debug, false)?;
+                let ContentDrawing::Gameplay(drawing) = drawing else {
+                    unreachable!()
+                };
+                let target = Vec3::from(
+                    session.world.actors[if relative {
+                        session.world.player
+                    } else {
+                        guard
+                    }]
                     .actor
                     .position
                     .to_array()
                     .map(|v| v as f32),
-            ) - Vec3::Y * 1100.0;
-            let environment = drawing.scene.environment.as_ref().expect("shared surfaces");
-            assert!(
-                !environment.surfaces.blocked(camera.position, target),
-                "camera crossed a wall"
-            );
-            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
-            Ok((drawing.scene, camera.source_view(), Vec::new()))
-        },
-    )
-    .unwrap();
+                ) - Vec3::Y * 1100.0;
+                let environment = drawing.scene.environment.as_ref().expect("shared surfaces");
+                assert!(
+                    !environment.surfaces.blocked(camera.position, target),
+                    "camera crossed a wall"
+                );
+                assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+                Ok((drawing.scene, camera.source_view(), Vec::new()))
+            },
+        )
+        .unwrap();
+    }
 }
 
 #[test]

@@ -51,7 +51,7 @@ visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
 Texture-based lamp discovery, combat-effect lights, blood enhancements, hair/cloth physics,
-camera-relative controls, rewind, randomizer, enemy-behaviour cheats
+rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
 
@@ -61,6 +61,18 @@ level's authored water textures to identify surfaces, with original or HD artwor
 Modern High/Ultra already enable these effects. Original keeps source texture
 scrolling, geometry and collision; these options only affect presentation.
 Character contact splashes remain separate work.
+
+**F1 → Movement → Camera-relative controls** enables movement relative to the view,
+including full left-stick direction. Hold right mouse or use the right stick to
+orbit, and click the right stick or choose **Recenter behind player** to recenter. T2's
+bindings still apply: Circle guards and R1 crouches. Attacks keep their committed
+facing; directional attack inputs are mapped into the character's local space.
+Wall, ledge, underwater and item controls retain T2's original behavior.
+**Start aiming toward camera** turns the player and seeds the vertical angle when
+starting grapple, shuriken/blowgun aim or look. Subsequent aiming adjustments use
+the source controls; both sticks can adjust aim. Disable camera-relative controls
+to return to the original camera and tank movement. Free camera and menus suppress
+movement input, and Follow Actor remains independent.
 
 **F1 → Player model** uses the shared searchable gallery of Gaisen and connected
 T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**

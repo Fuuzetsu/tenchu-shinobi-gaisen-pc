@@ -7,7 +7,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Concern | Shared code | Source adapter |
 | --- | --- | --- |
 | Camera and inspection commands | `debug/inspection.rs`, `debug/camera.rs` | `debug/gaisen.rs`; native `tools.rs` and `inspection.rs` |
-| Follow/orbit camera and terrain avoidance | `navigation.rs` consumes an actor target and retained surfaces | Gaisen/native adapters supply actor identity, position, facing and simulation tick; Gaisen movement steering stays in `navigation/gaisen.rs` |
+| Follow/orbit camera, movement direction and terrain avoidance | `navigation.rs` consumes an actor target, input direction and retained surfaces | Gaisen/native adapters supply actor facts and source-specific steering/aim/guard eligibility; each simulation owns root and velocity updates |
 | Pose interpolation | `visuals/interpolation.rs` blends keyed matrices and detects teleports/camera cuts | Gaisen snapshots live in `visuals/interpolation/gaisen.rs`; native gameplay/story snapshots live in `tenchu2/native/interpolation.rs` |
 | Custom model folders | `visuals/pack.rs`, `visuals/appearance.rs` and the shared gallery load, skin and retarget the same packs | Native `render/custom.rs` maps JP bone order to the common rig; only displayed poses and attachments change |
 | Overlay geometry and readable labels | `debug/overlay.rs` | `debug/gaisen/overlay.rs`; native `inspection.rs` |

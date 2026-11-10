@@ -7,6 +7,14 @@ pub enum Runtime {
 }
 
 impl Runtime {
+    pub fn help(self, item: Item, fallback: &'static str) -> &'static str {
+        if self == Self::Tenchu2 && item == Item::CameraRelative {
+            "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. T2 bindings still apply: Circle guards, R1 crouches. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
+        } else {
+            fallback
+        }
+    }
+
     pub fn unavailable(self, item: Item) -> Option<&'static str> {
         use Item::*;
         if matches!(item, Tenchu2Missions | Tenchu2Diagnostics | Tenchu2Launcher) {
@@ -31,8 +39,8 @@ impl Runtime {
             | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Sight | SightStance
             | Patrols | Events | Collision | CollisionOnly | Target(_) | PlayerPosition
             | CameraPosition | SnapFloor | Teleport | PickTeleport | ClickTeleport => None,
-            FollowActor | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
-            | StickDeadzone | InvertCameraY => None,
+            CameraRelative | AlignAim | FollowActor | FollowDistance | RecenterOrbit
+            | MouseSensitivity | StickSensitivity | StickDeadzone | InvertCameraY => None,
             GodMode | Armor | GiveItems | ClearItems | Inventory(_) => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,

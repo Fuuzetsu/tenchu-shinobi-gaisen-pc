@@ -1,7 +1,11 @@
 use super::campaign::Content;
 use crate::{
     controls::Controls,
-    debug::{Debug, camera::Camera, inspection::Snapshot},
+    debug::{
+        Debug,
+        camera::Camera,
+        inspection::{Actor, Scene, Snapshot},
+    },
     settings::menu::Item,
 };
 use tenchu_assets::Result;
@@ -21,6 +25,8 @@ pub struct Tools {
     teleport: Option<(tenchu_core::math::Position, bool)>,
     edits: Vec<experiment::Edit>,
     focus_light: bool,
+    relative: bool,
+    player_orbit: bool,
 }
 
 impl Tools {
@@ -42,9 +48,14 @@ impl Tools {
             self.focus_light = false;
         }
         self.scene.actors.clear();
+        self.player_orbit = false;
         experiment::sync(&mut self.debug, content);
         let view = match content {
             Content::Gameplay(session) => {
+                self.player_orbit = session.world.player_can_orbit()
+                    && session.world.actors[session.world.player].actor.pad.held
+                        & tenchu_core::input::L1.swap_bytes()
+                        == 0;
                 self.tick = u64::from(session.world.tick);
                 self.scene.player = session.world.player;
                 if changed {
@@ -66,6 +77,51 @@ impl Tools {
             .min(self.scene.actors.len().saturating_sub(1));
     }
 
+    fn orbit_actor(&self) -> Option<Actor> {
+        self.debug.followed_inspection(&self.scene).or_else(|| {
+            (self.relative && self.player_orbit && self.debug.camera.is_none())
+                .then(|| self.scene.actor(self.scene.player))
+                .flatten()
+        })
+    }
+
+    pub fn input(
+        &mut self,
+        content: &mut Content,
+        controls: &mut Controls,
+        settings: &crate::settings::Navigation,
+        active: bool,
+    ) -> u16 {
+        self.relative = settings.camera_relative;
+        let enabled = active && self.debug.camera.is_none();
+        if let Content::Gameplay(session) = content {
+            session.navigation = None;
+            if enabled && settings.camera_relative {
+                let target = self.debug.followed_inspection(&self.scene).or_else(|| {
+                    super::inspection::actors(session).find(|a| a.id == session.world.player)
+                });
+                if let Some(target) = target {
+                    self.orbit.observe(u64::from(session.world.tick), target);
+                }
+                session.navigation = Some(super::navigation::Input {
+                    yaw: self.orbit.yaw,
+                    pitch: self.orbit.aim_pitch(),
+                    sticks: controls.sticks(),
+                    deadzone: settings.deadzone,
+                    align_aim: settings.align_aim,
+                });
+                return (controls.relative_buttons()
+                    & !(crate::controls::WALK | crate::controls::SHEATHE))
+                    .swap_bytes();
+            }
+        }
+        if enabled {
+            controls.buttons().swap_bytes()
+        } else {
+            0
+        }
+    }
+
     pub fn update_camera(
         &mut self,
         content: &Content,
@@ -75,9 +131,12 @@ impl Tools {
         renderer: &mut crate::renderer::Renderer,
     ) {
         self.debug.follow_camera = None;
-        let Some(actor) = self.debug.followed_inspection(&self.scene) else {
+        self.relative = settings.camera_relative;
+        let Some(actor) = self.orbit_actor() else {
             self.debug.camera_actor = None;
-            self.orbit = Default::default();
+            if !self.relative {
+                self.orbit = Default::default();
+            }
             return;
         };
         self.orbit.observe(self.tick, actor);
@@ -112,7 +171,8 @@ impl Tools {
             self.debug.looking = false;
             return;
         }
-        if let Some(actor) = self.debug.followed_inspection(&self.scene) {
+        self.relative = settings.camera_relative;
+        if let Some(actor) = self.orbit_actor() {
             self.orbit.observe(self.tick, actor);
             if controls.take_recenter() {
                 self.orbit.recenter(actor);
@@ -168,7 +228,7 @@ impl Tools {
                 {
                     if let Some(camera) = &mut self.debug.camera {
                         camera.look(position.x - x, position.y - y);
-                    } else if let Some(actor) = self.debug.followed_inspection(&self.scene) {
+                    } else if let Some(actor) = self.orbit_actor() {
                         self.orbit.observe(self.tick, actor);
                         self.orbit.mouse(position.x - x, position.y - y, settings);
                     }
@@ -191,9 +251,8 @@ impl Tools {
             }
             Item::RecenterOrbit => {
                 let actor = self
-                    .debug
-                    .followed_inspection(&self.scene)
-                    .ok_or("Follow an actor first")?;
+                    .orbit_actor()
+                    .ok_or("Enable camera-relative controls or follow an actor first")?;
                 self.orbit.recenter(actor);
                 return Ok(());
             }

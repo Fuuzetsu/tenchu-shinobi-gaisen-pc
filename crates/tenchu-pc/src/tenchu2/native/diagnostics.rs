@@ -18,6 +18,7 @@ pub struct Input {
     tick_before: i64,
     random: Random,
     buttons: u16,
+    navigation: Option<super::navigation::Input>,
     player: Option<Player>,
 }
 
@@ -57,6 +58,10 @@ pub fn record(recent: &mut Recent<Input>, playback: &Playback<impl ReadAt>, butt
             tick_before,
             random,
             buttons,
+            navigation: match &playback.content {
+                Content::Gameplay(session) => session.navigation,
+                _ => None,
+            },
             player,
         },
     );

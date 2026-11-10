@@ -2,6 +2,62 @@ use super::*;
 use winit::keyboard::KeyCode;
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; native camera-relative tools handle input gating, follow/aim cameras and scene boundaries"]
+fn relative_controls_share_orbit_tools_and_do_not_leak_input_through_menus() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = crate::tenchu2::native::Session::load(&disc, 119, 17).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let mut content = Content::Gameplay(Box::new(session));
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    let mut controls = Controls::default();
+    controls.key(KeyCode::KeyD, true);
+    let settings = crate::settings::Navigation {
+        camera_relative: true,
+        ..Default::default()
+    };
+    let buttons = tools.input(&mut content, &mut controls, &settings, true);
+    assert_eq!(buttons, tenchu_core::tenchu2::input::RIGHT);
+    assert_eq!(tools.orbit_actor().unwrap().id, tools.scene.player);
+    tools.change(Item::RecenterOrbit, 1).unwrap();
+    tools.orbit.mouse(200.0, 60.0, &settings);
+    let yaw = tools.orbit.yaw;
+    tools.input(&mut content, &mut controls, &settings, true);
+    if let Content::Gameplay(session) = &mut content {
+        assert_eq!(session.navigation.unwrap().yaw, yaw);
+        session.step(buttons).unwrap();
+    }
+    tools.sync(&content, 0);
+    assert_eq!(
+        tools.orbit.yaw, yaw,
+        "steering must not spin the orbit camera"
+    );
+    for active in [false, true] {
+        if active {
+            tools.change(Item::FreeCamera, 1).unwrap();
+        }
+        assert_eq!(
+            tools.input(&mut content, &mut controls, &settings, active),
+            0
+        );
+        if let Content::Gameplay(session) = &content {
+            assert!(session.navigation.is_none());
+        }
+    }
+    tools.debug.return_camera();
+    tools.input(&mut content, &mut controls, &Default::default(), true);
+    assert!(tools.orbit_actor().is_none());
+    if let Content::Gameplay(session) = &content {
+        assert!(session.navigation.is_none());
+    }
+    tools.sync(&Content::Failed, 1);
+    assert!(tools.orbit_actor().is_none());
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; shared Experiment commands edit the native inventory without interrupting items"]
 fn experiment_edits_native_quantities_and_protection_without_refilling_health() {
     use tenchu_core::tenchu2::inventory::Item as NativeItem;

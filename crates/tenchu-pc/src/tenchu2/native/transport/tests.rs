@@ -172,9 +172,26 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC; host pacing changes tick counts, never update order or RNG, and respects pause/step/menu boundaries"]
 fn simulation_speed_preserves_native_updates_pause_and_single_step() {
-    for speed in [25, 50, 100, 200, 400, 0] {
+    for (speed, relative) in [25, 50, 100, 200, 400, 0]
+        .into_iter()
+        .flat_map(|speed| [false, true].map(|relative| (speed, relative)))
+    {
         let mut playback = start(9, false);
         let mut reference = start(9, false);
+        if relative {
+            for content in [&mut playback.content, &mut reference.content] {
+                let Content::Gameplay(session) = content else {
+                    unreachable!()
+                };
+                session.navigation = Some(super::super::navigation::Input {
+                    yaw: 0.41,
+                    pitch: 0,
+                    sticks: [glam::Vec2::new(0.3, 0.9), glam::Vec2::ZERO],
+                    deadzone: 18,
+                    align_aim: true,
+                });
+            }
+        }
         let mut transport = Transport::default();
         let input = Input {
             simulation_speed: speed,
@@ -225,7 +242,7 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
         assert_eq!(
             postcard::to_allocvec(&actual.world).unwrap(),
             postcard::to_allocvec(&expected.world).unwrap(),
-            "{speed}% changed source state"
+            "{speed}% changed source state (relative controls: {relative})"
         );
 
         let disc =

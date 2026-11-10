@@ -292,7 +292,7 @@ pub fn show(
                                                         .halign(egui::Align::Min)
                                                         .wrap(),
                                                 )
-                                                .on_hover_text(row.help);
+                                                .on_hover_text(runtime.help(row.item, row.help));
                                             let response = if row.item == Item::Preset && let Some(library) = library {
                                                 preset_widget(ui, library, settings, &mut edits)
                                             } else {
@@ -314,7 +314,7 @@ pub fn show(
                                             response
                                                 .on_hover_text(format!(
                                                     "{}\nR or right-click: reset this value",
-                                                    row.help
+                                                    runtime.help(row.item, row.help)
                                                 ))
                                                 .context_menu(|ui| {
                                                     if ui.add_enabled(runtime.unavailable(row.item).is_none(), egui::Button::new("Reset to default")).clicked() {
@@ -329,7 +329,7 @@ pub fn show(
                         });
                     ui.separator();
                     let selected = &rows[menu.row.min(rows.len() - 1)];
-                    let help = runtime.unavailable(selected.item).unwrap_or(selected.help);
+                    let help = runtime.unavailable(selected.item).unwrap_or(runtime.help(selected.item, selected.help));
                     ui.add(
                         egui::Label::new(RichText::new(help)
                             .small()

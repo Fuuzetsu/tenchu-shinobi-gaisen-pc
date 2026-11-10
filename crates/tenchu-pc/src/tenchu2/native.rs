@@ -33,6 +33,7 @@ mod inspection;
 mod interpolation;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod models;
+mod navigation;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod preferences;
 #[cfg(not(target_arch = "wasm32"))]
@@ -61,6 +62,7 @@ pub struct Session {
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
     pub pending: BTreeSet<String>,
     pub interpolation: Option<crate::visuals::interpolation::History>,
+    pub navigation: Option<navigation::Input>,
     #[cfg(not(target_arch = "wasm32"))]
     pub models: models::Override,
 }
@@ -116,6 +118,7 @@ impl Session {
             bank,
             pending: BTreeSet::new(),
             interpolation: None,
+            navigation: None,
             #[cfg(not(target_arch = "wasm32"))]
             models: Default::default(),
         })
@@ -128,6 +131,7 @@ impl Session {
         ) {
             return Ok(Vec::new());
         }
+        let buttons = navigation::apply(self, buttons)?;
         let mut events = Output {
             player: self.world.player,
             #[cfg(not(target_arch = "wasm32"))]

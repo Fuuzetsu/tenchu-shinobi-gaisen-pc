@@ -114,13 +114,15 @@ impl Application {
 
     pub(in crate::window) fn step_native_tenchu2(&mut self) -> Result<bool> {
         let native = self.native_tenchu2.as_mut().unwrap();
+        let buttons = native.menu.tools.input(
+            &mut native.playback.content,
+            &mut self.controls,
+            &self.settings.navigation,
+            self.focused && !native.menu.panel.open,
+        );
         let update = native.transport.frame_step(
             &mut native.playback,
-            if native.menu.tools.debug.camera.is_some() {
-                0
-            } else {
-                self.controls.buttons().swap_bytes()
-            },
+            buttons,
             self.audio.as_ref().map(|audio| audio.output()),
         )?;
         if update.changed {
@@ -157,23 +159,15 @@ impl Application {
         let elapsed = now.duration_since(self.last_frame);
         self.last_frame = now;
         self.sync_audio_pause();
+        let native = self.native_tenchu2.as_mut().unwrap();
+        let buttons = native.menu.tools.input(
+            &mut native.playback.content,
+            &mut self.controls,
+            &self.settings.navigation,
+            self.focused && !native.menu.panel.open,
+        );
         let input = PlaybackInput {
-            buttons: if self.native_tenchu2.as_ref().unwrap().menu.panel.open
-                || self
-                    .native_tenchu2
-                    .as_ref()
-                    .unwrap()
-                    .menu
-                    .tools
-                    .debug
-                    .camera
-                    .is_some()
-                || !self.focused
-            {
-                0
-            } else {
-                self.controls.buttons().swap_bytes()
-            },
+            buttons,
             cutscene_speed: self.settings.cutscene_speed,
             simulation_speed: self.native_tenchu2.as_ref().unwrap().menu.tools.debug.speed,
             fast_forward: self.controls.held(KeyCode::Backspace)
