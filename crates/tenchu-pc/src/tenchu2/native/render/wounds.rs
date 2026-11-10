@@ -8,29 +8,35 @@ use std::collections::BTreeSet;
 use tenchu_core::tenchu2::actor::State;
 
 #[derive(Default)]
-pub(super) struct Stains {
+pub(super) struct Wounds {
     tick: Option<u32>,
     health: BTreeMap<usize, i16>,
     pending: BTreeSet<usize>,
+    sounds: Vec<Position>,
 }
 
-impl Stains {
+impl Wounds {
     pub fn clear(&mut self) {
         self.pending.clear();
+        self.sounds.clear();
     }
 
     pub fn tick(
         &mut self,
         session: &super::super::Session,
         models: &Models,
-        blood: &mut Blood,
+        environment: &mut environment::Environment,
         settings: &crate::settings::Blood,
     ) -> Result<()> {
         let world = &session.world;
-        if !settings.model_stains {
-            blood.clear_model_stains();
+        environment.configure_blood(settings);
+        let blood = &mut environment.blood;
+        if !settings.wounds() {
             self.clear();
             self.health.clear();
+            if self.tick != Some(world.tick) {
+                self.advance(session, environment, &BTreeMap::new());
+            }
             self.tick = Some(world.tick);
             return Ok(());
         }
@@ -84,36 +90,41 @@ impl Stains {
                 contacts.insert(instance.rig.root, (owner, point(position)));
             }
         }
-        if contacts.is_empty() {
-            return Ok(());
-        }
+        let needed: BTreeSet<_> = blood.wound_parts().collect();
+        let mut transforms = BTreeMap::new();
         let mut bodies: BTreeMap<usize, Vec<BodyPart>> = BTreeMap::new();
-        models.visit_actors(
-            world,
-            &session.assets,
-            &mut world.scene.clone(),
-            None,
-            |key, meshes, part, matrix, _| {
-                let PartId::Actor { root, model, .. } = key else {
-                    return;
-                };
-                let Some(&(owner, _)) = contacts.get(&root) else {
-                    return;
-                };
-                if !world.instances[owner].rig.joints.contains(&model) {
-                    return;
-                }
-                let mut vertices = Vec::new();
-                meshes.visit(&part.geometry, matrix, false, 0, None, |triangle| {
-                    vertices.extend(triangle.into_iter().copied());
-                });
-                bodies.entry(root).or_default().push(BodyPart {
-                    key,
-                    matrix,
-                    vertices,
-                });
-            },
-        )?;
+        if !contacts.is_empty() || !needed.is_empty() {
+            models.visit_actors(
+                world,
+                &session.assets,
+                &mut world.scene.clone(),
+                None,
+                |key, meshes, part, matrix, _| {
+                    if needed.contains(&key) {
+                        transforms.insert(key, matrix);
+                    }
+                    let PartId::Actor { root, model, .. } = key else {
+                        return;
+                    };
+                    let Some(&(owner, _)) = contacts.get(&root) else {
+                        return;
+                    };
+                    if !world.instances[owner].rig.joints.contains(&model) {
+                        return;
+                    }
+                    transforms.insert(key, matrix);
+                    let mut vertices = Vec::new();
+                    meshes.visit(&part.geometry, matrix, false, 0, None, |triangle| {
+                        vertices.extend(triangle.into_iter().copied());
+                    });
+                    bodies.entry(root).or_default().push(BodyPart {
+                        key,
+                        matrix,
+                        vertices,
+                    });
+                },
+            )?;
+        }
         for (root, (owner, position)) in contacts {
             let Some(parts) = bodies.get(&root) else {
                 continue;
@@ -136,9 +147,56 @@ impl Stains {
                         .total_cmp(&b.distance_squared(position))
                 })
                 .map(|p| (p - position).normalize_or_zero());
-            blood.stain_body(parts, position, approach, settings);
+            blood.wound_body(parts, position, approach, settings);
         }
+        self.advance(session, environment, &transforms);
         Ok(())
+    }
+
+    fn advance(
+        &mut self,
+        session: &super::super::Session,
+        environment: &mut environment::Environment,
+        transforms: &BTreeMap<PartId, Matrix>,
+    ) {
+        let image = session.assets.sprites.effects[2];
+        self.sounds.extend(environment.blood.advance_wounds(
+            u64::from(session.world.tick),
+            transforms,
+            &environment.surfaces,
+            &[image; 3],
+        ));
+        if self.sounds.len() > 8 {
+            self.sounds.drain(..self.sounds.len() - 8);
+        }
+    }
+
+    pub fn sounds(
+        &mut self,
+        session: &super::super::Session,
+    ) -> Result<Vec<tenchu_assets::audio::voice::Sourced<tenchu_core::tenchu2::audio::Sound>>> {
+        let mut audio = session.world.audio.clone();
+        let mut sounds = Vec::new();
+        for position in self.sounds.drain(..) {
+            if let Some((direction, volume)) = session
+                .world
+                .listener()
+                .parameters(Some(position), &session.assets.resources.math)?
+                && let Some(sound) = audio.play(
+                    29,
+                    direction,
+                    volume,
+                    session.world.tick,
+                    &session.assets.resources.math,
+                )
+            {
+                sounds.push(tenchu_assets::audio::voice::Sourced {
+                    sound,
+                    bank: Some(session.bank.clone()),
+                });
+            }
+        }
+        Ok(sounds)
     }
 }
 
@@ -148,7 +206,7 @@ pub(super) fn geometry(
     models: &Models,
     pose: Option<&PoseFrame>,
     motion: &crate::visuals::motion::Frame,
-    projection: glam::Mat4,
+    view: View,
 ) -> Result<render_effects::Geometry> {
     let needed: BTreeSet<_> = blood.attached_parts().collect();
     let mut poses = BTreeMap::new();
@@ -172,10 +230,7 @@ pub(super) fn geometry(
     }
     let mut vertices = Vec::new();
     blood.append_attached(
-        &View {
-            projection: Some(projection),
-            ..Default::default()
-        },
+        &view,
         |key| {
             let &(meshes, geometry, matrix) = poses.get(&key)?;
             Some(Attachment {
@@ -183,6 +238,12 @@ pub(super) fn geometry(
                 deformation: meshes.deformation(motion, key, geometry, matrix),
             })
         },
+        &mut vertices,
+    );
+    blood.append_drops(
+        view.camera.unwrap_or(session.world.camera.view),
+        view.alpha,
+        session.assets.sprites.effects[0],
         &mut vertices,
     );
     let count = vertices.len() as u32;

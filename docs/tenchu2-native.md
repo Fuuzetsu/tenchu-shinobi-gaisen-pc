@@ -66,7 +66,7 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Continuing wound drips, weapon blood enhancements,
+Weapon blood enhancements,
 rewind, randomizer, broader enemy-behaviour options
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
@@ -79,7 +79,18 @@ their displayed joints, interpolation and secondary motion. Body stains remain
 separate from the hit-spurt and ground styles. Turning the option off or using
 Clear blood removes them; rebuilding model geometry also clears body stains while
 preserving ground blood and weather. Modern High/Ultra already enable this;
-Original stays unchanged. Continuing wound drips and weapon coating are pending.
+Original stays unchanged. Weapon coating is pending.
+
+**Wound drips**, **Wound bleeding** and **Wound spurt strength** share Gaisen's
+finite bleeding simulation. Original, Original HD and Modern affect the extra
+drops independently of hit blood and body staining. Drops move on source ticks,
+land on level surfaces using the ground-blood style/retention setting, and play
+T2's spatial blood-impact sound. Pause freezes them and fast-forward advances
+them without playing a backlog of sounds. Disabling drips or using Clear blood
+removes active wound bleeding; a model rebuild clears body-local emitters while
+already falling drops and ground stains remain. Modern High/Ultra enable wound
+drips; Original remains unchanged. Extra death gushes and severed-part emitters
+are still unavailable in native JP.
 
 **F1 → Simulation → Enemy sight distance** scales native notice, recognition,
 forgetting and corpse-detection distances from 0–400%, including guards approaching

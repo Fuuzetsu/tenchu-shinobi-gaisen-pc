@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports shared wound drips and pulsing jets, with independent
+  Original, Original HD and Modern styles, duration and strength. Drops follow
+  animated wounds, stop after the configured time and use the selected ground
+  blood style on contact. Impact sounds use T2's own bank; pause and fast-forward
+  preserve timing without changing damage, source audio state or RNG.
+
 - Native Tenchu 2 JP now supports Stain wounded models, using the same body-blood
   projection, retention and Clear blood control as Gaisen. Stains follow animated
   native, imported and custom player bodies without changing damage or RNG.

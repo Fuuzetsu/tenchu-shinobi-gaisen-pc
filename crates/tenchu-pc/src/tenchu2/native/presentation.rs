@@ -313,15 +313,38 @@ impl ContentDrawing {
         }
     }
 
-    pub fn weather_audio(
+    pub fn presentation_audio(
         &mut self,
+        content: &Content,
         settings: &crate::settings::Weather,
-    ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
-        match self {
+        accelerated: bool,
+        output: Option<&Output>,
+    ) -> Result<()> {
+        let (ambience, thunder) = match self {
             Self::Gameplay(d) => d.weather_audio(settings),
             Self::Story(d) => d.weather_audio(settings),
             _ => (Default::default(), None),
+        };
+        let sounds = match (self, content) {
+            (Self::Gameplay(drawing), Content::Gameplay(session)) => {
+                drawing.blood_audio(session)?
+            }
+            _ => Vec::new(),
+        };
+        if let Some(output) = output {
+            output.send(Command::Ambience(if accelerated {
+                Default::default()
+            } else {
+                ambience
+            }));
+            output.send(Command::Thunder(if accelerated { None } else { thunder }));
+            if !accelerated {
+                for sound in sounds {
+                    output.send(Command::Tenchu2Effect(sound));
+                }
+            }
         }
+        Ok(())
     }
 
     pub fn new(content: &Content, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {

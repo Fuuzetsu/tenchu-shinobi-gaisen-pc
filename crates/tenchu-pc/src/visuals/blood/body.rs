@@ -17,13 +17,19 @@ impl Blood {
         self.marks.retain_attached(|mark| mark.1 != Kind::Body);
     }
 
-    pub(crate) fn stain_body(
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn invalidate_body(&mut self) {
+        self.clear_model_stains();
+        self.wounds.clear();
+    }
+
+    pub(crate) fn wound_body(
         &mut self,
         parts: &[BodyPart],
         position: Vec3,
         approach: Option<Vec3>,
         settings: &settings::Blood,
-    ) -> Option<Wound> {
+    ) {
         let contact = approach.and_then(|direction| {
             parts
                 .iter()
@@ -58,9 +64,11 @@ impl Blood {
                         .total_cmp(&b.1.distance_squared(position))
                 })
         });
-        let (index, center, normal) = nearest?;
+        let Some((index, center, normal)) = nearest else {
+            return;
+        };
         if center.distance_squared(position) > 1200.0_f32.powi(2) {
-            return None;
+            return;
         }
         self.random();
         let stamp = Stamp {
@@ -108,17 +116,23 @@ impl Blood {
                 usize::from(settings.marks.max(32)),
             );
         }
+        if settings.drips == BloodStyle::Off || settings.seconds == 0 {
+            return;
+        }
         let BodyPart { key, matrix, .. } = &parts[index];
         let r = rotation(*matrix);
         if r.determinant().abs() < 0.0001 {
-            return None;
+            return;
         }
-        Some(Wound {
+        self.wounds.push_back(Wound {
             part: *key,
             position: r.inverse() * (center - translation(*matrix)),
             normal: r.transpose() * normal,
             age: 0,
-        })
+        });
+        while self.wounds.len() > WOUND_LIMIT {
+            self.wounds.pop_front();
+        }
     }
 
     #[cfg(not(target_arch = "wasm32"))]

@@ -112,6 +112,10 @@ impl Blood {
             && (self.ground == Style::Modern || self.ground.uses_original() && self.retain_original)
     }
 
+    pub fn wounds(self) -> bool {
+        self.amount != 0 && (self.model_stains || self.drips != Style::Off && self.seconds != 0)
+    }
+
     pub fn custom_death(self, player: bool) -> bool {
         self.amount != 0
             && self.death != Style::Off
@@ -146,8 +150,7 @@ impl Blood {
                 || self.gush(false)
                 || self.severed_bleeding()
                 || self.weapons
-                || self.model_stains
-                || self.drips != Style::Off && self.seconds != 0)
+                || self.wounds())
     }
 
     pub fn validate(&mut self) {

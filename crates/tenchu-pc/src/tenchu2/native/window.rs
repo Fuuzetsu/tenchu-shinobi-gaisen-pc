@@ -504,16 +504,13 @@ impl Application {
                 &mut self.session.content,
                 [view.config.width, view.config.height],
             );
-            if let Some(audio) = &self.audio {
-                let (ambience, thunder) = view.drawing.weather_audio(&graphics.weather);
-                let (_, accelerated) = input.pacing(&self.session.content);
-                audio.send(Command::Ambience(if accelerated {
-                    Default::default()
-                } else {
-                    ambience
-                }));
-                audio.send(Command::Thunder(if accelerated { None } else { thunder }));
-            }
+            let (_, accelerated) = input.pacing(&self.session.content);
+            view.drawing.presentation_audio(
+                &self.session.content,
+                &graphics.weather,
+                accelerated,
+                self.audio.as_ref(),
+            )?;
             self.quit |= action.leave;
             timing.prepare += prepare.elapsed().as_secs_f32() * 1000.0;
             if action.step && self.error.is_none() {

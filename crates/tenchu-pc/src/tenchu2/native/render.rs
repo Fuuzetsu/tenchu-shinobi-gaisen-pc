@@ -45,7 +45,7 @@ pub(super) use story::capture as capture_story;
 pub struct Drawing {
     models: Models,
     motion: crate::visuals::motion::Motion,
-    stains: wounds::Stains,
+    wounds: wounds::Wounds,
     scene: SceneDrawing,
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
@@ -87,7 +87,7 @@ impl Drawing {
     }
 
     pub fn clear_blood(&mut self) {
-        self.stains.clear();
+        self.wounds.clear();
         self.scene.clear_blood();
     }
 
@@ -100,12 +100,19 @@ impl Drawing {
     ) -> (tenchu_audio::Ambience, Option<tenchu_audio::ThunderCue>) {
         self.scene.weather_audio(settings)
     }
+
+    pub fn blood_audio(
+        &mut self,
+        session: &super::Session,
+    ) -> Result<Vec<tenchu_assets::audio::voice::Sourced<tenchu_core::tenchu2::audio::Sound>>> {
+        self.wounds.sounds(session)
+    }
     pub fn preserve_environment(&mut self, previous: &mut Self) {
         self.scene.preserve_environment(&mut previous.scene);
         self.motion = std::mem::take(&mut previous.motion);
         self.motion.invalidate();
         if let Some(environment) = &mut self.scene.environment {
-            environment.blood.clear_model_stains();
+            environment.blood.invalidate_body();
         }
     }
 
@@ -137,7 +144,7 @@ impl Drawing {
         let mut drawing = Self {
             models,
             motion: Default::default(),
-            stains: Default::default(),
+            wounds: Default::default(),
             scene: SceneDrawing::new(geometry, renderer, &session.assets.level),
             view: session.world.camera.view,
             show_hud: true,
@@ -145,13 +152,18 @@ impl Drawing {
             alpha: 1.0,
             labels: Vec::new(),
         };
-        drawing.prepare_stains(session, graphics.blood.model_stains, renderer);
+        drawing.prepare_wounds(session, &graphics.blood, renderer);
         drawing.tick(session, graphics)?;
         Ok(drawing)
     }
 
-    fn prepare_stains(&mut self, session: &super::Session, enabled: bool, renderer: &mut Renderer) {
-        if enabled {
+    fn prepare_wounds(
+        &mut self,
+        session: &super::Session,
+        settings: &crate::settings::Blood,
+        renderer: &mut Renderer,
+    ) {
+        if settings.wounds() {
             self.scene.environment(
                 &session.assets.level,
                 &self.models.scenery,
@@ -164,12 +176,8 @@ impl Drawing {
     pub fn tick(&mut self, session: &super::Session, graphics: &Graphics) -> Result<()> {
         self.tick_motion(session, &graphics.motion)?;
         if let Some(environment) = &mut self.scene.environment {
-            self.stains.tick(
-                session,
-                &self.models,
-                &mut environment.blood,
-                &graphics.blood,
-            )?;
+            self.wounds
+                .tick(session, &self.models, environment, &graphics.blood)?;
         }
         Ok(())
     }
@@ -180,7 +188,8 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
-        self.prepare_stains(session, renderer.graphics().blood.model_stains, renderer);
+        let blood = renderer.graphics().blood;
+        self.prepare_wounds(session, &blood, renderer);
         self.tick(session, renderer.graphics())?;
         let motion = self.motion.sample(if renderer.graphics().interpolation {
             self.alpha
@@ -227,7 +236,8 @@ impl Drawing {
         });
         let camera = camera_matrix(view, self.camera, renderer.size());
         if let Some(environment) = &self.scene.environment
-            && environment.blood.attached_parts().next().is_some()
+            && (environment.blood.attached_parts().next().is_some()
+                || environment.blood.has_drops())
         {
             geometry.effects.append(wounds::geometry(
                 &environment.blood,
@@ -235,7 +245,16 @@ impl Drawing {
                 &self.models,
                 pose.as_ref(),
                 &motion,
-                camera,
+                crate::visuals::blood::View {
+                    camera: Some(self.camera.map_or(view, |camera| camera.source_view())),
+                    projection: Some(camera),
+                    alpha: if renderer.graphics().interpolation {
+                        self.alpha
+                    } else {
+                        1.0
+                    },
+                    ..Default::default()
+                },
             )?);
         }
         self.labels = self

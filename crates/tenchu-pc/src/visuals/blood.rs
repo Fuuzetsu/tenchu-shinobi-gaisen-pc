@@ -23,6 +23,7 @@ mod ground;
 pub(crate) use ground::SurfacePool;
 mod body;
 pub(crate) use body::{Attachment, BodyPart};
+mod drops;
 mod gush;
 mod retail;
 mod runoff;
@@ -326,7 +327,7 @@ impl Blood {
             self.wounds.clear();
             self.drops.retain(|drop| drop.kind != DropKind::Wound);
         }
-        if !settings.model_stains && (settings.drips == BloodStyle::Off || settings.seconds == 0) {
+        if !settings.wounds() {
             self.pending_wounds.clear();
         }
         if !settings.weapons || previous.weapon_metal_only != settings.weapon_metal_only {
@@ -579,15 +580,7 @@ impl Blood {
                     .total_cmp(&b.distance_squared(position))
             })
             .map(|point| (point - position).normalize_or_zero());
-        if let Some(wound) = self.stain_body(&parts, position, approach, settings)
-            && settings.drips != BloodStyle::Off
-            && settings.seconds != 0
-        {
-            self.wounds.push_back(wound);
-            while self.wounds.len() > WOUND_LIMIT {
-                self.wounds.pop_front();
-            }
-        }
+        self.wound_body(&parts, position, approach, settings);
     }
 
     pub fn tick(
@@ -692,8 +685,7 @@ impl Blood {
             samples.push(current);
         }
         self.samples = samples;
-        let wounds =
-            settings.model_stains || settings.drips != BloodStyle::Off && settings.seconds != 0;
+        let wounds = settings.wounds();
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
             let damaged = self
@@ -783,30 +775,7 @@ impl Blood {
         self.emit_wounds(game.tick, settings, &transforms);
         self.emit_gushes(settings, &transforms);
         self.emit_severed(game, models, settings, frame);
-        let mut drops = std::mem::take(&mut self.drops);
-        drops.retain_mut(|drop| {
-            drop.previous = drop.position;
-            drop.velocity.y += 7.0;
-            drop.position += drop.velocity;
-            drop.life = drop.life.saturating_sub(1);
-            if drop.life == 0 {
-                return false;
-            }
-            let hit = self.stain(
-                &game.mission.images,
-                &receivers,
-                drop.previous,
-                drop.position,
-                40.0 + amount * 25.0,
-                limit,
-            );
-            if hit && self.sounds.is_empty() && game.tick.is_multiple_of(4) {
-                self.sounds
-                    .push((drop.position.to_array().map(|n| n as i32).into(), 0x37));
-            }
-            !hit
-        });
-        self.drops = drops;
+        self.advance_drops(game.tick, &game.mission.images, &receivers);
         if !self.runoff.is_empty() {
             self.advance_runoff(&game.mission.images, &receivers, limit);
         }
@@ -1085,94 +1054,12 @@ impl Blood {
                 },
                 &mut vertices,
             );
-            let camera =
-                rotation(camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view)))
-                    .transpose();
-            for drop in &self.drops {
-                let style = match drop.kind {
-                    DropKind::Wound => self.settings.drips,
-                    DropKind::Weapon => BloodStyle::Modern,
-                    DropKind::Gush => self.settings.gush_style,
-                    DropKind::Severed => self.settings.severed_style,
-                };
-                if style == BloodStyle::Off {
-                    continue;
-                }
-                let center = drop.previous.lerp(drop.position, alpha.clamp(0.0, 1.0));
-                let projected = drop.velocity - camera.z_axis * drop.velocity.dot(camera.z_axis);
-                let modern = style == BloodStyle::Modern;
-                let scale = if matches!(drop.kind, DropKind::Gush | DropKind::Severed) {
-                    2.5
-                } else {
-                    1.0
-                };
-                let along = if modern {
-                    projected.try_normalize().unwrap_or(camera.y_axis)
-                } else {
-                    camera.y_axis
-                };
-                let right = along.cross(camera.z_axis) * if modern { 7.0 } else { 11.0 } * scale;
-                let up = along
-                    * if modern {
-                        (9.0 + projected.length().min(150.0) * 0.12) * scale
-                    } else {
-                        11.0 * scale
-                    };
-                let points = [
-                    center - right - up,
-                    center + right - up,
-                    center - right + up,
-                    center + right + up,
-                ];
-                if style.uses_original() && matches!(drop.kind, DropKind::Gush | DropKind::Severed)
-                {
-                    let image = game.mission.images[0];
-                    let mut sprite = crate::render_effects::quad(
-                        points.map(|p| p.to_array()),
-                        [[1.0; 3]; 4],
-                        Some(image),
-                        0,
-                    );
-                    for v in &mut sprite {
-                        v.flags = render_mesh::TEXTURED
-                            | render_mesh::ALPHA
-                            | render_mesh::FOG
-                            | render_mesh::DOUBLE_SIDED
-                            | render_mesh::STAIN
-                            | if style == BloodStyle::OriginalHd {
-                                render_mesh::BLOOD_HD
-                            } else {
-                                0
-                            };
-                        v.opacity = 0.9;
-                    }
-                    vertices.extend(sprite);
-                    continue;
-                }
-                vertices.extend([0, 1, 2, 1, 3, 2].map(|i| Vertex {
-                    position: points[i].to_array(),
-                    color: if modern {
-                        [0.38, 0.008, 0.016]
-                    } else {
-                        [127.0 / 255.0, 16.0 / 255.0, 23.0 / 255.0]
-                    },
-                    uv: [
-                        if i & 1 == 0 { -1.0 } else { 1.0 },
-                        if i & 2 == 0 { -1.0 } else { 1.0 },
-                    ],
-                    opacity: 0.9,
-                    flags: render_mesh::ALPHA
-                        | render_mesh::FOG
-                        | render_mesh::DOUBLE_SIDED
-                        | if modern { render_mesh::SOFT } else { 0 }
-                        | if style == BloodStyle::OriginalHd {
-                            render_mesh::STAIN | render_mesh::BLOOD_HD
-                        } else {
-                            0
-                        },
-                    ..Vertex::zeroed()
-                }));
-            }
+            self.append_drops(
+                camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view)),
+                alpha,
+                game.mission.images[0],
+                &mut vertices,
+            );
         }
         let count = vertices.len() as u32;
         let mut geometry = Geometry {

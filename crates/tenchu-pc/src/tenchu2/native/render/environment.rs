@@ -26,6 +26,7 @@ pub(super) struct Environment {
     spray: crate::visuals::water::Spray,
     pub contact: crate::visuals::contact::Contact,
     pub blood: crate::visuals::blood::Blood,
+    blood_pools_changed: bool,
     blood_serial: usize,
     player_pool_age: Option<u64>,
 }
@@ -80,6 +81,7 @@ impl Environment {
             spray: crate::visuals::water::Spray::new(&water),
             contact: Default::default(),
             blood: Default::default(),
+            blood_pools_changed: false,
             blood_serial: 0,
             player_pool_age: None,
         }
@@ -99,6 +101,7 @@ impl Environment {
         replacement.contact = std::mem::take(&mut self.contact);
         replacement.thunder = self.thunder.take();
         replacement.blood = std::mem::take(&mut self.blood);
+        replacement.blood_pools_changed = self.blood_pools_changed;
         replacement.blood_serial = self.blood_serial;
         replacement.player_pool_age = self.player_pool_age;
         *self = replacement;
@@ -112,6 +115,10 @@ impl Environment {
 
     pub fn clear_footprints(&mut self) {
         self.footprints.clear();
+    }
+
+    pub fn configure_blood(&mut self, settings: &crate::settings::Blood) {
+        self.blood_pools_changed |= self.blood.configure_ground(settings);
     }
 
     pub fn update(
@@ -193,8 +200,9 @@ impl Environment {
         }
         if let Some((_, assets)) = world {
             let image = assets.sprites.effects[2];
-            let pools_changed =
-                self.blood
+            let pools_changed = std::mem::take(&mut self.blood_pools_changed)
+                | self
+                    .blood
                     .ground_tick(tick, &self.surfaces, &[image; 3], &graphics.blood);
             if let Some(history) = frame.contact {
                 use super::super::contact::blood::Phase;

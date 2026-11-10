@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
-pub(crate) struct Wound {
+pub(super) struct Wound {
     pub part: Part,
     pub position: Vec3,
     pub normal: Vec3,
@@ -9,6 +9,36 @@ pub(crate) struct Wound {
 }
 
 impl Blood {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn wound_parts(&self) -> impl Iterator<Item = Part> + '_ {
+        self.wounds.iter().map(|wound| wound.part)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn advance_wounds(
+        &mut self,
+        tick: u64,
+        transforms: &BTreeMap<Part, Matrix>,
+        surfaces: &Surfaces,
+        images: &[tenchu_assets::texture::Image],
+    ) -> Vec<tenchu_core::math::Position> {
+        self.sounds.clear();
+        let settings = self.settings;
+        self.emit_wounds(tick, &settings, transforms);
+        self.advance_drops(
+            tick,
+            images,
+            &Receivers {
+                world: surfaces,
+                hinges: Vec::new(),
+            },
+        );
+        self.sounds
+            .drain(..)
+            .map(|(position, _)| position)
+            .collect()
+    }
+
     pub(super) fn emit_wounds(
         &mut self,
         tick: u64,

@@ -472,28 +472,13 @@ impl Application {
             }
         }
         timing.prepare += phase.elapsed().as_secs_f32() * 1000.0;
-        if let Some(audio) = &self.audio {
-            let (ambience, thunder) = native
-                .drawing
-                .as_mut()
-                .unwrap()
-                .weather_audio(&graphics.weather);
-            let (_, accelerated) = input.pacing(&native.playback.content);
-            audio
-                .output()
-                .send(crate::audio::output::Command::Ambience(if accelerated {
-                    Default::default()
-                } else {
-                    ambience
-                }));
-            audio
-                .output()
-                .send(crate::audio::output::Command::Thunder(if accelerated {
-                    None
-                } else {
-                    thunder
-                }));
-        }
+        let (_, accelerated) = input.pacing(&native.playback.content);
+        native.drawing.as_mut().unwrap().presentation_audio(
+            &native.playback.content,
+            &graphics.weather,
+            accelerated,
+            self.audio.as_ref().map(|audio| audio.output()),
+        )?;
         view.window.set_title(&format!(
             "Tenchu 2 Japan · sequence {} · tick {}",
             native.playback.run.sequence,

@@ -11,6 +11,16 @@ pub(crate) struct SurfacePool {
 }
 
 impl Blood {
+    pub(crate) fn configure_ground(&mut self, settings: &settings::Blood) -> bool {
+        let pools_changed = self.settings.player_death != settings.player_death
+            || self.settings.death != settings.death
+            || self.settings.death_size != settings.death_size
+            || self.settings.retain_original != settings.retain_original
+            || self.settings.amount != settings.amount;
+        self.configure(settings);
+        pools_changed
+    }
+
     pub(crate) fn ground_tick(
         &mut self,
         tick: u64,
@@ -18,12 +28,7 @@ impl Blood {
         images: &[Image],
         settings: &settings::Blood,
     ) -> bool {
-        let pools_changed = self.settings.player_death != settings.player_death
-            || self.settings.death != settings.death
-            || self.settings.death_size != settings.death_size
-            || self.settings.retain_original != settings.retain_original
-            || self.settings.amount != settings.amount;
-        self.configure(settings);
+        let pools_changed = self.configure_ground(settings);
         let start = self
             .tick
             .map_or(tick, |old| (old + 1).max(tick.saturating_sub(29)));
