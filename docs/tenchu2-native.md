@@ -61,7 +61,12 @@ cutscenes. Original material fingerprints identify the lit panels; unlit stone
 lanterns and bright walls stay unlit. Their source positions remain available
 outside the native draw list, so moving the camera does not activate them.
 Fog-off and free-camera views also draw distant static props; the original
-simulation still decides when interactive objects update.
+simulation still decides when interactive objects update. **Graphics → Distant
+doors without fog** also draws dormant doors and collapsing platforms when fog
+is off or extended, or a custom camera is active. Opening/destroyed objects keep
+their current source poses; collision and triggers remain source-controlled.
+Disable the option to restore source drawing. Moving props also cast dynamic
+shadows in gameplay and 3D cutscenes.
 Artwork packs can override the same light rules as Gaisen. Modern High/Ultra
 already enable this setting; Original keeps dynamic lighting off.
 

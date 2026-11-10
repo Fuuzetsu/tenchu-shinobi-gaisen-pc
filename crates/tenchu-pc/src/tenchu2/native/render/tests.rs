@@ -95,6 +95,7 @@ fn native_backgrounds_stay_behind_the_scene() {
                 }
                 if mode == "background" {
                     geometry.terrain.clear();
+                    geometry.props.clear();
                     geometry.actors.clear();
                     geometry.effects.vertices.clear();
                     geometry.effects.batches.clear();
@@ -2275,4 +2276,167 @@ fn native_lamps_use_shared_lighting_without_changing_source_state() {
             "lamps did not cast shadows in map {map}"
         );
     }
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; dormant doors draw without activation and join moving shadow casters"]
+fn native_distant_doors_render_without_waking_source_objects() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let layouts = tenchu_assets::tenchu2::layout::Layout::available(&disc).unwrap();
+    let (session, door) = [1, 4, 12, 15]
+        .into_iter()
+        .find_map(|map| {
+            let sequence = layouts.iter().find(|l| l.map == map).unwrap().sequence;
+            let mut session = super::super::Session::load(&disc, sequence, 1).unwrap();
+            for _ in 0..30 {
+                session.step(0).unwrap();
+            }
+            let door = scenery::distant_doors(
+                &session.world,
+                &session.assets.level,
+                &session.frame.scenery,
+            )
+            .find(|model| {
+                matches!(model.source, tenchu_core::tenchu2::environment::scenery::Source::Object(index)
+                    if session.assets.level.scene.dynamic[index].kind <= 2)
+            });
+            door.map(|door| (session, door))
+        })
+        .expect("fixture with a dormant door");
+    eprintln!("distant door: map {}, {:?}", session.assets.level.id, door);
+    let matrix = Matrix {
+        translation: door.position,
+        rotation: session.assets.resources.math.rotate_yxz(door.rotation),
+    };
+    let vertices: Vec<_> = session.assets.level.objects[door.model]
+        .geometry
+        .iter()
+        .flat_map(|g| &g.vertices)
+        .collect();
+    let min: [i16; 3] = std::array::from_fn(|axis| vertices.iter().map(|v| v[axis]).min().unwrap());
+    let max: [i16; 3] = std::array::from_fn(|axis| vertices.iter().map(|v| v[axis]).max().unwrap());
+    let center: [i16; 3] =
+        std::array::from_fn(|axis| ((i32::from(min[axis]) + i32::from(max[axis])) / 2) as i16);
+    let mut eye = center;
+    eye[if max[0] - min[0] < max[2] - min[2] {
+        0
+    } else {
+        2
+    }] += 5000;
+    eye[1] -= 500;
+    let target = Vec3::from(matrix.transform(center).map(|v| v as f32).to_array());
+    let position = Vec3::from(matrix.transform(eye).map(|v| v as f32).to_array());
+    let direction = (target - position).normalize();
+    let camera = crate::debug::camera::Camera {
+        position,
+        yaw: direction.x.atan2(direction.z),
+        pitch: (-direction.y).asin(),
+        fov: 43.6,
+    };
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    let mut images = Vec::new();
+    let mut prop_counts = Vec::new();
+    for enabled in [false, true, false] {
+        let graphics = Graphics {
+            fog: false,
+            distant_doors: enabled,
+            asset_pack: false,
+            ..Default::default()
+        };
+        let path = output.join(format!("jp-distant-door-{}.png", images.len()));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
+            let geometry = models.geometry(
+                &session.world,
+                &session.assets,
+                &session.frame,
+                &graphics,
+                Presentation {
+                    camera: Some(camera),
+                    ..Default::default()
+                },
+            )?;
+            prop_counts.push(geometry.props.len());
+            assert!(
+                geometry
+                    .props
+                    .iter()
+                    .all(|v| v.flags & render_mesh::SCENERY != 0)
+            );
+            Ok((
+                SceneDrawing::new(geometry, renderer, &session.assets.level),
+                camera.source_view(),
+                Vec::new(),
+            ))
+        })
+        .unwrap();
+        images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+        assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+    }
+    assert!(prop_counts[1] > prop_counts[0]);
+    assert!(
+        images[0] != images[1],
+        "distant door is not visible in the fixture camera"
+    );
+    assert!(
+        images[0] == images[2],
+        "door toggle did not restore original draw list"
+    );
+    images.clear();
+    for shadows in [false, true] {
+        let mut graphics = Graphics {
+            fog: false,
+            asset_pack: false,
+            ..Default::default()
+        };
+        graphics.lighting.enabled = true;
+        graphics.lighting.fires = false;
+        graphics.lighting.lamps = false;
+        graphics.lighting.shadows = shadows;
+        graphics.lighting.ambient = 10;
+        let path = output.join(format!("jp-prop-shadows-{shadows}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
+            let geometry = models.geometry(
+                &session.world,
+                &session.assets,
+                &session.frame,
+                &graphics,
+                Presentation {
+                    camera: Some(camera),
+                    ..Default::default()
+                },
+            )?;
+            let mut scene = SceneDrawing::new(geometry, renderer, &session.assets.level);
+            scene.lighting.debug_light =
+                Some(target - (position - target) * 0.6 - Vec3::Y * 1500.0);
+            let mut environment = environment::Environment::new(
+                &session.assets.level,
+                &models.scenery,
+                &session.assets.resources.math,
+                renderer,
+            );
+            // Isolate the moving-prop caster from terrain and actor shadows.
+            environment.caster = renderer.upload_shadow(&[]);
+            scene.actors = renderer.upload(&[]);
+            scene.environment = Some(environment);
+            Ok((scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+    }
+    let changed = images[0]
+        .rgba
+        .chunks_exact(4)
+        .zip(images[1].rgba.chunks_exact(4))
+        .filter(|(a, b)| a != b)
+        .count();
+    assert!(
+        changed > 100,
+        "moving props did not cast shadows ({changed} pixels)"
+    );
+    assert!(postcard::to_allocvec(&session.world).unwrap() == before);
 }

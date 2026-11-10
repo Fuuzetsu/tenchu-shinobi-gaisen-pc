@@ -12,6 +12,8 @@ impl Runtime {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. T2 bindings still apply: Circle guards, R1 crouches. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
             "Add a pool beneath the player's finished, grounded corpse when the native death has no pool. Uses the death style, size and retention settings. Existing source pools still follow Death pool / star; this option does not duplicate them."
+        } else if self == Self::Tenchu2 && item == Item::DistantDoors {
+            "Draw doors and collapsing platforms outside the source camera's range when fog is disabled or extended, or while using a custom camera. Current positions and destroyed objects are respected. Collision, triggers and activation stay unchanged. Off restores source drawing."
         } else {
             fallback
         }
@@ -64,7 +66,7 @@ impl Runtime {
             | NightAmbient
             | SunPath
             | DayRelighting => None,
-            LampLights => None,
+            LampLights | DistantDoors => None,
             Weather | WeatherAmount | WeatherWind | WeatherHeading | WeatherQuality
             | WeatherDistance | Wetness | RainReflections | PuddleCoverage | PoolingSpeed
             | RainHaze | RainStreaks | SnowCover | SnowDrift | Footprints | FootprintSeconds

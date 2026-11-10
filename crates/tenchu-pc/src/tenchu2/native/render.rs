@@ -33,6 +33,7 @@ mod environment;
 mod hud;
 mod lamps;
 pub(super) mod lighting;
+mod scenery;
 mod story;
 #[cfg(test)]
 mod tests;
@@ -52,6 +53,7 @@ pub struct Drawing {
 struct SceneDrawing {
     backgrounds: Vec<crate::renderer::EffectMesh>,
     terrain: crate::renderer::Mesh,
+    props: crate::renderer::Mesh,
     actors: crate::renderer::Mesh,
     effects: crate::renderer::EffectMesh,
     environment: Option<environment::Environment>,
@@ -382,6 +384,7 @@ impl SceneDrawing {
                 .map(|g| renderer.upload_effects(g))
                 .collect(),
             terrain: renderer.upload(&geometry.terrain),
+            props: renderer.upload(&geometry.props),
             actors: renderer.upload(&geometry.actors),
             effects: renderer.upload_effects(geometry.effects),
             environment: None,
@@ -399,6 +402,7 @@ impl SceneDrawing {
             renderer.update_effects(mesh, geometry);
         }
         renderer.update_mesh(&mut self.terrain, &mut geometry.terrain);
+        renderer.update_mesh(&mut self.props, &mut geometry.props);
         renderer.update_mesh(&mut self.actors, &mut geometry.actors);
         renderer.update_effects(&mut self.effects, geometry.effects);
     }
@@ -431,7 +435,7 @@ impl SceneDrawing {
             target,
             camera,
             crate::renderer::SceneMeshes {
-                terrain: &[&self.terrain],
+                terrain: &[&self.terrain, &self.props],
                 actors: &[&self.actors],
                 backgrounds: &self.backgrounds,
             },
@@ -440,7 +444,7 @@ impl SceneDrawing {
             &self
                 .environment
                 .as_ref()
-                .map_or_else(Vec::new, |e| vec![&e.caster, &self.actors]),
+                .map_or_else(Vec::new, |e| vec![&e.caster, &self.props, &self.actors]),
         )
     }
 }
@@ -519,6 +523,7 @@ pub struct Geometry {
     lamps: Vec<crate::lighting::Source>,
     pub backgrounds: Vec<render_effects::Geometry>,
     pub terrain: Vec<Vertex>,
+    pub props: Vec<Vertex>,
     pub actors: Vec<Vertex>,
     pub effects: render_effects::Geometry,
 }
@@ -779,24 +784,22 @@ impl Models {
             }
         }
         for model in &frame.scenery.models {
-            if distant_props && model.static_index.is_some() {
+            if distant_props
+                && matches!(
+                    model.source,
+                    tenchu_core::tenchu2::environment::scenery::Source::Static(_)
+                )
+            {
                 continue;
             }
-            let part = if model.stump {
-                assets.level.stumps.get(&model.model)
-            } else {
-                assets.level.objects.get(model.model)
+            output.scenery(&self.scenery, &assets.level, math, model)?;
+        }
+        if graphics.distant_doors
+            && (!graphics.fog || graphics.fog_distance > 100 || camera.is_some())
+        {
+            for model in scenery::distant_doors(world, &assets.level, &frame.scenery) {
+                output.scenery(&self.scenery, &assets.level, math, &model)?;
             }
-            .ok_or("Missing native scenery model")?;
-            output.model(
-                &self.scenery,
-                part,
-                Matrix {
-                    translation: model.position,
-                    rotation: math.rotate_yxz(model.rotation),
-                },
-                ModelStyle::Terrain,
-            );
         }
         // Presentation must not refresh the simulation's cached coordinate matrices.
         let mut scene = world.scene.clone();
@@ -1277,6 +1280,7 @@ impl Models {
                 world.tick,
             ),
             terrain: output.terrain,
+            props: output.props,
             actors: output.actors,
             effects,
         })
@@ -1317,18 +1321,50 @@ struct Builder {
     fog_start: Option<i32>,
     surfaces: Vec<Surface>,
     terrain: Vec<Vertex>,
+    props: Vec<Vertex>,
     actors: Vec<Vertex>,
 }
 
 #[derive(Clone, Copy)]
 enum ModelStyle {
     Terrain,
+    Prop,
     Actor,
     Concealed,
     Imported { concealed: bool },
 }
 
 impl Builder {
+    fn scenery(
+        &mut self,
+        meshes: &Meshes,
+        level: &Level,
+        math: &tenchu_core::math::Math,
+        model: &tenchu_core::tenchu2::environment::scenery::Model,
+    ) -> Result<()> {
+        let part = if model.stump {
+            level.stumps.get(&model.model)
+        } else {
+            level.objects.get(model.model)
+        }
+        .ok_or("Missing native scenery model")?;
+        self.model(
+            meshes,
+            part,
+            Matrix {
+                translation: model.position,
+                rotation: math.rotate_yxz(model.rotation),
+            },
+            match model.source {
+                tenchu_core::tenchu2::environment::scenery::Source::Static(_) => {
+                    ModelStyle::Terrain
+                }
+                tenchu_core::tenchu2::environment::scenery::Source::Object(_) => ModelStyle::Prop,
+            },
+        );
+        Ok(())
+    }
+
     fn new(view: Matrix, level: &Level, graphics: &Graphics) -> Self {
         Self {
             view,
@@ -1339,6 +1375,7 @@ impl Builder {
             }),
             surfaces: Vec::new(),
             terrain: Vec::new(),
+            props: Vec::new(),
             actors: Vec::new(),
         }
     }
@@ -1384,7 +1421,7 @@ impl Builder {
     }
 
     fn model(&mut self, meshes: &Meshes, part: &Part, matrix: Matrix, style: ModelStyle) {
-        let terrain = matches!(style, ModelStyle::Terrain);
+        let terrain = matches!(style, ModelStyle::Terrain | ModelStyle::Prop);
         meshes.visit(&part.geometry, matrix, false, 0, None, |triangle| {
             let mut triangle = triangle.map(|v| *v);
             let depths = triangle.map(|v| self.depth(v.position).max(0.0) as i32 >> 4);
@@ -1425,7 +1462,9 @@ impl Builder {
                 }
             }
             if triangle[0].flags & render_mesh::TRANSLUCENT == 0 {
-                if terrain {
+                if matches!(style, ModelStyle::Prop) {
+                    self.props.extend(triangle);
+                } else if terrain {
                     self.terrain.extend(triangle);
                 } else {
                     self.actors.extend(triangle);

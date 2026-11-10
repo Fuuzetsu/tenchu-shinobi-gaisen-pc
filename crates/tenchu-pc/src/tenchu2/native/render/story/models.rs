@@ -187,7 +187,7 @@ impl Models {
                     translation: object.position.into(),
                     rotation: math.rotate_yxz([0, object.facing, 0]),
                 },
-                ModelStyle::Terrain,
+                ModelStyle::Prop,
             );
         }
         for (slot, animation) in resources.script.actors.iter().enumerate() {
@@ -242,6 +242,7 @@ impl Models {
                     story.state.frame.max(0) as u32,
                 ),
                 terrain: output.terrain,
+                props: output.props,
                 actors: output.actors,
                 effects: render_effects::surface_geometry(output.surfaces),
             },

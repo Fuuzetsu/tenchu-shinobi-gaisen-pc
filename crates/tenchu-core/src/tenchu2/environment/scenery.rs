@@ -1,4 +1,4 @@
-use super::{Context, Environment, Event, Events};
+use super::{Context, Environment, Event, Events, Object};
 use crate::{
     Result,
     math::{Matrix, Position, Vector3},
@@ -31,11 +31,37 @@ impl Default for Fire {
 
 #[derive(Clone, Debug)]
 pub struct Model {
-    pub static_index: Option<usize>,
+    pub source: Source,
     pub model: usize,
     pub stump: bool,
     pub position: Position,
     pub rotation: [i16; 3],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    Static(usize),
+    Object(usize),
+}
+
+impl Model {
+    pub fn object(index: usize, object: &Object) -> Option<Self> {
+        Some(Self {
+            source: Source::Object(index),
+            model: object.model?,
+            stump: false,
+            position: object.position,
+            rotation: [
+                if object.kind == 9 {
+                    object.roll as i16
+                } else {
+                    0
+                },
+                object.yaw,
+                0,
+            ],
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -88,7 +114,7 @@ impl Environment {
                     if input.view.object(position, input.level.object_sizes[model]) =>
                 {
                     frame.models.push(Model {
-                        static_index: Some(index),
+                        source: Source::Static(index),
                         model,
                         stump: false,
                         position,
@@ -208,7 +234,7 @@ impl Environment {
                 });
                 if object.clock == 1 {
                     frame.models.push(Model {
-                        static_index: None,
+                        source: Source::Object(index),
                         model,
                         stump: false,
                         position: object.position,
@@ -219,7 +245,7 @@ impl Environment {
                         c.sound(object.position, 0x2d)?;
                     }
                     frame.models.push(Model {
-                        static_index: None,
+                        source: Source::Object(index),
                         model,
                         stump: true,
                         position: object.position,
@@ -247,7 +273,7 @@ impl Environment {
                         1024
                     };
                     frame.models.push(Model {
-                        static_index: None,
+                        source: Source::Object(index),
                         model,
                         stump: false,
                         position,
@@ -255,21 +281,9 @@ impl Environment {
                     });
                 }
             } else {
-                frame.models.push(Model {
-                    static_index: None,
-                    model,
-                    stump: false,
-                    position: object.position,
-                    rotation: [
-                        if object.kind == 9 {
-                            object.roll as i16
-                        } else {
-                            0
-                        },
-                        object.yaw,
-                        0,
-                    ],
-                });
+                frame.models.push(
+                    Model::object(index, object).ok_or("Missing Tenchu 2 visible object model")?,
+                );
                 if object.kind == 18 {
                     let offset = input.level.scene.bounds[model].offset[1];
                     let size = match offset {

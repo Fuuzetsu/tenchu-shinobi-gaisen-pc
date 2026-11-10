@@ -16,6 +16,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
     crate::settings::Graphics {
         fog: g.fog,
         fog_distance: g.fog_distance,
+        distant_doors: g.distant_doors,
         textures: g.textures,
         shading: g.shading,
         exposure: g.exposure,
