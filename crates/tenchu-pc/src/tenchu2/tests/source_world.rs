@@ -528,7 +528,7 @@ fn japanese_scene_variants_keep_all_object_records() {
                 .count();
             triggers += scene.triggers.len();
             for object in &scene.dynamic {
-                assert!(!level.objects[object.model].geometry.is_empty());
+                assert!(!level.objects[object.model.unwrap()].geometry.is_empty());
                 if let Some(trigger) = object.trigger {
                     assert!(matches!(scene.triggers[trigger].kind, 0..=5));
                 }

@@ -79,8 +79,9 @@ pub(super) fn sources(
         }
     } else {
         for object in &level.scene.dynamic {
+            let Some(model) = object.model else { continue };
             append(
-                &level.objects[object.model],
+                &level.objects[model],
                 Matrix {
                     translation: object.position.into(),
                     rotation: math.rotate_yxz([0, object.facing, 0]),

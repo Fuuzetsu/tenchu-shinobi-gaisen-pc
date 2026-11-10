@@ -419,7 +419,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nExperimental T1 stage mode: --gaisen GAISEN.cue --stage 0 --hero 0 --layout 1\nT1 scenery with T2 actors, AI, movement, HUD and results. Doors, hazards and pickups are still being connected. Requires both discs.\nF1 shows current native JP feature availability. Normal play-t2 and F6 also use native JP by default for Japanese discs."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nExperimental T1 stage mode: --gaisen GAISEN.cue --stage 0 --hero 0 --layout 1\nT1 scenery and doors with T2 actors, AI, movement, HUD and results. Hazards and pickups are still being connected. Requires both discs.\nF1 shows current native JP feature availability. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }

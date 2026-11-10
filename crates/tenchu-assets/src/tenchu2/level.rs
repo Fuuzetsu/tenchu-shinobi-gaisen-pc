@@ -153,15 +153,13 @@ impl Level {
         let scene = Objects::parse(&read(layout)?, variant, objects.len())?;
         let mut stumps = std::collections::BTreeMap::new();
         for object in scene.dynamic.iter().filter(|o| o.kind == 14) {
-            if let std::collections::btree_map::Entry::Vacant(entry) = stumps.entry(object.model) {
+            let model = object.model.ok_or("Missing Tenchu 2 tree model")?;
+            if let std::collections::btree_map::Entry::Vacant(entry) = stumps.entry(model) {
                 entry.insert(Part {
                     parent: -1,
                     child: -1,
                     position: [0; 3],
-                    geometry: vec![model::stump(crate::model::arc_entry(
-                        &archive,
-                        object.model,
-                    )?)?],
+                    geometry: vec![model::stump(crate::model::arc_entry(&archive, model)?)?],
                 });
             }
         }

@@ -71,7 +71,7 @@ pub struct Dynamic {
     pub position: [i32; 3],
     pub facing: i16,
     pub kind: u16,
-    pub model: usize,
+    pub model: Option<usize>,
     pub trigger: Option<usize>,
 }
 
@@ -147,7 +147,7 @@ impl Objects {
                 position: position(row)?,
                 facing: i16::from(row[6]) * 16,
                 kind,
-                model,
+                model: Some(model),
                 trigger,
             });
         }

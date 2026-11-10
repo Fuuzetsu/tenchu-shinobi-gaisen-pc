@@ -1,4 +1,5 @@
 use super::*;
+mod objects;
 use tenchu_assets::{
     stage::MissionAssets,
     tenchu2::{
@@ -184,14 +185,25 @@ impl Assets {
                     kind: StaticKind::Model(p.part),
                 })
                 .collect(),
-            triggers: vec![Trigger {
-                position: [0; 3],
-                angle: 0,
-                kind: 19,
-                target: 0,
-            }],
+            triggers: vec![
+                Trigger {
+                    position: [0; 3],
+                    angle: 0,
+                    kind: 19,
+                    target: 0,
+                },
+                // ACM damage floors reserve material 0x401. Keep that slot
+                // inactive until their native effect adapter is connected.
+                Trigger {
+                    position: [0; 3],
+                    angle: 0,
+                    kind: -1,
+                    target: 0,
+                },
+            ],
         };
         level.grid = grid(source)?;
+        self.import_doors(source)?;
         Ok(())
     }
 }

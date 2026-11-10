@@ -42,6 +42,14 @@ The counterpart selection and provisional clear-the-guards objective are new
 optional-mode choices. No additional game data or sibling code is copied into
 the repository.
 
+The door adapter uses the original `DoorData` model slots, closed hinge offsets
+and CON rotations. The existing T2 contact and trigger routines own opening,
+including the terminal 33rd step and native sound. Missing T1 siblings remain
+empty object slots so paired native triggers retain their original update order.
+Imported bounds encode the leaf's local-X center for T2's two offset components;
+meshes and `common/{id}` replacement identities are preserved. The T1 opening
+controller and its shrinking hinge offset are not used in this optional mode.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |
@@ -49,6 +57,9 @@ Read-only references rechecked for this adapter:
 | `tenchu-decomp` | `src/main.exe/CONFLICT.C` | `1a154bd6647260b35cd0af5d38c7c42cd85490e2cd12c92340d2b7095eceeee9` |
 | `tenchu-viewer` | `src/collision.rs` | `738fcee9ad44e304ddfb017eb4633e0b6b1ef788bff2f552d5f7012c7e20ffa1` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/native/terrain.c` | `75be1d3e10ccc68ddd8da17d508ecd500bf5fbb044971259bd2862908a1bb18c` |
+| `tenchu-decomp` | `src/main.exe/MISC.C` | `6460e4ee09a9c4764b9842013ecacaa5abf0551c8729357a9e18ba2de9ef4455` |
+| `tenchu-viewer` | `src/doors.rs` | `cbce5960352c61e09f65783ced7e12222329c1b0d4620aea1dcf2ac156381ed0` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/misc.rs` | `270e0d5c5b8a71ae29a625acce5e9e594bef984db25e532b61270b7d69776d66` |
 
 ## Asset, scalar and renderer checkpoint (2026-10-20)
 

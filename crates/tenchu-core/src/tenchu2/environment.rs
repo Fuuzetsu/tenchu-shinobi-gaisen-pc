@@ -153,23 +153,25 @@ impl Environment {
             .dynamic
             .iter()
             .map(|s| {
-                let bounds = assets
-                    .bounds
-                    .get(s.model)
-                    .ok_or("Missing Tenchu 2 object bounds")?;
-                let [sin, cos] = math.pair(s.facing.wrapping_add(1024));
                 let mut position = Position::from(s.position);
-                position.x = position
-                    .x
-                    .wrapping_add((((sin >> 7) * i32::from(bounds.offset[2])) >> 5) as i16 as i32);
-                position.z = position
-                    .z
-                    .wrapping_add((((cos >> 7) * i32::from(bounds.offset[0])) >> 5) as i16 as i32);
-                position.y = position.y.wrapping_add(if s.kind == 9 {
-                    500
-                } else {
-                    i32::from(bounds.offset[1])
-                });
+                if let Some(model) = s.model {
+                    let bounds = assets
+                        .bounds
+                        .get(model)
+                        .ok_or("Missing Tenchu 2 object bounds")?;
+                    let [sin, cos] = math.pair(s.facing.wrapping_add(1024));
+                    position.x = position.x.wrapping_add(
+                        (((sin >> 7) * i32::from(bounds.offset[2])) >> 5) as i16 as i32,
+                    );
+                    position.z = position.z.wrapping_add(
+                        (((cos >> 7) * i32::from(bounds.offset[0])) >> 5) as i16 as i32,
+                    );
+                    position.y = position.y.wrapping_add(if s.kind == 9 {
+                        500
+                    } else {
+                        i32::from(bounds.offset[1])
+                    });
+                }
                 Ok(Object {
                     cell: level.grid.object_cell(position.to_array())?,
                     coordinate: scene.add(
@@ -182,7 +184,7 @@ impl Environment {
                     position: s.position.into(),
                     yaw: s.facing,
                     roll: 0,
-                    model: Some(s.model),
+                    model: s.model,
                     kind: s.kind as i16,
                     link: s.trigger.map_or(0, |n| n as i16),
                     clock: 0,

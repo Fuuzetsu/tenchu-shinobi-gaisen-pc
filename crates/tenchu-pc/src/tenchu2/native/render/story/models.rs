@@ -181,9 +181,10 @@ impl Models {
             output.model(&self.terrain, part, matrix, ModelStyle::Terrain);
         }
         for object in &level.scene.dynamic {
+            let Some(model) = object.model else { continue };
             output.model(
                 &self.terrain,
-                &level.objects[object.model],
+                &level.objects[model],
                 Matrix {
                     translation: object.position.into(),
                     rotation: math.rotate_yxz([0, object.facing, 0]),

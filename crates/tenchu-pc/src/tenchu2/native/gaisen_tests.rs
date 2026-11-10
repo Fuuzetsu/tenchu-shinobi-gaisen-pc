@@ -1,6 +1,8 @@
 use super::*;
 use tenchu_assets::{game::GameAssets, stage::MissionAssets};
 
+mod doors;
+
 #[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; imports original terrain, scenery and placements into all three native controllers"]
 fn gaisen_stages_load_and_advance_native_worlds() {
@@ -27,7 +29,10 @@ fn gaisen_stages_load_and_advance_native_worlds() {
             .unwrap_or_else(|e| panic!("stage {stage} hero {hero}: {e}"));
             assert_eq!(session.assets.level.gaisen.as_ref().unwrap().id, stage);
             assert_eq!(session.assets.level.map, *source.map);
-            assert_eq!(session.assets.level.objects, *source.objects);
+            assert_eq!(
+                &session.assets.level.objects[..source.objects.len()],
+                source.objects.as_slice()
+            );
             for actor in &session.world.actors {
                 let definition = session
                     .assets

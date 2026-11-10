@@ -744,11 +744,12 @@ impl Models {
                 model.id = if index < assets.level.map.len() {
                     format!("stages/{}/map/{index}", stage.directory)
                 } else {
-                    format!(
-                        "stages/{}/objects/{}",
-                        stage.directory,
-                        index - assets.level.map.len()
-                    )
+                    let object = index - assets.level.map.len();
+                    assets
+                        .object_sources
+                        .get(&object)
+                        .cloned()
+                        .unwrap_or_else(|| format!("stages/{}/objects/{object}", stage.directory))
                 };
             }
         }
