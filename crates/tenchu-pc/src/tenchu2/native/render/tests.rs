@@ -2084,3 +2084,111 @@ fn native_death_pools_share_styles_and_keep_source_timing() {
         .unwrap();
     }
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; optional player pools, selected artwork, live toggle, rebuild/cache and clear"]
+fn native_player_pool_uses_shared_death_styles_and_completed_pose() {
+    use crate::settings::BloodStyle;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::tests::player_corpse(&disc, 119, true);
+    session.frame.fade = None;
+    session.frame.transition_fade = None;
+    let corpse = session.contact.player_corpse.unwrap();
+    let center = Vec3::from(corpse.position.to_array().map(|v| v as f32));
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    camera.pitch = -0.8;
+    camera.position = center - camera.forward() * 3200.0;
+    let state = postcard::to_allocvec(&session.world).unwrap();
+    let mut images = Vec::new();
+    for (mode, style, enabled) in [
+        ("off", BloodStyle::Original, false),
+        ("original", BloodStyle::Original, true),
+        ("hd", BloodStyle::OriginalHd, true),
+        ("modern", BloodStyle::Modern, true),
+        ("restored", BloodStyle::Modern, true),
+        ("cleared", BloodStyle::Modern, true),
+    ] {
+        let mut graphics = Graphics {
+            fog: false,
+            asset_pack: false,
+            ..Default::default()
+        };
+        graphics.blood.death = style;
+        graphics.blood.player_death = enabled;
+        let path = output.join(format!("jp-player-pool-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            if enabled {
+                let environment = drawing.scene.environment.as_ref().unwrap();
+                let blood = &environment.blood;
+                assert!(
+                    blood.pages().next().is_some() || !blood.pool_geometry().vertices.is_empty()
+                );
+                let saved = postcard::to_allocvec(blood).unwrap();
+                drawing.update(&session, renderer, None)?;
+                let mut rebuilt = Drawing::new(&session, &graphics, renderer)?;
+                rebuilt.camera = Some(camera);
+                rebuilt.show_hud = false;
+                rebuilt.preserve_environment(&mut drawing);
+                rebuilt.update(&session, renderer, None)?;
+                assert!(
+                    postcard::to_allocvec(&rebuilt.scene.environment.as_ref().unwrap().blood)
+                        .unwrap()
+                        == saved,
+                    "paused/rebuilt player pool changed"
+                );
+                drawing = rebuilt;
+                if mode == "restored" {
+                    let mut original = graphics.clone();
+                    original.blood = Default::default();
+                    renderer.configure(&original);
+                    drawing.update(&session, renderer, None)?;
+                } else if mode == "cleared" {
+                    drawing.clear_blood();
+                    drawing.update(&session, renderer, None)?;
+                    assert!(
+                        drawing
+                            .scene
+                            .environment
+                            .as_ref()
+                            .unwrap()
+                            .blood
+                            .pages()
+                            .next()
+                            .is_none()
+                    );
+                }
+            }
+            assert!(postcard::to_allocvec(&session.world).unwrap() == state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    for i in 0..4 {
+        for j in i + 1..4 {
+            assert!(
+                images[i] != images[j],
+                "player blood styles {i}/{j} have no visible difference"
+            );
+        }
+    }
+    assert!(
+        images[0] == images[4],
+        "player toggle failed to restore Original"
+    );
+    assert!(
+        images[0] == images[5],
+        "clearing recreated the player's pool"
+    );
+}

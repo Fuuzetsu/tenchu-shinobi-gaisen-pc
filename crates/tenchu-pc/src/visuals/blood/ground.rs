@@ -2,6 +2,14 @@ use super::*;
 use glam::Vec2;
 use tenchu_assets::texture::Image;
 
+pub(crate) struct SurfacePool {
+    pub id: usize,
+    pub player: bool,
+    pub corners: [Vec3; 4],
+    pub image: Image,
+    pub finished: bool,
+}
+
 impl Blood {
     pub(crate) fn ground_tick(
         &mut self,
@@ -10,7 +18,8 @@ impl Blood {
         images: &[Image],
         settings: &settings::Blood,
     ) -> bool {
-        let pools_changed = self.settings.death != settings.death
+        let pools_changed = self.settings.player_death != settings.player_death
+            || self.settings.death != settings.death
             || self.settings.death_size != settings.death_size
             || self.settings.retain_original != settings.retain_original
             || self.settings.amount != settings.amount;
@@ -105,15 +114,15 @@ impl Blood {
 }
 
 impl Blood {
-    pub(crate) fn surface_pool(
-        &mut self,
-        id: usize,
-        surfaces: &Surfaces,
-        corners: [Vec3; 4],
-        image: Image,
-        finished: bool,
-    ) {
-        if !self.settings.custom_death(false)
+    pub(crate) fn surface_pool(&mut self, surfaces: &Surfaces, sample: SurfacePool) {
+        let SurfacePool {
+            id,
+            player,
+            corners,
+            image,
+            finished,
+        } = sample;
+        if !self.settings.custom_death(player)
             || self.dead.contains_key(&id) && !self.pools.contains_key(&id)
         {
             return;
@@ -161,14 +170,19 @@ impl Blood {
         } else {
             Self::project_contact(&receivers, None, hit, half_size.max_element(), seed)
         };
-        mark.1 = Kind::Death { player: false };
-        self.dead.insert(id, false);
+        mark.1 = Kind::Death { player };
+        self.dead.insert(id, player);
         if finished {
             self.pools.remove(&id);
             self.retain(mark, usize::from(self.settings.marks));
         } else {
             self.pools.insert(id, Pool { age: 0, seed, mark });
         }
+    }
+
+    pub(crate) fn forget_surface_pool(&mut self, id: usize) {
+        self.pools.remove(&id);
+        self.dead.remove(&id);
     }
 
     pub(crate) fn pool_geometry(&self) -> Geometry {

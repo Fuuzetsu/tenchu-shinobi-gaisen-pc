@@ -27,6 +27,7 @@ pub(super) struct Environment {
     pub contact: crate::visuals::contact::Contact,
     pub blood: crate::visuals::blood::Blood,
     blood_serial: usize,
+    player_pool_age: Option<u64>,
 }
 
 pub(super) struct Frame<'a> {
@@ -88,6 +89,7 @@ impl Environment {
             contact: Default::default(),
             blood: Default::default(),
             blood_serial: 0,
+            player_pool_age: None,
         }
     }
 
@@ -106,6 +108,7 @@ impl Environment {
         replacement.thunder = self.thunder.take();
         replacement.blood = std::mem::take(&mut self.blood);
         replacement.blood_serial = self.blood_serial;
+        replacement.player_pool_age = self.player_pool_age;
         *self = replacement;
     }
 
@@ -249,17 +252,46 @@ impl Environment {
                     let image = assets.sprites.effects[usize::from(image_id)];
                     if death {
                         self.blood.surface_pool(
-                            id,
                             &self.surfaces,
-                            corners,
-                            image,
-                            matches!(phase, Phase::Faded),
+                            crate::visuals::blood::SurfacePool {
+                                id,
+                                player: false,
+                                corners,
+                                image,
+                                finished: matches!(phase, Phase::Faded),
+                            },
                         );
                     } else {
                         self.blood.ground_stamp(&self.surfaces, corners, image);
                     }
                 }
                 self.blood_serial = history.blood.latest();
+                const PLAYER_POOL: usize = usize::MAX;
+                if let Some(corpse) = history.player_corpse.filter(|p| !p.source_pool) {
+                    let age = tick.saturating_sub(corpse.tick).min(39) + 1;
+                    if pools_changed || self.player_pool_age != Some(age) {
+                        self.player_pool_age = Some(age);
+                        let radius = ((age + 20) * 10) as f32;
+                        let center = Vec3::from(corpse.position.to_array().map(|n| n as f32));
+                        let corners = [(-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)]
+                            .map(|(x, z)| center + Vec3::new(x * radius, 0.0, z * radius));
+                        self.blood.surface_pool(
+                            &self.surfaces,
+                            crate::visuals::blood::SurfacePool {
+                                id: PLAYER_POOL,
+                                player: true,
+                                corners,
+                                image: assets.sprites.effects[4],
+                                finished: age == 40
+                                    && (graphics.blood.retain_original
+                                        || graphics.blood.death
+                                            == crate::settings::BloodStyle::Modern),
+                            },
+                        );
+                    }
+                } else if self.player_pool_age.take().is_some() {
+                    self.blood.forget_surface_pool(PLAYER_POOL);
+                }
             }
         }
         renderer.set_projected_decals(self.blood.projected_pages());

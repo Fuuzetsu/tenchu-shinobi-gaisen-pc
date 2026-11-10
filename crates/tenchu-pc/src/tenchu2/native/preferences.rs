@@ -30,6 +30,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
             hit: g.blood.hit,
             ground: g.blood.ground,
             death: g.blood.death,
+            player_death: g.blood.player_death,
             death_size: g.blood.death_size,
             retain_original: g.blood.retain_original,
             conform_retained: g.blood.conform_retained,

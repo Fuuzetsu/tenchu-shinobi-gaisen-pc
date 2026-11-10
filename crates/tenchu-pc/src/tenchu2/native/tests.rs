@@ -576,3 +576,102 @@ fn native_campaign_carries_state_through_story_and_boss() {
     assert_eq!(run.summary.time_tenths, 0);
     assert_eq!(run.progress.stock[0].items[4], Some(17));
 }
+
+pub(super) fn player_corpse(
+    disc: &Disc<impl ReadAt>,
+    sequence: usize,
+    training_rules: bool,
+) -> Session {
+    use tenchu_core::tenchu2::actor::{State, Velocity};
+    let mut session = Session::load(disc, sequence, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    if training_rules {
+        session.world.map = 0;
+    }
+    let player = session.world.player;
+    let actor = &mut session.world.actors[player].actor;
+    actor.health = 0;
+    actor.state = State::Dead;
+    assert!(
+        actor
+            .change_motion(0xb01, Velocity::Motion, &session.assets.resources)
+            .unwrap()
+            .is_some()
+    );
+    actor.motion.frame = 0;
+    actor.motion.loops = 0;
+    session.world.publish(player, &session.assets);
+    let mut first = None;
+    for _ in 0..300 {
+        session.step(0).unwrap();
+        let saved = postcard::to_allocvec(&session.world).unwrap();
+        session.contact.record_player(&session.world);
+        assert!(
+            postcard::to_allocvec(&session.world).unwrap() == saved,
+            "corpse presentation mutated the native world"
+        );
+        if let Some(corpse) = session.contact.player_corpse {
+            assert_eq!(
+                session.world.actors[player].actor.motion.loops,
+                i16::MIN,
+                "player pool appeared during the death animation"
+            );
+            assert_eq!(corpse.source_pool, !matches!(session.world.map, 0 | 12));
+            let start = *first.get_or_insert(corpse.tick);
+            assert_eq!(
+                start, corpse.tick,
+                "paused corpse acquisition restarted its growth"
+            );
+            if u64::from(session.world.tick) >= start + 40 {
+                break;
+            }
+        } else {
+            assert_ne!(session.world.actors[player].actor.motion.loops, i16::MIN);
+        }
+    }
+    let corpse = session
+        .contact
+        .player_corpse
+        .expect("native death never reached a settled corpse");
+    assert!(u64::from(session.world.tick) >= corpse.tick + 40);
+    session
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; all three heroes supply read-only settled corpse facts and exclude underwater/falling bodies"]
+fn native_player_pools_wait_for_source_death_and_ignore_falls_and_water() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for sequence in [9, 119, 191] {
+        let mut session = player_corpse(&disc, sequence, false);
+        let player = session.world.player;
+        let corpse = session.contact.player_corpse.unwrap();
+        let mut scene = session.world.scene.clone();
+        let torso = scene
+            .world(session.world.instances[player].rig.joints[1])
+            .unwrap()
+            .translation;
+        assert_eq!([corpse.position.x, corpse.position.z], [torso.x, torso.z]);
+        session.world.actors[player].actor.velocity.y = 10;
+        session.contact.record_player(&session.world);
+        assert!(session.contact.player_corpse.is_none());
+        session.world.actors[player].actor.velocity.y = 0;
+        session.world.actors[player].actor.motion.action = 0xb08;
+        session.contact.record_player(&session.world);
+        assert!(session.contact.player_corpse.is_none());
+        session.world.actors[player].actor.motion.action = 0xb00;
+        session.world.actors[player].actor.health = 100;
+        session.contact.record_player(&session.world);
+        assert!(session.contact.player_corpse.is_none());
+        session.world.actors[player].actor.health = 0;
+        session.world.actors[player].actor.motion.action = 0xb01;
+        session.world.map = 1;
+        session.contact.record_player(&session.world);
+        assert!(
+            session.contact.player_corpse.unwrap().source_pool,
+            "source-owned player pools must not be duplicated"
+        );
+    }
+}

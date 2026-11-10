@@ -19,6 +19,8 @@ use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
 #[cfg(not(target_arch = "wasm32"))]
 mod ground;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use ground::SurfacePool;
 mod gush;
 mod retail;
 mod runoff;

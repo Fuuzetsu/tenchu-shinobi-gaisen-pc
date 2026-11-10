@@ -310,6 +310,7 @@ impl SceneDrawing {
             || graphics.effects.splashes
             || graphics.blood.retained_ground()
             || graphics.blood.custom_death(false)
+            || graphics.blood.custom_death(true)
             || ((self.lighting.active(&graphics.lighting) || sky_light)
                 && graphics.lighting.shadows))
             && self.environment.is_none()

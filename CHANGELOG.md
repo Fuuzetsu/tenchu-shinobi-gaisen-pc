@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP can add a player death pool when the source death has none. It waits for the settled corpse pose, supports the shared death styles, size, retention and clearing, and avoids duplicating pools already created by T2.
+
 - Native Tenchu 2 JP supports Off / Original / Original HD / Modern death-pool styles, pool size and retention through the shared blood renderer. Source animation completion and pool growth are preserved, including paused style changes. Original ground splats and death pools now render from both sides, fixing missing blood caused by back-face rejection.
 
 - Native Tenchu 2 JP supports shared ground-blood styles, Original/Original HD retention, surface fitting, runoff, retention limits and clearing. Stains survive skipped rendering and model/artwork rebuilds, use cached geometry and leave hit-blood settings and gameplay independent.
