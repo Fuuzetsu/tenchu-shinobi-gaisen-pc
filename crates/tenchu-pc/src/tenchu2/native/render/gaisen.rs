@@ -3,7 +3,7 @@ use tenchu_core::game::Game;
 
 pub(super) struct Drawing {
     models: crate::visuals::models::Models,
-    arrow_flames: [u32; 4],
+    sprites: sprites::Sprites,
 }
 
 impl Drawing {
@@ -22,58 +22,17 @@ impl Drawing {
         renderer.set_asset_pack(&pack);
         renderer.update_vram(&game.mission.vram);
         models.bind(|material| renderer.bind_material(material));
-        let arrow_flames = std::array::from_fn(|i| {
-            let image = assets.sprites.effects[12 + i];
-            let region = catalog::Region {
-                page: image.page,
-                palette: image.palette,
-                rect: [
-                    u16::from(image.uv[0]),
-                    u16::from(image.uv[1]),
-                    image.size[0],
-                    image.size[1],
-                ],
-            };
-            renderer.bind_material(&crate::visuals::models::Material {
-                id: format!("tenchu2/cinematic/arrow-flame/{i}"),
-                region: None,
-                image: std::sync::Arc::new(crate::visuals::pixels::Image {
-                    size: image.size.map(u32::from),
-                    rgba: region.pixels(&assets.sprites.vram),
-                }),
-                animation: None,
-            })
-        });
-        Ok(Self {
-            models,
-            arrow_flames,
-        })
-    }
-
-    fn loose_items(
-        &self,
-        models: &Models,
-        world: &World,
-        assets: &Assets,
-        output: &mut Builder,
-    ) -> Result<()> {
-        let start = output.surfaces.len();
-        models.loose_items(world, assets, &mut world.scene.clone(), output)?;
-        // Loose meshes have detached textures already. Their flame sprites must
-        // also keep T2 artwork while the original cinematic occupies shared VRAM.
-        let phase = (world.tick.wrapping_sub(1) & 3) as usize;
-        let image = assets.sprites.effects[12 + phase];
-        for vertex in output.surfaces[start..]
-            .iter_mut()
-            .flat_map(|s| &mut s.vertices)
-        {
-            vertex.material = self.arrow_flames[phase];
-            // Sprite UVs address texel edges; retain the shader's nearest-sample bias.
-            vertex.uv = std::array::from_fn(|i| {
-                (vertex.uv[i] + 0.001 - f32::from(image.uv[i])) / f32::from(image.size[i]) - 0.5
-            });
-        }
-        Ok(())
+        let sprites = sprites::Sprites::new(
+            &assets.sprites.vram,
+            assets
+                .sprites
+                .effects
+                .iter()
+                .chain(&assets.sprites.items)
+                .copied(),
+            renderer,
+        );
+        Ok(Self { models, sprites })
     }
 }
 
@@ -92,7 +51,7 @@ impl super::Drawing {
             .source;
         let drawing = self
             .gaisen
-            .as_ref()
+            .as_mut()
             .ok_or("Missing original cinematic models")?;
         renderer.update_vram(&source.mission.vram);
         self.cinematic = true;
@@ -129,8 +88,24 @@ impl super::Drawing {
                 )?;
             }
         }
-        drawing.loose_items(&self.models, &session.world, &session.assets, &mut native)?;
-        effects.append(render_effects::surface_geometry(native.surfaces));
+        self.models.loose_items(
+            &session.world,
+            &session.assets,
+            &mut session.world.scene.clone(),
+            &mut native,
+        )?;
+        native.particles(
+            &session.world,
+            &session.assets,
+            &session.frame.effects,
+            graphics,
+            1.0,
+            true,
+        )?;
+        drawing.sprites.retain(&mut native.surfaces, renderer)?;
+        let mut native_effects = render_effects::surface_geometry(native.surfaces);
+        native_effects.append(effects);
+        effects = native_effects;
         let mut actors = render_mesh::characters_presented(
             source,
             Some(&drawing.models),
@@ -147,9 +122,10 @@ impl super::Drawing {
             effects,
         };
         let camera = camera_matrix(source.rendered_view, self.camera, renderer.size());
-        self.scene
-            .lighting
-            .update_emitters(&[], &renderer.graphics().lighting);
+        self.scene.lighting.update_emitters(
+            &session.frame.effects.emitters,
+            &renderer.graphics().lighting,
+        );
         self.scene.lighting.focus = self
             .camera
             .is_none()
@@ -190,7 +166,7 @@ mod tests {
     use tenchu_assets::script::Language;
     use tenchu_core::tenchu2::world::Options;
 
-    fn session(character: i16) -> Session {
+    pub(super) fn session(character: i16) -> Session {
         session_layout(character, 1)
     }
 
@@ -384,17 +360,20 @@ mod tests {
                 ));
                 capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
                     let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
-                    let cinematic_models =
+                    let mut cinematic_models =
                         Drawing::new(source, &session.assets, &graphics, renderer)?;
                     let mut output =
                         Builder::new(Matrix::default(), &session.assets.level, &graphics);
                     if cinematic {
-                        cinematic_models.loose_items(
-                            &models,
+                        models.loose_items(
                             &session.world,
                             &session.assets,
+                            &mut session.world.scene.clone(),
                             &mut output,
                         )?;
+                        cinematic_models
+                            .sprites
+                            .retain(&mut output.surfaces, renderer)?;
                     } else {
                         renderer.update_vram(&session.assets.sprites.vram);
                         models.loose_items(
@@ -589,3 +568,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod particles_tests;

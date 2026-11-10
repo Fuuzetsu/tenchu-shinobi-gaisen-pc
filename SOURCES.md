@@ -155,6 +155,15 @@ detached T2 artwork when source cinematics select T1 VRAM. Item simulation,
 collection and inventory remain native. The sibling `ITEM.C`, research `items.rs`
 and viewer `world_items.rs` disposal/ownership paths were rechecked read-only.
 
+Native particle presentation also reuses the existing draw path during imported
+scenes. Source sprites, points, ribbons and surface quads are reprojected through
+the cinematic camera without stepping the native effects pool. Detached sprite
+materials retain source texture identities and the shared Original HD blood
+refinement; sprite edge coordinates and HD center coordinates retain their
+respective sampling rules. Particle lights use the same frozen native emitter
+frame. Original cinematic overlays remain in front. No native particle algorithm,
+RNG schedule or gameplay timing is changed.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |

@@ -450,6 +450,11 @@ impl Renderer {
         self.materials.bind(material)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn bind_original_hd(&mut self, material: &crate::visuals::models::Material) -> u32 {
+        self.materials.bind_original_hd(material)
+    }
+
     pub fn set_material_phase(&mut self, material: u32, phase: [f32; 2]) {
         self.materials.set_phase(material, phase);
     }

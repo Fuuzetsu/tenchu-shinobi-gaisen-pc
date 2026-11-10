@@ -182,7 +182,7 @@ pub struct Materials {
     raw_shadow_pages: BTreeSet<Region>,
     shadows_dirty: bool,
     regions: BTreeMap<(Region, bool), u32>,
-    external: BTreeMap<(String, Option<tenchu_assets::texture::TextureScroll>), u32>,
+    external: BTreeMap<(String, Option<tenchu_assets::texture::TextureScroll>, bool), u32>,
     lookups: BTreeMap<(u16, u16, [u16; 4], bool), u32>,
     atlas: Atlas,
     repack: bool,
@@ -344,17 +344,26 @@ impl Materials {
     }
 
     pub fn bind(&mut self, material: &crate::visuals::models::Material) -> u32 {
+        self.bind_style(material, false)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn bind_original_hd(&mut self, material: &crate::visuals::models::Material) -> u32 {
+        self.bind_style(material, true)
+    }
+
+    fn bind_style(&mut self, material: &crate::visuals::models::Material, blood_hd: bool) -> u32 {
         if let Some(region) = material.region {
-            return self.register(region);
+            return self.register_variant(region, blood_hd);
         }
-        let key = (material.id.clone(), material.animation);
+        let key = (material.id.clone(), material.animation, blood_hd);
         let id = if let Some(&id) = self.external.get(&key) {
             id
         } else {
             let id = self.entries.len() as u32 + 1;
             self.entries.push(Entry {
                 region: None,
-                blood_hd: false,
+                blood_hd,
                 shadow_caster: false,
                 id: material.id.clone(),
                 original: (*material.image).clone(),
@@ -454,6 +463,7 @@ impl Materials {
         }
     }
 
+    #[cfg(test)]
     fn register(&mut self, region: Region) -> u32 {
         self.register_variant(region, false)
     }
