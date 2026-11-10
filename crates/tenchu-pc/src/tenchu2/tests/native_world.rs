@@ -369,6 +369,15 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .index(world.instances[guard].rig.joints[0])
             .is_none()
     );
+    assert!(!world.player_can_orbit());
+    assert!(!world.player_can_steer());
+    let during = postcard::to_allocvec(&world).unwrap();
+    assert!(
+        world
+            .teleport_player(Position::new(1500, 0, 1500), true, &assets)
+            .is_err()
+    );
+    assert!(during == postcard::to_allocvec(&world).unwrap());
     let mut blood = false;
     let mut visible_blood = false;
     for _ in 0..240 {
@@ -408,6 +417,28 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
         "stealth-kill blood never reached the shared renderer"
     );
     assert_eq!(world.statistics.killed, 1);
+    assert!(world.controls.stealth.is_some());
+    let history = postcard::to_allocvec(&world.controls.stealth).unwrap();
+    let random = world.random;
+    assert!(
+        world.player_can_orbit(),
+        "completed kill blocked camera orbit"
+    );
+    assert!(
+        world.player_can_steer(),
+        "completed kill blocked relative movement"
+    );
+    let heading = world.actors[0].actor.rotation.y.wrapping_add(1024);
+    world.steer_player(heading, &assets).unwrap();
+    assert_eq!(world.actors[0].actor.rotation.y, heading);
+    let destination = Position::new(1500, 0, 1500);
+    world.teleport_player(destination, true, &assets).unwrap();
+    assert_eq!(world.actors[0].actor.position, destination);
+    assert_eq!(
+        postcard::to_allocvec(&world.controls.stealth).unwrap(),
+        history
+    );
+    assert_eq!(world.random, random);
 }
 
 #[test]

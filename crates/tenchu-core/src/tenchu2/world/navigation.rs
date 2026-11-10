@@ -12,7 +12,6 @@ impl World {
         let actor = &self.actors[self.player].actor;
         self.mission.input_allowed()
             && self.script != 3
-            && self.controls.stealth.is_none()
             && actor.health > 0
             && !matches!(
                 actor.state,

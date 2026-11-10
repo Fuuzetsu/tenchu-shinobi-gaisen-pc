@@ -18,7 +18,6 @@ impl World {
         let player = &self.actors[self.player].actor;
         if !self.mission.input_allowed()
             || player.health <= 0
-            || self.controls.stealth.is_some()
             || matches!(
                 player.state,
                 State::Attack | State::Item | State::Hurt | State::Dead

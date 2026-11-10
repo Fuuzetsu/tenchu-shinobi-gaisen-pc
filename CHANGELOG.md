@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix native Tenchu 2 camera-relative movement and debug teleport remaining
+  unavailable after completing a stealth kill. Active kill animations still
+  retain their source controls.
+
 - Native Tenchu 2 JP supports shared weapon blood, coverage, metal-only coating
   and wet flow. Native and imported blades stain on successful melee hits and
   bloody stealth-kill events, follow their animated hands and shed droplets on
