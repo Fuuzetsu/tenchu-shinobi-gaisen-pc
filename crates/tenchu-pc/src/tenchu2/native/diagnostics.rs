@@ -20,6 +20,7 @@ pub struct Input {
     buttons: u16,
     navigation: Option<super::navigation::Input>,
     player: Option<Player>,
+    observing_death: bool,
 }
 
 #[derive(Serialize)]
@@ -63,6 +64,7 @@ pub fn record(recent: &mut Recent<Input>, playback: &Playback<impl ReadAt>, butt
                 _ => None,
             },
             player,
+            observing_death: playback.death.waiting(),
         },
     );
 }
@@ -136,7 +138,11 @@ pub fn report(
             report["game"] = world(&session.world);
             report["pending_integration"] = json!(session.pending);
             report["model_override"] = session.models.diagnostic_snapshot();
-            "playing"
+            if playback.death.waiting() {
+                "death-hold"
+            } else {
+                "playing"
+            }
         }
         Content::Story { story, .. } => {
             report["story"] = json!({"event": story.event, "area": story.level.id,
@@ -152,7 +158,8 @@ pub fn report(
     };
     report["runtime"] = json!({"screen": screen, "tick": playback.content.tick(),
         "menu_open": menu.panel.open, "integration_diagnostics_open": menu.diagnostics,
-        "fast_forward": menu.fast_forward, "notice": menu.panel.notice});
+        "fast_forward": menu.fast_forward, "notice": menu.panel.notice,
+        "death_hold": playback.death.waiting(), "live_death_scene": playback.death.live()});
     report["recent_inputs"] = json!(transport.recent);
     report
 }

@@ -654,6 +654,12 @@ mod tests {
                         menu.panel.notice
                     );
                     menu.apply(Edit::Reset(row.item), &mut state, &mut action);
+                    if row.item == Item::LiveDeathScene {
+                        assert!(
+                            state.settings.wait_after_death && !state.settings.live_death_scene
+                        );
+                        menu.apply(Edit::Reset(Item::WaitAfterDeath), &mut state, &mut action);
+                    }
                     assert!(
                         menu.panel.notice.is_empty(),
                         "{}: {}",

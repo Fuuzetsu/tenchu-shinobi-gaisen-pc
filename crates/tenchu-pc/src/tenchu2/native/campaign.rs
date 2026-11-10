@@ -13,6 +13,7 @@ use tenchu_core::tenchu2::{
     mission::Phase,
 };
 
+mod death;
 #[cfg(test)]
 mod tests;
 
@@ -62,6 +63,7 @@ pub struct Playback<S> {
     blank: Vram,
     save: Option<super::save::SaveFile>,
     from_menu: bool,
+    pub death: death::Hold,
 }
 
 impl<S: ReadAt> Playback<S> {
@@ -119,10 +121,12 @@ impl<S: ReadAt> Playback<S> {
             blank: Vram::default(),
             save,
             from_menu: false,
+            death: Default::default(),
         })
     }
 
     fn select_mission(&mut self) -> Result<()> {
+        self.death.clear();
         self.from_menu = true;
         self.loadout = None;
         self.content = Content::MissionSelection(Box::new(super::selection::Selection::load(
@@ -142,6 +146,7 @@ impl<S: ReadAt> Playback<S> {
     }
 
     fn load_current(&mut self) -> Result<()> {
+        self.death.clear();
         let descriptor = *self.run.descriptor(&self.campaign)?;
         self.content =
             match descriptor.kind {
@@ -213,6 +218,7 @@ impl<S: ReadAt> Playback<S> {
         match destination {
             Destination::Sequence(_) => self.load_current(),
             Destination::Failed | Destination::Complete => {
+                self.death.clear();
                 self.content = if destination == Destination::Failed {
                     Content::Failed
                 } else {
@@ -343,10 +349,24 @@ impl<S: ReadAt> Playback<S> {
                 }
             }
             Content::Gameplay(session) => {
-                if matches!(session.world.mission.phase, Phase::Finished { .. }) {
+                self.death.begin(session, &self.run, &self.campaign)?;
+                if self.death.waiting() {
+                    if !self.death.enabled() || matches!(action, Some(Action::Continue)) {
+                        let (run, destination) = self.death.finish().unwrap();
+                        self.run = run;
+                        Some(destination)
+                    } else {
+                        if self.death.live() {
+                            update.sounds = session.observe_death()?;
+                        }
+                        session.frame.transition_fade = None;
+                        None
+                    }
+                } else if matches!(session.world.mission.phase, Phase::Finished { .. }) {
                     Some(self.run.finish_area(&session.world, &self.campaign)?)
                 } else {
                     update.sounds = session.step(buttons)?;
+                    self.death.begin(session, &self.run, &self.campaign)?;
                     None
                 }
             }

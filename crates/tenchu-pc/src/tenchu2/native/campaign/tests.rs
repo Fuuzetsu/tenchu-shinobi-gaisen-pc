@@ -2,6 +2,8 @@ use super::*;
 use tenchu_assets::tenchu2::campaign::Objective;
 use tenchu_core::tenchu2::input::JUMP;
 
+mod death;
+
 fn start(sequence: usize) -> Playback<crate::source::DiscSource> {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();

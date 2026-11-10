@@ -32,6 +32,15 @@ JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
 desktop. A damaged or newer-format file reports an error instead of being reset.
 The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
+**General → Wait after death** holds the finalized corpse before the failure
+fade. **Keep world running after death** also keeps guards, scenery, items and
+effects updating while you observe with the camera. With that option off, the
+scene and effect audio freeze; **Music while paused** still applies. The held
+scene cannot change the failure result, carried supplies or retry RNG. Press
+Enter, the configured menu-confirm button, Start or the on-screen Continue button
+to proceed. Disabling Wait after death also proceeds once simulation resumes.
+Mission success and detection failures keep their normal transitions; both death
+options are off by default.
 **General → Performance charts** shows the same CPU frame phases, GPU passes and
 detailed scene categories as Gaisen. CPU timings include simulation/audio,
 geometry/uploads, menu work, submission, presentation waits and unclassified time.

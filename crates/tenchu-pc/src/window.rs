@@ -308,6 +308,12 @@ impl Application {
 
     fn sync_audio_pause(&mut self) {
         let paused = self.is_suspended();
+        #[cfg(not(target_arch = "wasm32"))]
+        let paused = paused
+            || self
+                .native_tenchu2
+                .as_ref()
+                .is_some_and(|native| native.playback.death.frozen());
         let backgrounded = self.backgrounded();
         let scene_visible = self.campaign.scene_visible();
         let music_while_paused = self.settings.music_while_paused;

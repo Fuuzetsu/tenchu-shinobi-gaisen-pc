@@ -134,6 +134,10 @@ impl Session {
         ) {
             return Ok(Vec::new());
         }
+        self.step_world(buttons, false)
+    }
+
+    fn step_world(&mut self, buttons: u16, observing_death: bool) -> Result<Vec<Sourced<Sound>>> {
         let buttons = navigation::apply(self, buttons)?;
         let mut events = Output {
             player: self.world.player,
@@ -184,17 +188,50 @@ impl Session {
                 });
             }
         }
-        sounds.extend(
-            self.world
-                .advance_mission(&self.assets)?
-                .into_iter()
-                .map(Sourced::from),
-        );
-        self.frame.transition_fade = self.world.mission.fade;
+        if !observing_death {
+            sounds.extend(
+                self.world
+                    .advance_mission(&self.assets)?
+                    .into_iter()
+                    .map(Sourced::from),
+            );
+            self.frame.transition_fade = self.world.mission.fade;
+        }
         if let Some(history) = &mut self.interpolation {
             history.record(interpolation::gameplay(&self.world, &self.assets)?);
         }
         Ok(sounds)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn observe_death(&mut self) -> Result<Vec<Sourced<Sound>>> {
+        use tenchu_core::tenchu2::mission::{Outcome, Phase};
+        let mission = &mut self.world.mission;
+        let (Phase::Ending {
+            outcome: Outcome::Dead,
+            finished_at,
+            ..
+        }
+        | Phase::Finished {
+            outcome: Outcome::Dead,
+            finished_at,
+        }) = mission.phase
+        else {
+            return Err("The native player has not finished dying".into());
+        };
+        let (phase, fade) = (mission.phase, mission.fade);
+        // Keep source actors/items/effects running before the failure fade and cleanup.
+        mission.phase = Phase::Ending {
+            outcome: Outcome::Dead,
+            remaining: 100,
+            finished_at,
+        };
+        mission.fade = None;
+        self.navigation = None;
+        let result = self.step_world(0, true);
+        self.world.mission.phase = phase;
+        self.world.mission.fade = fade;
+        result
     }
 
     pub fn interpolate(&mut self, enabled: bool) -> Result<()> {

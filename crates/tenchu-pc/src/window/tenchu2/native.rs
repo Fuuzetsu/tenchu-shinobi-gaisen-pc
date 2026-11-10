@@ -117,6 +117,7 @@ impl Application {
 
     pub(in crate::window) fn step_native_tenchu2(&mut self) -> Result<bool> {
         let native = self.native_tenchu2.as_mut().unwrap();
+        native.playback.death.configure(&self.settings);
         let buttons = native.menu.tools.input(
             &mut native.playback.content,
             &mut self.controls,
@@ -157,11 +158,12 @@ impl Application {
             .menu
             .controller(update.menu_pressed);
         if !self.native_tenchu2.as_ref().unwrap().menu.panel.open
-            && matches!(
-                self.native_tenchu2.as_ref().unwrap().playback.content,
-                Content::Gameplay(_)
-            )
-            && update.menu_pressed & tenchu_core::input::START != 0
+            && self
+                .native_tenchu2
+                .as_mut()
+                .unwrap()
+                .playback
+                .controller_pause(update.menu_pressed, self.settings.circle_confirm)
         {
             self.paused = !self.paused;
             self.sync_pause();
@@ -171,6 +173,7 @@ impl Application {
         self.last_frame = now;
         self.sync_audio_pause();
         let native = self.native_tenchu2.as_mut().unwrap();
+        native.playback.death.configure(&self.settings);
         let buttons = native.menu.tools.input(
             &mut native.playback.content,
             &mut self.controls,
@@ -310,9 +313,7 @@ impl Application {
         }
         let drawing = native.drawing.as_mut().unwrap();
         drawing.interpolate(if graphics.interpolation {
-            native
-                .transport
-                .interpolation(&native.playback.content, input)
+            native.transport.interpolation(&native.playback, input)
         } else {
             1.0
         });
@@ -361,6 +362,11 @@ impl Application {
             native
                 .menu
                 .cutscene_controls(ctx, native.playback.content.cutscene());
+            if !native.menu.panel.open {
+                native
+                    .playback
+                    .death_controls(ctx, native.menu.tools.debug.photo_mode);
+            }
             if self.settings.show_performance && !native.menu.tools.debug.photo_mode {
                 self.performance.show(
                     ctx,
@@ -728,14 +734,7 @@ impl Application {
                         }
                         KeyCode::Enter if !menu_open => {
                             let native = self.native_tenchu2.as_mut().unwrap();
-                            native.playback.action = match native.playback.content {
-                                Content::MissionSelection(_)
-                                | Content::Prologue(_)
-                                | Content::Equipment(_)
-                                | Content::Results(_) => Some(NativeAction::Continue),
-                                Content::Failed | Content::Complete => Some(NativeAction::Retry),
-                                _ => None,
-                            };
+                            native.playback.confirm();
                         }
                         _ => {}
                     }

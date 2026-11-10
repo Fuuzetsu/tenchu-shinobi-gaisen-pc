@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports F1's Wait after death and Keep world running after death. The hold waits for the finalized corpse, keeps effects alive in live mode, and preserves the failure result and retry RNG while observing. Enter, menu confirm, Start or the on-screen button continues; disabling the option also proceeds to failure. Original automatic transitions remain unchanged.
+
 - Native Tenchu 2 JP shares the hair, cloth and equipment motion controls with Gaisen, including 3D cutscenes and custom models with motion rules. Authored regions cover the three T2 heroes' hair, Ayame's bow and Rikimaru's loose shoulder gear; imported T2 models use the same rules in Gaisen. Motion follows logic ticks, remains visual-only and turns off cleanly while paused. Modern High/Ultra already enable it; Original stays unchanged.
 
 - Native Tenchu 2 JP now shares the performance charts, detailed GPU scene timings and diagnostic-report histories with Gaisen, on desktop and Android. Frame intervals include loading or graphics-change stalls even when the simulation clock discards that time.

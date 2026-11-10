@@ -49,8 +49,8 @@ pub struct Update {
 }
 
 impl Transport {
-    pub fn interpolation(&self, content: &Content, input: Input) -> f32 {
-        if input.paused || input.pacing(content).0 == 0.0 {
+    pub fn interpolation(&self, playback: &Playback<impl ReadAt>, input: Input) -> f32 {
+        if input.paused || input.pacing(&playback.content).0 == 0.0 || playback.death.frozen() {
             1.0
         } else {
             self.clock.interpolation()
@@ -130,7 +130,9 @@ impl Transport {
     ) -> Result<Update> {
         let (speed, muted) = input.pacing(&playback.content);
         self.audio(playback, muted && !input.paused, output);
-        if input.paused {
+        if input.paused
+            || playback.death.frozen() && playback.death.enabled() && playback.action.is_none()
+        {
             self.clock.discard_host_backlog();
             return Ok(Update::default());
         }

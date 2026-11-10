@@ -154,6 +154,9 @@ impl View {
                         .or(session.action);
                 }
                 menu.cutscene_controls(ctx, session.content.cutscene());
+                if !menu.panel.open {
+                    session.death_controls(ctx, menu.tools.debug.photo_mode);
+                }
                 if state.settings.show_performance && !menu.tools.debug.photo_mode {
                     self.performance.show(
                         ctx,
@@ -226,6 +229,7 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
+        self.session.death.configure(&self.settings);
         let buttons = self.menu.tools.input(
             &mut self.session.content,
             &mut self.controls,
@@ -267,9 +271,10 @@ impl Application {
             self.paused = true;
         }
         self.menu.controller(polled.menu_pressed);
-        if matches!(self.session.content, Content::Gameplay(_))
-            && polled.menu_pressed & tenchu_core::input::START != 0
-            && !self.menu.panel.open
+        if !self.menu.panel.open
+            && self
+                .session
+                .controller_pause(polled.menu_pressed, self.settings.circle_confirm)
         {
             self.paused = !self.paused;
         }
@@ -279,6 +284,7 @@ impl Application {
             || self.menu.panel.open && self.settings.pause_in_menu
             || self.controls.editor.open
             || self.presets.open;
+        self.session.death.configure(&self.settings);
         let input = PlaybackInput {
             buttons: self.menu.tools.input(
                 &mut self.session.content,
@@ -320,7 +326,7 @@ impl Application {
         }
         if let Some(audio) = &self.audio {
             audio.send(Command::Pause {
-                paused,
+                paused: paused || self.session.death.frozen(),
                 music_while_paused: self.settings.music_while_paused
                     && !self.session.content.cutscene(),
             });
@@ -420,7 +426,7 @@ impl Application {
                 self.last = Instant::now();
             }
             view.drawing.interpolate(if graphics.interpolation {
-                self.transport.interpolation(&self.session.content, input)
+                self.transport.interpolation(&self.session, input)
             } else {
                 1.0
             });
@@ -711,14 +717,7 @@ impl ApplicationHandler for Application {
                                 }
                             }
                             KeyCode::Enter if !self.menu.panel.open && !consumed => {
-                                self.session.action = match self.session.content {
-                                    Content::MissionSelection(_)
-                                    | Content::Prologue(_)
-                                    | Content::Equipment(_)
-                                    | Content::Results(_) => Some(Action::Continue),
-                                    Content::Failed | Content::Complete => Some(Action::Retry),
-                                    _ => None,
-                                }
+                                self.session.confirm();
                             }
                             _ => {}
                         }
