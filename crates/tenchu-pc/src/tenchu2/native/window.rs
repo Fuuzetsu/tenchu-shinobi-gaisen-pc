@@ -428,6 +428,9 @@ impl Application {
                     Err(error) => self.menu.panel.notice = error,
                 }
             }
+            if action.clear_blood {
+                view.drawing.clear_blood();
+            }
             if action.clear_weather || action.clear_footprints {
                 view.drawing.clear_weather(!action.clear_weather);
             }

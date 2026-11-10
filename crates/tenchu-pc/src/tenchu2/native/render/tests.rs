@@ -827,7 +827,7 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
                     .collect::<tenchu_assets::Result<Vec<_>>>()?;
                 let target = custom.pose(&matrices, scene.models[rig.joints[0]].local);
                 let point = |p: Position| Vec3::from(p.to_array().map(|v| v as f32));
-                for root in rig.weapons.iter().take(3).flatten() {
+                for root in rig.weapons.iter().take(3).flat_map(|p| p.iter()) {
                     let parent = scene.models[*root].parent.unwrap();
                     let bone = rig.joints.iter().position(|&j| j == parent).unwrap();
                     let index = tenchu_assets::tenchu2::BONES
@@ -1261,10 +1261,9 @@ fn native_modern_splashes_replace_only_water_particles() {
     for tick in 0..5 {
         session.world.tick += 1;
         session.frame.effects = session.world.update_effects(&session.assets).unwrap();
-        session.contact.record(
-            u64::from(session.world.tick),
-            &session.frame.effects.contacts,
-        );
+        session
+            .contact
+            .record(u64::from(session.world.tick), &session.frame.effects);
         assert_eq!(
             session
                 .frame
@@ -1717,5 +1716,181 @@ fn native_blood_hit_styles_preserve_source_particles_and_ground_effects() {
     assert_eq!(
         images[0], images[4],
         "restoring Original changed source drawing"
+    );
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; source ground blood survives skipped rendering, rebuilds and clearing through shared cached decals"]
+fn native_retained_blood_uses_source_contacts_and_cached_surface_projection() {
+    use crate::settings::BloodStyle;
+    use tenchu_core::tenchu2::effects::blood::Spurt;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let position = session.world.actors[session.world.player]
+        .actor
+        .position
+        .wrapping_add(Position::new(1600, -900, 0));
+    session.world.effects = Default::default();
+    for yaw in [0, 1024, 2048, 3072] {
+        session
+            .world
+            .effects
+            .blood(
+                Spurt {
+                    position,
+                    yaw,
+                    speed: 100,
+                    gravity: 20,
+                },
+                &session.assets.resources.math,
+                &session.assets.effect_rules,
+                &mut session.world.random,
+            )
+            .unwrap();
+    }
+    for _ in 0..240 {
+        session.frame.effects = session.world.update_effects(&session.assets).unwrap();
+        session.world.tick += 1;
+        session
+            .contact
+            .record(u64::from(session.world.tick), &session.frame.effects);
+    }
+    assert!(session.world.effects.entries.is_empty());
+    assert!(
+        session.contact.blood.latest() >= 2,
+        "source droplets did not hit dry ground"
+    );
+    let state = postcard::to_allocvec(&session.world).unwrap();
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    camera.pitch = -0.6;
+    let center = Vec3::from(position.to_array().map(|v| v as f32)) + Vec3::Y * 700.0;
+    camera.position = center - camera.forward() * 3500.0;
+    let mut images = Vec::new();
+    for (mode, style, retain, conform) in [
+        ("expired", BloodStyle::Original, false, true),
+        ("modern", BloodStyle::Modern, false, true),
+        ("original", BloodStyle::Original, true, true),
+        ("hd", BloodStyle::OriginalHd, true, true),
+        ("raw", BloodStyle::Original, true, false),
+        ("cleared", BloodStyle::Modern, false, true),
+        ("restored", BloodStyle::Modern, false, true),
+    ] {
+        let mut graphics = Graphics {
+            fog: false,
+            asset_pack: false,
+            ..Default::default()
+        };
+        graphics.blood.ground = style;
+        graphics.blood.retain_original = retain;
+        graphics.blood.conform_retained = conform;
+        let path = output.join(format!("jp-ground-blood-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            if graphics.blood.retained_ground() {
+                let environment = drawing.scene.environment.as_ref().unwrap();
+                let pages: Vec<_> = environment.blood.pages().cloned().collect();
+                assert!(!pages.is_empty(), "retained blood missing: {mode}");
+                assert!(
+                    pages
+                        .iter()
+                        .flat_map(|p| p.iter())
+                        .all(|v| Vec3::from(v.position).is_finite())
+                );
+                assert!(
+                    pages.iter().flat_map(|p| p.iter()).all(
+                        |v| (v.flags & render_mesh::SOFT != 0) == (style == BloodStyle::Modern)
+                    )
+                );
+                assert!(
+                    pages
+                        .iter()
+                        .flat_map(|p| p.iter())
+                        .all(|v| render_mesh::original_hd_blood(v.flags)
+                            == (style == BloodStyle::OriginalHd))
+                );
+                if conform {
+                    for v in pages.iter().flat_map(|p| p.iter()).step_by(3) {
+                        let p = Vec3::from(v.position);
+                        let hit = environment
+                            .surfaces
+                            .cast(p - Vec3::Y * 5.0, p + Vec3::Y * 5.0)
+                            .expect("ground mark floats away from visible terrain");
+                        assert!(p.distance(hit.position) < 1.0);
+                    }
+                }
+                let stored = postcard::to_allocvec(&environment.blood).unwrap();
+                assert_eq!(
+                    renderer.set_projected_decals(environment.blood.projected_pages()),
+                    0,
+                    "unchanged stains were uploaded again"
+                );
+                drawing.update(&session, renderer, None)?;
+                let mut rebuilt = Drawing::new(&session, &graphics, renderer)?;
+                rebuilt.camera = Some(camera);
+                rebuilt.show_hud = false;
+                rebuilt.preserve_environment(&mut drawing);
+                rebuilt.update(&session, renderer, None)?;
+                let blood = &rebuilt.scene.environment.as_ref().unwrap().blood;
+                assert_eq!(
+                    postcard::to_allocvec(blood).unwrap(),
+                    stored,
+                    "paused redraw/rebuild advanced or cleared stains"
+                );
+                assert_eq!(renderer.set_projected_decals(blood.projected_pages()), 0);
+                drawing = rebuilt;
+                if mode == "cleared" {
+                    drawing.clear_blood();
+                    drawing.update(&session, renderer, None)?;
+                    assert!(
+                        drawing
+                            .scene
+                            .environment
+                            .as_ref()
+                            .unwrap()
+                            .blood
+                            .pages()
+                            .next()
+                            .is_none()
+                    );
+                } else if mode == "restored" {
+                    let mut original = graphics.clone();
+                    original.blood = Default::default();
+                    renderer.configure(&original);
+                    drawing.update(&session, renderer, None)?;
+                }
+            }
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    for i in 1..=4 {
+        assert_ne!(
+            images[0], images[i],
+            "style {i} produced no visible retained blood"
+        );
+    }
+    assert_ne!(
+        images[2], images[3],
+        "Original HD failed to smooth retained artwork"
+    );
+    assert_eq!(images[0], images[5], "clear replayed old contacts");
+    assert_eq!(
+        images[0], images[6],
+        "restoring source style left retained blood"
     );
 }

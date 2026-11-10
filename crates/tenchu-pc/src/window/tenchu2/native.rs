@@ -372,6 +372,9 @@ impl Application {
             }
             reload_artwork |= actions.reload_artwork;
             save_diagnostics |= actions.save_diagnostics;
+            if actions.clear_blood {
+                native.drawing.as_mut().unwrap().clear_blood();
+            }
             if actions.clear_weather || actions.clear_footprints {
                 native
                     .drawing

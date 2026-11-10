@@ -25,6 +25,8 @@ pub(super) struct Environment {
     thunder: Option<tenchu_audio::ThunderCue>,
     spray: crate::visuals::water::Spray,
     pub contact: crate::visuals::contact::Contact,
+    pub blood: crate::visuals::blood::Blood,
+    blood_serial: u64,
 }
 
 pub(super) struct Frame<'a> {
@@ -84,6 +86,8 @@ impl Environment {
             thunder: None,
             spray: crate::visuals::water::Spray::new(&water),
             contact: Default::default(),
+            blood: Default::default(),
+            blood_serial: 0,
         }
     }
 
@@ -100,6 +104,8 @@ impl Environment {
         replacement.tick = self.tick;
         replacement.contact = std::mem::take(&mut self.contact);
         replacement.thunder = self.thunder.take();
+        replacement.blood = std::mem::take(&mut self.blood);
+        replacement.blood_serial = self.blood_serial;
         *self = replacement;
     }
 
@@ -190,6 +196,46 @@ impl Environment {
                 }
             }
         }
+        if let Some((_, assets)) = world {
+            let image = assets.sprites.effects[2];
+            self.blood
+                .ground_tick(tick, &self.surfaces, &[image; 3], &graphics.blood);
+            if let Some(history) = frame.contact {
+                use super::super::contact::blood::Phase;
+                for (phase, quad) in history.blood.since(self.blood_serial) {
+                    let accepted = match phase {
+                        Phase::Landed => {
+                            graphics.blood.ground == crate::settings::BloodStyle::Modern
+                        }
+                        Phase::Faded => {
+                            graphics.blood.ground.uses_original() && graphics.blood.retain_original
+                        }
+                    };
+                    if !accepted {
+                        continue;
+                    }
+                    let tenchu_core::tenchu2::effects::surface::Image::Effect(id) = quad.image
+                    else {
+                        continue;
+                    };
+                    let corners = quad.corners.map(|p| {
+                        Vec3::from(
+                            quad.position
+                                .wrapping_add(p.map(i32::from))
+                                .to_array()
+                                .map(|v| v as f32),
+                        )
+                    });
+                    self.blood.ground_stamp(
+                        &self.surfaces,
+                        corners,
+                        assets.sprites.effects[usize::from(id)],
+                    );
+                }
+                self.blood_serial = history.blood.latest();
+            }
+        }
+        renderer.set_projected_decals(self.blood.projected_pages());
         self.tick = Some(tick);
         if graphics.weather.mode == WeatherMode::Original {
             self.clear();

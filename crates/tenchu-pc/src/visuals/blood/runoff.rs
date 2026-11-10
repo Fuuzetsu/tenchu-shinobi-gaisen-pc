@@ -76,7 +76,12 @@ impl Blood {
         });
     }
 
-    pub(super) fn advance_runoff(&mut self, game: &Game, surfaces: &Receivers<'_>, limit: usize) {
+    pub(super) fn advance_runoff(
+        &mut self,
+        images: &[tenchu_assets::texture::Image],
+        surfaces: &Receivers<'_>,
+        limit: usize,
+    ) {
         let mut flows = std::mem::take(&mut self.runoff);
         flows.retain_mut(|flow| {
             if flow.life == 0 {
@@ -114,7 +119,7 @@ impl Blood {
                 if self.settings.ground.uses_original() {
                     Self::original_texture(
                         &mut mark,
-                        game.mission.images[(flow.seed as usize % 2) * 2],
+                        images[(flow.seed as usize % 2) * 2],
                         self.settings.ground,
                     );
                 }
@@ -217,7 +222,7 @@ mod tests {
             for i in 0..64 {
                 let at = Vec3::new((i as f32 - 32.0) * 400.0, -2000.0, 0.0);
                 assert!(blood.stain(
-                    &game,
+                    &game.mission.images,
                     &receivers,
                     at + Vec3::Z * 20.0,
                     at - Vec3::Z * 20.0,
@@ -227,7 +232,7 @@ mod tests {
             }
             assert_eq!(blood.runoff.len(), LIMIT);
             for _ in 0..120 {
-                blood.advance_runoff(&game, &receivers, 1024);
+                blood.advance_runoff(&game.mission.images, &receivers, 1024);
                 assert!(blood.runoff.len() <= LIMIT && blood.marks.len() <= 1024);
             }
             assert!(blood.runoff.is_empty());
@@ -288,7 +293,7 @@ mod tests {
             }
             let at = Vec3::new(0.0, -2500.0, 0.0);
             blood.stain(
-                &game,
+                &game.mission.images,
                 &receivers,
                 at + Vec3::Z * 20.0,
                 at - Vec3::Z * 20.0,
@@ -304,7 +309,7 @@ mod tests {
             assert!(blood.runoff.is_empty() && blood.marks.len() == count);
             blood.configure(&settings);
             blood.stain(
-                &game,
+                &game.mission.images,
                 &receivers,
                 at + Vec3::Z * 20.0,
                 at - Vec3::Z * 20.0,

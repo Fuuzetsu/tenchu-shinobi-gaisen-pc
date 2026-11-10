@@ -50,7 +50,7 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Texture-based lamp discovery, blood enhancements, hair/cloth physics,
+Texture-based lamp discovery, death/body/weapon blood enhancements, hair/cloth physics,
 rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
@@ -72,11 +72,18 @@ pause, fast-forward and artwork/model reloads do not duplicate impacts.
 **F1 → Persistent effects → Blood spurts on hit** offers the same Off, Original,
 Original HD and Modern styles as Gaisen. Native particles supply their own
 motion and timing; Original HD smooths the disc artwork, and Modern uses the
-shared droplet renderer. Ground blood, death pools and extra wound bleeding are
-separate controls; their native presentation adapters are still pending.
-Modern High/Ultra already enable Modern hit blood; Original is unchanged.
+shared droplet renderer. **Ground blood** independently offers the same four
+styles for dry floors and walls. **Retain original blood** keeps the chosen
+Original/Original HD splats; **Conform retained blood to surfaces** fits them to
+visible terrain. Modern ground stains use the shared projection and cached decal
+storage. The shared amount, retention limit, runoff and clear controls apply;
+water blood retains its source effect and does not become a permanent stain.
+Source contacts survive fast-forward, and pausing or changing model detail does
+not duplicate or erase them. Death pools and extra wound bleeding are still
+separate pending adapters. Modern High/Ultra already enable Modern hit and ground
+blood; Original is unchanged.
 
-**Detailed rope / hook** in the same tab uses the shared round woven rope and
+**Detailed rope / hook** in Contact effects uses the shared round woven rope and
 hook refinement. T2 supplies its original flight/pull path; interpolation and
 custom bodies supply the displayed hand anchor. Original keeps the source line
 and hook mesh, and the option never changes grapple reach, collision or timing.

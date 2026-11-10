@@ -79,6 +79,10 @@ impl Drawing {
         &environment.surfaces
     }
 
+    pub fn clear_blood(&mut self) {
+        self.scene.clear_blood();
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         self.scene.clear_weather(tracks_only);
     }
@@ -191,6 +195,7 @@ impl Drawing {
         );
         if let Some(debug) = debug {
             if debug.collision_only && !debug.photo_mode {
+                renderer.set_decals(std::iter::empty());
                 geometry.terrain.clear();
                 geometry.actors.clear();
                 geometry.effects = render_effects::Geometry {
@@ -303,6 +308,7 @@ impl SceneDrawing {
             || graphics.water.enabled
             || graphics.effects.sparks
             || graphics.effects.splashes
+            || graphics.blood.retained_ground()
             || ((self.lighting.active(&graphics.lighting) || sky_light)
                 && graphics.lighting.shadows))
             && self.environment.is_none()
@@ -334,6 +340,14 @@ impl SceneDrawing {
                 },
             ));
             geometry.effects = effects;
+        } else {
+            renderer.set_decals(std::iter::empty());
+        }
+    }
+
+    fn clear_blood(&mut self) {
+        if let Some(environment) = &mut self.environment {
+            environment.blood.clear();
         }
     }
 
@@ -1085,6 +1099,15 @@ impl Models {
             });
         }
         for quad in &frame.effects.quads {
+            let ground_blood = quad.blood
+                == Some(tenchu_core::tenchu2::effects::surface::Blood::Ground)
+                && quad.parent.is_none();
+            if ground_blood
+                && (!graphics.blood.ground.uses_original()
+                    || graphics.blood.retained_ground() && quad.blend != Blend::Opaque)
+            {
+                continue;
+            }
             if graphics.effects.splashes
                 && quad.parent.is_none()
                 && quad.image
@@ -1124,6 +1147,13 @@ impl Models {
                 vertex.flags &= !render_mesh::SCREEN;
                 vertex.flags |= render_mesh::UNLIT;
             }
+            let blend = if ground_blood
+                && graphics.blood.ground == crate::settings::BloodStyle::OriginalHd
+            {
+                render_effects::blood::original_hd(&mut vertices, blend)
+            } else {
+                blend
+            };
             output.surface(vertices, blend);
         }
         if show_hud {

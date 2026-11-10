@@ -17,6 +17,8 @@ use std::{
 };
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
+#[cfg(not(target_arch = "wasm32"))]
+mod ground;
 mod gush;
 mod retail;
 mod runoff;
@@ -387,7 +389,7 @@ impl Blood {
 
     fn stain(
         &mut self,
-        game: &Game,
+        images: &[tenchu_assets::texture::Image],
         surfaces: &Receivers<'_>,
         start: Vec3,
         end: Vec3,
@@ -414,7 +416,7 @@ impl Blood {
             // The adjacent white sprite is a subtraction mask used only while fading.
             Self::original_texture(
                 &mut mark,
-                game.mission.images[(self.seed as usize % 2) * 2],
+                images[(self.seed as usize % 2) * 2],
                 self.settings.ground,
             );
         }
@@ -466,6 +468,39 @@ impl Blood {
             }
         };
         Mark(vec![patch], Kind::Ground)
+    }
+
+    fn project_original(
+        surfaces: &Receivers<'_>,
+        hinge: Option<usize>,
+        stamp: &Stamp,
+        tangent: Vec3,
+        half_size: glam::Vec2,
+        image: tenchu_assets::texture::Image,
+        style: BloodStyle,
+    ) -> Mark {
+        let surface = hinge.map_or(surfaces.world, |i| &surfaces.hinges[i].2);
+        let mut vertices = surface.project_rectangle(stamp, tangent, half_size);
+        let part = hinge.map(|i| {
+            let (key, matrix, _) = &surfaces.hinges[i];
+            let r = rotation(*matrix);
+            for v in &mut vertices {
+                v.position =
+                    (r.inverse() * (Vec3::from(v.position) - translation(*matrix))).to_array();
+                v.normal = (r.transpose() * Vec3::from(v.normal)).to_array();
+            }
+            *key
+        });
+        let mut mark = Mark(
+            vec![Patch {
+                part,
+                vertices,
+                ..Default::default()
+            }],
+            Kind::Ground,
+        );
+        Self::original_texture(&mut mark, image, style);
+        mark
     }
 
     fn original_texture(mark: &mut Mark, image: tenchu_assets::texture::Image, style: BloodStyle) {
@@ -720,8 +755,14 @@ impl Blood {
                         } else {
                             (old.position, next.position)
                         };
-                        next.stained =
-                            self.stain(game, &receivers, start, end, 45.0 + amount * 65.0, limit);
+                        next.stained = self.stain(
+                            &game.mission.images,
+                            &receivers,
+                            start,
+                            end,
+                            45.0 + amount * 65.0,
+                            limit,
+                        );
                         impacts += usize::from(next.stained);
                     }
                 }
@@ -833,7 +874,7 @@ impl Blood {
                 return false;
             }
             let hit = self.stain(
-                game,
+                &game.mission.images,
                 &receivers,
                 drop.previous,
                 drop.position,
@@ -848,7 +889,7 @@ impl Blood {
         });
         self.drops = drops;
         if !self.runoff.is_empty() {
-            self.advance_runoff(game, &receivers, limit);
+            self.advance_runoff(&game.mission.images, &receivers, limit);
         }
         if !self.pools.is_empty()
             || game.roster.actors.iter().flatten().any(|actor| {

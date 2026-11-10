@@ -28,6 +28,12 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         },
         blood: crate::settings::Blood {
             hit: g.blood.hit,
+            ground: g.blood.ground,
+            retain_original: g.blood.retain_original,
+            conform_retained: g.blood.conform_retained,
+            amount: g.blood.amount,
+            marks: g.blood.marks,
+            runoff: g.blood.runoff,
             ..Default::default()
         },
         weapon_reflections: g.weapon_reflections,
@@ -90,6 +96,7 @@ pub struct Action {
     pub select_mission: bool,
     pub step: bool,
     pub clear_weather: bool,
+    pub clear_blood: bool,
     pub clear_footprints: bool,
     pub models: Option<std::sync::Arc<crate::visuals::pack::Pack>>,
     pub reload_artwork: bool,
@@ -418,6 +425,10 @@ impl Menu {
                         Item::ReloadModels => self.reload_models(state.settings, action),
                         Item::ReloadAssets => {
                             action.reload_artwork = true;
+                            Ok(())
+                        }
+                        Item::ClearBlood => {
+                            action.clear_blood = true;
                             Ok(())
                         }
                         Item::ClearWeather => {

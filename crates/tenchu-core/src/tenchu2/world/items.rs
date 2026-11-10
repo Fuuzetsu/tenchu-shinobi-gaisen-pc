@@ -162,6 +162,7 @@ impl World {
                             }),
                         );
                         frame.quads.push(Quad {
+                            blood: None,
                             image: Image::Effect(0),
                             position,
                             parent: None,

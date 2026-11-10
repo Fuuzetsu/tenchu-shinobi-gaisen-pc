@@ -294,7 +294,7 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                 blood.tick(&game, &models, &surfaces, &settings, None);
                 let state = crate::session::tests::state(&game);
                 assert!(blood.stain(
-                    &game,
+                    &game.mission.images,
                     &Receivers::new(&game, &models, &surfaces),
                     position - Vec3::Y * 500.0,
                     position + Vec3::Y * 500.0,

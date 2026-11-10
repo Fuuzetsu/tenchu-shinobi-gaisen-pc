@@ -287,6 +287,12 @@ impl ContentDrawing {
         }
     }
 
+    pub fn clear_blood(&mut self) {
+        if let Self::Gameplay(d) = self {
+            d.clear_blood();
+        }
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         match self {
             Self::Gameplay(d) => d.clear_weather(tracks_only),

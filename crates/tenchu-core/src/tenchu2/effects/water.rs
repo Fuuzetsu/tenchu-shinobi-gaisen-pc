@@ -37,6 +37,7 @@ impl Ripple {
                 let x = radius.wrapping_mul(x);
                 let z = radius.wrapping_mul(z);
                 drawings.push(Quad {
+                    blood: None,
                     image: Image::Effect(RIPPLE_IMAGE),
                     position: self.position,
                     parent: self.parent,

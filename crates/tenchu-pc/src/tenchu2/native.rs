@@ -150,7 +150,7 @@ impl Session {
             .world
             .step([buttons, 0], &mut self.assets, &mut events)?;
         self.contact
-            .record(u64::from(self.world.tick), &self.frame.effects.contacts);
+            .record(u64::from(self.world.tick), &self.frame.effects);
         for &position in &self.frame.effects.blood_sounds {
             events.requests.push(SoundRequest {
                 source: None,

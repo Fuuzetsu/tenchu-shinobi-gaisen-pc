@@ -95,6 +95,7 @@ impl Paper {
                     ..Default::default()
                 };
                 drawings.push(Quad {
+                    blood: None,
                     image: Image::Item(64),
                     position: self.position.wrapping_add(particle.offset.map(i32::from)),
                     parent: None,

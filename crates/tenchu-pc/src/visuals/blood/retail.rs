@@ -34,27 +34,15 @@ impl Blood {
             };
             let angle = (sample.rotation as f32 / 4096.0).to_radians();
             let tangent = Vec3::new(angle.cos(), 0.0, angle.sin());
-            let surface = hinge.map_or(surfaces.world, |i| &surfaces.hinges[i].2);
-            let mut vertices = surface.project_rectangle(&stamp, tangent, half_size);
-            let part = hinge.map(|i| {
-                let (key, matrix, _) = &surfaces.hinges[i];
-                let r = rotation(*matrix);
-                for v in &mut vertices {
-                    v.position =
-                        (r.inverse() * (Vec3::from(v.position) - translation(*matrix))).to_array();
-                    v.normal = (r.transpose() * Vec3::from(v.normal)).to_array();
-                }
-                *key
-            });
-            let mut mark = Mark(
-                vec![Patch {
-                    part,
-                    vertices,
-                    ..Default::default()
-                }],
-                Kind::Ground,
+            let mark = Self::project_original(
+                surfaces,
+                hinge,
+                &stamp,
+                tangent,
+                half_size,
+                image,
+                self.settings.ground,
             );
-            Self::original_texture(&mut mark, image, self.settings.ground);
             self.retain(mark, usize::from(self.settings.marks));
             return;
         }
