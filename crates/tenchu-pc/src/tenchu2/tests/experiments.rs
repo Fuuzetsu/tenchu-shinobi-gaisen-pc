@@ -7,6 +7,98 @@ use tenchu_core::tenchu2::{
 };
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; all-active wakes source rigs without resetting patrols, health or scripted holds and keeps distant AI/poses running"]
+fn native_all_active_wakes_distant_cast_and_restores_source_activation() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = crate::tenchu2::native::Session::load(&disc, 9, 17).unwrap();
+    let world = &mut session.world;
+    let assets = &mut session.assets;
+    assert!(!world.keep_all_active);
+    let sleeping: Vec<_> = world
+        .actors
+        .iter()
+        .enumerate()
+        .filter_map(|(id, agent)| (agent.actor.flags & 8 != 0).then_some(id))
+        .collect();
+    assert!(sleeping.len() > 2);
+    let corpse = sleeping[0];
+    world.actors[corpse].actor.health = 0;
+    world.actors[corpse].actor.state = State::Dead;
+    world.actors[corpse].actor.motion.loops = -1;
+    let held = sleeping[1];
+    world.actors[held].actor.flags |= 0x10;
+    let positions: Vec<_> = world.actors.iter().map(|a| a.actor.position).collect();
+    let homes: Vec<_> = world.actors.iter().map(|a| a.behavior.home).collect();
+    let random = world.random;
+    world.keep_all_active = true;
+    world.tick = 1;
+    world
+        .update_activation(world.camera.eye, world.camera.look, 4, assets)
+        .unwrap();
+    assert_eq!(world.random, random);
+    assert!(world.actors.iter().all(|a| a.actor.flags & 8 == 0));
+    assert!(world.actors[held].actor.flags & 0x10 != 0);
+    assert_eq!(
+        world
+            .actors
+            .iter()
+            .map(|a| a.actor.position)
+            .collect::<Vec<_>>(),
+        positions
+    );
+    assert_eq!(
+        world
+            .actors
+            .iter()
+            .map(|a| a.behavior.home)
+            .collect::<Vec<_>>(),
+        homes
+    );
+    assert_eq!(world.actors[corpse].actor.health, 0);
+    let joint = world.instances[corpse].rig.joints[0];
+    let slot = world
+        .collision
+        .slot(world.collision.index(joint).unwrap())
+        .unwrap();
+    assert_eq!(slot.size.y, world.actors[corpse].actor.height / 2 / 4);
+    let awake = postcard::to_allocvec(world).unwrap();
+    world
+        .update_activation(world.camera.eye, world.camera.look, 8, assets)
+        .unwrap();
+    assert_eq!(
+        postcard::to_allocvec(world).unwrap(),
+        awake,
+        "repeated activation advanced a pose"
+    );
+    let mut moved = false;
+    let mut posed = false;
+    let pose = world.actors[sleeping[2]].actor.motion.pose.clone();
+    for _ in 0..300 {
+        world
+            .step([0; 2], assets, &mut Recorded::default())
+            .unwrap();
+        assert!(world.actors.iter().all(|a| a.actor.flags & 8 == 0));
+        moved |= sleeping[2..]
+            .iter()
+            .any(|&id| world.actors[id].actor.position != positions[id]);
+        posed |= postcard::to_allocvec(&world.actors[sleeping[2]].actor.motion.pose).unwrap()
+            != postcard::to_allocvec(&pose).unwrap();
+    }
+    assert!(moved && posed, "distant cast did not patrol/animate");
+    assert_eq!(world.actors[corpse].actor.health, 0);
+    world.keep_all_active = false;
+    world.tick = world.tick.div_ceil(30) * 30;
+    world
+        .update_activation(world.camera.eye, world.camera.look, 6, assets)
+        .unwrap();
+    assert!(
+        world.actors.iter().any(|a| a.actor.flags & 8 != 0),
+        "source activation did not resume"
+    );
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; ignore-player must preserve patrols, stop new detections and remain reversible"]
 fn native_perception_options_preserve_idle_and_restore_detection() {
     use tenchu_core::{

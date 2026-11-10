@@ -39,6 +39,15 @@ impl World {
         if !(4..=8).contains(&budget) {
             return Err("Tenchu 2 activation budget must be 4–8".into());
         }
+        if self.keep_all_active {
+            self.collision.allow_expansion();
+            for index in 0..self.actors.len() {
+                if self.actors[index].actor.flags & 8 != 0 {
+                    self.activate_actor(index, assets)?;
+                }
+            }
+            return Ok(());
+        }
         if !self.tick.is_multiple_of(30) {
             return Ok(());
         }
@@ -131,27 +140,33 @@ impl World {
                 }
                 free -= 1;
             }
-            actor.flags &= !8;
-            let rig = &mut self.instances[index].rig;
-            if actor.health > 0 {
-                actor.set_weapon(
-                    rig,
-                    index,
-                    &mut self.collision,
-                    &assets.resources,
-                    WeaponMode::Refresh,
-                )?;
-            }
-            actor.set_body_collision(rig.joints[0], index, &mut self.collision, true)?;
-            let playing = actor.motion.loops >= 0;
+            self.activate_actor(index, assets)?;
+        }
+        Ok(())
+    }
+
+    fn activate_actor(&mut self, index: usize, assets: &Assets) -> Result<()> {
+        let actor = &mut self.actors[index].actor;
+        actor.flags &= !8;
+        let rig = &mut self.instances[index].rig;
+        if actor.health > 0 {
+            actor.set_weapon(
+                rig,
+                index,
+                &mut self.collision,
+                &assets.resources,
+                WeaponMode::Refresh,
+            )?;
+        }
+        actor.set_body_collision(rig.joints[0], index, &mut self.collision, true)?;
+        let playing = actor.motion.loops >= 0;
+        actor
+            .motion
+            .advance(&assets.resources.clips, &assets.spline, true)?;
+        if playing {
             actor
                 .motion
-                .advance(&assets.resources.clips, &assets.spline, true)?;
-            if playing {
-                actor
-                    .motion
-                    .publish(&mut self.scene, &rig.joints, &assets.resources.math);
-            }
+                .publish(&mut self.scene, &rig.joints, &assets.resources.math);
         }
         Ok(())
     }

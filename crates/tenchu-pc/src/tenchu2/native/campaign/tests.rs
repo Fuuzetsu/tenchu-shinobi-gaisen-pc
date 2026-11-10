@@ -40,6 +40,34 @@ fn next(playback: &mut Playback<crate::source::DiscSource>) {
 }
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; the shared all-active preference survives native area reloads and can be disabled again"]
+fn all_active_preference_survives_native_area_reload() {
+    let mut playback = start(9);
+    let mut settings = crate::settings::Settings {
+        keep_enemies_active: true,
+        ..Default::default()
+    };
+    playback.configure(&settings);
+    for _ in 0..2 {
+        playback.step(0).unwrap();
+        let Content::Gameplay(session) = &playback.content else {
+            unreachable!()
+        };
+        assert!(session.world.keep_all_active);
+        assert!(session.world.actors.iter().all(|a| a.actor.flags & 8 == 0));
+        playback.load_current().unwrap();
+    }
+    settings.keep_enemies_active = false;
+    playback.configure(&settings);
+    playback.step(0).unwrap();
+    let Content::Gameplay(session) = &playback.content else {
+        unreachable!()
+    };
+    assert!(!session.world.keep_all_active);
+    assert!(session.world.actors.iter().any(|a| a.actor.flags & 8 != 0));
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; disc mission menu, all three campaigns, music, saved supplies and equipment cancellation"]
 fn native_mission_menu_enters_each_campaign_from_its_opening_scene() {
     use super::super::selection::Edit;

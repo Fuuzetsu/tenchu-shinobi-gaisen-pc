@@ -117,7 +117,7 @@ impl Application {
 
     pub(in crate::window) fn step_native_tenchu2(&mut self) -> Result<bool> {
         let native = self.native_tenchu2.as_mut().unwrap();
-        native.playback.death.configure(&self.settings);
+        native.playback.configure(&self.settings);
         let buttons = native.menu.tools.input(
             &mut native.playback.content,
             &mut self.controls,
@@ -173,7 +173,7 @@ impl Application {
         self.last_frame = now;
         self.sync_audio_pause();
         let native = self.native_tenchu2.as_mut().unwrap();
-        native.playback.death.configure(&self.settings);
+        native.playback.configure(&self.settings);
         let buttons = native.menu.tools.input(
             &mut native.playback.content,
             &mut self.controls,

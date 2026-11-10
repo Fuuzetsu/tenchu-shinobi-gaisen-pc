@@ -90,6 +90,8 @@ pub struct World {
     pub random: Random,
     pub map: usize,
     pub view_distance: i32,
+    #[serde(default)]
+    pub keep_all_active: bool,
     pub sequence: u16,
     pub player: usize,
     pub difficulty: u8,
@@ -136,6 +138,7 @@ impl World {
             terrain: assets.level.collision.clone(),
             environment: super::environment::Environment::default(),
             hidden_scene: false,
+            keep_all_active: false,
             actors: Vec::new(),
             instances: Vec::new(),
             scene: Scene::default(),

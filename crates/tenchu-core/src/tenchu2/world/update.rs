@@ -182,7 +182,8 @@ impl World {
             }
         }
         instance.motion_changes = actor.motion_changes;
-        let update_pose = visible
+        let update_pose = self.keep_all_active
+            || visible
             || matches!(
                 actor.state,
                 State::Special | State::Attack | State::Hurt | State::Dead
@@ -196,9 +197,12 @@ impl World {
         }
         if !visible {
             actor.flags &= !0x100000;
-            return Ok(());
+            if !self.keep_all_active {
+                return Ok(());
+            }
+        } else {
+            actor.flags |= 0x100000;
         }
-        actor.flags |= 0x100000;
         if actor.health == 0 || actor.kind & 0xf0 == 0x70 {
             return Ok(());
         }

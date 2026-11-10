@@ -557,6 +557,16 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
 #[test]
 #[ignore = "requires TENCHU2_DISC; continuous native actors with recorded effect boundaries"]
 fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
+    check_campaign_casts(false);
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; every JP campaign area with the complete cast awake"]
+fn native_all_active_campaign_casts_run_together() {
+    check_campaign_casts(true);
+}
+
+fn check_campaign_casts(keep_all_active: bool) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let layouts = Layout::available(&disc).unwrap();
@@ -579,6 +589,7 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                 &assets,
             )
             .unwrap();
+            world.keep_all_active = keep_all_active;
             let mut events = Recorded::default();
             for tick in 0..180 {
                 let buttons = match tick % 90 {
@@ -590,8 +601,14 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                 world
                     .step([buttons, 0], &mut assets, &mut events)
                     .unwrap_or_else(|error| {
-                        panic!("sequence {} tick {tick}: {error}", layout.sequence)
+                        panic!(
+                            "sequence {} tick {tick}, all active {keep_all_active}: {error}",
+                            layout.sequence
+                        )
                     });
+                if keep_all_active {
+                    assert!(world.actors.iter().all(|a| a.actor.flags & 8 == 0));
+                }
             }
             eprintln!(
                 "JP hero {hero} sequence {}: 180 continuous actor ticks",

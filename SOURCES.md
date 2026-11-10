@@ -1589,6 +1589,11 @@ collision updates and 107,806 contact-iteration/cover checks in each edition
 (`TENCHU2_CONTACT_ORACLE`), including explicit contact lookup, rotated local
 offsets, full capacity and arithmetic edges. That oracle supplies world matrices
 and SDK transformation at their boundary; collision and cover run original code.
+The optional native Keep all enemies active experiment expands collision storage
+using ordered contact indices. Without that experiment, the original 64-slot
+allocation guard remains, including its check before an existing slot is returned
+(JP `8002e8f8`, EU `8002dc88`). Expanded storage remains available until area reload
+because disabled contacts may retain tail indices after activation returns to normal.
 
 Terrain movement follows the first part of EU `8001cfb0` / JP `8001d1d8`:
 safe-position recovery, source gravity, water depth, ceiling/step response,

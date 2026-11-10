@@ -353,6 +353,11 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::KeepEnemiesActive => {
+                            state.settings.keep_enemies_active =
+                                Settings::default().keep_enemies_active;
+                            Ok(())
+                        }
                         Item::Preset => {
                             state.settings.set_visual_preset(0);
                             Ok(())
@@ -370,6 +375,11 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::KeepEnemiesActive => {
+                            state.settings.keep_enemies_active =
+                                !state.settings.keep_enemies_active;
+                            Ok(())
+                        }
                         Item::Preset => {
                             let choices = state.presets.library.choices();
                             let current = state.presets.library.current(state.settings);
@@ -649,6 +659,9 @@ mod tests {
                 {
                     let original = state.settings.clone();
                     menu.apply(Edit::Change(row.item, 1), &mut state, &mut action);
+                    if row.item == Item::KeepEnemiesActive {
+                        assert!(state.settings.keep_enemies_active);
+                    }
                     assert!(
                         menu.panel.notice.is_empty(),
                         "{}: {}",

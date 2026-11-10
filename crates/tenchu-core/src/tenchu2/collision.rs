@@ -5,7 +5,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-const CAPACITY: usize = 64;
+const RETAIL_CAPACITY: usize = 64;
 pub const REMOVED: u16 = 0x400;
 pub const OBJECT: u16 = 0x1000;
 pub const BODY: u16 = 0x2000;
@@ -20,20 +20,22 @@ pub struct Slot {
     pub offset: Vector3<i16>,
     pub size: Vector3<i16>,
     pub flags: u16,
-    contacts: u64,
+    contacts: Vec<usize>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Collision {
     slots: Vec<Slot>,
     len: usize,
+    expanded: bool,
 }
 
 impl Default for Collision {
     fn default() -> Self {
         Self {
-            slots: vec![Slot::default(); CAPACITY],
+            slots: vec![Slot::default(); RETAIL_CAPACITY],
             len: 0,
+            expanded: false,
         }
     }
 }
@@ -45,6 +47,11 @@ pub struct Contact {
 }
 
 impl Collision {
+    pub(super) fn allow_expansion(&mut self) {
+        // Keep expanded storage until area reload: frozen contacts may still use it.
+        self.expanded = true;
+    }
+
     pub fn slots(&self) -> &[Slot] {
         &self.slots[..self.len]
     }
@@ -69,12 +76,16 @@ impl Collision {
     }
 
     pub fn insert(&mut self, model: ModelId) -> Result<&mut Slot> {
-        if self.len == CAPACITY {
+        if !self.expanded && self.len == RETAIL_CAPACITY {
             return Err("No free Tenchu 2 collision slot".into());
         }
         let index = if let Some(index) = self.index(model) {
             index
         } else {
+            if self.len == self.slots.len() {
+                self.slots
+                    .resize_with(self.slots.len().max(RETAIL_CAPACITY) * 2, Slot::default);
+            }
             let index = self.len;
             self.len += 1;
             self.slots[index] = Slot {
@@ -107,18 +118,16 @@ impl Collision {
             }
             index += 1;
         }
-        let mut active = [0; CAPACITY];
-        let mut count = 0;
+        let mut active = Vec::with_capacity(self.len);
         for (index, slot) in self.slots[..self.len].iter_mut().enumerate() {
             if slot.flags & DISABLED == 0 {
-                slot.contacts = 0;
+                slot.contacts.clear();
                 slot.position = world(slot.model)?.transform(slot.offset.to_array());
-                active[count] = index;
-                count += 1;
+                active.push(index);
             }
         }
-        for (i, &first) in active[..count].iter().enumerate() {
-            for &second in &active[i + 1..count] {
+        for (i, &first) in active.iter().enumerate() {
+            for &second in &active[i + 1..] {
                 let a = &self.slots[first];
                 let b = &self.slots[second];
                 if a.owner.is_some() && a.owner == b.owner {
@@ -130,8 +139,8 @@ impl Collision {
                         .wrapping_abs()
                         <= i32::from(a.size[axis]) + i32::from(b.size[axis])
                 }) {
-                    self.slots[first].contacts |= 1 << second;
-                    self.slots[second].contacts |= 1 << first;
+                    self.slots[first].contacts.push(second);
+                    self.slots[second].contacts.push(first);
                 }
             }
         }
@@ -140,7 +149,7 @@ impl Collision {
 
     pub fn contact(&self, model: ModelId, index: usize) -> Option<Contact> {
         let origin = &self.slots[self.index(model)?];
-        if origin.contacts == 0 {
+        if origin.contacts.is_empty() {
             return None;
         }
         let other = self.slots.get(index)?;
@@ -153,15 +162,10 @@ impl Collision {
     }
 
     pub fn contacts(&self, model: ModelId) -> impl Iterator<Item = Contact> + '_ {
-        let mut mask = self.index(model).map_or(0, |i| self.slots[i].contacts);
-        std::iter::from_fn(move || {
-            if mask == 0 {
-                return None;
-            }
-            let index = mask.trailing_zeros() as usize;
-            mask &= mask - 1;
-            self.contact(model, index)
-        })
+        self.index(model)
+            .into_iter()
+            .flat_map(move |index| self.slots[index].contacts.iter())
+            .filter_map(move |&index| self.contact(model, index))
     }
 }
 

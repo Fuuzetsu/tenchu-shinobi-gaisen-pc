@@ -64,9 +64,15 @@ pub struct Playback<S> {
     save: Option<super::save::SaveFile>,
     from_menu: bool,
     pub death: death::Hold,
+    keep_all_active: bool,
 }
 
 impl<S: ReadAt> Playback<S> {
+    pub fn configure(&mut self, settings: &crate::settings::Settings) {
+        self.death.configure(settings);
+        self.keep_all_active = settings.keep_enemies_active;
+    }
+
     pub fn load(
         disc: Disc<S>,
         sequence: usize,
@@ -122,6 +128,7 @@ impl<S: ReadAt> Playback<S> {
             save,
             from_menu: false,
             death: Default::default(),
+            keep_all_active: false,
         })
     }
 
@@ -349,6 +356,7 @@ impl<S: ReadAt> Playback<S> {
                 }
             }
             Content::Gameplay(session) => {
+                session.world.keep_all_active = self.keep_all_active;
                 self.death.begin(session, &self.run, &self.campaign)?;
                 if self.death.waiting() {
                     if !self.death.enabled() || matches!(action, Some(Action::Continue)) {

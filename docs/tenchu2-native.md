@@ -70,6 +70,14 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
+**Simulation → Keep all enemies active** keeps the placed native cast running
+outside the source distance and activation budget. Distant poses and foot contacts
+also update. It preserves patrol routes, deaths and scripted holds, and never
+spawns extra actors. This changes encounters and RNG usage and may use more CPU.
+It persists across areas; switching it off restores the original activation check
+on its normal one-second cadence. It is off by default and graphical presets do
+not change it. Enabling it expands collision storage for larger casts until the
+area reloads, including retained contacts after the option is switched off.
 Rewind, randomizer, broader enemy-behaviour options
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.

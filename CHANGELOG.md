@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports **Keep all enemies active** in F1. Distant actors
+  continue patrolling, fighting and animating without the original distance or
+  actor-budget suspension. Scripted holds and deaths remain intact; disabling
+  the option restores source activation rules. Enabling it allows collision
+  storage to grow beyond the retail 64-slot limit until the area reloads.
+  Off by default; ordinary play retains the original collision limit.
+
 - Native Tenchu 2 JP supports the shared F1 Player trail overlay, including
   X-ray viewing. It records recent movement without altering gameplay, breaks
   across large teleports and clears when changing areas.

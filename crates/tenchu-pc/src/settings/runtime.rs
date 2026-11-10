@@ -18,6 +18,8 @@ impl Runtime {
             "GAMEPLAY EDIT: scale native notice, recognition, forgetting and corpse-detection distances, including guards approaching bait. Sight angles, terrain checks and activation remain original. 100% restores source ranges; resets on a new area."
         } else if self == Self::Tenchu2 && item == Item::Stealth {
             "Guards ignore the player and corpses and return to their original idle/patrol behavior. Already committed attacks and projectiles can still hurt; use God mode for protection. Scripted sequences and fights against other actors remain active. Resets on a new area."
+        } else if self == Self::Tenchu2 && item == Item::KeepEnemiesActive {
+            "GAMEPLAY EDIT: keep all placed native actors simulating, patrolling and animating regardless of distance or the original activation budget. Scripted holds and deaths remain intact. Changes RNG and encounters; can cost more CPU. Off restores source distance/budget activation at its next check."
         } else {
             fallback
         }
@@ -50,9 +52,8 @@ impl Runtime {
             | Teleport | PickTeleport | ClickTeleport => None,
             CameraRelative | AlignAim | FollowActor | FollowDistance | RecenterOrbit
             | MouseSensitivity | StickSensitivity | StickDeadzone | InvertCameraY => None,
-            GodMode | Armor | SightDistance | Stealth | GiveItems | ClearItems | Inventory(_) => {
-                None
-            }
+            GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
+            | ClearItems | Inventory(_) => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight

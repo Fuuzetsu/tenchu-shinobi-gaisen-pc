@@ -229,7 +229,7 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
-        self.session.death.configure(&self.settings);
+        self.session.configure(&self.settings);
         let buttons = self.menu.tools.input(
             &mut self.session.content,
             &mut self.controls,
@@ -284,7 +284,7 @@ impl Application {
             || self.menu.panel.open && self.settings.pause_in_menu
             || self.controls.editor.open
             || self.presets.open;
-        self.session.death.configure(&self.settings);
+        self.session.configure(&self.settings);
         let input = PlaybackInput {
             buttons: self.menu.tools.input(
                 &mut self.session.content,
