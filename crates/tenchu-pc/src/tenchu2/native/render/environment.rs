@@ -26,7 +26,7 @@ pub(super) struct Environment {
     spray: crate::visuals::water::Spray,
     pub contact: crate::visuals::contact::Contact,
     pub blood: crate::visuals::blood::Blood,
-    blood_serial: u64,
+    blood_serial: usize,
 }
 
 pub(super) struct Frame<'a> {
@@ -198,23 +198,43 @@ impl Environment {
         }
         if let Some((_, assets)) = world {
             let image = assets.sprites.effects[2];
-            self.blood
-                .ground_tick(tick, &self.surfaces, &[image; 3], &graphics.blood);
+            let pools_changed =
+                self.blood
+                    .ground_tick(tick, &self.surfaces, &[image; 3], &graphics.blood);
             if let Some(history) = frame.contact {
                 use super::super::contact::blood::Phase;
-                for (phase, quad) in history.blood.since(self.blood_serial) {
+                for (id, phase, quad) in history
+                    .blood
+                    .since(self.blood_serial)
+                    .chain(history.blood.pools().filter(|_| pools_changed))
+                {
+                    let death =
+                        quad.blood == Some(tenchu_core::tenchu2::effects::surface::Blood::Death);
                     let accepted = match phase {
                         Phase::Landed => {
-                            graphics.blood.ground == crate::settings::BloodStyle::Modern
+                            if death {
+                                graphics.blood.death == crate::settings::BloodStyle::Modern
+                            } else {
+                                graphics.blood.ground == crate::settings::BloodStyle::Modern
+                            }
                         }
                         Phase::Faded => {
-                            graphics.blood.ground.uses_original() && graphics.blood.retain_original
+                            if death {
+                                graphics.blood.custom_death(false)
+                            } else {
+                                graphics.blood.ground.uses_original()
+                                    && graphics.blood.retain_original
+                            }
+                        }
+                        Phase::Changed => {
+                            death && graphics.blood.death == crate::settings::BloodStyle::Modern
                         }
                     };
                     if !accepted {
                         continue;
                     }
-                    let tenchu_core::tenchu2::effects::surface::Image::Effect(id) = quad.image
+                    let tenchu_core::tenchu2::effects::surface::Image::Effect(image_id) =
+                        quad.image
                     else {
                         continue;
                     };
@@ -226,11 +246,18 @@ impl Environment {
                                 .map(|v| v as f32),
                         )
                     });
-                    self.blood.ground_stamp(
-                        &self.surfaces,
-                        corners,
-                        assets.sprites.effects[usize::from(id)],
-                    );
+                    let image = assets.sprites.effects[usize::from(image_id)];
+                    if death {
+                        self.blood.surface_pool(
+                            id,
+                            &self.surfaces,
+                            corners,
+                            image,
+                            matches!(phase, Phase::Faded),
+                        );
+                    } else {
+                        self.blood.ground_stamp(&self.surfaces, corners, image);
+                    }
                 }
                 self.blood_serial = history.blood.latest();
             }
@@ -246,6 +273,7 @@ impl Environment {
             self.footprints
                 .geometry(&graphics.weather, Some(camera), 0.0),
         );
+        geometry.append(self.blood.pool_geometry());
         geometry.append(self.contact.geometry(camera, alpha, &graphics.effects));
         geometry.append(
             self.contact

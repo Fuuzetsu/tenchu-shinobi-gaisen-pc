@@ -50,7 +50,7 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Texture-based lamp discovery, death/body/weapon blood enhancements, hair/cloth physics,
+Texture-based lamp discovery, body/weapon blood enhancements, hair/cloth physics,
 rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
@@ -79,9 +79,13 @@ visible terrain. Modern ground stains use the shared projection and cached decal
 storage. The shared amount, retention limit, runoff and clear controls apply;
 water blood retains its source effect and does not become a permanent stain.
 Source contacts survive fast-forward, and pausing or changing model detail does
-not duplicate or erase them. Death pools and extra wound bleeding are still
-separate pending adapters. Modern High/Ultra already enable Modern hit and ground
-blood; Original is unchanged.
+not duplicate or erase them. **Death pool / star** independently selects Off,
+Original, Original HD or Modern for source death pools, with the shared size and
+retention controls. Their appearance and growth follow the native death event;
+Modern pools fit visible terrain and both original styles use T2 artwork. Extra
+player-death pools, body/weapon stains and wound bleeding remain pending.
+Modern High/Ultra already enable Modern hit, ground and death blood. Original
+keeps source timing, growth and artwork.
 
 **Detailed rope / hook** in Contact effects uses the shared round woven rope and
 hook refinement. T2 supplies its original flight/pull path; interpolation and

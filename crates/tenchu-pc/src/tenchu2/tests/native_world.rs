@@ -2085,3 +2085,47 @@ fn native_world_resurrection_returns_control_after_the_camera_transition() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; actual combat-death completion creates a pool at the corpse joint, never early"]
+fn native_death_pool_waits_for_completed_combat_death() {
+    let (mut world, mut assets, guard) = fixture();
+    world.map = 1;
+    let actor = &mut world.actors[guard].actor;
+    actor.health = 0;
+    actor.state = State::Dead;
+    assert!(
+        actor
+            .change_motion(0xb01, Velocity::Motion, &assets.resources)
+            .unwrap()
+            .is_some()
+    );
+    actor.motion.frame = 0;
+    actor.motion.loops = 0;
+    let mut events = Recorded::default();
+    let mut seen = false;
+    for _ in 0..180 {
+        world.move_actor(guard, &assets, &mut events).unwrap();
+        world
+            .control_actor(guard, &mut assets, &mut events)
+            .unwrap();
+        world.animate_actor(guard, &assets).unwrap();
+        for effect in &world.effects.entries {
+            if let Effect::Pool(pool) = effect {
+                assert_eq!(world.actors[guard].actor.motion.loops, i16::MIN);
+                let mut scene = world.scene.clone();
+                let torso = scene
+                    .world(world.instances[guard].rig.joints[1])
+                    .unwrap()
+                    .translation;
+                assert!((pool.position.x - torso.x).abs() < 300);
+                assert!((pool.position.z - torso.z).abs() < 300);
+                assert_eq!(pool.position.y, 0);
+                seen = true;
+            }
+        }
+        world.update_effects(&assets).unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+    }
+    assert!(seen, "combat death never produced a source pool");
+}

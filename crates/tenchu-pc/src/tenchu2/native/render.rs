@@ -309,6 +309,7 @@ impl SceneDrawing {
             || graphics.effects.sparks
             || graphics.effects.splashes
             || graphics.blood.retained_ground()
+            || graphics.blood.custom_death(false)
             || ((self.lighting.active(&graphics.lighting) || sky_light)
                 && graphics.lighting.shadows))
             && self.environment.is_none()
@@ -1099,6 +1100,14 @@ impl Models {
             });
         }
         for quad in &frame.effects.quads {
+            let death_blood =
+                quad.blood == Some(tenchu_core::tenchu2::effects::surface::Blood::Death);
+            if death_blood
+                && (!graphics.blood.death.uses_original()
+                    || graphics.blood.custom_death(false) && quad.blend != Blend::Opaque)
+            {
+                continue;
+            }
             let ground_blood = quad.blood
                 == Some(tenchu_core::tenchu2::effects::surface::Blood::Ground)
                 && quad.parent.is_none();
@@ -1132,6 +1141,11 @@ impl Models {
                 transform = scene.world(parent)?.compose(&transform);
             }
             let points = quad.corners.map(|v| {
+                let v = if death_blood && graphics.blood.death_size != 100 {
+                    v.map(|n| (i32::from(n) * i32::from(graphics.blood.death_size) / 100) as i16)
+                } else {
+                    v
+                };
                 transform
                     .transform(v.to_array())
                     .map(|v| v as f32)
@@ -1146,9 +1160,13 @@ impl Models {
             for vertex in &mut vertices {
                 vertex.flags &= !render_mesh::SCREEN;
                 vertex.flags |= render_mesh::UNLIT;
+                if ground_blood || death_blood {
+                    vertex.flags |= render_mesh::DOUBLE_SIDED;
+                }
             }
             let blend = if ground_blood
                 && graphics.blood.ground == crate::settings::BloodStyle::OriginalHd
+                || death_blood && graphics.blood.death == crate::settings::BloodStyle::OriginalHd
             {
                 render_effects::blood::original_hd(&mut vertices, blend)
             } else {

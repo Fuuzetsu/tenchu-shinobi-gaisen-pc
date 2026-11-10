@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports Off / Original / Original HD / Modern death-pool styles, pool size and retention through the shared blood renderer. Source animation completion and pool growth are preserved, including paused style changes. Original ground splats and death pools now render from both sides, fixing missing blood caused by back-face rejection.
+
 - Native Tenchu 2 JP supports shared ground-blood styles, Original/Original HD retention, surface fitting, runoff, retention limits and clearing. Stains survive skipped rendering and model/artwork rebuilds, use cached geometry and leave hit-blood settings and gameplay independent.
 
 - Native Tenchu 2 JP supports the shared Off / Original / Original HD / Modern hit-blood styles. Modern droplets follow the source particles, and Original HD smooths the original shapes. These controls leave ground blood, death pools and gameplay independent.

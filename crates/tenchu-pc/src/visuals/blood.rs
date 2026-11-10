@@ -1111,6 +1111,15 @@ impl Blood {
         geometry
     }
 
+    fn pool_vertices(&self) -> impl Iterator<Item = Vertex> + '_ {
+        self.pools.values().flat_map(|pool| {
+            pool.mark
+                .0
+                .iter()
+                .flat_map(|patch| patch.vertices.iter().copied())
+        })
+    }
+
     pub fn animated_geometry(
         &self,
         game: &Game,
@@ -1124,9 +1133,7 @@ impl Blood {
         let frustum = view.projection.map(crate::renderer::Frustum::new);
         vertices.clear();
         vertices.reserve(self.marks.attached.iter().map(|(_, mark)| mark.len()).sum());
-        for pool in self.pools.values() {
-            vertices.extend(pool.mark.0.iter().flat_map(|p| p.vertices.iter().copied()));
-        }
+        vertices.extend(self.pool_vertices());
         if !self.marks.attached.is_empty() || !self.drops.is_empty() || !self.weapons.is_empty() {
             let transforms = if !self.marks.attached.is_empty() || !self.weapons.is_empty() {
                 let needed = self

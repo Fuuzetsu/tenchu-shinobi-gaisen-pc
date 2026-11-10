@@ -29,6 +29,8 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         blood: crate::settings::Blood {
             hit: g.blood.hit,
             ground: g.blood.ground,
+            death: g.blood.death,
+            death_size: g.blood.death_size,
             retain_original: g.blood.retain_original,
             conform_retained: g.blood.conform_retained,
             amount: g.blood.amount,

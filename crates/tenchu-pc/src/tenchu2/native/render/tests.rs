@@ -1894,3 +1894,193 @@ fn native_retained_blood_uses_source_contacts_and_cached_surface_projection() {
         "restoring source style left retained blood"
     );
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; source death-pool growth, styling, retention and paused restoration"]
+fn native_death_pools_share_styles_and_keep_source_timing() {
+    use crate::settings::BloodStyle;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let position = session.world.actors[session.world.player]
+        .actor
+        .position
+        .wrapping_add(Position::new(1200, -500, 0));
+    session.world.effects = Default::default();
+    session
+        .world
+        .effects
+        .death_pool(
+            position,
+            &session.assets.level.collision,
+            &mut Default::default(),
+        )
+        .unwrap();
+    let advance = |session: &mut super::super::Session| {
+        session.frame.effects = session.world.update_effects(&session.assets).unwrap();
+        session.world.tick += 1;
+        session
+            .contact
+            .record(u64::from(session.world.tick), &session.frame.effects);
+    };
+    for _ in 0..50 {
+        advance(&mut session);
+    }
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    camera.pitch = -0.6;
+    camera.position = Vec3::from(position.to_array().map(|v| v as f32)) + Vec3::Y * 500.0
+        - camera.forward() * 3200.0;
+    let mut images = Vec::new();
+    for (mode, style, size) in [
+        ("original", BloodStyle::Original, 100),
+        ("hd", BloodStyle::OriginalHd, 100),
+        ("modern", BloodStyle::Modern, 100),
+        ("off", BloodStyle::Off, 100),
+        ("half", BloodStyle::Original, 50),
+        ("restored", BloodStyle::Modern, 100),
+    ] {
+        let mut graphics = Graphics {
+            fog: false,
+            asset_pack: false,
+            ..Default::default()
+        };
+        graphics.blood.death = style;
+        graphics.blood.death_size = size;
+        let state = postcard::to_allocvec(&session.world).unwrap();
+        let path = output.join(format!("jp-death-pool-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            if style == BloodStyle::Modern {
+                let blood = &drawing.scene.environment.as_ref().unwrap().blood;
+                let pool = blood.pool_geometry();
+                assert!(!pool.vertices.is_empty(), "modern death pool missing");
+                assert!(
+                    pool.vertices
+                        .iter()
+                        .all(|v| v.flags & render_mesh::SOFT != 0)
+                );
+                let saved = postcard::to_allocvec(blood).unwrap();
+                drawing.update(&session, renderer, None)?;
+                assert_eq!(
+                    postcard::to_allocvec(&drawing.scene.environment.as_ref().unwrap().blood)
+                        .unwrap(),
+                    saved
+                );
+                // Restore source drawing while paused, then enable the already-grown pool again.
+                let mut source = graphics.clone();
+                source.blood.death = BloodStyle::Original;
+                renderer.configure(&source);
+                drawing.update(&session, renderer, None)?;
+                assert!(
+                    drawing
+                        .scene
+                        .environment
+                        .as_ref()
+                        .unwrap()
+                        .blood
+                        .pool_geometry()
+                        .vertices
+                        .is_empty()
+                );
+                if mode != "restored" {
+                    renderer.configure(&graphics);
+                    drawing.update(&session, renderer, None)?;
+                    assert!(
+                        !drawing
+                            .scene
+                            .environment
+                            .as_ref()
+                            .unwrap()
+                            .blood
+                            .pool_geometry()
+                            .vertices
+                            .is_empty()
+                    );
+                }
+            }
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    for i in 0..5 {
+        for j in i + 1..5 {
+            assert!(
+                images[i] != images[j],
+                "death-pool modes {i}/{j} look identical"
+            );
+        }
+    }
+    assert!(
+        images[0] == images[5],
+        "restoring Original changed its source pool"
+    );
+    for _ in 0..300 {
+        advance(&mut session);
+    }
+    assert!(session.world.effects.entries.is_empty());
+    for style in [
+        BloodStyle::Modern,
+        BloodStyle::Original,
+        BloodStyle::OriginalHd,
+    ] {
+        let mut graphics = Graphics {
+            fog: false,
+            asset_pack: false,
+            ..Default::default()
+        };
+        graphics.blood.death = style;
+        graphics.blood.retain_original = true;
+        let path = output.join(format!("jp-death-pool-retained-{style:?}.png"));
+        let state = postcard::to_allocvec(&session.world).unwrap();
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            let environment = drawing.scene.environment.as_ref().unwrap();
+            let vertices: Vec<_> = environment.blood.pages().flat_map(|p| p.iter()).collect();
+            assert!(
+                !vertices.is_empty(),
+                "expired pool was not retained: {style:?}"
+            );
+            assert!(
+                vertices
+                    .iter()
+                    .all(|v| render_mesh::original_hd_blood(v.flags)
+                        == (style == BloodStyle::OriginalHd))
+            );
+            for v in vertices.iter().step_by(3) {
+                let p = Vec3::from(v.position);
+                let hit = environment
+                    .surfaces
+                    .cast(p - Vec3::Y * 5.0, p + Vec3::Y * 5.0)
+                    .unwrap();
+                assert!(
+                    p.distance(hit.position) < 1.0,
+                    "pool floats above the floor"
+                );
+            }
+            assert_eq!(
+                renderer.set_projected_decals(environment.blood.projected_pages()),
+                0
+            );
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+    }
+}

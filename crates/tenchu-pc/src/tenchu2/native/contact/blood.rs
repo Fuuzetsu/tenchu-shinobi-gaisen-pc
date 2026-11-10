@@ -5,9 +5,11 @@ use tenchu_core::tenchu2::effects::surface::{Blend, Blood, Image, Quad};
 pub enum Phase {
     Landed,
     Faded,
+    Changed,
 }
 
 struct Pending {
+    id: usize,
     quad: Quad,
     retained: bool,
 }
@@ -15,8 +17,8 @@ struct Pending {
 #[derive(Default)]
 pub struct History {
     pending: BTreeMap<([i32; 3], u8), Pending>,
-    events: VecDeque<(u64, Phase, Quad)>,
-    serial: u64,
+    events: VecDeque<(usize, usize, Phase, Quad)>,
+    serial: usize,
 }
 
 impl History {
@@ -29,7 +31,7 @@ impl History {
         let mut seen = BTreeSet::new();
         let mut events = Vec::new();
         for quad in quads {
-            if quad.blood != Some(Blood::Ground)
+            if !matches!(quad.blood, Some(Blood::Ground | Blood::Death))
                 || quad.parent.is_some()
                 || quad.blend == Blend::SubtractMask
             {
@@ -53,18 +55,26 @@ impl History {
                 continue;
             }
             let entry = self.pending.entry(key).or_insert_with(|| {
-                events.push((Phase::Landed, quad.clone()));
+                let id = self.serial + events.len() + 1;
+                events.push((id, Phase::Landed, quad.clone()));
                 Pending {
+                    id,
                     quad: quad.clone(),
                     retained: false,
                 }
             });
+            if quad.blood == Some(Blood::Death)
+                && quad.blend == Blend::Opaque
+                && quad.corners != entry.quad.corners
+            {
+                events.push((entry.id, Phase::Changed, quad.clone()));
+            }
             if quad.blend == Blend::Add && !entry.retained {
                 // Retain the last opaque shape, including the full wall streak.
                 let mut last = entry.quad.clone();
                 last.color = [128; 3];
                 last.blend = Blend::Opaque;
-                events.push((Phase::Faded, last));
+                events.push((entry.id, Phase::Faded, last));
                 entry.retained = true;
             }
             entry.quad = quad.clone();
@@ -74,29 +84,48 @@ impl History {
                 return true;
             }
             if !entry.retained {
-                events.push((Phase::Faded, entry.quad.clone()));
+                events.push((entry.id, Phase::Faded, entry.quad.clone()));
             }
             false
         });
-        for (phase, quad) in events {
+        for (id, phase, quad) in events {
             self.serial += 1;
-            self.events.push_back((self.serial, phase, quad));
+            self.events.push_back((self.serial, id, phase, quad));
             if self.events.len() > 65_536 {
                 self.events.pop_front();
             }
         }
     }
 
-    pub fn latest(&self) -> u64 {
+    pub fn pools(&self) -> impl Iterator<Item = (usize, Phase, &Quad)> {
+        self.pending
+            .values()
+            .filter(|p| p.quad.blood == Some(Blood::Death))
+            .map(|p| {
+                (
+                    p.id,
+                    if p.retained {
+                        Phase::Faded
+                    } else {
+                        Phase::Changed
+                    },
+                    &p.quad,
+                )
+            })
+    }
+
+    pub fn latest(&self) -> usize {
         self.serial
     }
 
-    pub fn since(&self, serial: u64) -> impl Iterator<Item = (Phase, &Quad)> {
-        let start = self.events.partition_point(|(id, _, _)| *id <= serial);
+    pub fn since(&self, serial: usize) -> impl Iterator<Item = (usize, Phase, &Quad)> {
+        let start = self
+            .events
+            .partition_point(|(serial_id, _, _, _)| *serial_id <= serial);
         self.events
             .iter()
             .skip(start)
-            .map(|(_, phase, quad)| (*phase, quad))
+            .map(|(_, id, phase, quad)| (*id, *phase, quad))
     }
 }
 
@@ -144,9 +173,9 @@ mod tests {
         history.record(&[faded.clone(), mask]);
         let retained: Vec<_> = history.since(1).collect();
         assert_eq!(retained.len(), 1);
-        assert!(matches!(retained[0].0, Phase::Faded));
-        assert_eq!(retained[0].1.corners, quad.corners);
-        assert_eq!(retained[0].1.color, [128; 3]);
+        assert!(matches!(retained[0].1, Phase::Faded));
+        assert_eq!(retained[0].2.corners, quad.corners);
+        assert_eq!(retained[0].2.color, [128; 3]);
         history.record(&[faded]);
         history.record(&[]);
         assert_eq!(history.latest(), 2);
@@ -154,7 +183,7 @@ mod tests {
         let mut collapsed = quad.clone();
         collapsed.corners = [quad.corners[0]; 4];
         history.record(&[collapsed]);
-        assert_eq!(history.since(3).next().unwrap().1.corners, quad.corners);
+        assert_eq!(history.since(3).next().unwrap().2.corners, quad.corners);
         history.record(&[]);
         assert_eq!(
             history.latest(),
@@ -163,9 +192,7 @@ mod tests {
         );
         let mut water = ground();
         water.blood = Some(Blood::Water);
-        let mut death = ground();
-        death.blood = Some(Blood::Death);
-        history.record(&[water, death]);
+        history.record(&[water]);
         assert_eq!(history.latest(), 4);
         history.reset();
         assert!(history.since(0).next().is_none());

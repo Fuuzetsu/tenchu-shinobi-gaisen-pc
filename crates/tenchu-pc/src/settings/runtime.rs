@@ -10,8 +10,6 @@ impl Runtime {
     pub fn help(self, item: Item, fallback: &'static str) -> &'static str {
         if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. T2 bindings still apply: Circle guards, R1 crouches. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
-        } else if self == Self::Tenchu2 && item == Item::BloodRetain {
-            "Extend Original / Original HD ground splats using their chosen disc artwork. Hit spurts remain independent. Native death-pool retention is not connected yet."
         } else {
             fallback
         }
@@ -74,8 +72,8 @@ impl Runtime {
             | StormBolts | StormInterval | StormThunder | RainVolume | WindVolume
             | ThunderStyle => None,
             ContactSparks | SparkDensity | ContactSplashes | GrappleDetail | BloodHit => None,
-            BloodGround | BloodRetain | BloodConform | BloodAmount | BloodMarks | BloodRunoff
-            | ClearBlood => None,
+            BloodGround | BloodDeath | BloodDeathSize | BloodRetain | BloodConform
+            | BloodAmount | BloodMarks | BloodRunoff | ClearBlood => None,
             Water | WaterReflective | WaterRipples | WaterReflections | WaterFlow | WaterFoam
             | WaterSpray | WaterDetail => None,
             PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts => {
