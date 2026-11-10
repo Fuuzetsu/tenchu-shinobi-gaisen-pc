@@ -223,6 +223,133 @@ fn native_water_animation_survives_texture_replacement() {
 }
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; shared water must render, animate and restore Original without simulation changes"]
+fn native_modern_water_uses_shared_materials_without_changing_logic() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 1, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    let mut settings = crate::settings::Settings::default();
+    settings.graphics.asset_pack = false;
+    settings.graphics.fog = false;
+    settings.graphics.water.enabled = true;
+    let graphics = super::super::preferences::graphics(&settings);
+    let meshes = prepare(
+        &session.assets.level.vram,
+        sources("map0/terrain", &session.assets.level.map, Role::Terrain),
+        &graphics,
+    )
+    .unwrap();
+    let mut centers = Vec::new();
+    for part in &session.assets.level.map {
+        meshes.visit(
+            &part.geometry,
+            Matrix {
+                translation: part.position.map(|v| i32::from(v) * 10).into(),
+                ..Default::default()
+            },
+            false,
+            0,
+            None,
+            |triangle| {
+                if triangle[0].flags & render_mesh::WATER != 0 {
+                    centers.push(
+                        triangle
+                            .iter()
+                            .map(|v| Vec3::from(v.position))
+                            .sum::<Vec3>()
+                            / 3.0,
+                    );
+                }
+            },
+        );
+    }
+    let player = Vec3::from(
+        session.world.actors[0]
+            .actor
+            .position
+            .to_array()
+            .map(|v| v as f32),
+    );
+    let center = centers
+        .into_iter()
+        .min_by(|a, b| {
+            a.distance_squared(player)
+                .total_cmp(&b.distance_squared(player))
+        })
+        .unwrap();
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    camera.pitch = -1.55;
+    camera.position = center - camera.forward() * 6000.0;
+    let mut images = Vec::new();
+    for mode in ["original", "modern", "reflective", "restored"] {
+        settings.graphics.water.enabled = matches!(mode, "modern" | "reflective");
+        settings.graphics.water.reflective = mode == "reflective";
+        let graphics = super::super::preferences::graphics(&settings);
+        let path = output.join(format!("jp-water-shared-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            assert_eq!(drawing.scene.environment.is_some(), graphics.water.enabled);
+            if let Some(environment) = &mut drawing.scene.environment {
+                let spray = environment.update(
+                    u64::from(session.world.tick),
+                    camera.matrix(16.0 / 9.0),
+                    &graphics,
+                    None,
+                    renderer,
+                );
+                assert!(
+                    !spray.vertices.is_empty(),
+                    "source waterfall should feed shared spray"
+                );
+                let mut disabled = graphics.clone();
+                disabled.water.spray = 0;
+                assert!(
+                    environment
+                        .update(
+                            u64::from(session.world.tick),
+                            camera.matrix(16.0 / 9.0),
+                            &disabled,
+                            None,
+                            renderer
+                        )
+                        .vertices
+                        .is_empty()
+                );
+            }
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    for pair in images[..3].windows(2) {
+        let changed = pair[0]
+            .chunks_exact(4)
+            .zip(pair[1].chunks_exact(4))
+            .filter(|(a, b)| a != b)
+            .count();
+        assert!(
+            changed > 100,
+            "water effect did not reach renderer: {changed}"
+        );
+    }
+    assert_eq!(images[0], images[3]);
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; exercises original joint counts across every native character and costume"]
 fn native_character_geometry_keeps_all_source_joints() {
     use tenchu_assets::tenchu2::characters;

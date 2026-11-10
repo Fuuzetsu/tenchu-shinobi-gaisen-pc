@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports the shared modern water shader, reflections, ripples, waterfall smoothing and spray through F1. Water is identified from the source level definitions, including when using HD artwork; unrelated animated textures keep their original appearance. The same material handling applies to JP/EU maps in the Gaisen scenery sandbox. Original water animation and gameplay are unchanged.
+
 - Native Tenchu 2 JP now supports shared movable lights, camera-follow lights, light-source markers, nearest-flame inspection, flame flicker and heat shimmer. These also work in 3D cutscenes; Modern High/Ultra use the existing flame settings and Original remains unchanged.
 
 - Connect native Tenchu 2 JP to shared smooth model lighting, character contours/surface refinement and weapon reflections, including 3D cutscene characters. Imported T2 bodies also respect Gaisen model-refinement settings. Added vertices retain their bone weights, and live quality changes preserve weather and footprints.
@@ -18,7 +20,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Player moveset overrides now use the selected character’s disc-backed voice and weapon sounds in both Gaisen and native Tenchu 2 JP, including JP/EU T2 banks and Gaisen characters from other missions. Other actors, world effects and ambience keep their own sounds. Imported audio also works in recordings and restored Gaisen savestates.
 
 - Imported Tenchu 2 movesets now carry their own disc-backed weapons, handles and sheaths into Gaisen and native JP, including edition-specific textures and HD-pack replacements. Attachments follow source draw/holster rules; Gaisen weapon blood and reflections recognize the imported blades. Changing only the moveset refreshes its rendering resources too.
-- Update the mid-mission savestate format for imported weapon and sound resources. Earlier mid-mission states require their original build; campaign progress and settings are unaffected.
+- Update the mid-mission savestate format for imported weapon, sound and water-material resources. Earlier mid-mission states require their original build; campaign progress and settings are unaffected.
 - Connect native Tenchu 2 JP to the shared sun/moon lighting, directional shadows and time-of-day controls, including 3D cutscenes. The visual clock follows simulation time through pause and fast-forward; model/artwork changes preserve it.
 - Enable native JP god mode, armour protection and mission inventory editing in the shared F1 Experiment tab. The inventory lists T2's own items; edits preserve active effects and leave campaign stock unchanged. God mode prevents combat, poison, drowning and fall damage without refilling health or removing hit reactions.
 - Native Tenchu 2 JP gains collision, patrol, mission-destination and surface-trigger overlays. Guard sight overlays use JP terrain checks, show obstruction points and explain the selected guard's next perception check without changing gameplay.

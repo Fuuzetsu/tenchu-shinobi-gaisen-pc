@@ -49,6 +49,8 @@ pub struct TextureScroll {
     pub image: Image,
     pub velocity: [i16; 2],
     pub delay: u32,
+    #[serde(default)]
+    pub water: bool,
 }
 
 impl TextureScroll {

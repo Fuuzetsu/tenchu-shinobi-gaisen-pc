@@ -38,6 +38,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         samples: g.samples,
         post: g.post.clone(),
         weather: g.weather.clone(),
+        water: g.water.clone(),
         sky: g.sky.clone(),
         lighting: crate::settings::Lighting {
             lamps: false,

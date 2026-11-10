@@ -20,6 +20,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | GPU shading, shadows, materials and post effects | `renderer` | Source scene preparation, including native palette/fog decoding |
 | Diagnostic reports | `diagnostics` shares metadata, settings/debug snapshots, bounded input history, redaction and platform export | Explicit Gaisen/native actor, AI, mission and cutscene state adapters; no asset dumps |
 | Weather and footprints | `visuals/weather`, `visuals/footprints`, `visuals/surfaces` | Source terrain and sole-contact adapters |
+| Water shading, curved waterfalls and spray | `visuals/water`, shared renderer | T2's level loader marks authored scrolling water; mesh preparation distinguishes horizontal surfaces and falls, respecting explicit pack overrides |
 | Imported weapon resources | `tenchu-assets::weapon::Equipment` and `ImportedModel`; shared model/material preparation | T2 disc tables supply attachments, contact eligibility and draw rules; each runtime maps its rig slots |
 
 Paths above are relative to `crates/tenchu-pc/src`. The small inspection interface

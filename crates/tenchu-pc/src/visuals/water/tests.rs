@@ -2,6 +2,68 @@ use super::*;
 use bytemuck::Zeroable;
 
 #[test]
+fn source_water_uses_face_orientation_and_respects_artwork_overrides() {
+    let mut material = Material {
+        id: "source-water".into(),
+        region: None,
+        image: std::sync::Arc::new(super::super::pixels::Image {
+            size: [1, 1],
+            rgba: vec![255; 4],
+        }),
+        animation: Some(tenchu_assets::texture::TextureScroll {
+            image: tenchu_assets::texture::Image {
+                page: 0,
+                palette: 0,
+                uv: [0; 2],
+                size: [64; 2],
+            },
+            velocity: [-4, -8],
+            delay: 5,
+            water: true,
+        }),
+    };
+    let source: Vec<_> = [Vec3::ZERO, Vec3::X, Vec3::Z, Vec3::ZERO, Vec3::X, Vec3::Y]
+        .map(|p| Vertex {
+            position: p.to_array(),
+            material: 1,
+            ..Vertex::zeroed()
+        })
+        .into();
+    let settings = settings::Water {
+        detail: 0,
+        ..Default::default()
+    };
+    for (authored_water, override_kind) in [(true, None), (false, None), (true, Some(Kind::Off))] {
+        material.animation.as_mut().unwrap().water = authored_water;
+        let mut result = source.clone();
+        let rules = override_kind
+            .map(|kind| (material.id.clone(), kind))
+            .into_iter()
+            .collect();
+        prepare(
+            &mut result,
+            std::slice::from_ref(&material),
+            &rules,
+            &settings,
+            &mut 0,
+        );
+        if authored_water && override_kind.is_none() {
+            assert!(result[..3].iter().all(|v| v.flags == render_mesh::WATER));
+            assert!(
+                result[3..]
+                    .iter()
+                    .all(|v| v.flags == render_mesh::WATER | render_mesh::WATERFALL)
+            );
+        } else {
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&result),
+                bytemuck::cast_slice::<_, u8>(&source)
+            );
+        }
+    }
+}
+
+#[test]
 fn waterfall_curves_keep_boundary_uvs_and_respect_geometry_budget() {
     let points = [
         [-1000.0, -2000.0, 0.0],

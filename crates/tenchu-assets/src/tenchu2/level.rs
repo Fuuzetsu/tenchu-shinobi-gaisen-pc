@@ -223,6 +223,7 @@ fn initialize_water(id: usize, vram: &mut Vram) -> Result<()> {
             image,
             velocity: [0, speed],
             delay: 5,
+            water: true,
         });
     }
     Ok(())

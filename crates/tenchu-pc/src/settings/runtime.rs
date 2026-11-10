@@ -63,6 +63,8 @@ impl Runtime {
             | ClearFootprints | RoofRunoff | RunoffAmount | ClearWeather | StormLightning
             | StormBolts | StormInterval | StormThunder | RainVolume | WindVolume
             | ThunderStyle => None,
+            Water | WaterReflective | WaterRipples | WaterReflections | WaterFlow | WaterFoam
+            | WaterSpray | WaterDetail => None,
             PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts => {
                 None
             }

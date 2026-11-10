@@ -23,6 +23,7 @@ pub(super) struct Environment {
     footprints: Footprints,
     tick: Option<u64>,
     thunder: Option<tenchu_audio::ThunderCue>,
+    spray: crate::visuals::water::Spray,
 }
 
 pub(super) struct Frame<'a> {
@@ -37,9 +38,12 @@ pub(super) struct Frame<'a> {
 impl Environment {
     pub fn new(level: &Level, meshes: &Meshes, math: &Math, renderer: &mut Renderer) -> Self {
         let mut vertices = Vec::new();
+        let mut water = Vec::new();
         let mut append = |part: &tenchu_assets::model::Part, matrix| {
             meshes.visit(&part.geometry, matrix, false, 0, None, |triangle| {
-                if triangle[0].flags & (render_mesh::WATER | render_mesh::SKY) == 0 {
+                if triangle[0].flags & render_mesh::WATER != 0 {
+                    water.extend(triangle.into_iter().copied());
+                } else if triangle[0].flags & render_mesh::SKY == 0 {
                     vertices.extend(triangle.map(|v| Vertex {
                         flags: v.flags | render_mesh::SCENERY,
                         ..*v
@@ -75,6 +79,7 @@ impl Environment {
             footprints: Default::default(),
             tick: None,
             thunder: None,
+            spray: crate::visuals::water::Spray::new(&water),
         }
     }
 
@@ -140,6 +145,10 @@ impl Environment {
         geometry.append(
             self.footprints
                 .geometry(&graphics.weather, Some(camera), 0.0),
+        );
+        geometry.append(
+            self.spray
+                .geometry(tick as f32 / 30.0, camera, &graphics.water),
         );
         geometry
     }

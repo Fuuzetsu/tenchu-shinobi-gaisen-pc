@@ -288,6 +288,7 @@ impl SceneDrawing {
         let sky_light = graphics.sky.enabled
             || (graphics.lighting.enabled && graphics.lighting.directional.intensity > 0);
         if (graphics.weather.mode != crate::settings::WeatherMode::Original
+            || graphics.water.enabled
             || ((self.lighting.active(&graphics.lighting) || sky_light)
                 && graphics.lighting.shadows))
             && self.environment.is_none()

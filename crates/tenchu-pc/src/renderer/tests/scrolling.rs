@@ -371,6 +371,7 @@ fn imported_texture_scroll_preserves_static_materials_and_rewinds() {
         },
         velocity: [0, -4],
         delay: 5,
+        water: false,
     };
     let camera = game_camera(Matrix::default(), 1.0);
     for size in [64, 256] {

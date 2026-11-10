@@ -32,18 +32,30 @@ pub fn prepare(
     settings: &settings::Water,
     budget: &mut usize,
 ) {
-    for vertex in vertices.iter_mut() {
-        if let Some(material) = vertex
+    for triangle in vertices.chunks_exact_mut(3) {
+        if let Some(material) = triangle[0]
             .material
             .checked_sub(1)
             .and_then(|i| materials.get(i as usize))
         {
-            match rules.get(&material.id) {
-                Some(Kind::Surface) => vertex.flags |= render_mesh::WATER,
-                Some(Kind::Waterfall) => {
-                    vertex.flags |= render_mesh::WATER | render_mesh::WATERFALL
-                }
-                _ => {}
+            let kind = rules.get(&material.id).copied().or_else(|| {
+                material.animation.filter(|scroll| scroll.water).map(|_| {
+                    let [a, b, c] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
+                    let normal = (b - a).cross(c - a).normalize_or_zero();
+                    if normal.y.abs() < 0.5 {
+                        Kind::Waterfall
+                    } else {
+                        Kind::Surface
+                    }
+                })
+            });
+            let flags = match kind {
+                Some(Kind::Surface) => render_mesh::WATER,
+                Some(Kind::Waterfall) => render_mesh::WATER | render_mesh::WATERFALL,
+                _ => 0,
+            };
+            for vertex in triangle {
+                vertex.flags |= flags;
             }
         }
     }

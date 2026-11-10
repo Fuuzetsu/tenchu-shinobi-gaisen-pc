@@ -50,10 +50,17 @@ already. Source markers label shadow candidates because the renderer also checks
 visibility and its shadow budget. Movable lights reset when the scene changes.
 
 Presets remain shared, with only the supported graphics applied in native JP.
-Texture-based lamp discovery, combat-effect lights, blood/water enhancements, hair/cloth physics,
+Texture-based lamp discovery, combat-effect lights, blood enhancements, hair/cloth physics,
 camera-relative controls, rewind, randomizer, enemy-behaviour cheats
 and benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
+
+**F1 → Water** controls the shared modern water shading, ripples, reflections,
+flow, foam, waterfall smoothing and spray. Native gameplay and 3D scenes use the
+level's authored water textures to identify surfaces, with original or HD artwork.
+Modern High/Ultra already enable these effects. Original keeps source texture
+scrolling, geometry and collision; these options only affect presentation.
+Character contact splashes remain separate work.
 
 **F1 → Player model** uses the shared searchable gallery of Gaisen and connected
 T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**
