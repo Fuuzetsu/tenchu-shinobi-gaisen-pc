@@ -42,6 +42,13 @@ link independently of the Gaisen pack.
 
 Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
+**F1 → Lighting** also supports movable lights, placement above the player or at
+the camera, camera-follow lights, source markers and nearest-light inspection.
+Flame flicker and heat shimmer use the shared renderer in gameplay and 3D
+cutscenes. Heat shimmer requires Image effects; Modern High/Ultra select it
+already. Source markers label shadow candidates because the renderer also checks
+visibility and its shadow budget. Movable lights reset when the scene changes.
+
 Presets remain shared, with only the supported graphics applied in native JP.
 Texture-based lamp discovery, combat-effect lights, blood/water enhancements, hair/cloth physics,
 camera-relative controls, rewind, randomizer, enemy-behaviour cheats

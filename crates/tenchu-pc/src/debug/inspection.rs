@@ -59,6 +59,46 @@ impl From<Actor> for crate::navigation::Target {
 }
 
 impl Debug {
+    pub fn inspection_eye(&self, scene: &impl Scene) -> Result<Vec3> {
+        self.camera
+            .or(self.follow_camera)
+            .or_else(|| scene.camera())
+            .map(|camera| camera.position)
+            .ok_or_else(|| "Start a mission or a 3D cutscene before placing a light.".into())
+    }
+
+    pub fn light_position(&self, scene: &impl Scene) -> Option<Vec3> {
+        if self.light_follow {
+            self.light_at(self.inspection_eye(scene).ok()?)
+        } else {
+            self.light
+        }
+    }
+
+    pub fn light_at(&self, eye: Vec3) -> Option<Vec3> {
+        self.light
+            .map(|position| if self.light_follow { eye } else { position })
+    }
+
+    pub fn focus_light(
+        &mut self,
+        scene: &impl Scene,
+        source: &crate::lighting::Source,
+    ) -> Result<()> {
+        let mut camera = self
+            .camera
+            .or(self.follow_camera)
+            .or_else(|| scene.camera())
+            .ok_or("Start a mission or a 3D cutscene before inspecting lights.")?;
+        let direction = (source.light.position - camera.position).normalize_or_zero();
+        camera.yaw = direction.x.atan2(direction.z);
+        camera.focus(source.light.position, false);
+        camera.position = source.light.position - camera.forward() * 4500.0;
+        self.return_camera();
+        self.camera = Some(camera);
+        Ok(())
+    }
+
     pub fn followed_inspection(&self, scene: &impl Scene) -> Option<Actor> {
         let subject = self.camera_actor?;
         scene
@@ -125,6 +165,41 @@ impl Debug {
 
     pub fn change_tool(&mut self, scene: &impl Scene, item: Item, delta: i32) -> Result<bool> {
         match item {
+            Item::DebugLight => {
+                self.light = if self.light.is_some() {
+                    None
+                } else {
+                    Some(self.inspection_eye(scene)?)
+                };
+                self.light_follow = false;
+            }
+            Item::PlaceLight => {
+                self.light = Some(self.inspection_eye(scene)?);
+                self.light_follow = false;
+            }
+            Item::PlayerLight => {
+                self.light = Some(
+                    scene
+                        .actor(scene.player())
+                        .ok_or("No player in this scene")?
+                        .position
+                        + Vec3::new(2000.0, -4000.0, 2000.0),
+                );
+                self.light_follow = false;
+            }
+            Item::FollowLight => {
+                let position = self
+                    .light_position(scene)
+                    .unwrap_or(self.inspection_eye(scene)?);
+                self.light = Some(position);
+                self.light_follow = !self.light_follow;
+            }
+            Item::LightAxis(axis) => {
+                let eye = self.inspection_eye(scene)?;
+                self.light_follow = false;
+                let light = self.light.get_or_insert(eye);
+                light[axis] = (light[axis] + delta as f32 * 500.0).clamp(-320_000.0, 320_000.0);
+            }
             Item::Speed => {
                 self.speed =
                     crate::settings::edit::cycle(self.speed, &[25, 50, 100, 200, 400, 0], delta);
@@ -214,6 +289,19 @@ impl Debug {
 
     pub fn reset_tool(&mut self, scene: &impl Scene, item: Item) -> Result<bool> {
         match item {
+            Item::DebugLight => {
+                self.light = None;
+                self.light_follow = false;
+            }
+            Item::FollowLight => {
+                self.light = self.light_position(scene);
+                self.light_follow = false;
+            }
+            Item::LightAxis(axis) => {
+                if let Some(light) = &mut self.light {
+                    light[axis] = 0.0;
+                }
+            }
             Item::Speed => self.speed = Self::default().speed,
             Item::Target(axis) => {
                 self.target[axis] = scene

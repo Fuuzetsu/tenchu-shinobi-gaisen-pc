@@ -78,3 +78,8 @@ move, item or weapon interchangeable. Preserve original action semantics at that
 boundary rather than making a universal AI/controller or silently substituting
 host-game effects. The existing disc-backed tests verify state preservation;
 interactive and rendered checks are also needed for each connected feature.
+
+Light placement, camera-follow/freeze, marker drawing and shadow-preview settings
+are shared too. Native JP supplies its authored flame positions; the renderer
+owns flicker, heat shimmer and shadow budgeting for both games. Texture-panel
+lamp discovery and combat emitters still need native source adapters.

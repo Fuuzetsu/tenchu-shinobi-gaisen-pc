@@ -2387,9 +2387,9 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
                 (
                     Item::FocusLight,
-                    "Inspect nearest lantern",
+                    "Inspect nearest light",
                     "Enter".into(),
-                    "Focus free camera and show source labels.",
+                    "Focus free camera on a nearby lantern or flame and show source labels.",
                 ),
                 (
                     Item::LightSourceSize,

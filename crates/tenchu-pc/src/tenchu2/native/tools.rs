@@ -20,6 +20,7 @@ pub struct Tools {
     click: Option<(f64, f64)>,
     teleport: Option<(tenchu_core::math::Position, bool)>,
     edits: Vec<experiment::Edit>,
+    focus_light: bool,
 }
 
 impl Tools {
@@ -36,6 +37,9 @@ impl Tools {
             self.teleport = None;
             self.edits.clear();
             self.debug.click_teleport = false;
+            self.debug.light = None;
+            self.debug.light_follow = false;
+            self.focus_light = false;
         }
         self.scene.actors.clear();
         experiment::sync(&mut self.debug, content);
@@ -180,6 +184,11 @@ impl Tools {
             return Ok(());
         }
         match item {
+            Item::FocusLight => {
+                self.debug.inspection_eye(&self.scene)?;
+                self.focus_light = true;
+                return Ok(());
+            }
             Item::RecenterOrbit => {
                 let actor = self
                     .debug
@@ -229,6 +238,19 @@ impl Tools {
     }
 
     pub fn apply(&mut self, content: &mut Content, size: [u32; 2]) -> Result<()> {
+        if std::mem::take(&mut self.focus_light) {
+            let level = match content {
+                Content::Gameplay(session) => &session.assets.level,
+                Content::Story { story, .. } => &story.level,
+                _ => {
+                    return Err("Start a mission or a 3D cutscene before inspecting lights.".into());
+                }
+            };
+            let source =
+                super::render::lighting::nearest(level, self.debug.inspection_eye(&self.scene)?)
+                    .ok_or("No flame emitters found in this scene")?;
+            self.debug.focus_light(&self.scene, &source)?;
+        }
         if !self.edits.is_empty() {
             let edits = self.edits.drain(..);
             let Content::Gameplay(session) = content else {

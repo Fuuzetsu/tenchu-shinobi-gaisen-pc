@@ -36,6 +36,8 @@ impl Runtime {
             GodMode | Armor | GiveItems | ClearItems | Inventory(_) => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
+            LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight
+            | LightAxis(_) | ShadowPreview | FlameMotion | HeatShimmer => None,
             DirectionalIntensity
             | DirectionalColor
             | DirectionalAzimuth

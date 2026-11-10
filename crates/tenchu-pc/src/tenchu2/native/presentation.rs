@@ -389,7 +389,7 @@ impl ContentDrawing {
             }
             (Self::Story(drawing), Content::Story { story, .. }) => {
                 drawing.camera = debug.camera.or(debug.follow_camera);
-                drawing.update(story, renderer)
+                drawing.update(story, renderer, Some(debug))
             }
             (Self::Introduction(frame), Content::Introduction(intro)) => {
                 *frame = film::introduction(intro);
@@ -464,7 +464,8 @@ impl ContentDrawing {
                 crate::fonts::paint(ctx, film::rect(ctx), &drawing.text);
             }
             (Self::Story(drawing), _) => {
-                crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts)
+                crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts);
+                crate::debug::overlay::paint_labels(ctx, &drawing.labels);
             }
             (Self::Introduction(frame) | Self::Prologue(frame), _)
             | (Self::Results(results::Drawing { frame, .. }), _) => {

@@ -527,3 +527,19 @@ pub(crate) fn cycle(value: u16, choices: &[u16], direction: i32) -> u16 {
     let index = choices.iter().position(|&v| v == value).unwrap_or(0);
     choices[(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
 }
+
+impl Settings {
+    pub fn shadow_preview(&mut self) {
+        self.graphics.lighting.enabled = true;
+        self.graphics.lighting.count = self.graphics.lighting.count.max(1);
+        self.graphics.lighting.shadows = true;
+        self.graphics.lighting.fires = false;
+        self.graphics.lighting.lamps = false;
+        self.graphics.lighting.shadow_count = 1;
+        self.graphics.lighting.ambient = 25;
+        self.graphics.lighting.intensity = 250;
+        self.graphics.lighting.radius = 12;
+        self.graphics.lighting.resolution = 1024;
+        self.graphics.blob_shadows = false;
+    }
+}

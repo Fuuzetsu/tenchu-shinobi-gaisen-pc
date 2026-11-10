@@ -17,6 +17,36 @@ pub enum Anchor {
 
 pub struct Label(pub Anchor, pub String, pub [f32; 3]);
 
+pub fn light_markers(
+    matrix: glam::Mat4,
+    aspect: f32,
+    sources: &[crate::lighting::Source],
+    shadows: usize,
+) -> Overlay {
+    let mut lines = Builder::new(matrix, aspect, false);
+    for (i, source) in sources.iter().enumerate() {
+        let p = source.light.position;
+        let color = source.light.color;
+        lines.box_at(p - Vec3::splat(80.0), p + Vec3::splat(80.0), color);
+        if let Some([x, y]) = lines.project(p) {
+            lines.labels.push(Label(
+                Anchor::Projected([x, y]),
+                format!(
+                    "{}{}",
+                    source.name,
+                    if i < shadows {
+                        " [shadow candidate]"
+                    } else {
+                        ""
+                    }
+                ),
+                color,
+            ));
+        }
+    }
+    lines.finish()
+}
+
 pub struct Builder {
     pub labels: Vec<Label>,
     vertices: Vec<Vertex>,

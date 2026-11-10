@@ -30,7 +30,7 @@ mod background;
 mod custom;
 mod environment;
 mod hud;
-mod lighting;
+pub(super) mod lighting;
 mod story;
 #[cfg(test)]
 mod tests;
@@ -161,6 +161,10 @@ impl Drawing {
                     .map(|v| v as f32),
             )
         });
+        let camera = camera_matrix(view, self.camera, renderer.size());
+        self.labels = self
+            .scene
+            .inspect_lights(debug, camera, renderer, &mut geometry);
         self.scene.prepare_environment(
             &mut geometry,
             environment::Frame {
@@ -168,12 +172,11 @@ impl Drawing {
                 meshes: &self.models.scenery,
                 math: &session.assets.resources.math,
                 tick: u64::from(session.world.tick),
-                camera: camera_matrix(view, self.camera, renderer.size()),
+                camera,
                 world: Some((&session.world, &session.assets)),
             },
             renderer,
         );
-        self.labels.clear();
         if let Some(debug) = debug {
             if debug.collision_only && !debug.photo_mode {
                 geometry.terrain.clear();
@@ -188,14 +191,10 @@ impl Drawing {
                 }
             }
             let size = renderer.size();
-            let overlay = super::inspection::overlay(
-                session,
-                debug,
-                camera_matrix(view, self.camera, size),
-                size[0] as f32 / size[1] as f32,
-            );
+            let overlay =
+                super::inspection::overlay(session, debug, camera, size[0] as f32 / size[1] as f32);
             geometry.effects.append(overlay.geometry);
-            self.labels = overlay.labels;
+            self.labels.extend(overlay.labels);
         }
         self.scene.update(geometry, renderer);
         renderer.visual_time = session.world.tick as f32 / 30.0;
@@ -225,6 +224,36 @@ fn camera_matrix(
 }
 
 impl SceneDrawing {
+    fn inspect_lights(
+        &mut self,
+        debug: Option<&crate::debug::Debug>,
+        camera: glam::Mat4,
+        renderer: &Renderer,
+        geometry: &mut Geometry,
+    ) -> Vec<crate::debug::Label> {
+        let origin = camera.inverse() * glam::Vec4::new(0.0, 0.0, 1.0, 0.0);
+        let eye = origin.truncate() / origin.w;
+        self.lighting.debug_light = debug.and_then(|debug| debug.light_at(eye));
+        let settings = &renderer.graphics().lighting;
+        if !settings.markers || debug.is_some_and(|debug| debug.photo_mode || debug.collision_only)
+        {
+            return Vec::new();
+        }
+        let [width, height] = renderer.size();
+        let overlay = crate::debug::light_markers(
+            camera,
+            width as f32 / height as f32,
+            &self.lighting.named_sources(settings, eye),
+            if settings.shadows {
+                usize::from(settings.shadow_count)
+            } else {
+                0
+            },
+        );
+        geometry.effects.append(overlay.geometry);
+        overlay.labels
+    }
+
     fn environment(
         &mut self,
         level: &Level,

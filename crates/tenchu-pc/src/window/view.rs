@@ -1128,8 +1128,7 @@ impl View {
         if campaign.scene_visible() && error.is_none() && !debug.photo_mode {
             if settings.graphics.lighting.markers {
                 let overlay = crate::debug::light_markers(
-                    debug,
-                    game,
+                    debug.matrix(game, self.config.width as f32 / self.config.height as f32),
                     self.config.width as f32 / self.config.height as f32,
                     &sources,
                     if settings.graphics.lighting.shadows {

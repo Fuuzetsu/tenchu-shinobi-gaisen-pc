@@ -83,7 +83,7 @@ fn animated_story_draw_matches_fresh_meshes() {
                 let mut drawing = Drawing::new(&story, &graphics, renderer)?;
                 for _ in 1..=600 {
                     story.step(true)?;
-                    drawing.update(&story, renderer)?;
+                    drawing.update(&story, renderer, None)?;
                 }
                 Ok((drawing.scene, story.state.view, drawing.texts))
             })
@@ -100,4 +100,66 @@ fn animated_story_draw_matches_fresh_meshes() {
             );
         }
     }
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; light tools work during cutscenes without modifying their script state"]
+fn cutscene_movable_lights_follow_camera_and_hide_markers_in_photo_mode() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut story = Story::load(&disc, 10, 4, 17).unwrap();
+    for _ in 0..120 {
+        story.step(true).unwrap();
+    }
+    let before = postcard::to_allocvec(&story.state).unwrap();
+    let mut settings = crate::settings::Settings::default();
+    settings.shadow_preview();
+    settings.graphics.lighting.markers = true;
+    let graphics = super::super::super::preferences::graphics(&settings);
+    capture_frame(
+        &story.level.vram,
+        &graphics,
+        &output.join("story-light-tools.png"),
+        |renderer| {
+            let mut drawing = Drawing::new(&story, &graphics, renderer)?;
+            let camera = crate::debug::camera::Camera::from_view(story.state.view, 300.0);
+            let mut debug = crate::debug::Debug::default();
+            debug.light = Some(camera.position);
+            debug.light_follow = true;
+            drawing.update(&story, renderer, Some(&debug))?;
+            assert!(
+                drawing
+                    .scene
+                    .lighting
+                    .debug_light
+                    .unwrap()
+                    .distance(camera.position)
+                    < 2.0
+            );
+            assert!(drawing.scene.environment.is_some());
+            let moved = crate::debug::camera::Camera {
+                position: camera.position + glam::Vec3::X * 500.0,
+                ..camera
+            };
+            drawing.camera = Some(moved);
+            drawing.update(&story, renderer, Some(&debug))?;
+            assert!(
+                drawing
+                    .scene
+                    .lighting
+                    .debug_light
+                    .unwrap()
+                    .distance(moved.position)
+                    < 2.0
+            );
+            debug.photo_mode = true;
+            drawing.update(&story, renderer, Some(&debug))?;
+            assert!(drawing.labels.is_empty());
+            assert_eq!(postcard::to_allocvec(&story.state).unwrap(), before);
+            Ok((drawing.scene, moved.source_view(), drawing.texts))
+        },
+    )
+    .unwrap();
 }

@@ -139,19 +139,6 @@ impl Application {
                     ..self.settings.reinforcement_call
                 });
             }
-            Item::DebugLight => {
-                self.debug.light = None;
-                self.debug.light_follow = false;
-            }
-            Item::FollowLight => {
-                self.debug.light = self.debug.light_position(&self.campaign.game);
-                self.debug.light_follow = false;
-            }
-            Item::LightAxis(axis) => {
-                if let Some(light) = &mut self.debug.light {
-                    light[axis] = 0.0;
-                }
-            }
             Item::Pause if !self.faulted => self.paused = false,
             _ => return Err("This action has no value to reset".into()),
         }

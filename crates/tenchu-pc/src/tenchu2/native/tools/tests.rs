@@ -282,3 +282,53 @@ fn shared_follow_camera_tracks_native_guards_and_survives_player_death() {
     assert!(tools.debug.camera_actor.is_none());
     assert!(tools.change(Item::FollowActor, 1).is_err());
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; movable lights, follow/freeze, focus and scene transitions are presentation-only"]
+fn lighting_tools_preserve_native_world_and_clear_between_scenes() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let session = crate::tenchu2::native::Session::load(&disc, 119, 1).unwrap();
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    let mut content = Content::Gameplay(Box::new(session));
+    let mut tools = Tools::default();
+    tools.sync(&content, 0);
+    tools.change(Item::PlayerLight, 1).unwrap();
+    let fixed = tools.debug.light.unwrap();
+    tools.change(Item::FreeCamera, 1).unwrap();
+    tools.change(Item::FollowLight, 1).unwrap();
+    tools.debug.camera.as_mut().unwrap().position.x += 3000.0;
+    let eye = tools.debug.camera.unwrap().position;
+    assert_eq!(tools.debug.light_position(&tools.scene), Some(eye));
+    assert_ne!(fixed, eye);
+    tools.reset(Item::FollowLight).unwrap();
+    tools.debug.camera.as_mut().unwrap().position.z += 3000.0;
+    assert_eq!(tools.debug.light_position(&tools.scene), Some(eye));
+    tools.change(Item::LightAxis(0), 1).unwrap();
+    assert_eq!(tools.debug.light.unwrap().x, eye.x + 500.0);
+    tools.reset(Item::LightAxis(0)).unwrap();
+    assert_eq!(tools.debug.light.unwrap().x, 0.0);
+    tools.change(Item::FocusLight, 1).unwrap();
+    tools.apply(&mut content, [1280, 720]).unwrap();
+    let camera = tools.debug.camera.unwrap();
+    let Content::Gameplay(session) = &content else {
+        unreachable!()
+    };
+    let lamp =
+        super::super::render::lighting::nearest(&session.assets.level, camera.position).unwrap();
+    let ndc = camera
+        .matrix(16.0 / 9.0)
+        .project_point3(lamp.light.position);
+    assert!(ndc.x.abs() < 0.001 && ndc.y.abs() < 0.001);
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+    tools.reset(Item::DebugLight).unwrap();
+    assert!(tools.debug.light.is_none());
+    tools.change(Item::DebugLight, 1).unwrap();
+    tools.sync(&content, 1);
+    assert!(tools.debug.light.is_none() && !tools.debug.light_follow);
+    let mut menu = Content::Failed;
+    tools.sync(&menu, 2);
+    assert!(tools.change(Item::PlayerLight, 1).is_err());
+    assert!(tools.change(Item::FocusLight, 1).is_err());
+    tools.apply(&mut menu, [1280, 720]).unwrap();
+}

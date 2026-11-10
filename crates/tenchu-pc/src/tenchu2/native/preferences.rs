@@ -41,9 +41,6 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         sky: g.sky.clone(),
         lighting: crate::settings::Lighting {
             lamps: false,
-            markers: false,
-            flame_motion: 0,
-            heat_shimmer: 0,
             ..g.lighting.clone()
         },
         ..Default::default()
@@ -420,6 +417,14 @@ impl Menu {
                             action.clear_footprints = true;
                             Ok(())
                         }
+                        Item::FocusLight => self
+                            .tools
+                            .change(item, delta)
+                            .map(|()| state.settings.graphics.lighting.markers = true),
+                        Item::ShadowPreview => self.tools.change(Item::PlayerLight, 1).map(|()| {
+                            state.settings.shadow_preview();
+                            self.panel.notice = "Preview ready: close F1; move or attack".into();
+                        }),
                         Item::Pause => {
                             *state.paused = !*state.paused;
                             self.panel.open = false;
@@ -610,6 +615,9 @@ mod tests {
                             | Item::PhotoMode
                             | Item::MovesetModel
                             | Item::PlayerModel
+                            | Item::DebugLight
+                            | Item::FollowLight
+                            | Item::LightAxis(_)
                     )
                 {
                     let original = state.settings.clone();

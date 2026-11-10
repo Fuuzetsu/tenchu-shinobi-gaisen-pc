@@ -681,28 +681,11 @@ impl Application {
                 if !self.campaign.playing() {
                     return Err("Start a mission to preview model shadows".into());
                 }
-                self.settings.graphics.lighting.enabled = true;
-                self.settings.graphics.lighting.shadows = true;
-                self.settings.graphics.lighting.fires = false;
-                self.settings.graphics.lighting.lamps = false;
-                self.settings.graphics.lighting.shadow_count = 1;
-                self.settings.graphics.lighting.ambient = 25;
-                self.settings.graphics.lighting.intensity = 250;
-                self.settings.graphics.lighting.radius = 12;
-                self.settings.graphics.lighting.resolution = 1024;
-                self.settings.graphics.blob_shadows = false;
+                self.settings.shadow_preview();
                 self.apply_item(Item::PlayerLight, 1)?;
                 self.menu.notice = "Preview ready: close F1; move or attack".into();
             }
 
-            Item::DebugLight => {
-                self.debug.light = if self.debug.light.is_some() {
-                    None
-                } else {
-                    Some(self.debug.eye(&self.campaign.game))
-                };
-                self.debug.light_follow = false;
-            }
             Item::FocusLight => {
                 let game = &self.campaign.game;
                 let source = self
@@ -710,52 +693,13 @@ impl Application {
                     .as_ref()
                     .and_then(|v| v.nearest_lamp(game, self.debug.eye(game)))
                     .ok_or("No lantern emitters found in this mission")?;
-                let mut camera = self
-                    .debug
-                    .camera
-                    .unwrap_or_else(|| crate::debug::camera::Camera::from_game(game));
-                let direction = (source.light.position - camera.position).normalize_or_zero();
-                camera.yaw = direction.x.atan2(direction.z);
-                camera.focus(source.light.position, false);
-                camera.position = source.light.position - camera.forward() * 4500.0;
-                self.debug.return_camera();
-                self.debug.camera = Some(camera);
+                self.debug.focus_light(game, &source)?;
                 self.settings.graphics.lighting.markers = true;
                 self.menu.notice = format!(
                     "{} at {:.0?}",
                     source.name,
                     source.light.position.to_array()
                 );
-            }
-            Item::PlaceLight => {
-                self.debug.light = Some(self.debug.eye(&self.campaign.game));
-                self.debug.light_follow = false;
-            }
-            Item::PlayerLight => {
-                self.debug.light = Some(
-                    glam::Vec3::from(
-                        self.campaign
-                            .game
-                            .player()
-                            .position
-                            .map(|v| v as f32)
-                            .to_array(),
-                    ) + glam::Vec3::new(2000.0, -4000.0, 2000.0),
-                );
-                self.debug.light_follow = false;
-            }
-            Item::FollowLight => {
-                self.debug.light = self.debug.light_position(&self.campaign.game);
-                self.debug.light_follow = !self.debug.light_follow;
-                self.debug
-                    .light
-                    .get_or_insert(self.debug.eye(&self.campaign.game));
-            }
-            Item::LightAxis(axis) => {
-                self.debug.light_follow = false;
-                let eye = self.debug.eye(&self.campaign.game);
-                let light = self.debug.light.get_or_insert(eye);
-                light[axis] = (light[axis] + direction as f32 * 500.0).clamp(-320_000.0, 320_000.0);
             }
             Item::Reset => {
                 self.set_god_mode(false)?;

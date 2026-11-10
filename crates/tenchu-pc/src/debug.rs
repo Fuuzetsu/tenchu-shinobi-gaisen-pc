@@ -3,8 +3,7 @@ mod gaisen;
 pub mod inspection;
 pub(crate) mod overlay;
 mod sight;
-pub use gaisen::overlay::light_markers;
-pub use overlay::{Anchor, Label, Overlay};
+pub use overlay::{Anchor, Label, Overlay, light_markers};
 pub mod terrain;
 
 #[cfg(test)]

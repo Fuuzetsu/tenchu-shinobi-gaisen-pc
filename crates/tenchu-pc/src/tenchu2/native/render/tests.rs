@@ -329,9 +329,24 @@ fn native_sources_share_lighting_and_inspection_without_changing_logic() {
     let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
     camera.focus(lights[0].position, false);
     let mut images = Vec::new();
-    for mode in ["original", "lit", "shadowed", "inspection"] {
+    for mode in [
+        "original",
+        "lit",
+        "shadowed",
+        "inspection",
+        "flicker",
+        "hdr",
+        "heat",
+        "markers",
+        "movable",
+    ] {
         graphics.lighting.enabled = mode != "original";
         graphics.lighting.shadows = mode != "lit";
+        graphics.lighting.flame_motion = if mode == "flicker" { 100 } else { 0 };
+        graphics.lighting.heat_shimmer = if mode == "heat" { 100 } else { 0 };
+        graphics.lighting.markers = mode == "markers";
+        graphics.lighting.fires = mode != "movable";
+        graphics.post.enabled = matches!(mode, "hdr" | "heat");
         let path = output.join(format!("native-shared-{mode}.png"));
         capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
             let mut drawing = Drawing::new(&session, &graphics, renderer)?;
@@ -339,7 +354,25 @@ fn native_sources_share_lighting_and_inspection_without_changing_logic() {
             let mut debug = crate::debug::Debug::default();
             debug.hitboxes = mode == "inspection";
             debug.xray = true;
+            if mode == "movable" {
+                debug.light = Some(player + glam::Vec3::new(2000.0, -4000.0, 2000.0));
+            }
             drawing.update(&session, renderer, Some(&debug))?;
+            if mode == "markers" {
+                assert!(!drawing.labels.is_empty());
+            }
+            if mode == "movable" {
+                assert!(
+                    drawing.scene.environment.is_some(),
+                    "movable light needs shadow casters without flames"
+                );
+                let sources = drawing
+                    .scene
+                    .lighting
+                    .named_sources(&graphics.lighting, player);
+                assert_eq!(sources.len(), 1);
+                assert_eq!(Some(sources[0].light.position), debug.light);
+            }
             Ok((drawing.scene, camera.source_view(), Vec::new()))
         })
         .unwrap();
@@ -429,17 +462,17 @@ fn native_sky_lighting_and_shadows_do_not_change_simulation() {
         &output.join("native-sky-cutscene.png"),
         |renderer| {
             let mut drawing = StoryDrawing::new(&story, &graphics, renderer)?;
-            drawing.update(&story, renderer)?;
+            drawing.update(&story, renderer, None)?;
             for _ in 0..30 {
                 story.step(true)?;
             }
             let before = serde_json::to_vec(&story.state).unwrap();
-            drawing.update(&story, renderer)?;
+            drawing.update(&story, renderer, None)?;
             let minutes = drawing.scene.sky.minutes(&graphics.sky, 1.0);
             assert_eq!(minutes, 840.0);
             let mut rebuilt = StoryDrawing::new(&story, &graphics, renderer)?;
             rebuilt.preserve_environment(&mut drawing);
-            rebuilt.update(&story, renderer)?;
+            rebuilt.update(&story, renderer, None)?;
             assert_eq!(rebuilt.scene.sky.minutes(&graphics.sky, 1.0), minutes);
             assert!(rebuilt.scene.environment.is_some());
             assert!(renderer.daylight.is_some());

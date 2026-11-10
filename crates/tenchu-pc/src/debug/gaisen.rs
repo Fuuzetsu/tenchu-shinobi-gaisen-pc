@@ -80,11 +80,6 @@ impl Debug {
             .position
     }
 
-    pub fn light_position(&self, game: &Game) -> Option<Vec3> {
-        self.light
-            .map(|p| if self.light_follow { self.eye(game) } else { p })
-    }
-
     pub fn toggle_camera(&mut self, game: &Game) {
         self.toggle_inspection_camera(game).expect("Gaisen camera");
     }

@@ -14,6 +14,7 @@ pub(crate) struct Drawing {
     models: models::Models,
     pub(super) scene: SceneDrawing,
     pub texts: Vec<fonts::Text>,
+    pub labels: Vec<crate::debug::Label>,
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
     pub alpha: f32,
@@ -45,13 +46,19 @@ impl Drawing {
             models,
             scene: SceneDrawing::new(geometry, renderer, &story.level),
             texts,
+            labels: Vec::new(),
             view: story.state.view,
             camera: None,
             alpha: 1.0,
         })
     }
 
-    pub fn update(&mut self, story: &Story, renderer: &mut Renderer) -> Result<()> {
+    pub fn update(
+        &mut self,
+        story: &Story,
+        renderer: &mut Renderer,
+        debug: Option<&crate::debug::Debug>,
+    ) -> Result<()> {
         let pose = story
             .interpolation
             .as_ref()
@@ -60,6 +67,10 @@ impl Drawing {
         let (mut geometry, texts) =
             self.models
                 .geometry(story, renderer, self.camera, pose.as_ref())?;
+        let camera = super::camera_matrix(story.state.view, self.camera, renderer.size());
+        self.labels = self
+            .scene
+            .inspect_lights(debug, camera, renderer, &mut geometry);
         self.scene.prepare_environment(
             &mut geometry,
             super::environment::Frame {
@@ -67,7 +78,7 @@ impl Drawing {
                 meshes: &self.models.terrain,
                 math: &story.math,
                 tick: story.state.frame.max(0) as u64,
-                camera: super::camera_matrix(story.state.view, self.camera, renderer.size()),
+                camera,
                 world: None,
             },
             renderer,
@@ -104,7 +115,7 @@ pub(in crate::tenchu2::native) fn capture(
     }
     capture_frame(&story.level.vram, graphics, path, |renderer| {
         let mut drawing = Drawing::new(&story, graphics, renderer)?;
-        drawing.update(&story, renderer)?;
+        drawing.update(&story, renderer, None)?;
         Ok((drawing.scene, story.state.view, drawing.texts))
     })?;
     eprintln!(

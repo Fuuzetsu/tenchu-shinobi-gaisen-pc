@@ -2,40 +2,6 @@ use crate::debug::{Anchor, Debug, Label, Overlay, overlay::Builder};
 use glam::Vec3;
 use tenchu_core::{actor::State as ActorState, game::Game, ids::ATTR_SUSPEND};
 
-pub fn light_markers(
-    debug: &Debug,
-    game: &Game,
-    aspect: f32,
-    sources: &[crate::lighting::Source],
-    shadows: usize,
-) -> Overlay {
-    let mut lines = Builder::new(debug.matrix(game, aspect), aspect, false);
-    for (i, source) in sources.iter().enumerate() {
-        let p = source.light.position;
-        let color = source.light.color;
-        lines.box_at(p - Vec3::splat(80.0), p + Vec3::splat(80.0), color);
-        if let Some([x, y]) = lines.project(p) {
-            lines.labels.push(Label(
-                Anchor::Projected([x, y]),
-                format!(
-                    "{}{}",
-                    source.name,
-                    if i < shadows { " [shadow]" } else { "" }
-                ),
-                color,
-            ));
-        }
-    }
-    if debug.click_teleport && debug.camera.is_none() {
-        lines.labels.push(Label(
-            Anchor::BottomLeft([10.0, 24.0]),
-            "TELEPORT  Click a floor · Esc: cancel".into(),
-            [0.7, 0.95, 1.0],
-        ));
-    }
-    lines.finish()
-}
-
 pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
     let mut lines = Builder::new(debug.matrix(game, aspect), aspect, debug.xray);
     if let Some((message, at)) = &debug.notice
