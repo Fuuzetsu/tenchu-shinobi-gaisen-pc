@@ -8,6 +8,71 @@ use tenchu_core::{
 };
 
 #[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_AMBIENT_RIPPLE_ORACLE from JP 80047208"]
+fn native_ambient_water_ripples_match_source_queries_and_rng() {
+    use serde_json::json;
+    use tenchu_core::tenchu2::effects::Effect;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut terrain = None;
+    let mut map = usize::MAX;
+    let mut checked = 0;
+    let mut emitted = 0;
+    for row in super::source_control::cases::<Value>("TENCHU2_AMBIENT_RIPPLE_ORACLE") {
+        let id = row["map"].as_u64().unwrap() as usize;
+        if map != id {
+            terrain = Some(Level::load(&disc, id).unwrap().collision);
+            map = id;
+        }
+        let mut effects = Effects::default();
+        let mut cursor = Cursor::default();
+        let mut random = Random::new(row["seed"].as_u64().unwrap() as u32);
+        let player = super::source_physics::vector(&row["player"]);
+        effects
+            .ambient_ripple(
+                player,
+                View {
+                    eye: super::source_physics::vector(&row["eye"]),
+                    look: super::source_physics::vector(&row["look"]),
+                    focus: player,
+                    matrix: Matrix::default(),
+                    distance: 18000,
+                },
+                terrain.as_ref().unwrap(),
+                &mut cursor,
+                &mut random,
+            )
+            .unwrap();
+        let ripples: Vec<_> = effects
+            .entries
+            .iter()
+            .map(|effect| {
+                let Effect::Ripple(ripple) = effect else {
+                    panic!("Unexpected ambient effect")
+                };
+                assert_eq!((ripple.age, ripple.lifetime), (0, 32));
+                [
+                    ripple.position.x,
+                    ripple.position.y,
+                    ripple.position.z,
+                    ripple.speed,
+                ]
+            })
+            .collect();
+        let actual = json!({
+            "seed": random.seed, "ripple": ripples,
+            "current": cursor.current.map(|id| [id.cell, id.node]),
+            "last": cursor.last.map(|id| [id.cell, id.node]),
+            "material": cursor.material, "index": cursor.index,
+        });
+        assert_eq!(actual, row["expected"], "case {checked}, map {id}");
+        checked += 1;
+        emitted += ripples.len();
+    }
+    assert_eq!((checked, emitted), (4600, 1071));
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_SURFACE_EFFECTS_ORACLE from original water/blood routines"]
 fn native_water_and_blood_contacts_match_source() {
     let disc =

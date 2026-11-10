@@ -10,7 +10,8 @@ import struct
 RAM_SIZE = 0x200000
 
 
-def records(path):
+def records(path, profile="gaisen"):
+    clock_address, seed_address = (0x8eaa4, 0xd05e0) if profile == "tenchu2-jp" else (0x976b0, 0xc79e0)
     ram = bytearray(RAM_SIZE)
     initialized = False
     with gzip.open(path, "rb") as source:
@@ -49,7 +50,7 @@ def records(path):
                     if offset != len(payload) or not initialized and not count:
                         raise ValueError("Invalid RAM patch length")
                     initialized = True
-                if struct.unpack_from("<I", ram, 0x976b0)[0] != clock or struct.unpack_from("<I", ram, 0xc79e0)[0] != seed:
+                if struct.unpack_from("<I", ram, clock_address)[0] != clock or struct.unpack_from("<I", ram, seed_address)[0] != seed:
                     raise ValueError("Snapshot disagrees with event header")
             row = dict(pc=pc, field=field, skip=skip, cycle=cycle, clock=clock, stage=stage,
                        pad=pad, seed=seed, epoch=epoch, caller=caller, v0=v0, a0=a0)
@@ -61,12 +62,13 @@ def main():
     parser.add_argument("trace", type=Path)
     parser.add_argument("--compare", type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--profile", choices=("gaisen", "tenchu2-jp"), default="gaisen")
     args = parser.parse_args()
-    other = iter(records(args.compare)) if args.compare else None
+    other = iter(records(args.compare, args.profile)) if args.compare else None
     phases, skips, stages = Counter(), Counter(), Counter()
     snapshots, count, first, last, previous_cycle = 0, 0, None, None, -1
     digest = hashlib.sha256()
-    for row, ram in records(args.trace):
+    for row, ram in records(args.trace, args.profile):
         count += 1
         if row["cycle"] < previous_cycle:
             raise ValueError("Observation time moved backwards")
@@ -80,8 +82,9 @@ def main():
             snapshots += 1
             digest.update(ram)
         phases[f'{row["pc"]:08x}'] += 1
-        if row["pc"] == 0x800170c8:
+        if row["pc"] == (0x800173b8 if args.profile == "tenchu2-jp" else 0x800170c8):
             skips[str(row["skip"])] += 1
+        if row["pc"] == (0x80017280 if args.profile == "tenchu2-jp" else 0x800170c8):
             stages[str(row["stage"])] += 1
         first = row if first is None else first
         last = row

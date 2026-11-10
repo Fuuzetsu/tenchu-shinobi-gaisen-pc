@@ -10,11 +10,22 @@ plan=$(realpath -- "$3")
 out=$(realpath -m -- "$4")
 [[ ! -e $out && ! -e $out.runtime && -s $plan ]] || { echo 'Missing input or output already exists' >&2; exit 2; }
 if [[ ${TENCHU_RETAIL_CAPTURE_TOOLS:-0} != 1 ]]; then
-    pkgs=$(jq -r .nixpkgs "$archive/dependencies.json")
-    exec nix --extra-experimental-features 'nix-command flakes' shell \
-        "$pkgs#mono" "$pkgs#jq" "$pkgs#ripgrep" "$pkgs#xvfb-run" "$pkgs#python3" \
+    export TENCHU_RETAIL_REPO=$repo
+    exec nix --extra-experimental-features 'nix-command flakes' shell --impure --expr \
+        'let flake = builtins.getFlake ("git+file://" + builtins.getEnv "TENCHU_RETAIL_REPO");
+             pkgs = import flake.inputs.nixpkgs { system = builtins.currentSystem; };
+         in [ pkgs.mono pkgs.jq pkgs.ripgrep pkgs.xvfb-run pkgs.python3 ]' \
         -c env TENCHU_RETAIL_CAPTURE_TOOLS=1 bash "$0" "$@"
 fi
+export TENCHU_RETAIL_PROFILE=${TENCHU_RETAIL_PROFILE:-gaisen}
+case $TENCHU_RETAIL_PROFILE in
+    gaisen) ;;
+    tenchu2-jp)
+        [[ $# == 4 && -s ${TENCHU_RETAIL_DISC:-} ]] || {
+            echo 'T2 capture requires TENCHU_RETAIL_DISC=CUE and does not accept T1 item setup' >&2; exit 2;
+        } ;;
+    *) echo 'Unknown retail capture profile' >&2; exit 2 ;;
+esac
 mkdir -p "$out.runtime"
 cp "$script/probe.rs" "$script/PhaseProbe.cs" "$script/capture.sh" "$out.runtime/"
 "$repo/dev.sh" rustc --edition=2024 --crate-type cdylib -O "$out.runtime/probe.rs" -o "$out.runtime/libtenchu_retail_probe.so"
@@ -46,6 +57,7 @@ unset ONIKAGE_SIM_PHASE_FIELDS ONIKAGE_SIM_PHASE_ACTORS ONIKAGE_SIM_BOUNDARY_SNA
 export TENCHU_SETUP_STATE=$state TENCHU_SETUP_PLAN=$plan TENCHU_SETUP_OUTPUT=$out TENCHU_SETUP_COLD_BOOT=0
 if [[ $state == --boot ]]; then TENCHU_SETUP_STATE=; export TENCHU_SETUP_COLD_BOOT=1; fi
 export TENCHU_SETUP_MENU_ONLY=1 TENCHU_SETUP_CAMPAIGN_AUDIT=1 TENCHU_SETUP_SCREENSHOT_EVERY=1000000
+if [[ $TENCHU_RETAIL_PROFILE == tenchu2-jp ]]; then TENCHU_SETUP_CAMPAIGN_AUDIT=0; fi
 export ONIKAGE_EXTERNAL_TOOL_LIBRARY=$runtime/tools/tenchu-worker/target/release/libtenchu_worker.so
 export ONIKAGE_SEARCH_BIN=$runtime/bin/tenchu-search
 if [[ ! -x $ONIKAGE_SEARCH_BIN && -x $archive/bin/tenchu-search ]]; then
@@ -57,6 +69,12 @@ export BIZHAWK
 BIZHAWK=$(jq -r .local_dependencies.bizhawk_launcher.path "$archive/dependencies.json")
 export GAISEN_CUE
 GAISEN_CUE=$(jq -r .local_dependencies.cue.path "$archive/dependencies.json")
+if [[ $TENCHU_RETAIL_PROFILE == tenchu2-jp ]]; then
+    GAISEN_CUE=$(realpath -- "$TENCHU_RETAIL_DISC")
+    export GAISEN_EXPECT_CUE_SHA256 GAISEN_EXPECT_MEDIA_SHA256
+    GAISEN_EXPECT_CUE_SHA256=$(sha256sum -- "$GAISEN_CUE"); GAISEN_EXPECT_CUE_SHA256=${GAISEN_EXPECT_CUE_SHA256%% *}
+    GAISEN_EXPECT_MEDIA_SHA256=$(bash "$runtime/tools/bizhawk/onikage-media-sha256.sh" "$GAISEN_CUE")
+fi
 export ONIKAGE_SIM_CPU_PROBE_WBX=$asms/dll/shock.wbx.zst TENCHU_RETAIL_OBSERVER=1
 export LD_LIBRARY_PATH="$out.runtime${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 args=("$out.runtime/TenchuScenarioSetup.dll")

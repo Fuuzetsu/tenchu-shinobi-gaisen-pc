@@ -448,7 +448,9 @@ fn native_activation_matches_source_actor_order_and_camera_boundaries() {
             actor.previous = actor.position;
             actor.motion.loops = input["loops"].as_i64().unwrap() as i16;
             agent.behavior.home = super::source_physics::vector(&input["home"]);
-            agent.behavior.patrol.turning = input["turn"].as_i64().unwrap() as u8;
+            // The recorded short at actor + 0xda is the wait, not the byte
+            // turn counter at + 0x98. Older oracle files call this "turn".
+            agent.behavior.patrol.wait = input["turn"].as_i64().unwrap() as i16;
             agent.behavior.patrol.next = input["next"].as_i64().unwrap() as usize;
             actor
                 .set_body_collision(
@@ -473,7 +475,7 @@ fn native_activation_matches_source_actor_order_and_camera_boundaries() {
             let mut actual = json!({
                 "flags": actor.flags, "position": actor.position.to_array(),
                 "previous": actor.previous.to_array(), "home": agent.behavior.home.to_array(),
-                "action": actor.motion.action, "turn": agent.behavior.patrol.turning,
+                "action": actor.motion.action, "turn": agent.behavior.patrol.wait,
                 "next": agent.behavior.patrol.next, "body": null,
             });
             if !expected["body"].is_null() {

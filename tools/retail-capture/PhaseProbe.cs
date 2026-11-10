@@ -74,7 +74,8 @@ namespace OnikageSimCapture
         internal void Finish(string trace, byte[] traceHash, byte[] coreHash)
         {
             Flush();
-            File.WriteAllText(trace + ".retail.txt", "format=TNRUN002\nfields=" + count +
+            File.WriteAllText(trace + ".retail.txt", "format=TNRUN002\nprofile=" +
+                (Environment.GetEnvironmentVariable("TENCHU_RETAIL_PROFILE") ?? "gaisen") + "\nfields=" + count +
                 "\ninput_sha256=" + BitConverter.ToString(traceHash).Replace("-", "").ToLowerInvariant() +
                 "\ncore_sha256=" + BitConverter.ToString(coreHash).Replace("-", "").ToLowerInvariant() +
                 "\ngame_memory_writes=false\n");

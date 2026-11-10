@@ -3135,3 +3135,38 @@ Gaisen transitions keep `src/main.exe/MOTION.C`'s half-duration event. The
 optional sheathing fallback yields to selected source registrations and is
 restored when the moveset is removed. Native JP imports preserve those event
 frames through their remapped clip IDs. No source assets are checked in.
+
+## Native T2 recorded gameplay and ambient ripples (2026-11-11)
+
+The existing hash-pinned Nymashock CPU observer and TNRUN002 reader now support
+Japanese `GAME.EXE` boundaries: actor loading `80064d3c`, mapped input `80065314`,
+ambient audio `80066008`, camera `80060ad0`, actor update `8001c8f0`, scenery
+`8004c764`, effects `8003b134`, display `80017280` and its decision at `800173b8`,
+activation `8001e318` and collision `8002e9e8`. The original SDK epoch is
+`800cee68`; clock/RNG are `8008eaa4`/`800d05e0`. The checker initializes once and
+uses the observed display decision and activation budget as reference inputs.
+Native interactive play keeps one nominal tick and its existing fixed budget.
+
+The common ambient-water branch in `8003ae78` samples one probability per update;
+`80047208` chooses the player/camera-relative position, performs the original
+Base floor query and emits `80044f98` ripples on water. The new scalar helper
+reuses the existing ripple implementation. A 4,600-case original-instruction
+oracle over 23 authored MCD maps matches RNG, terrain cursor and all 1,071 emitted
+positions/speeds. This increment does not implement the map-specific weather
+branches of `8003ae78`.
+
+Recorded gameplay also identified two field/order mistakes in actor activation:
+`8001e318` sets the short patrol wait at actor+0xda, rather than the byte turning
+counter at +0x98; resetting the source position also changes the aliased root
+translation. The actor loader assigns layout yaw after constructing its root
+matrix, which retains identity rotation until the first actor update. Native
+owned state now preserves that order, including the initial collision centre
+when a dormant actor wakes. The prior activation-oracle adapter's misnamed
+"turn" field referred to +0xda and is now mapped to the correct native wait.
+
+Local evidence is under `private/two-releases-20261110/t2-recorded`: original
+controller receipts, independent full-RAM checkpoint hashes, phase captures,
+first-divergence logs, source-instruction ripple oracle and native comparisons.
+The bounded training recording covers idle activation, turns and walking; it is
+not evidence for complete missions or all native AI/effect/item state. Source
+assets and captured RAM remain outside Git. Sibling repositories are unchanged.

@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 restores ambient water ripples and their original RNG timing.
+  Offscreen guards retain the original initial root orientation and reset their
+  patrol wait and root position correctly when sent home, preserving collision
+  centres when they become active again.
+
 - Experimental `play-t2-jp` / `render-t2-jp --gaisen GAISEN.cue` loads T1 stages
   with native T2 characters, AI, movement, HUD and results/retry. Select a stage,
   hero and placement layout with `--stage`, `--hero` and `--layout`; both discs

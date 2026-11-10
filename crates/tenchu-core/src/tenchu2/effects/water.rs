@@ -57,6 +57,44 @@ impl Ripple {
 }
 
 impl Effects {
+    pub fn ambient_ripple(
+        &mut self,
+        player: Position,
+        view: crate::tenchu2::visibility::View,
+        terrain: &tenchu_assets::tenchu2::collision::Collision,
+        cursor: &mut crate::tenchu2::terrain::Cursor,
+        random: &mut Random,
+    ) -> Result<()> {
+        let mut position = player;
+        position.y = position.y.wrapping_sub(4096);
+        if random.next15() & 3 != 0 {
+            position.x = position.x.wrapping_sub(2048).wrapping_add(
+                view.look
+                    .x
+                    .wrapping_sub(view.eye.x)
+                    .wrapping_add(random.next15() & 4095),
+            );
+            position.z = position.z.wrapping_sub(2048).wrapping_add(
+                view.look
+                    .z
+                    .wrapping_sub(view.eye.z)
+                    .wrapping_add(random.next15() & 4095),
+            );
+        }
+        if let Some(height) = crate::tenchu2::terrain::level(
+            terrain,
+            cursor,
+            position,
+            crate::tenchu2::terrain::Query::Base,
+        )? && cursor.material & 0xf00 == 0x200
+        {
+            position.y = height;
+            let speed = (random.next15() & 15) + 20;
+            self.ripple(position, speed)?;
+        }
+        Ok(())
+    }
+
     pub fn ripple(&mut self, position: Position, speed: i32) -> Result<()> {
         self.insert(Effect::Ripple(Ripple {
             position,

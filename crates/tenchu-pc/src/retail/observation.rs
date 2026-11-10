@@ -60,10 +60,20 @@ pub struct Reader {
     pub ram: Ram,
     initialized: bool,
     cycle: u64,
+    clock_address: u32,
+    seed_address: u32,
 }
 
 impl Reader {
     pub fn open(path: &Path) -> Result<Self> {
+        Self::with_addresses(path, 0x800976b0, 0x800c79e0)
+    }
+
+    pub fn tenchu2(path: &Path) -> Result<Self> {
+        Self::with_addresses(path, 0x8008eaa4, 0x800d05e0)
+    }
+
+    fn with_addresses(path: &Path, clock_address: u32, seed_address: u32) -> Result<Self> {
         let mut source = BufReader::new(GzDecoder::new(BufReader::new(
             File::open(path).map_err(|e| e.to_string())?,
         )));
@@ -77,6 +87,8 @@ impl Reader {
             ram: Ram(vec![0; RAM_SIZE]),
             initialized: false,
             cycle: 0,
+            clock_address,
+            seed_address,
         })
     }
 
@@ -152,7 +164,9 @@ impl Reader {
                 return Err("Invalid RAM patch length".into());
             }
             self.initialized = true;
-            if self.ram.word(0x800976b0) != row.clock || self.ram.word(0x800c79e0) != row.seed {
+            if self.ram.word(self.clock_address) != row.clock
+                || self.ram.word(self.seed_address) != row.seed
+            {
                 return Err("Observation header disagrees with RAM snapshot".into());
             }
         }

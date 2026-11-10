@@ -294,12 +294,26 @@ impl World {
     }
 
     pub fn finish_tick(&mut self, assets: &Assets, budget: u8) -> Result<()> {
+        self.finish_recorded_update(assets, budget, 1)
+    }
+
+    /// Retail's display routine advances its clock by 0, 1 or 3. Native play
+    /// always uses one nominal tick, independently of presentation speed.
+    pub fn finish_recorded_update(
+        &mut self,
+        assets: &Assets,
+        budget: u8,
+        elapsed: u8,
+    ) -> Result<()> {
+        if !matches!(elapsed, 0 | 1 | 3) {
+            return Err("Invalid recorded Tenchu 2 display cadence".into());
+        }
         self.scene.finish_tick();
         self.environment.flame_frame = (self.tick & 3) as u8;
         for scroll in &mut self.environment.texture_scrolls {
             scroll.step();
         }
-        self.tick = self.tick.wrapping_add(1);
+        self.tick = self.tick.wrapping_add(u32::from(elapsed));
         self.update_activation(self.camera.eye, self.camera.look, budget, assets)?;
         self.collision.compute(|model| self.scene.world(model))?;
         Ok(())

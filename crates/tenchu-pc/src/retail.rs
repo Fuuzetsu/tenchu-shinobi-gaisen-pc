@@ -1,6 +1,7 @@
 mod compare;
 mod observation;
 pub mod tape;
+pub mod tenchu2;
 
 use crate::source::DiscSource;
 use observation::Reader;

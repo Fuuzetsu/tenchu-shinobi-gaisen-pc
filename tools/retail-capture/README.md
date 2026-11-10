@@ -37,6 +37,40 @@ display swap and cinematic continuation. It does not refresh native state from
 later snapshots. An optional fourth CLI argument limits the checked update count
 for diagnosis; such a prefix report does not claim mission completion.
 
+### Native Japanese Tenchu 2
+
+Reuse the archived runner with the T2 observer profile and the user's JP disc:
+
+```sh
+TENCHU_RETAIL_PROFILE=tenchu2-jp TENCHU_RETAIL_DISC=/path/to/Tenchu2.cue \
+  bash tools/retail-capture/capture.sh ARCHIVE ORIGINAL.State INPUT.segments NEW_OUTPUT
+./dev.sh cargo run --release -p tenchu-pc -- \
+  check-retail /path/to/Tenchu2.cue NEW_OUTPUT/updates.ram.gz --scenario
+python3 tools/retail-capture/inspect_trace.py NEW_OUTPUT/updates.ram.gz --profile tenchu2-jp
+```
+
+The runner and emulator ABI checks are shared; shell tools come from this
+repository's pinned flake. The selected disc's CUE/media hashes and compiled
+observer are retained with the capture. T1 loadout setup and campaign audit are
+disabled for this profile. Use an original state without a debugger hook, or
+`--boot`: observer-created state files retain the installed emulator hook and
+cannot serve as fresh observer roots. Their RAM checkpoint receipts remain valid.
+
+T2 captures the actor-loading boundary at `80064d3c`, the input/update boundary
+at `80065314`, display entry/decision/return and the activation/collision return
+at `8006571c`. The header's stage is the sequence ID, pad is the game's mapped
+controller value, and epoch is the SDK scene counter. At `800173b8`, skip stores
+the source display decision flags; other T2 rows store zero. These decisions
+advance the source clock by one or three; an overflow branch can leave it
+unchanged. Activation budgets are read from the resulting RAM snapshot, never
+inferred from PC rendering time.
+
+Native T2 checking currently covers a bounded gameplay sequence. It takes the
+initial RNG, scene epoch and loading-time floor values once, checks each completed
+update and stops on any mismatch. `--scenario` reports trailing partial updates;
+a numeric limit stops after that many completed updates. It does not yet replay
+campaign transitions or export T2 video tapes. See [coverage](../../docs/validation.md).
+
 ### Combat/item archives and custom scenarios
 
 Capture the full immutable receipt chain, including its menu inputs and equipped

@@ -1,4 +1,4 @@
-//! Read-only MAIN.EXE update observer for the hash-pinned Nymashock runtime.
+//! Read-only T1 MAIN.EXE / T2 JP GAME.EXE observer for the pinned Nymashock runtime.
 //! CPU hook ABI/interrupt handling: tenchu-decomp-glitch-research's
 //! tools/tenchu-worker/sim_phase_probe.rs (Mednafen 382ff1b8d293c9a8).
 use std::{
@@ -11,6 +11,7 @@ const CAPACITY: usize = 32 * 1024 * 1024;
 static ACTIVE: AtomicPtr<Probe> = AtomicPtr::new(ptr::null_mut());
 
 struct Probe {
+    tenchu2: bool,
     cpu: *const u8,
     ram: *const u8,
     field: u32,
@@ -71,6 +72,18 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
             | 0x80017234
             | 0x8001ac88
             | 0x80039bf0
+            | 0x80064d3c
+            | 0x800652fc
+            | 0x80065314
+            | 0x80065324
+            | 0x8006532c
+            | 0x80065344
+            | 0x8006535c
+            | 0x80017280
+            | 0x800173b8
+            | 0x800174a8
+            | 0x8006570c
+            | 0x8006571c
     ) {
         return;
     }
@@ -91,14 +104,58 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
     }
     // These executable words distinguish MAIN from MENU/ENDING while their
     // address spaces overlap. The host independently pins the core and disc.
-    if unsafe {
-        word(p.ram, 0x162a4) != 0x27bdfee8
-            || word(p.ram, 0x17030) != 0x27bdffe0
-            || word(p.ram, 0x1ada4) != 0x27bdffe8
-            || word(p.ram, 0x4df58) != 0x8f8405c8
-    } {
-        return;
-    }
+    let (initial_pc, end_pc, clock, stage_address, pad, seed, skip, epoch) = if p.tenchu2 {
+        if !matches!(
+            pc,
+            0x80064d3c
+                | 0x800652fc
+                | 0x80065314
+                | 0x80065324
+                | 0x8006532c
+                | 0x80065344
+                | 0x8006535c
+                | 0x80017280
+                | 0x800173b8
+                | 0x800174a8
+                | 0x8006570c
+                | 0x8006571c
+        ) || unsafe {
+            word(p.ram, 0x652fc) != 0x0c00574e
+                || word(p.ram, 0x1c8f0) != 0x87820372
+                || word(p.ram, 0x17280) != 0x27bdffe0
+        } {
+            return;
+        }
+        (
+            0x80064d3c, 0x80017280, 0x8eaa4, 0x8e9bc, 0x934ec, 0xd05e0, 0x8e4de, 0xcee68,
+        )
+    } else {
+        if matches!(
+            pc,
+            0x80064d3c
+                | 0x800652fc
+                | 0x80065314
+                | 0x80065324
+                | 0x8006532c
+                | 0x80065344
+                | 0x8006535c
+                | 0x80017280
+                | 0x800173b8
+                | 0x800174a8
+                | 0x8006570c
+                | 0x8006571c
+        ) || unsafe {
+            word(p.ram, 0x162a4) != 0x27bdfee8
+                || word(p.ram, 0x17030) != 0x27bdffe0
+                || word(p.ram, 0x1ada4) != 0x27bdffe8
+                || word(p.ram, 0x4df58) != 0x8f8405c8
+        } {
+            return;
+        }
+        (
+            0x8004df58, 0x800170c8, 0x976b0, 0x97ac4, 0xbe6d0, 0xc79e0, 0x976b4, 0xc6400,
+        )
+    };
     match interrupted(p, pc) {
         Some(false) => (),
         Some(true) => return,
@@ -108,13 +165,14 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
             return;
         }
     }
-    let stage = unsafe { word(p.ram, 0x97ac4) };
-    let initial = pc == 0x8004df58 && stage != p.stage;
+    let stage = unsafe { word(p.ram, stage_address) } & if p.tenchu2 { 0xffff } else { u32::MAX };
+    let initial = pc == initial_pc && (p.tenchu2 || stage != p.stage);
     if initial {
         p.stage = stage;
     }
     let snapshot = initial
-        || pc == 0x800170c8
+        || pc == end_pc
+        || p.tenchu2 && matches!(pc, 0x80065314 | 0x8006571c)
         || p.detail
             .is_some_and(|(start, end)| (start..=end).contains(&p.field));
     let size = 56 + if snapshot { RAM_BYTES + 65536 } else { 0 };
@@ -124,6 +182,15 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
         return;
     }
     let mut caller = unsafe { word(p.cpu, 4 * 31) };
+    if p.tenchu2 && pc == 0x800174a8 {
+        let stack = (unsafe { word(p.cpu, 4 * 29) } & 0x1fffff) as usize;
+        if stack > RAM_BYTES - 32 || stack & 3 != 0 {
+            p.failed = true;
+            p.error = (u64::from(pc) << 32) | stack as u64;
+            return;
+        }
+        caller = unsafe { word(p.ram, stack + 28) };
+    }
     if matches!(pc, 0x800170c8 | 0x80017234) {
         let stack = (unsafe { word(p.cpu, 4 * 29) } & 0x1fffffff) as usize;
         if stack < 0x800000 && stack & 3 == 0 && (stack & 0x1fffff) <= RAM_BYTES - 28 {
@@ -139,14 +206,22 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
             56,
             pc,
             p.field,
-            word(p.ram, 0x976b4) & 0xffff,
+            if p.tenchu2 {
+                if pc == 0x800173b8 {
+                    word(p.cpu, 4 * 16)
+                } else {
+                    0
+                }
+            } else {
+                word(p.ram, skip) & 0xffff
+            },
             0,
             0,
-            word(p.ram, 0x976b0),
+            word(p.ram, clock),
             stage,
-            word(p.ram, 0xbe6d0) & 0xffff,
-            word(p.ram, 0xc79e0),
-            word(p.ram, 0xc6400),
+            word(p.ram, pad) & 0xffff,
+            word(p.ram, seed),
+            word(p.ram, epoch),
             caller,
             word(p.cpu, 8),
             word(p.cpu, 16),
@@ -196,6 +271,11 @@ pub extern "C" fn retail_probe_begin(cpu: *const u8, ram: *const u8) -> *const (
         return ptr::null();
     }
     let p = Box::new(Probe {
+        tenchu2: match std::env::var("TENCHU_RETAIL_PROFILE").as_deref() {
+            Err(_) | Ok("gaisen") => false,
+            Ok("tenchu2-jp") => true,
+            _ => return ptr::null(),
+        },
         cpu,
         ram,
         field: 0,

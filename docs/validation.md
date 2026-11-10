@@ -12,12 +12,23 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
-The current end-to-end `check-retail` observer and state comparison target T1's
-`MAIN.EXE`. Native T2 has original-instruction component oracles and controlled
-integration fixtures, but these do not establish a matching campaign replay.
-Extend the existing observer and comparer with T2 source boundaries and state
-mapping before claiming that coverage; retain one initialization and stop at the
-first divergence instead of correcting state from later snapshots.
+`check-retail` supports T1's `MAIN.EXE` and bounded native Japanese T2 gameplay
+through the same observer and TNRUN002 format. Both initialize once and stop at
+the first divergence, without correcting state from later snapshots. T2 uses
+recorded display decisions and activation budgets; normal PC play keeps nominal
+ticks independent of renderer performance.
+
+The T2 training receipt matches 2,320 completed updates, including idle patrol
+activation, turning and walking, with 115 three-count retail display advances.
+Checks include RNG, actor/motion/pad/inventory state, patrol counters, root and
+bone transforms, terrain probes, collision slots/contacts and camera state.
+Full RAM checkpoints also reproduce the original BizHawk recording at fields
+12,436, 18,448 and 18,754. The last captured update is incomplete and is reported
+separately. This is bounded gameplay coverage, not a campaign playthrough:
+T2 menu/cinematic transitions, full AI/effect/item state and map-specific weather
+producers are not yet covered by this comparer. Campaign progression has separate
+controlled fixtures. T2 requires `--scenario` or an update limit; the video tape
+export path remains T1-only.
 
 ## Emulator comparisons
 

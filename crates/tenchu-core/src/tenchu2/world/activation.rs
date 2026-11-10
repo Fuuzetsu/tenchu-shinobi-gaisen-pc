@@ -93,12 +93,14 @@ impl World {
             } else if distance(agent.behavior.home, eye, &assets.resources.math) > far {
                 actor.position = agent.behavior.home;
                 actor.previous = actor.position;
+                self.scene
+                    .set_translation(self.instances[index].rig.root, actor.position);
                 actor.change_motion(
                     if actor.weapon_drawn() { 0x100 } else { 0 },
                     Velocity::Motion,
                     &assets.resources,
                 )?;
-                agent.behavior.patrol.turning = 1;
+                agent.behavior.patrol.wait = 1;
                 agent.behavior.patrol.next = 0;
             }
             actor.flags |= 8;

@@ -181,7 +181,7 @@ fn run() -> Result<()> {
         );
     }
     if args[0] == "check-retail" && (args.len() == 3 || args.len() == 4) {
-        let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
+        let disc = source::open_disc(args[1].as_ref())?;
         let coverage = match args.get(3) {
             None => crate::retail::Coverage::Complete,
             Some(v) if v == "--scenario" => crate::retail::Coverage::Scenario,
@@ -191,7 +191,10 @@ fn run() -> Result<()> {
                     .map_err(|e| e.to_string())?,
             ),
         };
-        return crate::retail::check(&assets, args[2].as_ref(), coverage, None);
+        if disc.find("TENCHU2/GAME.EXE").is_ok() {
+            return crate::retail::tenchu2::check(&disc, args[2].as_ref(), coverage);
+        }
+        return crate::retail::check(&GameAssets::open(disc)?, args[2].as_ref(), coverage, None);
     }
     if args[0] == "prepare-web" && (args.len() == 3 || args.len() == 4 && args[3] == "--artwork") {
         return crate::web_export::export(args[1].as_ref(), args[2].as_ref(), args.len() == 4);

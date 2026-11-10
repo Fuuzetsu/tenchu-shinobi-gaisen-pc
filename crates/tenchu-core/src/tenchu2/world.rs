@@ -233,7 +233,11 @@ impl World {
             agent.behavior.patrol = super::ai::Patrol::new(&entry.route, actor.position);
             agent.slot = entry.slot as i16;
             actor.inventory = Inventory::for_actor(actor.kind, &assets.loot, &mut world.random);
-            world.publish(index, assets);
+            // Layout coordinates alias the source root translation. Its matrix
+            // keeps the constructor's rotation until the actor first updates.
+            world
+                .scene
+                .set_translation(world.instances[index].rig.root, actor.position);
         }
         world.environment = super::environment::Environment::new(
             &assets.level,
@@ -275,9 +279,9 @@ impl World {
         position.y = position.y.wrapping_sub(10);
         actor.position = position;
         actor.previous = position;
-        actor.rotation.y = facing;
         let owner = self.actors.len();
         let mut rig = Rig::bind(&actor, &mut self.scene, &resources.math);
+        actor.rotation.y = facing;
         actor.set_secondary_body_collision(&rig, owner, &mut self.collision, true)?;
         for weapon in resources.weapons.parts(definition.weapon) {
             let Some(name) = &weapon.model else { continue };

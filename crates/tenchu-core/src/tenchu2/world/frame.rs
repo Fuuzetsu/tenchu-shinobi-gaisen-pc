@@ -34,6 +34,18 @@ impl World {
         assets: &mut Assets,
         events: &mut impl controls::Events,
     ) -> Result<Frame> {
+        let frame = self.begin_recorded_update(controllers, assets, events)?;
+        self.finish_tick(assets, 6)?;
+        Ok(frame)
+    }
+
+    /// Stops at GAME.EXE's display boundary for recorded retail comparisons.
+    pub fn begin_recorded_update(
+        &mut self,
+        controllers: [u16; 2],
+        assets: &mut Assets,
+        events: &mut impl controls::Events,
+    ) -> Result<Frame> {
         let ambience = self.audio.ambient(
             self.map,
             assets.ambient_interval,
@@ -71,7 +83,6 @@ impl World {
         let mut effects = self.update_effects(assets)?;
         items.quads.append(&mut effects.quads);
         effects.quads = items.quads;
-        self.finish_tick(assets, 6)?;
         Ok(Frame {
             scenery,
             effects,
@@ -123,13 +134,23 @@ impl World {
 
     pub fn update_effects(&mut self, assets: &Assets) -> Result<crate::tenchu2::effects::Frame> {
         let view = self.view();
-        self.effects.update(
+        let frame = self.effects.update(
             &mut self.scene,
             view,
             &self.terrain,
             &mut self.cursor,
             &assets.resources.math,
-        )
+        )?;
+        if self.random.next15() & 15 == 0 {
+            self.effects.ambient_ripple(
+                self.actors[self.player].actor.position,
+                view,
+                &self.terrain,
+                &mut self.cursor,
+                &mut self.random,
+            )?;
+        }
+        Ok(frame)
     }
 
     pub fn update_actors(
