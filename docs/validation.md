@@ -5,6 +5,20 @@ as **Keep all enemies active** need separate tests: those modes do not exist in
 the original game. A successful route is evidence for the updates it exercises,
 not proof that every possible interaction works.
 
+Ordinary-play validation uses recorded BizHawk controller inputs and the observed
+retail draw-skip schedule, replayed through the port and compared at corresponding
+source update boundaries. Reuse the capture/replay tools below; synthetic input
+sent to the native window is not an ordinary-play comparison. Direct state
+fixtures remain useful for isolated behavior and optional modes. Recorded retail
+skips are reference inputs, never inferred from the PC renderer's performance.
+
+The current end-to-end `check-retail` observer and state comparison target T1's
+`MAIN.EXE`. Native T2 has original-instruction component oracles and controlled
+integration fixtures, but these do not establish a matching campaign replay.
+Extend the existing observer and comparer with T2 source boundaries and state
+mapping before claiming that coverage; retain one initialization and stop at the
+first divergence instead of correcting state from later snapshots.
+
 ## Emulator comparisons
 
 The combat/item searches under `~/tenchu-searches/ayame-mission-*` provide

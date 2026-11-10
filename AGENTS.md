@@ -33,7 +33,12 @@
   generated build outputs. The runtime reads the user's disc; replacement assets
   will use explicit overrides with original assets as the fallback.
 - A diagnostic checkpoint or scripted successful route does not prove a complete
-  game. Report exactly what is supported and exercise ordinary interactive play.
+  game. Report exactly what is supported. Validate ordinary play by recording
+  BizHawk inputs and the retail draw-skip schedule, replaying them through the
+  port, and comparing corresponding states, as for T1. Reuse the existing
+  capture/replay tools; do not invent another raw-input test framework or drive
+  the native window with synthetic inputs as ordinary-play validation. Direct
+  state fixtures remain appropriate for isolated behavior and optional modes.
 
 - When adding useful presentation features, review Modern High/Ultra presets and
   the demo catalog so the feature is discoverable. Keep Original unchanged and
