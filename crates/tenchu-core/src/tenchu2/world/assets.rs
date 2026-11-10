@@ -16,6 +16,8 @@ use tenchu_assets::{
     },
 };
 
+mod gaisen;
+
 pub struct Assets {
     pub campaign: tenchu_assets::tenchu2::campaign::Campaign,
     pub ambient_interval: i16,
@@ -27,6 +29,7 @@ pub struct Assets {
     pub sequence: usize,
     pub draw_distance: i32,
     pub resources: Resources,
+    pub cast: Vec<i16>,
     pub level: Level,
     pub models: BTreeMap<String, characters::Rig>,
     pub weapons: BTreeMap<String, Vec<Part>>,
@@ -128,6 +131,10 @@ impl Assets {
             hero,
             sequence: layout.sequence,
             draw_distance: level.draw_distance,
+            cast: registry
+                .cast(hero, map)
+                .ok_or("Invalid Tenchu 2 cast")?
+                .to_vec(),
             resources: Resources {
                 registry,
                 clips: motions::for_map(disc, hero, map)?,

@@ -5,6 +5,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::{tenchu2::collision::Collision, terrain::Node};
 
+mod gaisen;
 mod probe;
 pub use probe::{Options, Probe};
 
@@ -36,6 +37,9 @@ pub fn level(
     position: Position,
     query: Query,
 ) -> Result<Option<i32>> {
+    if let Some(source) = &map.gaisen {
+        return gaisen::level(map, source, cursor, position, query);
+    }
     let x = position.x / 10;
     let y = (position.y / 10) as i16;
     let z = position.z / 10;

@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Experimental `play-t2-jp` / `render-t2-jp --gaisen GAISEN.cue` loads T1 stages
+  with native T2 characters, AI, movement, HUD and results/retry. Select a stage,
+  hero and placement layout with `--stage`, `--hero` and `--layout`; both discs
+  are required. Stage interactions and F6 selection are still being connected.
+
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
   item readouts, equipment quantities and results numbers, plus clearer
   disc-derived prologue and briefing calligraphy. Changes apply while paused,

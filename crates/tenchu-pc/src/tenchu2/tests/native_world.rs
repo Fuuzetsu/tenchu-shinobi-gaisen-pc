@@ -58,6 +58,7 @@ pub(super) fn fixture() -> (World, Assets, usize) {
         .unwrap();
     let mut assets = Assets::load(&disc, 0, &layout).unwrap();
     assets.level.collision = Collision {
+        gaisen: None,
         origin: [-3000, -3000],
         dimensions: [1, 1],
         cell_size: 6000,

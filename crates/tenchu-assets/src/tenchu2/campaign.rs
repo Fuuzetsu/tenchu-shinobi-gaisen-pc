@@ -34,6 +34,7 @@ pub struct Sequence {
     pub failure: Option<usize>,
 }
 
+#[derive(Clone)]
 pub struct Campaign {
     pub sequences: Vec<Sequence>,
     pub starts: [[Option<usize>; 11]; 3],

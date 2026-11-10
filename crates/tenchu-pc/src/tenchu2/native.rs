@@ -30,6 +30,8 @@ pub(crate) mod diagnostics;
 mod equipment;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
+#[cfg(test)]
+mod gaisen_tests;
 mod inspection;
 mod interpolation;
 #[cfg(not(target_arch = "wasm32"))]
@@ -114,7 +116,40 @@ impl Session {
         let assets = Assets::equipped(disc, hero, &layout, alternate)?;
         let world = World::new(&layout, options, &assets)?;
         let bank = Arc::new(Audio::load(disc, hero, layout.map)?.bank);
-        Ok(Self {
+        Ok(Self::from_parts(world, assets, bank))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn gaisen(
+        disc: &Disc<impl ReadAt>,
+        source: &tenchu_assets::stage::MissionAssets,
+        options: Options,
+        alternate: bool,
+    ) -> Result<Self> {
+        let (assets, layout) = Assets::gaisen(disc, source, options.hero, alternate)?;
+        let mut bank = Audio::load(disc, options.hero, 8)?.bank;
+        bank.programs.truncate(5);
+        let voices = tenchu_assets::tenchu2::audio::voices_for(
+            disc,
+            &assets.resources.registry,
+            &assets.cast,
+        )?;
+        for &kind in &assets.cast {
+            let voice = voices
+                .get(&kind)
+                .ok_or_else(|| format!("Missing imported guard voice {kind:#x}"))?;
+            bank.import_program(&voice.bank, 0)?;
+        }
+        let world = World::new(&layout, options, &assets)?;
+        Ok(Self::from_parts(world, assets, Arc::new(bank)))
+    }
+
+    fn from_parts(
+        world: World,
+        assets: Assets,
+        bank: Arc<tenchu_assets::audio::bank::Bank>,
+    ) -> Self {
+        Self {
             world,
             assets,
             frame: Frame::default(),
@@ -126,7 +161,7 @@ impl Session {
             circle_action: Default::default(),
             #[cfg(not(target_arch = "wasm32"))]
             models: Default::default(),
-        })
+        }
     }
 
     pub fn step(&mut self, buttons: u16) -> Result<Vec<Sourced<Sound>>> {
@@ -384,7 +419,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Modern lighting and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nExperimental T1 stage mode: --gaisen GAISEN.cue --stage 0 --hero 0 --layout 1\nT1 scenery with T2 actors, AI, movement, HUD and results. Doors, hazards and pickups are still being connected. Requires both discs.\nF1 shows current native JP feature availability. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }
@@ -393,6 +428,10 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let mut ticks = 30;
     let mut buttons = 0;
     let mut loadout = Vec::new();
+    let mut gaisen = None;
+    let mut stage = 0;
+    let mut hero = 0;
+    let mut layout = 1;
     let menu = args[first..].iter().any(|a| a == "--menu");
     let options: Vec<_> = args[first..].iter().filter(|a| *a != "--menu").collect();
     for pair in options.chunks(2) {
@@ -401,6 +440,10 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         }
         let value = pair[1].to_str().ok_or("Invalid native JP option")?;
         match pair[0].to_str() {
+            Some("--gaisen") => gaisen = Some(Path::new(value).to_owned()),
+            Some("--stage") => stage = value.parse::<usize>().map_err(|e| e.to_string())?,
+            Some("--hero") => hero = value.parse::<usize>().map_err(|e| e.to_string())?,
+            Some("--layout") => layout = value.parse::<usize>().map_err(|e| e.to_string())?,
             Some("--sequence") => {
                 sequence = value
                     .parse()
@@ -454,6 +497,59 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     } else {
         crate::settings::Settings::default()
     };
+    if let Some(path) = gaisen {
+        if menu
+            || hero > 2
+            || stage > 10
+            || !(1..=3).contains(&layout)
+            || options.chunks(2).any(|p| p[0] == "--sequence")
+        {
+            return Err("Use --gaisen CUE with --stage 0–10, --hero 0–2 and --layout 1–3, without --menu or --sequence".into());
+        }
+        let game = tenchu_assets::game::GameAssets::open(crate::source::open_disc(&path)?)?;
+        let source = tenchu_assets::stage::MissionAssets::load(
+            &game,
+            stage,
+            usize::from(hero == 1) as i16,
+            layout,
+        )?;
+        let mut items = [0; 21];
+        items[0] = 255;
+        for (item, count) in loadout {
+            items[item] = count;
+        }
+        if capture {
+            let alternate = items[19] != 0;
+            items[19] = 0;
+            let mut session = Session::gaisen(
+                &disc,
+                &source,
+                Options {
+                    hero,
+                    difficulty: 2,
+                    seed,
+                    inventory: Inventory::from_amounts(items),
+                },
+                alternate,
+            )?;
+            for _ in 0..ticks {
+                session.step(buttons)?;
+            }
+            return render::capture(&session, &settings, Path::new(&args[2]));
+        }
+        #[cfg(target_os = "android")]
+        return Err("Use the Android launcher's F6 quick menu to start a stage".into());
+        #[cfg(not(target_os = "android"))]
+        return window::run(
+            campaign::Playback::gaisen(disc, source, hero, 2, seed, Some(items))?,
+            settings,
+        );
+    } else if options
+        .chunks(2)
+        .any(|p| matches!(p[0].to_str(), Some("--stage" | "--hero" | "--layout")))
+    {
+        return Err("--stage, --hero and --layout require --gaisen CUE".into());
+    }
     let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(&disc)?;
     let descriptor = campaign
         .sequences

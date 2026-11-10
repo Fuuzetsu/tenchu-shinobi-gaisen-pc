@@ -256,6 +256,7 @@ fn surface_geometry_and_fading_match_source() {
         std::fs::File::open(std::env::var_os("TENCHU2_SURFACE_DRAWING_ORACLE").unwrap()).unwrap();
     let mut count = 0;
     let map = tenchu_assets::tenchu2::collision::Collision {
+        gaisen: None,
         origin: [0; 2],
         dimensions: [1; 2],
         cell_size: 1000,

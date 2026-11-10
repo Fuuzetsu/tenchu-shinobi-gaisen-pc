@@ -66,6 +66,7 @@ pub struct Playback<S> {
     pub death: death::Hold,
     keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
+    gaisen: Option<Arc<tenchu_assets::stage::MissionAssets>>,
 }
 
 impl<S: ReadAt> Playback<S> {
@@ -99,6 +100,42 @@ impl<S: ReadAt> Playback<S> {
         Ok(playback)
     }
 
+    pub fn gaisen(
+        disc: Disc<S>,
+        source: tenchu_assets::stage::MissionAssets,
+        hero: usize,
+        difficulty: u8,
+        seed: u32,
+        loadout: Option<[u8; 21]>,
+    ) -> Result<Self> {
+        let mut inventory = loadout.unwrap_or([0; 21]);
+        inventory[0] = 255;
+        let alternate = inventory[19] != 0;
+        inventory[19] = 0;
+        let mut session = Session::gaisen(
+            &disc,
+            &source,
+            tenchu_core::tenchu2::world::Options {
+                hero,
+                difficulty,
+                seed,
+                inventory: tenchu_core::tenchu2::inventory::Inventory::from_amounts(inventory),
+            },
+            alternate,
+        )?;
+        let campaign = session.assets.campaign.clone();
+        let mut run = Run::new(&campaign, hero, 0, difficulty, seed)?;
+        run.prepare_area(&campaign)?;
+        run.carry.inventory = inventory;
+        run.carry.alternate = alternate;
+        run.restore_area(&mut session.world, &session.assets, true)?;
+        let mut playback = Self::state(disc, campaign, run, loadout, None);
+        playback.gaisen = Some(Arc::new(source));
+        playback.content = Content::Gameplay(Box::new(session));
+        playback.generation = 1;
+        Ok(playback)
+    }
+
     fn new(
         disc: Disc<S>,
         sequence: Option<usize>,
@@ -117,7 +154,17 @@ impl<S: ReadAt> Playback<S> {
         if let Some(save) = &save {
             run.progress = save.load()?;
         }
-        Ok(Self {
+        Ok(Self::state(disc, campaign, run, loadout, save))
+    }
+
+    fn state(
+        disc: Disc<S>,
+        campaign: Campaign,
+        run: Run,
+        loadout: Option<[u8; 21]>,
+        save: Option<super::save::SaveFile>,
+    ) -> Self {
+        Self {
             disc,
             campaign,
             run,
@@ -132,7 +179,8 @@ impl<S: ReadAt> Playback<S> {
             death: Default::default(),
             keep_all_active: false,
             circle_action: Default::default(),
-        })
+            gaisen: None,
+        }
     }
 
     fn select_mission(&mut self) -> Result<()> {
@@ -173,14 +221,37 @@ impl<S: ReadAt> Playback<S> {
                                 Content::Equipment(Box::new(super::equipment::Selection::load(
                                     &self.disc,
                                     self.run.hero,
-                                    usize::from(descriptor.resource),
+                                    if self.gaisen.is_some() {
+                                        8
+                                    } else {
+                                        usize::from(descriptor.resource)
+                                    },
                                     self.run.progress.stock[self.run.hero].clone(),
                                 )?));
                             self.generation += 1;
                             return Ok(());
                         }
                     }
-                    let session = Session::for_run(&self.disc, &self.run)?;
+                    let session = if let Some(source) = &self.gaisen {
+                        let mut session = Session::gaisen(
+                            &self.disc,
+                            source,
+                            tenchu_core::tenchu2::world::Options {
+                                hero: self.run.hero,
+                                difficulty: self.run.difficulty,
+                                seed: self.run.random.seed,
+                                inventory: tenchu_core::tenchu2::inventory::Inventory::from_amounts(
+                                    self.run.carry.inventory,
+                                ),
+                            },
+                            self.run.carry.alternate,
+                        )?;
+                        self.run
+                            .restore_area(&mut session.world, &session.assets, true)?;
+                        session
+                    } else {
+                        Session::for_run(&self.disc, &self.run)?
+                    };
                     Content::Gameplay(Box::new(session))
                 }
                 Kind::Event => {
@@ -246,6 +317,13 @@ impl<S: ReadAt> Playback<S> {
         self.previous_buttons = buttons;
         let action = self.action.take();
         if matches!(action, Some(Action::SelectMission)) {
+            if self.gaisen.is_some() {
+                return Ok(Update {
+                    quit: true,
+                    stop_music: true,
+                    ..Default::default()
+                });
+            }
             self.select_mission()?;
             return Ok(Update {
                 stop_music: true,

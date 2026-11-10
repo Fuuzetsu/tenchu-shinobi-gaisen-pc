@@ -739,6 +739,19 @@ impl Models {
             &assets.level.objects,
             Role::Prop,
         ));
+        if let Some(stage) = &assets.level.gaisen {
+            for (index, model) in scenery.iter_mut().enumerate() {
+                model.id = if index < assets.level.map.len() {
+                    format!("stages/{}/map/{index}", stage.directory)
+                } else {
+                    format!(
+                        "stages/{}/objects/{}",
+                        stage.directory,
+                        index - assets.level.map.len()
+                    )
+                };
+            }
+        }
         for (id, part) in &assets.level.stumps {
             scenery.extend(sources(
                 &format!("map{}/stump{id}", world.map),
@@ -1322,6 +1335,7 @@ struct Builder {
     view: Matrix,
     distance: f32,
     shading: Shading,
+    rgb_scenery: bool,
     fog_start: Option<i32>,
     surfaces: Vec<Surface>,
     terrain: Vec<Vertex>,
@@ -1374,6 +1388,7 @@ impl Builder {
             view,
             distance: 300.0,
             shading: level.shading.clone(),
+            rgb_scenery: level.gaisen.is_some(),
             fog_start: graphics.fog.then(|| {
                 ((level.draw_distance * i32::from(graphics.fog_distance) / 100) >> 4) - 256
             }),
@@ -1456,7 +1471,9 @@ impl Builder {
                     .fog_start
                     .filter(|&start| depth > start)
                     .map_or(0, |start| (z - start).max(0));
-                if matches!(style, ModelStyle::Imported { .. }) {
+                if matches!(style, ModelStyle::Imported { .. })
+                    || (self.rgb_scenery && matches!(style, ModelStyle::Terrain | ModelStyle::Prop))
+                {
                     vertex.color = vertex.color.map(|c| (c - fade as f32 / 128.0).max(0.0));
                 } else {
                     palette_color(vertex, &self.shading, fade);

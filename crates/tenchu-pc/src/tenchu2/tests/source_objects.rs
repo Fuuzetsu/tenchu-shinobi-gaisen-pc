@@ -138,6 +138,7 @@ fn native_surface_traps_and_object_motion_match_source() {
             division: u16::MAX,
         };
         let mut map = Collision {
+            gaisen: None,
             origin: [-3000, -3000],
             dimensions: [1, 1],
             cell_size: 6000,
@@ -281,6 +282,7 @@ fn native_doors_breakables_and_hazards_match_source_contacts() {
             division: u16::MAX,
         };
         let mut map = Collision {
+            gaisen: None,
             origin: [-3000, -3000],
             dimensions: [1, 1],
             cell_size: 6000,

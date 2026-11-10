@@ -479,6 +479,7 @@ fn combat_fixture(hero: usize) -> (crate::tenchu2::native::Session, usize, usize
         .0;
     // A flat combat fixture avoids authored terrain interrupting the hit rays.
     session.world.terrain = tenchu_assets::tenchu2::collision::Collision {
+        gaisen: None,
         origin: [-3000; 2],
         dimensions: [1; 2],
         cell_size: 6000,

@@ -1,5 +1,8 @@
 use crate::{Result, i16_le, slice, terrain::Node, u16_le, u32_le};
 
+mod gaisen;
+pub use gaisen::Gaisen;
+
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Rules {
     pub wall_angles: [Option<i16>; 16],
@@ -33,6 +36,8 @@ pub struct Collision {
     pub dimensions: [usize; 2],
     pub cell_size: i16,
     pub cells: Vec<Cell>,
+    #[serde(default)]
+    pub gaisen: Option<Gaisen>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -45,6 +50,9 @@ pub struct Cell {
 
 impl Collision {
     pub fn into_terrain(self) -> Result<crate::terrain::AreaMap> {
+        if let Some(source) = self.gaisen {
+            return Ok(source.map);
+        }
         let cells = self
             .cells
             .into_iter()
@@ -144,6 +152,7 @@ impl Collision {
             dimensions,
             cell_size,
             cells,
+            gaisen: None,
         })
     }
 }

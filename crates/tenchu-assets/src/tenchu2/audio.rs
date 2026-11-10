@@ -48,11 +48,23 @@ pub fn voices(
     disc: &Disc<impl ReadAt>,
     registry: &super::registry::Registry,
 ) -> Result<std::collections::BTreeMap<i16, std::sync::Arc<crate::audio::voice::VoiceSet>>> {
+    voices_for(
+        disc,
+        registry,
+        &registry.actors.iter().map(|a| a.kind).collect::<Vec<_>>(),
+    )
+}
+
+pub fn voices_for(
+    disc: &Disc<impl ReadAt>,
+    registry: &super::registry::Registry,
+    kinds: &[i16],
+) -> Result<std::collections::BTreeMap<i16, std::sync::Arc<crate::audio::voice::VoiceSet>>> {
     use crate::audio::voice::{Dialect, VoiceSet};
     use std::{collections::BTreeMap, sync::Arc};
     let volume = Volume::open(disc)?;
     let mut groups: BTreeMap<(usize, usize), Vec<(i16, usize)>> = BTreeMap::new();
-    for actor in &registry.actors {
+    for actor in registry.actors.iter().filter(|a| kinds.contains(&a.kind)) {
         let source = if actor.kind < 3 {
             Some((actor.kind as usize, 0, 4))
         } else {

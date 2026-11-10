@@ -46,6 +46,7 @@ fn native_body_response_preserves_knockback_and_contact_order() {
     };
     let rules = Rules::load(&disc).unwrap();
     let mut map = Map {
+        gaisen: None,
         origin: [-10000; 2],
         dimensions: [1; 2],
         cell_size: 20000,

@@ -37,6 +37,7 @@ fn native_actor_visibility_feet_head_tracking_and_effort_match_source() {
     template.actors.truncate(2);
     template.instances.truncate(2);
     template.terrain = Collision {
+        gaisen: None,
         origin: [-3000, -3000],
         dimensions: [1, 1],
         cell_size: 6000,

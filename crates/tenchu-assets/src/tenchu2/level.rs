@@ -11,6 +11,7 @@ pub use shading::Shading;
 #[derive(Clone)]
 pub struct Level {
     pub id: usize,
+    pub gaisen: Option<crate::game::Stage>,
     pub draw_distance: i32,
     pub grid: grid::Grid,
     /// MDL corner colors retain shade indices for the stage's distance palette.
@@ -172,6 +173,7 @@ impl Level {
         };
         Ok(Self {
             id,
+            gaisen: None,
             draw_distance,
             grid,
             map,

@@ -120,11 +120,7 @@ impl World {
         {
             return Err("Tenchu 2 layout or hero does not match its resources".into());
         }
-        let cast = assets
-            .resources
-            .registry
-            .cast(options.hero, layout.map)
-            .ok_or("Missing Tenchu 2 cast")?;
+        let cast = &assets.cast;
         let sequence = *assets
             .campaign
             .sequences
@@ -171,7 +167,6 @@ impl World {
             options.hero as i16,
             Position::from(layout.start),
             layout.facing,
-            &options,
             assets,
         )?;
         world.actors[0].actor.inventory = options.inventory.clone();
@@ -182,7 +177,7 @@ impl World {
             .iter()
             .filter(|actor| cast.contains(&actor.kind))
         {
-            let index = world.create_actor(entry.kind, Position::default(), 0, &options, assets)?;
+            let index = world.create_actor(entry.kind, Position::default(), 0, assets)?;
             let agent = &mut world.actors[index];
             let actor = &mut agent.actor;
             if actor
@@ -253,7 +248,6 @@ impl World {
         kind: i16,
         mut position: Position,
         facing: i16,
-        options: &Options,
         assets: &Assets,
     ) -> Result<usize> {
         let resources = &assets.resources;
@@ -320,10 +314,10 @@ impl World {
             .behavior
             .assign(1, self.map, self.difficulty, &mut self.random)?;
         self.actors.push(agent);
-        let voice = resources
-            .registry
-            .cast(options.hero, self.map)
-            .and_then(|cast| cast.iter().position(|&id| id == kind))
+        let voice = assets
+            .cast
+            .iter()
+            .position(|&id| id == kind)
             .map_or(4, |slot| slot as u8 + 5);
         self.instances.push(Instance {
             rig,

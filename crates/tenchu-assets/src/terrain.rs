@@ -25,7 +25,7 @@ pub struct Row {
     pub lookup: Option<usize>,
 }
 
-#[derive(Eq, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Eq, PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct AreaMap {
     data: Vec<u8>,
     pub rows: Vec<Row>,

@@ -87,6 +87,7 @@ mod tests {
                 ..floor
             };
             let map = Collision {
+                gaisen: None,
                 origin: [0, 0],
                 dimensions: [1, 1],
                 cell_size: 1000,
@@ -117,6 +118,7 @@ mod tests {
             );
         }
         let map = Collision {
+            gaisen: None,
             origin: [0, 0],
             dimensions: [1, 1],
             cell_size: 1000,
