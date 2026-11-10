@@ -66,22 +66,11 @@ impl Style {
         vertices: &mut [crate::render_mesh::Vertex],
         blend: u8,
     ) -> u8 {
-        use crate::render_mesh;
-        if self.blood_style(graphic, color) != Some(BloodStyle::OriginalHd) {
-            return blend;
+        if self.blood_style(graphic, color) == Some(BloodStyle::OriginalHd) {
+            super::combat::blood::original_hd(vertices, blend)
+        } else {
+            blend
         }
-        let textured = vertices[0].flags & render_mesh::TEXTURED != 0;
-        for (vertex, i) in vertices.iter_mut().zip([0, 1, 2, 1, 3, 2]) {
-            vertex.flags |= render_mesh::STAIN | render_mesh::BLOOD_HD;
-            if !textured {
-                vertex.flags |= render_mesh::ALPHA;
-                vertex.uv = [
-                    if i & 1 == 0 { -1.0 } else { 1.0 },
-                    if i & 2 == 0 { -1.0 } else { 1.0 },
-                ];
-            }
-        }
-        if textured { blend } else { 5 }
     }
 
     pub(super) fn replaces(self, graphic: &Graphic, color: [u8; 3]) -> bool {

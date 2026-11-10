@@ -27,6 +27,7 @@ use tenchu_core::{
 };
 
 mod background;
+mod blood;
 mod custom;
 mod environment;
 mod hud;
@@ -148,6 +149,11 @@ impl Drawing {
             renderer.graphics(),
             Presentation {
                 show_hud: self.show_hud,
+                alpha: if renderer.graphics().interpolation {
+                    self.alpha
+                } else {
+                    1.0
+                },
                 camera: self.camera,
                 pose: pose.as_ref(),
             },
@@ -493,11 +499,22 @@ pub struct Geometry {
     pub effects: render_effects::Geometry,
 }
 
-#[derive(Default)]
 pub struct Presentation<'a> {
+    pub alpha: f32,
     pub show_hud: bool,
     pub camera: Option<crate::debug::camera::Camera>,
     pub pose: Option<&'a PoseFrame>,
+}
+
+impl Default for Presentation<'_> {
+    fn default() -> Self {
+        Self {
+            alpha: 1.0,
+            show_hud: false,
+            camera: None,
+            pose: None,
+        }
+    }
 }
 
 fn sources<'a>(name: &str, parts: &'a [Part], role: Role) -> Vec<catalog::ModelSource<'a>> {
@@ -668,6 +685,7 @@ impl Models {
         presentation: Presentation<'_>,
     ) -> Result<Geometry> {
         let Presentation {
+            alpha,
             show_hud,
             camera,
             pose,
@@ -968,6 +986,9 @@ impl Models {
             if modern_contact(sprite.contact, &graphics.effects) {
                 continue;
             }
+            if output.blood_particle(sprite.position, sprite.blood, graphics.blood.hit, alpha) {
+                continue;
+            }
             let image = assets.sprites.effects[usize::from(sprite.image)];
             let blend = blend(sprite.blend, sprite.image);
             let projected = output.project(sprite.position);
@@ -992,13 +1013,25 @@ impl Models {
                 Some(image),
                 blend,
             );
+            if sprite.blood.is_some()
+                && graphics.blood.hit == crate::settings::BloodStyle::OriginalHd
+            {
+                output.blood_original_hd();
+            }
         }
         for point in &frame.effects.points {
             if modern_contact(point.contact, &graphics.effects) {
                 continue;
             }
+            if output.blood_particle(point.position, point.blood, graphics.blood.hit, alpha) {
+                continue;
+            }
+            let projected = output.project(point.position);
+            if projected[2] <= 0.0 {
+                continue;
+            }
             output.screen_sprite(
-                output.project(point.position),
+                projected,
                 point.size.map(f32::from),
                 [1.0; 2],
                 0,
@@ -1010,6 +1043,11 @@ impl Models {
                     0
                 },
             );
+            if point.blood.is_some()
+                && graphics.blood.hit == crate::settings::BloodStyle::OriginalHd
+            {
+                output.blood_original_hd();
+            }
         }
         for ribbon in &frame.effects.ribbons {
             let depth = (ribbon.depth * 16) as f32;

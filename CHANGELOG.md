@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports the shared Off / Original / Original HD / Modern hit-blood styles. Modern droplets follow the source particles, and Original HD smooths the original shapes. These controls leave ground blood, death pools and gameplay independent.
+
 - Native Tenchu 2 JP supports F1's Detailed rope / hook option, using the same round woven rope and hook refinement as Gaisen. The rope follows T2's actual flight/pull path and the displayed hand; gameplay, collision and Original rendering stay unchanged.
 
 - Native Tenchu 2 JP supports the shared modern water-contact droplets, ripples and temporary wet marks on nearby ground. F1's Water contact splashes option replaces only the matching source effects; delayed rendering, pause and live restoration keep their timing independent of gameplay.

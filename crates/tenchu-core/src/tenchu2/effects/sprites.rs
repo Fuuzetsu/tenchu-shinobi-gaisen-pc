@@ -55,6 +55,7 @@ pub struct Sprites {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Drawing {
+    pub blood: Option<super::blood::Particle>,
     pub contact: Option<super::ContactKind>,
     pub image: u8,
     pub position: Position,
@@ -257,6 +258,7 @@ impl Sprites {
                 };
             }
             drawings.push(Drawing {
+                blood: None,
                 contact: self.contact,
                 image: frame.image,
                 position,

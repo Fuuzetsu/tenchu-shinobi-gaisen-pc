@@ -1526,3 +1526,196 @@ fn native_detailed_grapple_preserves_source_path_and_restores_original() {
     assert_ne!(images[0], images[1]);
     assert_eq!(images[0], images[2]);
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; verifies source blood styling, pause, interpolation and original restoration"]
+fn native_blood_hit_styles_preserve_source_particles_and_ground_effects() {
+    use crate::settings::BloodStyle;
+    use tenchu_core::tenchu2::effects::blood::Spurt;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut session = super::super::Session::load(&disc, 119, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let position = session.world.actors[session.world.player]
+        .actor
+        .position
+        .wrapping_add(Position::new(500, -1200, 0));
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    camera.position = Vec3::from(position.to_array().map(|v| v as f32)) - camera.forward() * 3500.0;
+    session
+        .world
+        .effects
+        .blood(
+            Spurt {
+                position,
+                yaw: 1024,
+                speed: 100,
+                gravity: 20,
+            },
+            &session.assets.resources.math,
+            &session.assets.effect_rules,
+            &mut session.world.random,
+        )
+        .unwrap();
+    session
+        .world
+        .effects
+        .death_pool(
+            position,
+            &session.assets.level.collision,
+            &mut Default::default(),
+        )
+        .unwrap();
+    for _ in 0..4 {
+        session.step(0).unwrap();
+    }
+    assert!(
+        session
+            .frame
+            .effects
+            .sprites
+            .iter()
+            .any(|s| s.blood.is_some())
+    );
+    assert!(
+        session
+            .frame
+            .effects
+            .points
+            .iter()
+            .any(|p| p.blood.is_some())
+    );
+    assert!(!session.frame.effects.quads.is_empty());
+    let state = postcard::to_allocvec(&session.world).unwrap();
+    let mut images = Vec::new();
+    for (mode, style) in [
+        ("original", BloodStyle::Original),
+        ("hd", BloodStyle::OriginalHd),
+        ("modern", BloodStyle::Modern),
+        ("off", BloodStyle::Off),
+        ("restored", BloodStyle::OriginalHd),
+    ] {
+        let mut graphics = Graphics {
+            fog: false,
+            asset_pack: false,
+            ..Default::default()
+        };
+        graphics.blood.hit = style;
+        let path = output.join(format!("jp-blood-hit-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            let presentation = || Presentation {
+                camera: Some(camera),
+                ..Default::default()
+            };
+            let before = drawing.models.geometry(
+                &session.world,
+                &session.assets,
+                &session.frame,
+                &graphics,
+                presentation(),
+            )?;
+            let paused = drawing.models.geometry(
+                &session.world,
+                &session.assets,
+                &session.frame,
+                &graphics,
+                presentation(),
+            )?;
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&before.effects.vertices),
+                bytemuck::cast_slice::<_, u8>(&paused.effects.vertices)
+            );
+            let mut hidden = graphics.clone();
+            hidden.blood.hit = BloodStyle::Off;
+            let without_hit = drawing.models.geometry(
+                &session.world,
+                &session.assets,
+                &session.frame,
+                &hidden,
+                presentation(),
+            )?;
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&before.terrain),
+                bytemuck::cast_slice::<_, u8>(&without_hit.terrain)
+            );
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&before.actors),
+                bytemuck::cast_slice::<_, u8>(&without_hit.actors)
+            );
+            // All source surface blood survives independently of the airborne style.
+            let floor = |geometry: &Geometry| {
+                geometry
+                    .effects
+                    .vertices
+                    .iter()
+                    .filter(|v| v.flags & render_mesh::SCREEN == 0)
+                    .copied()
+                    .collect::<Vec<_>>()
+            };
+            if style.uses_original() {
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&floor(&before)),
+                    bytemuck::cast_slice::<_, u8>(&floor(&without_hit))
+                );
+            }
+            if style == BloodStyle::Modern {
+                let interpolated = drawing.models.geometry(
+                    &session.world,
+                    &session.assets,
+                    &session.frame,
+                    &graphics,
+                    Presentation {
+                        alpha: 0.25,
+                        ..presentation()
+                    },
+                )?;
+                assert_ne!(
+                    bytemuck::cast_slice::<_, u8>(&before.effects.vertices),
+                    bytemuck::cast_slice::<_, u8>(&interpolated.effects.vertices)
+                );
+                assert!(before.effects.vertices.len() > without_hit.effects.vertices.len());
+                assert!(
+                    before
+                        .effects
+                        .vertices
+                        .iter()
+                        .all(|v| Vec3::from(v.position).is_finite())
+                );
+            }
+            if mode == "restored" {
+                let mut original = graphics.clone();
+                original.blood.hit = BloodStyle::Original;
+                renderer.configure(&original);
+                drawing.update(&session, renderer, None)?;
+            }
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    for i in 0..4 {
+        for j in i + 1..4 {
+            assert_ne!(
+                images[i], images[j],
+                "blood styles {i}/{j} are visually identical"
+            );
+        }
+    }
+    assert_eq!(
+        images[0], images[4],
+        "restoring Original changed source drawing"
+    );
+}

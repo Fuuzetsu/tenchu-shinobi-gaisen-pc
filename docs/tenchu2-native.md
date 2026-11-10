@@ -69,6 +69,13 @@ impact and moving sparks. Modern High/Ultra enable this, while Original retains
 the source particles. Presentation effects do not consume gameplay RNG, and
 pause, fast-forward and artwork/model reloads do not duplicate impacts.
 
+**F1 → Persistent effects → Blood spurts on hit** offers the same Off, Original,
+Original HD and Modern styles as Gaisen. Native particles supply their own
+motion and timing; Original HD smooths the disc artwork, and Modern uses the
+shared droplet renderer. Ground blood, death pools and extra wound bleeding are
+separate controls; their native presentation adapters are still pending.
+Modern High/Ultra already enable Modern hit blood; Original is unchanged.
+
 **Detailed rope / hook** in the same tab uses the shared round woven rope and
 hook refinement. T2 supplies its original flight/pull path; interpolation and
 custom bodies supply the displayed hand anchor. Original keeps the source line

@@ -15,6 +15,8 @@ pub struct Particle {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Points {
     #[serde(default)]
+    pub blood: bool,
+    #[serde(default)]
     pub contact: Option<super::ContactKind>,
     pub position: Position,
     pub parent: Option<ModelId>,
@@ -30,6 +32,7 @@ pub struct Points {
 
 #[derive(Clone, Debug)]
 pub struct Drawing {
+    pub blood: Option<super::blood::Particle>,
     pub contact: Option<super::ContactKind>,
     pub position: Position,
     pub color: [u8; 3],
@@ -60,6 +63,7 @@ impl Points {
             }
         });
         Self {
+            blood: false,
             contact: None,
             position,
             parent: None,
@@ -94,7 +98,7 @@ impl Points {
                 matrix = scene.world(parent)?.compose(&matrix);
             }
             let projection = view.matrix.compose(&matrix);
-            for group in self.particles.chunks_exact_mut(3) {
+            for (group_index, group) in self.particles.chunks_exact_mut(3).enumerate() {
                 for particle in group.iter_mut() {
                     for axis in 0..3 {
                         particle.position[axis] =
@@ -103,7 +107,7 @@ impl Points {
                 }
                 let depth =
                     crate::visibility::project(&projection, group[2].position.to_array()).1 >> 4;
-                for particle in group {
+                for (index, particle) in group.iter_mut().enumerate() {
                     let screen =
                         crate::visibility::project(&projection, particle.position.to_array()).0;
                     if self.size.is_some()
@@ -113,6 +117,11 @@ impl Points {
                             && i32::from(screen[1]).abs() <= 120)
                     {
                         drawings.push(Drawing {
+                            blood: self.blood.then(|| super::blood::Particle {
+                                velocity: matrix.apply_large(particle.velocity.map(i32::from)),
+                                index: (group_index * 3 + index) as u8,
+                                radius: None,
+                            }),
                             contact: self.contact,
                             position: matrix.transform(particle.position.to_array()),
                             color,

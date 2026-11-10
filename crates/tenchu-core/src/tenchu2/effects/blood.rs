@@ -17,6 +17,13 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::{collision::Collision, effects::Rules};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Particle {
+    pub velocity: Position,
+    pub index: u8,
+    pub radius: Option<i16>,
+}
+
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 pub enum Contact {
     #[default]
@@ -218,6 +225,13 @@ impl Drop {
             let scale = self.radius.wrapping_mul(9600) / (i32::from(depth) * 4);
             drawings.push(sprites::Drawing {
                 contact: None,
+                blood: (image == 1).then(|| Particle {
+                    velocity: parent.map_or(self.velocity.map(i32::from), |m| {
+                        m.apply_large(self.velocity.map(i32::from))
+                    }),
+                    index: 0,
+                    radius: Some(self.radius as i16),
+                }),
                 image,
                 position: matrix.translation,
                 size: [self.radius as i16; 2],
@@ -330,6 +344,7 @@ impl Effects {
             let mut points = Points::burst(position, controls, gravity >> 1, rules);
             points.age = -i * 4;
             points.color = [128, 0, 0];
+            points.blood = true;
             self.insert(Effect::Points(points))?;
         }
         self.blood_phase = !self.blood_phase;

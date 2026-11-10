@@ -236,7 +236,8 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
             // Presentation metadata has no counterpart in the source particle structure.
             let fields = || {
                 a.iter().filter(|(key, _)| {
-                    b.contains_key(key.as_str()) || !matches!(key.as_str(), "contact" | "emission")
+                    b.contains_key(key.as_str())
+                        || !matches!(key.as_str(), "contact" | "emission" | "blood")
                 })
             };
             assert_eq!(fields().count(), b.len(), "{path} fields");

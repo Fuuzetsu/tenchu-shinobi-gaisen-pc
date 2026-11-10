@@ -379,6 +379,7 @@ impl Effects {
             }
         }
         self.insert(Effect::Points(Points {
+            blood: false,
             contact: None,
             position: Position::ZERO,
             parent: rig.joints.first().copied(),

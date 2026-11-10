@@ -26,6 +26,10 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
             grapple: g.models.grapple,
             ..Default::default()
         },
+        blood: crate::settings::Blood {
+            hit: g.blood.hit,
+            ..Default::default()
+        },
         weapon_reflections: g.weapon_reflections,
         interpolation: g.interpolation,
         bilinear: g.bilinear,

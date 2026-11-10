@@ -120,7 +120,8 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
         (Value::Object(a), Value::Object(b)) => {
             let fields = || {
                 a.iter().filter(|(key, _)| {
-                    b.contains_key(key.as_str()) || !matches!(key.as_str(), "contact" | "emission")
+                    b.contains_key(key.as_str())
+                        || !matches!(key.as_str(), "contact" | "emission" | "blood")
                 })
             };
             assert_eq!(fields().count(), b.len(), "{path} fields");

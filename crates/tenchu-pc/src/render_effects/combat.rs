@@ -1,12 +1,10 @@
+pub(crate) mod blood;
 mod gun;
 mod sparks;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use sparks::impact_flash;
 
-use super::{
-    Style, Surface, quad,
-    style::{blood_color, lightning_spark},
-};
+use super::{Style, Surface, quad, style::lightning_spark};
 use crate::{render_mesh, visuals::models::rotation};
 use glam::{Mat3, Vec3};
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
@@ -119,88 +117,6 @@ impl Painter<'_> {
             true,
             false,
         );
-    }
-
-    fn blood(
-        &mut self,
-        game: &Game,
-        alpha: f32,
-        gunfire: bool,
-        frame: Option<&crate::visuals::interpolation::Frame>,
-    ) {
-        for (slot, effect) in crate::visuals::death::blood::slots(&game.effects, frame).enumerate()
-        {
-            if gunfire
-                && game.effects.gun_sources[..game.effects.active_slots().len()]
-                    .get(slot)
-                    .is_some_and(Option::is_some)
-            {
-                continue;
-            }
-            let (position, velocity, count, size) = match effect {
-                Some(Effect::Blood(blood)) if blood.mode == 0 => (
-                    blood.position,
-                    blood.velocity,
-                    5,
-                    (blood.scale as f32 / 8192.0).clamp(0.5, 2.0) * 19.0,
-                ),
-                Some(Effect::Bleed(bleed)) if blood_color(bleed.color) => {
-                    (bleed.position, bleed.velocity, 1, 11.0)
-                }
-                _ => continue,
-            };
-            let velocity = Vec3::from(velocity.map(f32::from));
-            let position = Vec3::from(position.map(|n| n as f32).to_array())
-                - velocity * (1.0 - alpha.clamp(0.0, 1.0));
-            let projected = velocity - self.camera.z_axis * velocity.dot(self.camera.z_axis);
-            let along = projected.try_normalize().unwrap_or(self.camera.y_axis);
-            let across = along.cross(self.camera.z_axis);
-            for i in 0..count {
-                let seed = (slot as u32 * 37) + i * 13;
-                let radius = size * (0.45 + noise(seed));
-                let center = position
-                    + Vec3::new(
-                        noise(seed + 1) - 0.5,
-                        noise(seed + 2) - 0.5,
-                        noise(seed + 3) - 0.5,
-                    ) * size
-                        * 3.0
-                    - velocity * (noise(seed + 4) * 1.4);
-                self.patch(
-                    center,
-                    [
-                        across * radius,
-                        along * (radius + projected.length() * 0.22),
-                    ],
-                    [0.30 + noise(seed + 3) * 0.16, 0.006, 0.012],
-                    false,
-                    true,
-                );
-            }
-        }
-        for (index, burst) in crate::visuals::death::blood::billboards(&game.effects, frame)
-            .enumerate()
-            .filter(|(_, b)| matches!(b.graphic, tenchu_core::effects::Graphic::Impact(2)))
-        {
-            let center = Vec3::from(burst.position.map(|v| v as f32).to_array());
-            let size = (burst.scale[0] as f32 / 300.0).clamp(20.0, 90.0);
-            for i in 0..5 {
-                let seed = index as u32 * 31 + i * 7;
-                let offset = self.camera.x_axis * (noise(seed) - 0.5)
-                    + self.camera.y_axis * (noise(seed + 1) - 0.5);
-                self.patch_with_opacity(
-                    center + offset * size * 2.0,
-                    [
-                        self.camera.x_axis * size * 0.45,
-                        self.camera.y_axis * size * 0.6,
-                    ],
-                    [0.38, 0.008, 0.016],
-                    false,
-                    true,
-                    0.4,
-                );
-            }
-        }
     }
 
     fn lightning(&mut self, game: &Game, alpha: f32) {

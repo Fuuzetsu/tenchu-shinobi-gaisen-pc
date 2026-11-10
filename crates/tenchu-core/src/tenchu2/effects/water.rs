@@ -106,6 +106,7 @@ impl Effects {
                 i32::from(particles[0].position.z) * 8,
             ));
             self.insert(Effect::Points(Points {
+                blood: false,
                 contact: Some(super::ContactKind::Water),
                 position: position.wrapping_sub(Position::new(0, size >> 2, 0)),
                 parent: None,

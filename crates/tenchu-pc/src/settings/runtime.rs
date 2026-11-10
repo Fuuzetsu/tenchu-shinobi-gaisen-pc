@@ -71,7 +71,7 @@ impl Runtime {
             | ClearFootprints | RoofRunoff | RunoffAmount | ClearWeather | StormLightning
             | StormBolts | StormInterval | StormThunder | RainVolume | WindVolume
             | ThunderStyle => None,
-            ContactSparks | SparkDensity | ContactSplashes | GrappleDetail => None,
+            ContactSparks | SparkDensity | ContactSplashes | GrappleDetail | BloodHit => None,
             Water | WaterReflective | WaterRipples | WaterReflections | WaterFlow | WaterFoam
             | WaterSpray | WaterDetail => None,
             PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts => {

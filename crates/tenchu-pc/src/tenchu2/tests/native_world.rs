@@ -370,6 +370,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .is_none()
     );
     let mut blood = false;
+    let mut visible_blood = false;
     for _ in 0..240 {
         for i in [0, guard] {
             world.move_actor(i, &assets, &mut events).unwrap();
@@ -385,7 +386,9 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .iter()
             .any(|e| matches!(e, Effect::Blood(_)));
         world.update_items(&assets, &mut events).unwrap();
-        world.update_effects(&assets).unwrap();
+        let effects = world.update_effects(&assets).unwrap();
+        visible_blood |= effects.sprites.iter().any(|s| s.blood.is_some())
+            || effects.points.iter().any(|p| p.blood.is_some());
         world.finish_tick(&assets, 6).unwrap();
     }
     assert!(matches!(
@@ -400,6 +403,10 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .is_some()
     );
     assert!(blood, "stealth kill did not create native blood");
+    assert!(
+        visible_blood,
+        "stealth-kill blood never reached the shared renderer"
+    );
     assert_eq!(world.statistics.killed, 1);
 }
 
