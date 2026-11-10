@@ -119,14 +119,32 @@ impl Session {
         Ok(Self::from_parts(world, assets, bank))
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub fn gaisen(
         disc: &Disc<impl ReadAt>,
         source: &tenchu_assets::stage::MissionAssets,
         options: Options,
         alternate: bool,
     ) -> Result<Self> {
-        let (assets, layout) = Assets::gaisen(disc, source, options.hero, alternate)?;
+        Self::gaisen_with_water_depth(
+            disc,
+            source,
+            options,
+            alternate,
+            tenchu_assets::tenchu2::collision::Gaisen::DEFAULT_WATER_DEPTH,
+        )
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn gaisen_with_water_depth(
+        disc: &Disc<impl ReadAt>,
+        source: &tenchu_assets::stage::MissionAssets,
+        options: Options,
+        alternate: bool,
+        water_depth: i16,
+    ) -> Result<Self> {
+        let (mut assets, layout) = Assets::gaisen(disc, source, options.hero, alternate)?;
+        assets.level.collision.set_gaisen_water_depth(water_depth)?;
         let mut bank = Audio::load(disc, options.hero, 8)?.bank;
         bank.programs.truncate(5);
         let voices = tenchu_assets::tenchu2::audio::voices_for(
@@ -419,7 +437,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nExperimental T1 stage mode: --gaisen GAISEN.cue --stage 0 --hero 0 --layout 1\nT1 scenery, doors, pitfalls and hot floors with T2 actors, AI, movement, HUD and results. Mission objectives, water depths and pickups are still being connected. Requires both discs.\nF1 shows current native JP feature availability. Normal play-t2 and F6 also use native JP by default for Japanese discs."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--menu | --sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nExperimental T1 stage mode: --gaisen GAISEN.cue --stage 0 --hero 0 --layout 1\nT1 scenery, doors, pitfalls and hot floors with T2 actors, AI, movement, HUD and results. Water supports native swimming/diving with added underwater collision (default depth 4000 game units; --water-depth 0–16000 in multiples of 10, 0 disables it). Mission objectives and pickups are still being connected. Requires both discs.\nF1 shows current native JP feature availability. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }
@@ -432,6 +450,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let mut stage = 0;
     let mut hero = 0;
     let mut layout = 1;
+    let mut water_depth = tenchu_assets::tenchu2::collision::Gaisen::DEFAULT_WATER_DEPTH;
     let menu = args[first..].iter().any(|a| a == "--menu");
     let options: Vec<_> = args[first..].iter().filter(|a| *a != "--menu").collect();
     for pair in options.chunks(2) {
@@ -444,6 +463,9 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
             Some("--stage") => stage = value.parse::<usize>().map_err(|e| e.to_string())?,
             Some("--hero") => hero = value.parse::<usize>().map_err(|e| e.to_string())?,
             Some("--layout") => layout = value.parse::<usize>().map_err(|e| e.to_string())?,
+            Some("--water-depth") => {
+                water_depth = value.parse::<i16>().map_err(|e| e.to_string())?
+            }
             Some("--sequence") => {
                 sequence = value
                     .parse()
@@ -521,7 +543,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         if capture {
             let alternate = items[19] != 0;
             items[19] = 0;
-            let mut session = Session::gaisen(
+            let mut session = Session::gaisen_with_water_depth(
                 &disc,
                 &source,
                 Options {
@@ -531,6 +553,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                     inventory: Inventory::from_amounts(items),
                 },
                 alternate,
+                water_depth,
             )?;
             for _ in 0..ticks {
                 session.step(buttons)?;
@@ -541,14 +564,16 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         return Err("Use the Android launcher's F6 quick menu to start a stage".into());
         #[cfg(not(target_os = "android"))]
         return window::run(
-            campaign::Playback::gaisen(disc, source, hero, 2, seed, Some(items))?,
+            campaign::Playback::gaisen(disc, source, hero, 2, seed, Some(items), water_depth)?,
             settings,
         );
-    } else if options
-        .chunks(2)
-        .any(|p| matches!(p[0].to_str(), Some("--stage" | "--hero" | "--layout")))
-    {
-        return Err("--stage, --hero and --layout require --gaisen CUE".into());
+    } else if options.chunks(2).any(|p| {
+        matches!(
+            p[0].to_str(),
+            Some("--stage" | "--hero" | "--layout" | "--water-depth")
+        )
+    }) {
+        return Err("--stage, --hero, --layout and --water-depth require --gaisen CUE".into());
     }
     let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(&disc)?;
     let descriptor = campaign

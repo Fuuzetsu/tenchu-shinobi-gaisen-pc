@@ -5,6 +5,7 @@ mod doors;
 mod heat;
 mod pitfalls;
 mod scrolling;
+mod water;
 
 #[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; imports original terrain, scenery and placements into all three native controllers"]
@@ -96,11 +97,15 @@ fn gaisen_results_and_retry_keep_the_imported_stage() {
     let mut items = [0; 21];
     items[0] = 255;
     items[4] = 7;
-    let mut playback = Playback::gaisen(disc, source, 2, 2, 17, Some(items)).unwrap();
+    let mut playback = Playback::gaisen(disc, source, 2, 2, 17, Some(items), 6000).unwrap();
     let Content::Gameplay(session) = &mut playback.content else {
         panic!("missing imported gameplay")
     };
     let population = session.world.mission.population;
+    assert_eq!(
+        session.world.terrain.gaisen.as_ref().unwrap().water_depth,
+        6000
+    );
     session.world.statistics.killed = population.guards + population.bosses;
     session.world.statistics.stealth_kills = session.world.statistics.killed;
     for _ in 0..200 {
@@ -124,6 +129,10 @@ fn gaisen_results_and_retry_keep_the_imported_stage() {
         panic!("missing imported retry")
     };
     assert_eq!(session.world.map, 24);
+    assert_eq!(
+        session.world.terrain.gaisen.as_ref().unwrap().water_depth,
+        6000
+    );
     assert_eq!(session.assets.level.gaisen.as_ref().unwrap().id, 0);
     assert_eq!(session.world.actors[session.world.player].actor.kind, 2);
     assert_eq!(

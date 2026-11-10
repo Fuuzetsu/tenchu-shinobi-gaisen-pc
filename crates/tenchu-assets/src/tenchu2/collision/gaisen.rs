@@ -5,9 +5,14 @@ use crate::{Result, terrain::AreaMap};
 pub struct Gaisen {
     pub map: AreaMap,
     pub offsets: Vec<Vec<usize>>,
+    /// Added underwater collision depth in game units; ACM itself is unchanged.
+    #[serde(default)]
+    pub water_depth: i16,
 }
 
 impl Gaisen {
+    pub const DEFAULT_WATER_DEPTH: i16 = 4000;
+
     pub fn material(attributes: u16) -> u16 {
         let slope = match attributes & 0xc000 {
             0x4000 => 0x8000,
@@ -17,7 +22,7 @@ impl Gaisen {
         slope
             | if attributes & 2 != 0 {
                 0x100
-            } else if attributes & 12 != 0 {
+            } else if attributes & 4 != 0 {
                 0x200
             } else if attributes & 0x200 != 0 {
                 0x400
@@ -96,7 +101,54 @@ impl Collision {
             gaisen: Some(Gaisen {
                 map: map.clone(),
                 offsets,
+                water_depth: 0,
             }),
         })
+    }
+
+    pub fn set_gaisen_water_depth(&mut self, depth: i16) -> Result<()> {
+        if !(0..=16000).contains(&depth) || depth % 10 != 0 {
+            return Err(
+                "Imported water depth must be 0–16000 game units, in multiples of 10".into(),
+            );
+        }
+        let source = self
+            .gaisen
+            .as_mut()
+            .ok_or("Water depth requires an imported Gaisen stage")?;
+        if source.water_depth == depth {
+            return Ok(());
+        }
+        for node in self.cells.iter().flat_map(|c| &c.nodes) {
+            if node.attributes & 0xf00 == 0x200 {
+                node.y
+                    .checked_add(depth / 10)
+                    .ok_or("Imported water bottom exceeds terrain coordinates")?;
+            }
+        }
+        for (cell, offsets) in self.cells.iter_mut().zip(&mut source.offsets) {
+            let original = cell
+                .nodes
+                .iter()
+                .position(|n| n.attributes & 0xf00 == 0x300)
+                .unwrap_or(cell.nodes.len());
+            cell.nodes.truncate(original);
+            offsets.truncate(original);
+            if depth == 0 {
+                continue;
+            }
+            for index in 0..original {
+                let mut node = cell.nodes[index];
+                if node.attributes & 0xf00 != 0x200 {
+                    continue;
+                }
+                node.y += depth / 10;
+                node.attributes = (node.attributes & !0xf00) | 0x300;
+                cell.nodes.push(node);
+                offsets.push(offsets[index]);
+            }
+        }
+        source.water_depth = depth;
+        Ok(())
     }
 }

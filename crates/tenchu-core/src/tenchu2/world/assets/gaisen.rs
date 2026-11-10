@@ -153,6 +153,9 @@ impl Assets {
         level.draw_distance = 17000;
         self.draw_distance = level.draw_distance;
         level.collision = collision::Collision::from_gaisen(&source.terrain)?;
+        level
+            .collision
+            .set_gaisen_water_depth(collision::Gaisen::DEFAULT_WATER_DEPTH)?;
         level.map = source.map.as_ref().clone();
         level.objects = source.objects.as_ref().clone();
         level.stumps.clear();

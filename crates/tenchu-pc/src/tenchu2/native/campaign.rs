@@ -67,6 +67,7 @@ pub struct Playback<S> {
     keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
     gaisen: Option<Arc<tenchu_assets::stage::MissionAssets>>,
+    gaisen_water_depth: i16,
 }
 
 impl<S: ReadAt> Playback<S> {
@@ -107,12 +108,13 @@ impl<S: ReadAt> Playback<S> {
         difficulty: u8,
         seed: u32,
         loadout: Option<[u8; 21]>,
+        water_depth: i16,
     ) -> Result<Self> {
         let mut inventory = loadout.unwrap_or([0; 21]);
         inventory[0] = 255;
         let alternate = inventory[19] != 0;
         inventory[19] = 0;
-        let mut session = Session::gaisen(
+        let mut session = Session::gaisen_with_water_depth(
             &disc,
             &source,
             tenchu_core::tenchu2::world::Options {
@@ -122,6 +124,7 @@ impl<S: ReadAt> Playback<S> {
                 inventory: tenchu_core::tenchu2::inventory::Inventory::from_amounts(inventory),
             },
             alternate,
+            water_depth,
         )?;
         let campaign = session.assets.campaign.clone();
         let mut run = Run::new(&campaign, hero, 0, difficulty, seed)?;
@@ -131,6 +134,7 @@ impl<S: ReadAt> Playback<S> {
         run.restore_area(&mut session.world, &session.assets, true)?;
         let mut playback = Self::state(disc, campaign, run, loadout, None);
         playback.gaisen = Some(Arc::new(source));
+        playback.gaisen_water_depth = water_depth;
         playback.content = Content::Gameplay(Box::new(session));
         playback.generation = 1;
         Ok(playback)
@@ -180,6 +184,7 @@ impl<S: ReadAt> Playback<S> {
             keep_all_active: false,
             circle_action: Default::default(),
             gaisen: None,
+            gaisen_water_depth: tenchu_assets::tenchu2::collision::Gaisen::DEFAULT_WATER_DEPTH,
         }
     }
 
@@ -233,7 +238,7 @@ impl<S: ReadAt> Playback<S> {
                         }
                     }
                     let session = if let Some(source) = &self.gaisen {
-                        let mut session = Session::gaisen(
+                        let mut session = Session::gaisen_with_water_depth(
                             &self.disc,
                             source,
                             tenchu_core::tenchu2::world::Options {
@@ -245,6 +250,7 @@ impl<S: ReadAt> Playback<S> {
                                 ),
                             },
                             self.run.carry.alternate,
+                            self.gaisen_water_depth,
                         )?;
                         self.run
                             .restore_area(&mut session.world, &session.assets, true)?;

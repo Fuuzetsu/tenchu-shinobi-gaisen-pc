@@ -85,6 +85,22 @@ and overflowing accumulators. No TAS allocation or batched-state machinery is
 imported. This adds no gameplay setting or graphical preset override; existing
 water presentation and demo controls retain their meanings.
 
+Imported water uses the source ACM water bit `0x0004`; `0x0008` is wooden
+planking and must remain dry. `game_types.h` and `MOTION.C::SwimCheck` distinguish
+these from the overloaded airborne bit on T1's per-character map copy. Surveys
+of exposed water samples across all seven water-bearing templates found no
+authored floor below their surfaces. The optional T2 mode therefore adds MCD
+bottom nodes with material `0x300`, retaining each original water rectangle,
+slope and hole mask, and checking its exposed ACM row before returning a bottom.
+Original ACM data and scenery meshes remain unchanged. No seabed artwork is
+invented or copied. The 4,000-game-unit default is an optional-mode design choice,
+configurable through `--water-depth` (0 disables it), not an extracted T1 depth.
+Depths remain below T2's signed 16-bit depth-difference limit. T2's existing
+shallow/wading/swimming classification, diving controls, breath and collision
+responses are unchanged; recorded native movement and swimming comparisons
+remain their algorithm reference. This is a gameplay setting, independent of
+Original/Modern graphical presets and their water demos.
+
 Read-only references rechecked for this adapter:
 
 | Repository | File | Working-tree SHA-256 |
@@ -98,6 +114,8 @@ Read-only references rechecked for this adapter:
 | `tenchu-decomp` | `src/main.exe/EFFECT.C` | `a50b850d80090eda8cc39770d9d3026dc6888936eb2b1324d6c2821348d4da17` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/effects.rs` | `2ea6b3ddc3a00760d8c7f9f44d306649fd32d25fb8990c9e9b10f8096f6a88a4` |
 | `tenchu-viewer` | `src/renderer.rs` | `aa50e228ffe51c24af55a29d9fd7eec5bdfc79912db0c3aa8efba9a5d8e2d092` |
+| `tenchu-decomp` | `src/main.exe/game_types.h` | `556374b199511fc9889eb560c7ed04db694362674c6a2071ed9fc095e55385f3` |
+| `tenchu-decomp` | `src/main.exe/MOTION.C` | `7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82` |
 
 ## Asset, scalar and renderer checkpoint (2026-10-20)
 

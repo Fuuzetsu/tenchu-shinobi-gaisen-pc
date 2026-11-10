@@ -13,7 +13,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   preserve the authored holes and native T2 falling/death behavior. Hot floors
   cause native T2 fire contacts, damage and reactions. Water and other scrolling
   textures retain their original speeds and wrapping, independent of rendering
-  cadence. Other stage
+  cadence. Water supports native swimming, diving and breath through added
+  underwater collision, with a default depth of 4,000 game units. `--water-depth`
+  accepts 0–16,000 in multiples of 10; 0 disables the added collision. Original
+  surface heights and shorelines are retained; T1 has no authored underwater
+  floors or seabed artwork. Wooden floors stay dry. Other stage
   interactions and F6 selection are still being connected.
 
 - Native Tenchu 2 JP supports F1's **High-definition text** for health, Ki and
