@@ -48,10 +48,17 @@ pub struct Effects {
     sprite_rotations: Vec<i32>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContactKind {
+    Metal,
+    Water,
+}
+
 #[derive(Clone, Copy, Debug)]
-pub struct SparkBurst {
-    pub position: Position,
-    pub parried: bool,
+pub enum Contact {
+    Spark { position: Position, parried: bool },
+    Splash { position: Position, size: i16 },
+    Ripple { position: Position, speed: i32 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,7 +79,7 @@ pub struct Emitter {
 
 #[derive(Default)]
 pub struct Frame {
-    pub sparks: Vec<SparkBurst>,
+    pub contacts: Vec<Contact>,
     pub emitters: Vec<Emitter>,
     pub sprites: Vec<sprites::Drawing>,
     pub points: Vec<points::Drawing>,
@@ -110,11 +117,18 @@ impl Effects {
                 Effect::Paper(paper) => paper.update(math, &mut frame.quads),
                 Effect::Ribbon(ribbon) => ribbon.update(&mut frame.ribbons),
                 Effect::Sprites(sprites) => {
-                    if sprites.sparks && sprites.particles.iter().any(|p| p.age == 0) {
-                        frame.sparks.push(SparkBurst {
-                            position: sprites.position,
-                            parried: sprites.frames[0].image == 16,
-                        });
+                    if sprites.particles.iter().any(|p| p.age == 0) {
+                        match sprites.contact {
+                            Some(ContactKind::Metal) => frame.contacts.push(Contact::Spark {
+                                position: sprites.position,
+                                parried: sprites.frames[0].image == 16,
+                            }),
+                            Some(ContactKind::Water) => frame.contacts.push(Contact::Splash {
+                                position: sprites.position.wrapping_add(Position::new(0, 60, 0)),
+                                size: sprites.size[0][0],
+                            }),
+                            None => {}
+                        }
                     }
                     sprites.update(
                         scene,
@@ -125,8 +139,8 @@ impl Effects {
                     )?
                 }
                 Effect::Points(points) => {
-                    if points.sparks && points.age == 0 {
-                        frame.sparks.push(SparkBurst {
+                    if points.contact == Some(ContactKind::Metal) && points.age == 0 {
+                        frame.contacts.push(Contact::Spark {
                             position: points.position,
                             parried: false,
                         });
@@ -135,7 +149,15 @@ impl Effects {
                 }
                 Effect::Blood(blood) => blood.update(scene, view, terrain, cursor, &mut frame)?,
                 Effect::Pool(pool) => pool.update(&mut frame.quads)?,
-                Effect::Ripple(ripple) => ripple.update(&mut frame.quads)?,
+                Effect::Ripple(ripple) => {
+                    if ripple.age == 0 && ripple.parent.is_none() {
+                        frame.contacts.push(Contact::Ripple {
+                            position: ripple.position,
+                            speed: ripple.speed,
+                        });
+                    }
+                    ripple.update(&mut frame.quads)?
+                }
             };
             if alive {
                 index += 1;

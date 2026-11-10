@@ -35,7 +35,7 @@ pub enum Motion {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Sprites {
     #[serde(default)]
-    pub sparks: bool,
+    pub contact: Option<super::ContactKind>,
     #[serde(default)]
     pub emission: Option<super::Emission>,
     pub position: Position,
@@ -55,7 +55,7 @@ pub struct Sprites {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Drawing {
-    pub sparks: bool,
+    pub contact: Option<super::ContactKind>,
     pub image: u8,
     pub position: Position,
     pub size: [i16; 2],
@@ -69,7 +69,7 @@ pub struct Drawing {
 impl Sprites {
     pub fn new(image: u8, position: Position, count: usize, lifetime: i16) -> Self {
         Self {
-            sparks: false,
+            contact: None,
             emission: None,
             position,
             parent: None,
@@ -257,7 +257,7 @@ impl Sprites {
                 };
             }
             drawings.push(Drawing {
-                sparks: self.sparks,
+                contact: self.contact,
                 image: frame.image,
                 position,
                 size,

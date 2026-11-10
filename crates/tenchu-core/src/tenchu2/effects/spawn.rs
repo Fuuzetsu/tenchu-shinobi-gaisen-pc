@@ -96,7 +96,7 @@ impl Effects {
             )
         });
         let mut points = Points::burst(position, controls, 6, rules);
-        points.sparks = true;
+        points.contact = Some(super::ContactKind::Metal);
         points.color = [128, 128, 64];
         points.blend = 1;
         self.insert(Effect::Points(points))
@@ -265,7 +265,7 @@ impl Effects {
 
     pub fn flash(&mut self, position: Position, weapon: bool) -> Result<()> {
         let mut effect = Sprites::new(if weapon { 18 } else { 16 }, position, 1, 4);
-        effect.sparks = true;
+        effect.contact = Some(super::ContactKind::Metal);
         effect.size = if weapon {
             [[1536; 2], [256; 2]]
         } else {
@@ -379,7 +379,7 @@ impl Effects {
             }
         }
         self.insert(Effect::Points(Points {
-            sparks: false,
+            contact: None,
             position: Position::ZERO,
             parent: rig.joints.first().copied(),
             particles,

@@ -74,7 +74,10 @@ flow, foam, waterfall smoothing and spray. Native gameplay and 3D scenes use the
 level's authored water textures to identify surfaces, with original or HD artwork.
 Modern High/Ultra already enable these effects. Original keeps source texture
 scrolling, geometry and collision; these options only affect presentation.
-Character contact splashes remain separate work.
+**F1 → Contact effects → Water contact splashes** also replaces source water
+contacts with the shared droplets and ripples. Droplets leave temporary wet marks
+on nearby dry ground. Source swimming, landing and item contacts drive the effect;
+turning it off restores the original sprites, points and rings.
 
 **F1 → Movement → Camera-relative controls** enables movement relative to the view,
 including full left-stick direction. Hold right mouse or use the right stick to

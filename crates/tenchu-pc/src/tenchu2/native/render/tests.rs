@@ -239,50 +239,7 @@ fn native_modern_water_uses_shared_materials_without_changing_logic() {
     settings.graphics.fog = false;
     settings.graphics.water.enabled = true;
     let graphics = super::super::preferences::graphics(&settings);
-    let meshes = prepare(
-        &session.assets.level.vram,
-        sources("map0/terrain", &session.assets.level.map, Role::Terrain),
-        &graphics,
-    )
-    .unwrap();
-    let mut centers = Vec::new();
-    for part in &session.assets.level.map {
-        meshes.visit(
-            &part.geometry,
-            Matrix {
-                translation: part.position.map(|v| i32::from(v) * 10).into(),
-                ..Default::default()
-            },
-            false,
-            0,
-            None,
-            |triangle| {
-                if triangle[0].flags & render_mesh::WATER != 0 {
-                    centers.push(
-                        triangle
-                            .iter()
-                            .map(|v| Vec3::from(v.position))
-                            .sum::<Vec3>()
-                            / 3.0,
-                    );
-                }
-            },
-        );
-    }
-    let player = Vec3::from(
-        session.world.actors[0]
-            .actor
-            .position
-            .to_array()
-            .map(|v| v as f32),
-    );
-    let center = centers
-        .into_iter()
-        .min_by(|a, b| {
-            a.distance_squared(player)
-                .total_cmp(&b.distance_squared(player))
-        })
-        .unwrap();
+    let center = nearest_water(&session, &graphics);
     let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
     camera.pitch = -1.55;
     camera.position = center - camera.forward() * 6000.0;
@@ -1098,8 +1055,15 @@ fn native_modern_sparks_preserve_source_effects_and_restore_original() {
         )
         .unwrap();
     session.step(0).unwrap();
-    assert_eq!(session.frame.effects.sparks.len(), 2);
-    assert!(session.frame.effects.points.iter().any(|p| !p.sparks));
+    assert_eq!(session.frame.effects.contacts.len(), 2);
+    assert!(
+        session
+            .frame
+            .effects
+            .points
+            .iter()
+            .any(|p| p.contact.is_none())
+    );
     let state = postcard::to_allocvec(&session.world).unwrap();
     let mut images = Vec::new();
     for mode in ["original", "modern", "unlit", "zero", "restored"] {
@@ -1242,4 +1206,196 @@ fn native_sparks_survive_skipped_renders_without_repeating_impacts() {
         rebuilt.scene.lighting.transients.is_empty(),
         "expired pre-fast-forward impacts returned"
     );
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; compares shared water contacts, delayed presentation and original restoration"]
+fn native_modern_splashes_replace_only_water_particles() {
+    use tenchu_core::tenchu2::effects::{Contact, ContactKind};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let layout = tenchu_assets::tenchu2::layout::Layout::available(&disc)
+        .unwrap()
+        .into_iter()
+        .find(|l| l.map == 16)
+        .unwrap();
+    let mut session = super::super::Session::load(&disc, layout.sequence, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let mut settings = Graphics {
+        asset_pack: false,
+        fog: false,
+        ..Default::default()
+    };
+    settings.water.enabled = true;
+    settings.water.spray = 0;
+    let center = nearest_water(&session, &settings);
+    let position = center.as_ivec3().to_array().into();
+    let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
+    camera.pitch = -1.1;
+    camera.position = center - camera.forward() * 4500.0;
+    session.world.camera.view = camera.source_view();
+    session
+        .world
+        .effects
+        .splash(
+            position,
+            1024,
+            &session.assets.resources.math,
+            &mut session.world.random,
+        )
+        .unwrap();
+    session.world.effects.ripple(position, 40).unwrap();
+    session
+        .world
+        .effects
+        .fuse(
+            position,
+            &session.assets.effect_rules,
+            &mut session.world.random,
+        )
+        .unwrap();
+    for tick in 0..5 {
+        session.world.tick += 1;
+        session.frame.effects = session.world.update_effects(&session.assets).unwrap();
+        session.contact.record(
+            u64::from(session.world.tick),
+            &session.frame.effects.contacts,
+        );
+        assert_eq!(
+            session
+                .frame
+                .effects
+                .contacts
+                .iter()
+                .filter(|e| matches!(e, Contact::Splash { .. }))
+                .count(),
+            usize::from(tick == 0)
+        );
+    }
+    assert!(
+        session
+            .frame
+            .effects
+            .sprites
+            .iter()
+            .any(|s| s.contact == Some(ContactKind::Water))
+    );
+    assert!(
+        session
+            .frame
+            .effects
+            .points
+            .iter()
+            .any(|p| p.contact.is_none())
+    );
+    let state = postcard::to_allocvec(&session.world).unwrap();
+    let mut images = Vec::new();
+    for mode in ["original", "modern", "restored"] {
+        let mut graphics = settings.clone();
+        graphics.effects.splashes = mode != "original";
+        let path = output.join(format!("jp-splash-{mode}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            drawing.show_hud = false;
+            drawing.update(&session, renderer, None)?;
+            if mode != "original" {
+                let contact = &drawing.scene.environment.as_ref().unwrap().contact;
+                assert!(
+                    !contact
+                        .geometry(camera.matrix(16.0 / 9.0), 1.0, &graphics.effects)
+                        .vertices
+                        .is_empty(),
+                    "delayed first presentation lost the water contact"
+                );
+                let particles = postcard::to_allocvec(contact).unwrap();
+                drawing.update(&session, renderer, None)?;
+                assert_eq!(
+                    postcard::to_allocvec(&drawing.scene.environment.as_ref().unwrap().contact)
+                        .unwrap(),
+                    particles,
+                    "pause repeated water contacts"
+                );
+            }
+            if mode == "restored" {
+                let mut original = graphics.clone();
+                original.effects.splashes = false;
+                renderer.configure(&original);
+                drawing.update(&session, renderer, None)?;
+            }
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+            Ok((drawing.scene, camera.source_view(), Vec::new()))
+        })
+        .unwrap();
+        images.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    assert_ne!(images[0], images[1], "modern water contacts were invisible");
+    assert_eq!(
+        images[0], images[2],
+        "disabling water contacts changed unrelated particles"
+    );
+}
+
+fn nearest_water(session: &super::super::Session, graphics: &Graphics) -> Vec3 {
+    let meshes = prepare(
+        &session.assets.level.vram,
+        sources(
+            &format!("map{}/terrain", session.world.map),
+            &session.assets.level.map,
+            Role::Terrain,
+        ),
+        graphics,
+    )
+    .unwrap();
+    let mut centers = Vec::new();
+    for part in &session.assets.level.map {
+        meshes.visit(
+            &part.geometry,
+            Matrix {
+                translation: part.position.map(|v| i32::from(v) * 10).into(),
+                ..Default::default()
+            },
+            false,
+            0,
+            None,
+            |triangle| {
+                if triangle[0].flags & (render_mesh::WATER | render_mesh::WATERFALL)
+                    == render_mesh::WATER
+                    && triangle
+                        .iter()
+                        .all(|v| (v.position[1] - triangle[0].position[1]).abs() < 10.0)
+                {
+                    centers.push(
+                        triangle
+                            .iter()
+                            .map(|v| Vec3::from(v.position))
+                            .sum::<Vec3>()
+                            / 3.0,
+                    );
+                }
+            },
+        );
+    }
+    let player = Vec3::from(
+        session.world.actors[0]
+            .actor
+            .position
+            .to_array()
+            .map(|v| v as f32),
+    );
+    centers
+        .into_iter()
+        .min_by(|a, b| {
+            a.distance_squared(player)
+                .total_cmp(&b.distance_squared(player))
+        })
+        .unwrap()
 }

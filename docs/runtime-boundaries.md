@@ -22,7 +22,7 @@ maintaining a second live `Game` just to satisfy a renderer API.
 | Diagnostic reports | `diagnostics` shares metadata, settings/debug snapshots, bounded input history, redaction and platform export | Explicit Gaisen/native actor, AI, mission and cutscene state adapters; no asset dumps |
 | Weather and footprints | `visuals/weather`, `visuals/footprints`, `visuals/surfaces` | Source terrain and sole-contact adapters |
 | Water shading, curved waterfalls and spray | `visuals/water`, shared renderer | T2's level loader marks authored scrolling water; mesh preparation distinguishes horizontal surfaces and falls, respecting explicit pack overrides |
-| Contact sparks and transient lighting | `visuals/contact`, `lighting/sparks` share particle motion, geometry, collision, flashes and bounded light clustering | Gaisen extracts effect slots in `contact/gaisen.rs`; native source effects tag metal impacts and retain a short event history between rendered frames |
+| Contact sparks and water splashes | `visuals/contact`, `lighting/sparks` share particle motion, geometry, collision, wet marks, flashes and bounded light clustering | Gaisen extracts effect slots in `contact/gaisen.rs`; native source effects tag metal/water contacts and retain a short event history between rendered frames |
 | Imported weapon resources | `tenchu-assets::weapon::Equipment` and `ImportedModel`; shared model/material preparation | T2 disc tables supply attachments, contact eligibility and draw rules; each runtime maps its rig slots |
 
 Paths above are relative to `crates/tenchu-pc/src`. The small inspection interface

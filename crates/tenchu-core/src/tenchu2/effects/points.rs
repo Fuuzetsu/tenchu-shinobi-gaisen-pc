@@ -15,7 +15,7 @@ pub struct Particle {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Points {
     #[serde(default)]
-    pub sparks: bool,
+    pub contact: Option<super::ContactKind>,
     pub position: Position,
     pub parent: Option<ModelId>,
     pub particles: [Particle; 12],
@@ -30,7 +30,7 @@ pub struct Points {
 
 #[derive(Clone, Debug)]
 pub struct Drawing {
-    pub sparks: bool,
+    pub contact: Option<super::ContactKind>,
     pub position: Position,
     pub color: [u8; 3],
     pub size: [i16; 2],
@@ -60,7 +60,7 @@ impl Points {
             }
         });
         Self {
-            sparks: false,
+            contact: None,
             position,
             parent: None,
             particles,
@@ -113,7 +113,7 @@ impl Points {
                             && i32::from(screen[1]).abs() <= 120)
                     {
                         drawings.push(Drawing {
-                            sparks: self.sparks,
+                            contact: self.contact,
                             position: matrix.transform(particle.position.to_array()),
                             color,
                             size: self.size.unwrap_or([1; 2]),

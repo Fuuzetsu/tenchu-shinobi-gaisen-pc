@@ -118,8 +118,13 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
             }
         }
         (Value::Object(a), Value::Object(b)) => {
-            assert_eq!(a.len(), b.len(), "{path} fields");
-            for (key, value) in a {
+            let fields = || {
+                a.iter().filter(|(key, _)| {
+                    b.contains_key(key.as_str()) || !matches!(key.as_str(), "contact" | "emission")
+                })
+            };
+            assert_eq!(fields().count(), b.len(), "{path} fields");
+            for (key, value) in fields() {
                 compare(value, &b[key], &format!("{path}/{key}"));
             }
         }

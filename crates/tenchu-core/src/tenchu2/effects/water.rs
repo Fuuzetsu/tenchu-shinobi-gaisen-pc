@@ -12,6 +12,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+pub const RIPPLE_IMAGE: u8 = 17;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Ripple {
     pub position: Position,
@@ -35,7 +37,7 @@ impl Ripple {
                 let x = radius.wrapping_mul(x);
                 let z = radius.wrapping_mul(z);
                 drawings.push(Quad {
-                    image: Image::Effect(17),
+                    image: Image::Effect(RIPPLE_IMAGE),
                     position: self.position,
                     parent: self.parent,
                     corners: [
@@ -73,6 +75,7 @@ impl Effects {
         random: &mut Random,
     ) -> Result<()> {
         let mut effect = Sprites::new(29, position.wrapping_add(Position::new(0, -60, 0)), 8, 16);
+        effect.contact = Some(super::ContactKind::Water);
         effect.velocity.y = -20;
         effect.size = [[size as i16; 2], [(size >> 4) as i16; 2]];
         effect.color_step = [-8; 3].into();
@@ -103,7 +106,7 @@ impl Effects {
                 i32::from(particles[0].position.z) * 8,
             ));
             self.insert(Effect::Points(Points {
-                sparks: false,
+                contact: Some(super::ContactKind::Water),
                 position: position.wrapping_sub(Position::new(0, size >> 2, 0)),
                 parent: None,
                 particles,

@@ -233,18 +233,14 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
             }
         }
         (Value::Object(a), Value::Object(b)) => {
-            // The port's presentation tag is not a source particle field.
-            assert_eq!(
-                a.len()
-                    - usize::from(a.contains_key("sparks"))
-                    - usize::from(a.contains_key("emission")),
-                b.len(),
-                "{path} fields"
-            );
-            for (key, value) in a
-                .iter()
-                .filter(|(key, _)| !matches!(key.as_str(), "sparks" | "emission"))
-            {
+            // Presentation metadata has no counterpart in the source particle structure.
+            let fields = || {
+                a.iter().filter(|(key, _)| {
+                    b.contains_key(key.as_str()) || !matches!(key.as_str(), "contact" | "emission")
+                })
+            };
+            assert_eq!(fields().count(), b.len(), "{path} fields");
+            for (key, value) in fields() {
                 compare(value, &b[key], &format!("{path}/{key}"));
             }
         }

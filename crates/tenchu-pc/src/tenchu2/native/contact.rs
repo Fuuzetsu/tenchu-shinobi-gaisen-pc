@@ -1,14 +1,14 @@
 use std::collections::VecDeque;
-use tenchu_core::tenchu2::effects::SparkBurst;
+use tenchu_core::tenchu2::effects::Contact;
 
 // Keep short-lived events between rendered frames, including fast-forward updates.
 #[derive(Default)]
 pub struct History {
-    frames: VecDeque<(u64, Vec<SparkBurst>)>,
+    frames: VecDeque<(u64, Vec<Contact>)>,
 }
 
 impl History {
-    pub fn record(&mut self, tick: u64, bursts: &[SparkBurst]) {
+    pub fn record(&mut self, tick: u64, events: &[Contact]) {
         if self
             .frames
             .back()
@@ -19,10 +19,10 @@ impl History {
         if self.frames.len() == 30 {
             self.frames.pop_front();
         }
-        self.frames.push_back((tick, bursts.to_vec()));
+        self.frames.push_back((tick, events.to_vec()));
     }
 
-    pub fn sparks(&self, tick: u64) -> &[SparkBurst] {
+    pub fn events(&self, tick: u64) -> &[Contact] {
         self.frames
             .iter()
             .find(|(t, _)| *t == tick)

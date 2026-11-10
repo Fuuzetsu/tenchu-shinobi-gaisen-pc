@@ -145,23 +145,48 @@ impl Environment {
                 &graphics.weather,
                 self.weather.sample(&graphics.weather, 1.0).snow,
             );
+        }
+        let start = self
+            .contact
+            .last_tick()
+            .map_or(tick.saturating_sub(29), |old| {
+                (old + 1).max(tick.saturating_sub(29))
+            });
+        for step in start..=tick {
             if self
                 .contact
                 .begin_tick(step, &self.surfaces, graphics, center)
-                && graphics.effects.sparks
                 && let Some(history) = frame.contact
             {
-                for burst in history.sparks(step) {
-                    self.contact.spark(
-                        Vec3::from(burst.position.to_array().map(|v| v as f32)),
-                        Vec3::NEG_Y,
-                        graphics.effects.spark_density,
-                        if burst.parried {
-                            [0.4, 0.65, 1.0]
-                        } else {
-                            [1.0, 0.64, 0.2]
-                        },
-                    );
+                use tenchu_core::tenchu2::effects::Contact;
+                let point =
+                    |p: tenchu_core::math::Position| Vec3::from(p.to_array().map(|v| v as f32));
+                for &event in history.events(step) {
+                    match event {
+                        Contact::Spark { position, parried } if graphics.effects.sparks => {
+                            self.contact.spark(
+                                point(position),
+                                Vec3::NEG_Y,
+                                graphics.effects.spark_density,
+                                if parried {
+                                    [0.4, 0.65, 1.0]
+                                } else {
+                                    [1.0, 0.64, 0.2]
+                                },
+                            );
+                        }
+                        Contact::Splash { position, size } if graphics.effects.splashes => {
+                            self.contact.splash(
+                                point(position),
+                                (f32::from(size) / 1024.0).clamp(0.35, 3.0),
+                            );
+                        }
+                        Contact::Ripple { position, speed } if graphics.effects.splashes => {
+                            self.contact
+                                .ripple(point(position), (speed as f32 / 40.0).clamp(0.25, 2.0));
+                        }
+                        _ => {}
+                    }
                 }
             }
         }

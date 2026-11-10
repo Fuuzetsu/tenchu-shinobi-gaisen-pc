@@ -217,7 +217,7 @@ impl Drop {
         if let Some(depth) = view.actor(&matrix) {
             let scale = self.radius.wrapping_mul(9600) / (i32::from(depth) * 4);
             drawings.push(sprites::Drawing {
-                sparks: false,
+                contact: None,
                 image,
                 position: matrix.translation,
                 size: [self.radius as i16; 2],

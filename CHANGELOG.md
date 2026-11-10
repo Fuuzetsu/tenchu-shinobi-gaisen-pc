@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native Tenchu 2 JP supports the shared modern water-contact droplets, ripples and temporary wet marks on nearby ground. F1's Water contact splashes option replaces only the matching source effects; delayed rendering, pause and live restoration keep their timing independent of gameplay.
+
 - Native Tenchu 2 JP burning characters, explosions, fire breath and embers illuminate nearby bodies and scenery through the shared fire-light and shadow settings. Lights follow the actual source effects, remain active off-screen and fade with their particles; Original remains unchanged.
 
 - Native Tenchu 2 JP uses the shared modern grapple, projectile-impact and weapon-block sparks, with moving spark light and impact flashes. F1 controls their amount, Modern High/Ultra enable them, and Original preserves the source particles. Pausing, fast-forward and model/artwork reloads preserve their timing without changing gameplay or RNG.

@@ -296,6 +296,7 @@ impl SceneDrawing {
         if (graphics.weather.mode != crate::settings::WeatherMode::Original
             || graphics.water.enabled
             || graphics.effects.sparks
+            || graphics.effects.splashes
             || ((self.lighting.active(&graphics.lighting) || sky_light)
                 && graphics.lighting.shadows))
             && self.environment.is_none()
@@ -949,7 +950,7 @@ impl Models {
             );
         }
         for sprite in &frame.effects.sprites {
-            if sprite.sparks && graphics.effects.sparks {
+            if modern_contact(sprite.contact, &graphics.effects) {
                 continue;
             }
             let image = assets.sprites.effects[usize::from(sprite.image)];
@@ -978,7 +979,7 @@ impl Models {
             );
         }
         for point in &frame.effects.points {
-            if point.sparks && graphics.effects.sparks {
+            if modern_contact(point.contact, &graphics.effects) {
                 continue;
             }
             output.screen_sprite(
@@ -1031,6 +1032,13 @@ impl Models {
             });
         }
         for quad in &frame.effects.quads {
+            if graphics.effects.splashes
+                && quad.parent.is_none()
+                && quad.image
+                    == SurfaceImage::Effect(tenchu_core::tenchu2::effects::water::RIPPLE_IMAGE)
+            {
+                continue;
+            }
             let (image, blend) = match quad.image {
                 SurfaceImage::Effect(id) => (
                     assets.sprites.effects[usize::from(id)],
@@ -1109,6 +1117,18 @@ impl Models {
             actors: output.actors,
             effects: render_effects::surface_geometry(output.surfaces),
         })
+    }
+}
+
+fn modern_contact(
+    kind: Option<tenchu_core::tenchu2::effects::ContactKind>,
+    settings: &crate::settings::Effects,
+) -> bool {
+    use tenchu_core::tenchu2::effects::ContactKind;
+    match kind {
+        Some(ContactKind::Metal) => settings.sparks,
+        Some(ContactKind::Water) => settings.splashes,
+        None => false,
     }
 }
 

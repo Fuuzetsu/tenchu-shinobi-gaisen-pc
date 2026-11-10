@@ -70,6 +70,11 @@ fn point(p: tenchu_core::math::Position) -> Vec3 {
     p.map(|n| n as f32).to_array().into()
 }
 impl Contact {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn last_tick(&self) -> Option<u64> {
+        self.tick
+    }
+
     pub(crate) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,
         out: &mut C,
@@ -195,6 +200,17 @@ impl Contact {
         }
     }
 
+    pub fn splash(&mut self, position: Vec3, strength: f32) {
+        self.burst(
+            Kind::Drop,
+            position - Vec3::Y * 8.0,
+            65.0 * strength,
+            12,
+            [0.6, 0.76, 0.86],
+        );
+        self.ripple(position, strength);
+    }
+
     pub fn prewarm(&mut self, surfaces: &Surfaces, graphics: &Graphics, eye: Vec3, seconds: u16) {
         for _ in 0..u32::from(seconds) * 30 {
             self.advance(surfaces, graphics, eye);
@@ -297,7 +313,7 @@ impl Contact {
         }
     }
 
-    fn ripple(&mut self, position: Vec3, strength: f32) {
+    pub fn ripple(&mut self, position: Vec3, strength: f32) {
         if self.rings.len() < 96 {
             self.rings.push(Ripple {
                 position,

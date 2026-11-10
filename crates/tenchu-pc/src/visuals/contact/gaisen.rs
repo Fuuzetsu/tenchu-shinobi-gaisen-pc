@@ -54,14 +54,7 @@ impl Contact {
                         && position.distance_squared(eye) < 35000.0_f32.powi(2)
                     {
                         let strength = (f32::from(s.size[0]) / 8192.0).clamp(0.5, 3.0);
-                        self.burst(
-                            Kind::Drop,
-                            position - Vec3::Y * 8.0,
-                            65.0 * strength,
-                            12,
-                            [0.6, 0.76, 0.86],
-                        );
-                        self.ripple(position, strength);
+                        self.splash(position, strength);
                     }
                 }
                 Effect::FlyWire(w) if options.sparks => {
