@@ -60,7 +60,11 @@ impl Actor {
         let next = if let Some(next) = self.sheath_input(world) {
             Some(next)
         } else if self.guard_input(world) {
-            self.guard_motion(ctx, held, world.intelligence.guard_draw)
+            if self.circle_guards(world.intelligence) {
+                self.circle_guard_motion(ctx, held)
+            } else {
+                self.guard_motion(ctx, held, world.intelligence.guard_draw)
+            }
         } else {
             match self.status {
                 ActorState::Normal => self.normal(ctx, world, held, command, center)?,
@@ -392,8 +396,9 @@ impl Actor {
             return None;
         }
         if self.motion.action == MOT_CHASE_DASH_FWD {
-            if self.motion.count < 11 && self.registered(ctx, MOT_JUMP_RUN) {
-                self.move_at(ctx.math, 127, 0);
+            let guard_step = self.id == world.player && self.circle_guards(world.intelligence);
+            if (guard_step || self.motion.count < 11) && self.registered(ctx, MOT_JUMP_RUN) {
+                self.move_at(ctx.math, if guard_step { 150 } else { 127 }, 0);
                 if self.id == world.player {
                     world.intelligence.voices.push((self.id, 0x48));
                 }

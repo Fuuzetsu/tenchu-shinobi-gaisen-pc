@@ -325,6 +325,9 @@ impl Item {
             } as u16;
         } else {
             match self {
+                Item::CircleAction => {
+                    settings.circle_action = settings.circle_action.cycle(direction)
+                }
                 Item::DirectionalColor => {
                     settings.graphics.lighting.directional.color = cycle(
                         settings.graphics.lighting.directional.color,
@@ -450,6 +453,7 @@ impl Item {
             *value = *self.number(&mut defaults).unwrap();
         } else {
             match self {
+                Item::CircleAction => settings.circle_action = defaults.circle_action,
                 Item::DirectionalColor => {
                     settings.graphics.lighting.directional.color =
                         defaults.graphics.lighting.directional.color

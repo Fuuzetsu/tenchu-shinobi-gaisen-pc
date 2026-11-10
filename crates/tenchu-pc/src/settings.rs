@@ -52,6 +52,7 @@ pub struct Settings {
     pub strict_corpse_sight: bool,
     pub guard_controls: bool,
     pub guard_draw: bool,
+    pub circle_action: tenchu_core::input::CircleAction,
     pub walking: Walking,
     pub sheathing: tenchu_core::game::sheathing::Settings,
     pub bleeding: tenchu_core::game::bleeding::Settings,
@@ -104,6 +105,7 @@ impl Default for Settings {
             strict_corpse_sight: false,
             guard_controls: false,
             guard_draw: false,
+            circle_action: Default::default(),
             walking: Walking::default(),
             sheathing: Default::default(),
             bleeding: Default::default(),
@@ -167,6 +169,7 @@ impl Settings {
         self.strict_corpse_sight = game.intelligence.strict_corpse_sight;
         self.guard_controls = game.intelligence.guard_controls;
         self.guard_draw = game.intelligence.guard_draw;
+        self.circle_action = game.intelligence.circle_action;
         self.sheathing = game.player().sheathing.as_ref().map_or_else(
             || tenchu_core::game::sheathing::Settings {
                 enabled: false,

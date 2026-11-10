@@ -768,6 +768,7 @@ fn combat_settings_apply_and_reset() {
         Item::QuickShurikenDodge,
         Item::StrictCorpseSight,
         Item::GuardControls,
+        Item::CircleAction,
         Item::AnalogWalking,
         Item::Sheathing,
         Item::DetectionDamage,
@@ -775,6 +776,7 @@ fn combat_settings_apply_and_reset() {
     .into_iter()
     .enumerate()
     {
+        let direction = if item == Item::CircleAction { -1 } else { 1 };
         let enabled = |app: &Application| match item {
             Item::IndependentAttacks => app.campaign.game.intelligence.independent_attacks,
             Item::AttackAssist => app.campaign.game.combat.attack_assist,
@@ -782,6 +784,10 @@ fn combat_settings_apply_and_reset() {
             Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
             Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
             Item::GuardControls => app.campaign.game.intelligence.guard_controls,
+            Item::CircleAction => {
+                app.campaign.game.intelligence.circle_action
+                    == tenchu_core::input::CircleAction::Guard
+            }
             Item::AnalogWalking => app.campaign.game.walking.is_some(),
             Item::Sheathing => app.campaign.game.player().sheathing.is_some(),
             Item::DetectionDamage => app.campaign.game.intelligence.damage_escalation.enabled(),
@@ -794,6 +800,7 @@ fn combat_settings_apply_and_reset() {
             Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
             Item::StrictCorpseSight => settings.strict_corpse_sight,
             Item::GuardControls => settings.guard_controls,
+            Item::CircleAction => settings.circle_action == tenchu_core::input::CircleAction::Guard,
             Item::AnalogWalking => settings.walking.enabled,
             Item::Sheathing => settings.sheathing.enabled,
             Item::DetectionDamage => settings.damage_escalation.enabled(),
@@ -807,7 +814,7 @@ fn combat_settings_apply_and_reset() {
         app.recording_directory = Some(directory.clone());
         let original: Settings = serde_json::from_str("{}").unwrap();
         assert!(!selected(&original));
-        app.apply_item(item, 1).unwrap();
+        app.apply_item(item, direction).unwrap();
         assert!(enabled(&app));
         let saved: Settings =
             serde_json::from_str(&serde_json::to_string(&app.settings).unwrap()).unwrap();
@@ -824,10 +831,10 @@ fn combat_settings_apply_and_reset() {
         assert!(settings::gameplay::current(&app.settings, &app.debug).is_none());
         app.reset_item(item).unwrap();
         assert!(!enabled(&app));
-        app.apply_item(item, 1).unwrap();
+        app.apply_item(item, direction).unwrap();
         app.set_gameplay_preset(1).unwrap();
         assert!(!enabled(&app));
-        app.apply_item(item, 1).unwrap();
+        app.apply_item(item, direction).unwrap();
         app.apply_item(Item::ResetTweaks, 1).unwrap();
         assert!(!enabled(&app));
         app.campaign.screen = Screen::Launcher;
@@ -835,7 +842,7 @@ fn combat_settings_apply_and_reset() {
         app.action(Action::Confirm);
         assert!(app.recording.is_some());
         app.record_input(0);
-        app.apply_item(item, 1).unwrap();
+        app.apply_item(item, direction).unwrap();
         assert!(app.recording.is_none());
         let recordings: Vec<_> = std::fs::read_dir(&directory).unwrap().collect();
         assert_eq!(recordings.len(), 1);

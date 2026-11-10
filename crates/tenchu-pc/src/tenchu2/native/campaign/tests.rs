@@ -40,11 +40,12 @@ fn next(playback: &mut Playback<crate::source::DiscSource>) {
 }
 
 #[test]
-#[ignore = "requires Japanese TENCHU2_DISC; the shared all-active preference survives native area reloads and can be disabled again"]
-fn all_active_preference_survives_native_area_reload() {
+#[ignore = "requires Japanese TENCHU2_DISC; shared activation and stance preferences survive native area reloads and restore their defaults"]
+fn gameplay_preferences_survive_native_area_reload() {
     let mut playback = start(9);
     let mut settings = crate::settings::Settings {
         keep_enemies_active: true,
+        circle_action: tenchu_core::input::CircleAction::Crouch,
         ..Default::default()
     };
     playback.configure(&settings);
@@ -54,16 +55,19 @@ fn all_active_preference_survives_native_area_reload() {
             unreachable!()
         };
         assert!(session.world.keep_all_active);
+        assert_eq!(session.circle_action, settings.circle_action);
         assert!(session.world.actors.iter().all(|a| a.actor.flags & 8 == 0));
         playback.load_current().unwrap();
     }
     settings.keep_enemies_active = false;
+    settings.circle_action = Default::default();
     playback.configure(&settings);
     playback.step(0).unwrap();
     let Content::Gameplay(session) = &playback.content else {
         unreachable!()
     };
     assert!(!session.world.keep_all_active);
+    assert_eq!(session.circle_action, settings.circle_action);
     assert!(session.world.actors.iter().any(|a| a.actor.flags & 8 != 0));
 }
 

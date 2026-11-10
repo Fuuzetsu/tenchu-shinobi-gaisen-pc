@@ -84,6 +84,10 @@ struct Original {
 }
 
 impl Override {
+    pub fn uses_t2_moveset(&self) -> bool {
+        !self.applied.moveset.starts_with("disc:")
+    }
+
     pub fn diagnostic_snapshot(&self) -> serde_json::Value {
         serde_json::json!({"body": self.applied.body, "moveset": self.applied.moveset,
             "custom": self.custom.as_ref().map(|c| &c.id),

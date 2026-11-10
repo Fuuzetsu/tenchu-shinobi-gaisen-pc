@@ -2856,6 +2856,19 @@ captures verify imported bodies/costumes with their own animations.
 
 ### Cross-game melee and native JP model overrides
 
+The Circle stance preference follows the applied moveset's game, independently
+of its displayed body. T2 guard/step actions `0x110..0x114` map to an optional
+Gaisen stance and its four chase dashes, retaining the selected source clips and
+speeds. Held-direction priority, step repetition, forward/back jump and armed
+step-attack transitions follow the already verified native `control/standing.rs`
+branches. Gaisen retains its own collision, damage and effect machinery; this
+control option does not convert a T1 mission into a native T2 world. Missing guard
+poses use the selected actor's standing pose, and the existing optional T1 R1
+controls retain their press-to-dash behavior. Native T2 applies the Circle/R1
+preference before camera-relative navigation and the source pad history; menu
+buttons remain unchanged. The idle-taunt preference must not suppress a manually
+requested T2 `0x110` guard action.
+
 The same disc-parsed action map now includes compatible T2 guard/boss melee
 registrations. Missing optional clips, projectile-only attacks, contacts on
 unmapped extra bones and attacks exceeding the two-contact Gaisen adapter are

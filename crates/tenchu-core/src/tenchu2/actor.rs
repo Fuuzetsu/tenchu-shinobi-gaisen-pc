@@ -185,9 +185,6 @@ impl Actor {
         velocity: Velocity,
         resources: &Resources,
     ) -> Result<Option<Change>> {
-        if action == 0x110 && self.moveset.as_ref().is_some_and(|m| m.no_idle_taunts) {
-            action = if self.weapon_drawn() { 0x100 } else { 0 };
-        }
         let changed = self.motion.action != action;
         if changed {
             if self.state == State::Attack && self.motion.loops < 1 && self.weapon_drawn() {

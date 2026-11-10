@@ -3,6 +3,113 @@ use tenchu_assets::game::GameAssets;
 use tenchu_core::input::*;
 
 #[test]
+#[ignore = "requires TENCHU_DISC and TENCHU2_DISC; all imported hero stances and steps use their source clips, with crouch override and save continuation"]
+fn imported_circle_stance_follows_moveset_and_source_steps() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let sources = load(&disc).unwrap();
+    let assets = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    for character in 0..2 {
+        for kind in 0..3 {
+            let source = &sources[&kind];
+            let mut game = crate::session::Options {
+                character,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            game.events = Default::default();
+            game.intelligence.ignore_player = true;
+            for _ in 0..30 {
+                game.step(0).unwrap();
+            }
+            game.set_imported_player_moveset(source, Default::default())
+                .unwrap();
+            for _ in 0..5 {
+                game.step(CIRCLE).unwrap();
+            }
+            assert_eq!(game.player().motion.action, MOT_ENGAGE_GUARD);
+            let stance = source
+                .character
+                .motions
+                .iter()
+                .find(|m| m.action == MOT_ENGAGE_GUARD)
+                .unwrap()
+                .clip;
+            assert_eq!(
+                game.mission.clips[game.player().motion.clip.unwrap()].id,
+                stance
+            );
+            let saved = crate::savestate::encode(&game).unwrap();
+            for (direction, action) in [
+                (UP, MOT_CHASE_DASH_FWD),
+                (DOWN, MOT_CHASE_DASH_BACK),
+                (RIGHT, MOT_CHASE_DASH_RIGHT),
+                (LEFT, MOT_CHASE_DASH_LEFT),
+            ] {
+                let mut game: tenchu_core::game::Game = crate::savestate::decode(&saved).unwrap();
+                let clip = source
+                    .character
+                    .motions
+                    .iter()
+                    .find(|m| m.action == action)
+                    .unwrap()
+                    .clip;
+                let mut starts = 0;
+                for _ in 0..130 {
+                    let previous = game.player().motion.action;
+                    game.step(CIRCLE | direction).unwrap();
+                    if previous != action && game.player().motion.action == action {
+                        starts += 1;
+                        assert_eq!(
+                            game.mission.clips[game.player().motion.clip.unwrap()].id,
+                            clip
+                        );
+                    }
+                }
+                assert!(
+                    starts >= 2,
+                    "host {character}, source {kind}, action {action:x}: {starts}"
+                );
+            }
+            game.step(CIRCLE | UP).unwrap();
+            let save = crate::savestate::encode(&game).unwrap();
+            let mut restored: tenchu_core::game::Game = crate::savestate::decode(&save).unwrap();
+            for _ in 0..100 {
+                game.step(CIRCLE | UP).unwrap();
+                restored.step(CIRCLE | UP).unwrap();
+            }
+            assert_eq!(
+                postcard::to_allocvec(&game).unwrap(),
+                postcard::to_allocvec(&restored).unwrap()
+            );
+            for preference in [CircleAction::Crouch, CircleAction::Moveset] {
+                let mut game: tenchu_core::game::Game = crate::savestate::decode(&saved).unwrap();
+                game.intelligence.circle_action = preference;
+                let held = if preference == CircleAction::Crouch {
+                    CIRCLE
+                } else {
+                    R1
+                };
+                for _ in 0..20 {
+                    game.step(held).unwrap();
+                }
+                assert_eq!(game.player().motion.action, MOT_SQUAT);
+            }
+            game.set_player_moveset(None, &[], Default::default())
+                .unwrap();
+            for _ in 0..20 {
+                game.step(CIRCLE).unwrap();
+            }
+            assert_eq!(game.player().motion.action, MOT_SQUAT);
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and TENCHU2_DISC; source draw/stow clips, weapon event frames, setting order and save continuation"]
 fn imported_sheathing_uses_source_motions_and_weapon_frames() {
     let disc =

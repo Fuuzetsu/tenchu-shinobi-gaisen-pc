@@ -36,6 +36,8 @@ pub const MOT_ENGAGE_VARIANT_2: i16 = 0x502;
 pub const MOT_ENGAGE_SHEATHE: i16 = 0x503;
 pub const MOT_ENGAGE_TURN_R: i16 = 0x504;
 pub const MOT_ENGAGE_TURN_L: i16 = 0x505;
+// Optional T2-style guard stance, using the source clip when imported.
+pub const MOT_ENGAGE_GUARD: i16 = 0x506;
 pub const MOT_CHASE_BACK: i16 = 0x602;
 pub const MOT_CHASE_DASH_BACK: i16 = 0x604;
 pub const MOT_CHASE_DASH_RIGHT: i16 = 0x605;

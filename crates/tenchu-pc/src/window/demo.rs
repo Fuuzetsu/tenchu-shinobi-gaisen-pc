@@ -450,6 +450,7 @@ impl Application {
         game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
         game.intelligence.guard_controls = self.settings.guard_controls;
         game.intelligence.guard_draw = self.settings.guard_draw;
+        game.intelligence.circle_action = self.settings.circle_action;
         crate::walking::configure(&mut game, &self.assets, self.settings.walking.enabled)?;
         crate::sheathing::configure(&mut game, &self.assets, self.settings.sheathing)?;
         game.set_bleeding(self.settings.bleeding);
@@ -575,6 +576,7 @@ impl Application {
             self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
             self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
             self.campaign.game.intelligence.guard_draw = self.settings.guard_draw;
+            self.campaign.game.intelligence.circle_action = self.settings.circle_action;
             self.campaign.game.set_bleeding(self.settings.bleeding);
             self.campaign.game.combat.dismemberment = self.settings.dismemberment;
             self.campaign

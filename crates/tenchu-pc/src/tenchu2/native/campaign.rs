@@ -65,12 +65,14 @@ pub struct Playback<S> {
     from_menu: bool,
     pub death: death::Hold,
     keep_all_active: bool,
+    circle_action: tenchu_core::input::CircleAction,
 }
 
 impl<S: ReadAt> Playback<S> {
     pub fn configure(&mut self, settings: &crate::settings::Settings) {
         self.death.configure(settings);
         self.keep_all_active = settings.keep_enemies_active;
+        self.circle_action = settings.circle_action;
     }
 
     pub fn load(
@@ -129,6 +131,7 @@ impl<S: ReadAt> Playback<S> {
             from_menu: false,
             death: Default::default(),
             keep_all_active: false,
+            circle_action: Default::default(),
         })
     }
 
@@ -357,6 +360,7 @@ impl<S: ReadAt> Playback<S> {
             }
             Content::Gameplay(session) => {
                 session.world.keep_all_active = self.keep_all_active;
+                session.circle_action = self.circle_action;
                 self.death.begin(session, &self.run, &self.campaign)?;
                 if self.death.waiting() {
                     if !self.death.enabled() || matches!(action, Some(Action::Continue)) {

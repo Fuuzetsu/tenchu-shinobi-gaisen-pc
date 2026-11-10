@@ -137,6 +137,7 @@ impl Application {
             || self.settings.quick_shuriken_dodge
             || self.settings.strict_corpse_sight
             || self.settings.guard_controls
+            || self.settings.circle_action == tenchu_core::input::CircleAction::Guard
             || self.settings.walking.enabled
             || self.settings.sheathing.enabled
             || self.settings.bleeding.enabled

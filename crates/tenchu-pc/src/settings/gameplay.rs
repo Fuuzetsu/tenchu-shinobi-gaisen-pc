@@ -60,6 +60,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && !settings.quick_shuriken_dodge
             && !settings.strict_corpse_sight
             && !settings.guard_controls
+            && settings.circle_action == Default::default()
             && !settings.walking.enabled
             && !settings.sheathing.enabled
             && !settings.bleeding.enabled

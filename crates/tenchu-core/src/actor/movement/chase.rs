@@ -12,6 +12,9 @@ impl Actor {
     ) -> Result<Option<(i16, bool)>> {
         let mut pending = None;
         match self.motion.action {
+            MOT_ENGAGE_GUARD => {
+                return Ok(Some((self.return_normal(ctx, world.player)?, true)));
+            }
             MOT_ENGAGE_STANCE => {
                 if held & RIGHT != 0 {
                     pending = Some((MOT_ENGAGE_TURN_R, false));
@@ -210,6 +213,9 @@ impl Actor {
                 }
             }
             MOT_CHASE_DASH_BACK..=MOT_CHASE_DASH_FWD => {
+                if self.id == world.player && self.circle_guards(world.intelligence) {
+                    return self.circle_guard_step(ctx, world, held, center);
+                }
                 if self.motion.action == MOT_CHASE_DASH_FWD {
                     if self.pad.trigger & SQUARE != 0 {
                         pending = self.attack_input(ctx, world, held, pending)?;

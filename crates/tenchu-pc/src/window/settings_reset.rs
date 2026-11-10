@@ -24,6 +24,9 @@ impl Application {
             return Err(reason.into());
         }
         if item.reset_setting(&mut self.settings) {
+            if item == Item::CircleAction {
+                self.set_circle_action(self.settings.circle_action);
+            }
             return Ok(());
         }
         if self.debug.reset_tool(&self.campaign.game, item)? {

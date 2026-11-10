@@ -83,7 +83,9 @@ pub(super) fn convert_moves(
             .retain(|r| !(0x900..0x917).contains(&r.action));
     }
     for &(gaisen, native) in T2_ACTIONS {
-        if options.player_movement && native < 0x900 && !matches!(native, 0 | 0x100 | 0x700 | 0x701)
+        if options.player_movement
+            && native < 0x900
+            && !matches!(native, 0 | 0x100 | 0x110 | 0x700 | 0x701)
         {
             continue;
         }

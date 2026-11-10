@@ -65,6 +65,7 @@ pub struct Session {
     pub pending: BTreeSet<String>,
     pub interpolation: Option<crate::visuals::interpolation::History>,
     pub navigation: Option<navigation::Input>,
+    pub circle_action: tenchu_core::input::CircleAction,
     #[cfg(not(target_arch = "wasm32"))]
     pub models: models::Override,
 }
@@ -122,6 +123,7 @@ impl Session {
             pending: BTreeSet::new(),
             interpolation: None,
             navigation: None,
+            circle_action: Default::default(),
             #[cfg(not(target_arch = "wasm32"))]
             models: Default::default(),
         })
@@ -138,6 +140,15 @@ impl Session {
     }
 
     fn step_world(&mut self, buttons: u16, observing_death: bool) -> Result<Vec<Sourced<Sound>>> {
+        #[cfg(not(target_arch = "wasm32"))]
+        let t2_moveset = self.models.uses_t2_moveset();
+        #[cfg(target_arch = "wasm32")]
+        let t2_moveset = true;
+        let buttons = if self.circle_action.guards(t2_moveset) {
+            buttons
+        } else {
+            tenchu_core::input::swap_stance_buttons(buttons.swap_bytes()).swap_bytes()
+        };
         let buttons = navigation::apply(self, buttons)?;
         let mut events = Output {
             player: self.world.player,

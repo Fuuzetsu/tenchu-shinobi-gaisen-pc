@@ -40,7 +40,11 @@ impl Orbit {
         if buttons & input::L1 != 0 || !game.player_can_orbit() {
             return (buttons | directions(v), None);
         }
-        if buttons & input::R1 != 0 {
+        let circle_guards = game.player().circle_guards(&game.intelligence);
+        if circle_guards && buttons & input::CIRCLE != 0 {
+            return (buttons | directions(v), None);
+        }
+        if !circle_guards && buttons & input::R1 != 0 {
             let buttons = if game.intelligence.guard_controls {
                 buttons
             } else {

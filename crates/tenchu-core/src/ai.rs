@@ -125,6 +125,7 @@ pub struct Intelligence {
     pub strict_corpse_sight: bool,
     pub guard_controls: bool,
     pub guard_draw: bool,
+    pub circle_action: crate::input::CircleAction,
     pub profiles: profiles::Settings,
     pub damage_escalation: escalation::Settings,
     pub attack_clock: i32,
@@ -154,6 +155,7 @@ impl Default for Intelligence {
             strict_corpse_sight: false,
             guard_controls: false,
             guard_draw: false,
+            circle_action: Default::default(),
             profiles: Default::default(),
             damage_escalation: Default::default(),
             attack_clock: 0,
@@ -441,7 +443,9 @@ impl<'a, 'b> Controller<'a, 'b> {
         {
             pad &= !0xf000;
         }
-        if pad & R1 != 0 && !(self.state.guard_controls && self.actor.id == self.player.id) {
+        if self.actor.id == self.player.id && self.actor.circle_guards(self.state) {
+            pad = crate::input::swap_stance_buttons(pad);
+        } else if pad & R1 != 0 && !(self.state.guard_controls && self.actor.id == self.player.id) {
             pad = (pad & !R1) | CIRCLE;
         }
         pad

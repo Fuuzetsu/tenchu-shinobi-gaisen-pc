@@ -152,6 +152,15 @@ impl Application {
         self.campaign.game.intelligence.strict_corpse_sight = enabled;
     }
 
+    pub(super) fn set_circle_action(&mut self, action: tenchu_core::input::CircleAction) {
+        if self.campaign.game.intelligence.circle_action != action {
+            self.stop_edited_recording();
+            self.controls.clear();
+        }
+        self.settings.circle_action = action;
+        self.campaign.game.intelligence.circle_action = action;
+    }
+
     pub(super) fn set_guard_controls(&mut self, enabled: bool) {
         if self.campaign.game.intelligence.guard_controls != enabled {
             self.stop_edited_recording();
@@ -337,6 +346,7 @@ impl Application {
             self.set_quick_shuriken_dodge(previous.quick_shuriken_dodge);
             self.set_strict_corpse_sight(previous.strict_corpse_sight);
             self.set_guard_controls(previous.guard_controls);
+            self.set_circle_action(previous.circle_action);
             let _ = self.set_walking(previous.walking.enabled);
             let _ = self.set_sheathing(previous.sheathing);
             self.set_bleeding(previous.bleeding);
@@ -443,6 +453,7 @@ impl Application {
         self.set_quick_shuriken_dodge(false);
         self.set_strict_corpse_sight(false);
         self.set_guard_controls(false);
+        self.set_circle_action(Default::default());
         self.set_walking(false)?;
         self.set_sheathing(Default::default())?;
         self.set_bleeding(Default::default());
@@ -473,6 +484,9 @@ impl Application {
             return Err("Start a mission before following an actor".into());
         }
         if item.change_setting(&mut self.settings, direction) {
+            if item == Item::CircleAction {
+                self.set_circle_action(self.settings.circle_action);
+            }
             return Ok(());
         }
         if self
@@ -709,6 +723,7 @@ impl Application {
                 self.set_quick_shuriken_dodge(false);
                 self.set_strict_corpse_sight(false);
                 self.set_guard_controls(false);
+                self.set_circle_action(Default::default());
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;
                 self.set_bleeding(Default::default());
@@ -892,6 +907,7 @@ impl Application {
                 self.set_quick_shuriken_dodge(false);
                 self.set_strict_corpse_sight(false);
                 self.set_guard_controls(false);
+                self.set_circle_action(Default::default());
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;
                 self.set_bleeding(Default::default());

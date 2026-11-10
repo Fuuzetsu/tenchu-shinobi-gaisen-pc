@@ -2,6 +2,116 @@ use super::*;
 use tenchu_core::tenchu2::input::{ATTACK, UP};
 
 #[test]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; stance follows the applied moveset rather than the body, with crouch override and idle-taunt suppression"]
+fn native_circle_stance_follows_moveset_and_repeats_steps() {
+    use tenchu_core::input::CircleAction;
+    use tenchu_core::tenchu2::input::{CROUCH, DOWN, GUARD, LEFT, RIGHT};
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&gaisen).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let mut donor = donor(&gaisen).unwrap();
+    for hero in 0..3 {
+        for moveset in ["", "disc:0", "tenchu2-jp:ayame"] {
+            let mut session = super::super::Session::with_options(
+                &disc,
+                9,
+                tenchu_core::tenchu2::world::Options {
+                    hero,
+                    difficulty: 2,
+                    seed: 17,
+                    inventory: Default::default(),
+                },
+                false,
+            )
+            .unwrap();
+            for _ in 0..30 {
+                session.step(0).unwrap();
+            }
+            let settings = Settings {
+                player_model: "disc:1".into(),
+                moveset_model: moveset.into(),
+                model_moveset: !moveset.is_empty(),
+                model_moveset_options: Options {
+                    no_idle_taunts: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+            session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &Arc::default(),
+                    &settings,
+                )
+                .unwrap();
+            let initial = session.world.clone();
+            let player = session.world.player;
+            session.navigation = Some(super::super::navigation::Input {
+                yaw: 0.63,
+                pitch: 0,
+                sticks: [glam::Vec2::ZERO; 2],
+                deadzone: 18,
+                align_aim: true,
+            });
+            for preference in [
+                CircleAction::Moveset,
+                CircleAction::Crouch,
+                CircleAction::Guard,
+            ] {
+                session.world = initial.clone();
+                session.circle_action = preference;
+                let guards = preference.guards(moveset != "disc:0");
+                for _ in 0..5 {
+                    session.step(GUARD).unwrap();
+                }
+                assert_eq!(
+                    session.world.actors[player].actor.motion.action,
+                    if guards { 0x110 } else { 0x200 },
+                    "hero {hero}, moveset {moveset}, preference {preference:?}"
+                );
+                session.world = initial.clone();
+                for _ in 0..5 {
+                    session.step(CROUCH).unwrap();
+                }
+                assert_eq!(
+                    session.world.actors[player].actor.motion.action,
+                    if guards { 0x200 } else { 0x110 }
+                );
+                let button = if guards { GUARD } else { CROUCH };
+                for (direction, action) in
+                    [(UP, 0x111), (DOWN, 0x112), (RIGHT, 0x113), (LEFT, 0x114)]
+                {
+                    session.world = initial.clone();
+                    let mut starts = 0;
+                    let yaw = session.world.actors[player].actor.rotation.y;
+                    for tick in 0..140 {
+                        let previous = session.world.actors[player].actor.motion.action;
+                        session.step(button | direction).unwrap();
+                        if tick < 2 {
+                            assert_eq!(session.world.actors[player].actor.rotation.y, yaw);
+                        }
+                        starts += usize::from(
+                            previous != action
+                                && session.world.actors[player].actor.motion.action == action,
+                        );
+                    }
+                    assert!(
+                        starts >= 2,
+                        "hero {hero}, moveset {moveset}, preference {preference:?}, action {action:x}: {starts}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; imported native draw/stow transitions keep source event timing"]
 fn native_imported_sheathing_keeps_source_event_frames() {
     let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();

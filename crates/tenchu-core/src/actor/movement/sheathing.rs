@@ -10,6 +10,7 @@ impl Actor {
                 | MOT_MOVE
                 | MOT_MOVE_BACK
                 | MOT_ENGAGE_STANCE
+                | MOT_ENGAGE_GUARD
                 | MOT_ENGAGE_TURN_L
                 | MOT_ENGAGE_TURN_R
                 | MOT_CHASE

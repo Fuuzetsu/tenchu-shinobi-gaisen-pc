@@ -15,6 +15,41 @@ pub const CIRCLE: u16 = 0x0020;
 pub const CROSS: u16 = 0x0040;
 pub const SQUARE: u16 = 0x0080;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CircleAction {
+    #[default]
+    Moveset,
+    Crouch,
+    Guard,
+}
+
+impl CircleAction {
+    pub fn guards(self, tenchu2_moveset: bool) -> bool {
+        match self {
+            Self::Moveset => tenchu2_moveset,
+            Self::Crouch => false,
+            Self::Guard => true,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Moveset => "Follow moveset",
+            Self::Crouch => "Crouch",
+            Self::Guard => "Guard / dash",
+        }
+    }
+
+    pub fn cycle(self, direction: i32) -> Self {
+        let choices = [Self::Moveset, Self::Crouch, Self::Guard];
+        choices[(self as i32 + direction).rem_euclid(choices.len() as i32) as usize]
+    }
+}
+
+pub fn swap_stance_buttons(buttons: u16) -> u16 {
+    (buttons & !(CIRCLE | R1)) | ((buttons & CIRCLE) >> 2) | ((buttons & R1) << 2)
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Pad {
     pub held: u16,

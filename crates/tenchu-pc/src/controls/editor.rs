@@ -116,11 +116,11 @@ impl Editor {
             });
             ui.label("Click a binding, then press a key, button or stick direction. Changes save automatically. × clears a binding; Escape cancels capture.");
             if tenchu2 {
-                ui.weak("Bindings are shared with Gaisen. Actions below describe the native Japanese Tenchu 2 controls. Assigning an input moves it from its previous action.");
-                ui.weak("Original menus: Circle confirms, Cross cancels. Camera-relative controls and the optional Gaisen actions are not connected here yet.");
+                ui.weak("Bindings are shared with Gaisen. Original T2 controls use Circle to guard/dash and R1 to crouch. F1 > Movement > Shift / Circle action can change this. Assigning an input moves it from its previous action.");
+                ui.weak("Original menus: Circle confirms, Cross cancels. Gameplay stance settings do not swap menu buttons.");
             } else {
             ui.weak("Actions shown for original layout 1. Other original layouts still apply. Assigning an input moves it from its previous action.");
-            ui.weak("Camera-relative controls: R1 + backward guards; R1 + left/right + attack selects side slashes. Left Ctrl also acts as this modifier. Optional R1 guard mode (F1 > Movement) instead holds guard, with a fresh direction press to dash; hold crouch to roll.");
+            ui.weak("F1 > Movement > Shift / Circle action follows the moveset by default: T1 crouches; T2 guards/dashes, with R1 for crouch. In the T1 scheme, optional R1 guard mode holds guard with a fresh direction press to dash; hold crouch to roll.");
             ui.weak("Menu buttons stay at their physical positions. F1 → General → Circle confirms in menus selects Japanese or Western confirmation.");
             }
             ui.horizontal(|ui| {
@@ -136,11 +136,7 @@ impl Editor {
                     ui.strong("Action"); ui.strong("Primary"); ui.strong("Alternate"); ui.end_row();
                     for target in Target::ALL {
                         if tenchu2 && matches!(target, Target::Walk | Target::Sheathe | Target::Bandage) { continue; }
-                        ui.label(match target {
-                            Target::Circle if tenchu2 => "Guard · Circle",
-                            Target::R1 if tenchu2 => "Crouch · R1",
-                            _ => target.description().0,
-                        });
+                        ui.label(target.description().0);
                         for slot in 0..2 {
                             let capture = Capture { target, slot, device: self.device };
                             let row = bindings.0.get_mut(&target).unwrap();

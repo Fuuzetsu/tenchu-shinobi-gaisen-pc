@@ -117,6 +117,7 @@ impl Application {
         self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
         self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
         self.campaign.game.intelligence.guard_draw = self.settings.guard_draw;
+        self.campaign.game.intelligence.circle_action = self.settings.circle_action;
         crate::walking::configure(
             &mut self.campaign.game,
             &self.assets,

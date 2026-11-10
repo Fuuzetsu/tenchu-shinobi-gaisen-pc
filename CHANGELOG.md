@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 Movement now offers **Shift / Circle action**: Follow moveset, Crouch or
+  Guard / dash. T2 movesets default to their guard stance and repeated directional
+  steps, with R1 for crouching and rolls; the setting also works with T1 bodies
+  and movesets. Display-only model changes do not change controls. Native T2
+  supports the same setting, and disabling idle taunts no longer disables its
+  manual guard stance.
+
 - Selected movesets now use their own draw/sheath animations when available,
   including Tenchu 2 heroes imported into Gaisen. Weapon swaps follow the source
   animation's event frame; switching back restores the original fallback motions.

@@ -129,6 +129,21 @@ fn both_heroes_move_in_camera_space_without_steering_committed_actions() {
             );
         }
         game.intelligence.guard_controls = false;
+        game.intelligence.circle_action = tenchu_core::input::CircleAction::Guard;
+        for direction in [Vec2::X, -Vec2::X, Vec2::Y, -Vec2::Y] {
+            for held in [input::CIRCLE, input::CIRCLE | input::R1] {
+                let (buttons, heading) = orbit.movement(&game, held, direction, &settings);
+                assert_eq!(buttons, held | directions(direction));
+                assert!(heading.is_none());
+            }
+            let (buttons, heading) = orbit.movement(&game, input::R1, direction, &settings);
+            assert_ne!(buttons & input::R1, 0);
+            assert!(
+                heading.is_some(),
+                "Crouching remains camera-relative in the T2 scheme"
+            );
+        }
+        game.intelligence.circle_action = Default::default();
         game.teleport_player(start, false).unwrap();
         let mut jumped = false;
         for tick in 0..45 {

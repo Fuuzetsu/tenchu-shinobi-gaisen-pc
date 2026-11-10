@@ -255,7 +255,20 @@ impl Actor {
             return Ok(Some((MOT_STATE_DRAW, true)));
         }
         let current = pending.map_or(self.motion.action, |p| p.0);
-        let action = if held & DOWN != 0 {
+        let guard_step = self.id == world.player && self.circle_guards(world.intelligence);
+        let action = if guard_step && current == MOT_CHASE_DASH_BACK {
+            if self.registered(ctx, MOT_ATTACK_LUNGE_BACK) {
+                MOT_ATTACK_LUNGE_BACK
+            } else {
+                MOT_ATTACK
+            }
+        } else if guard_step && current == MOT_CHASE_DASH_FWD {
+            if self.registered(ctx, MOT_ATTACK_LUNGE) {
+                MOT_ATTACK_LUNGE
+            } else {
+                MOT_ATTACK
+            }
+        } else if held & DOWN != 0 {
             if !self.registered(ctx, MOT_ATTACK_BACK) {
                 return Ok(pending);
             }

@@ -509,6 +509,16 @@ impl Actor {
             .iter()
             .find(|r| r.action == action)
             .map_or(-1, |r| r.clip);
+        if clip < 0 && action == MOT_ENGAGE_GUARD {
+            return self.motion_id(
+                ctx,
+                if self.attribute & ATTR_WEAPON_DRAWN != 0 {
+                    MOT_ENGAGE_STANCE
+                } else {
+                    MOT_NORMAL
+                },
+            );
+        }
         ctx.mission
             .imported_models
             .get(&self.mesh_kind)
@@ -529,7 +539,14 @@ impl Actor {
             };
             Some(index)
         } else {
-            self.sheathing_clip(action)
+            self.sheathing_clip(action).or_else(|| {
+                (action == MOT_ENGAGE_GUARD)
+                    .then(|| {
+                        let id = self.motion_id(ctx, action);
+                        ctx.mission.clips.iter().position(|clip| clip.id == id)
+                    })
+                    .flatten()
+            })
         };
         let entered = self.enter_definition(ctx, self.definition, action, movement, optional);
         if entered && self.imported_attack(ctx).is_some() {

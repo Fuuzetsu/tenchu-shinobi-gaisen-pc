@@ -60,7 +60,7 @@ impl Target {
             Self::Right => ("Turn right", u32::from(input::RIGHT)),
             Self::Cross => ("Jump · Cross", u32::from(input::CROSS)),
             Self::Square => ("Attack · Square", u32::from(input::SQUARE)),
-            Self::Circle => ("Crouch · Circle", u32::from(input::CIRCLE)),
+            Self::Circle => ("Crouch / guard stance · Circle", u32::from(input::CIRCLE)),
             Self::Triangle => ("Use item · Triangle", u32::from(input::TRIANGLE)),
             Self::L1 => ("Look / aim · L1", u32::from(input::L1)),
             Self::R1 => (
