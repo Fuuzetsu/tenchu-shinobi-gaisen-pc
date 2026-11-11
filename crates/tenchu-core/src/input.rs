@@ -34,9 +34,9 @@ impl CircleAction {
 
     pub fn name(self) -> &'static str {
         match self {
-            Self::Moveset => "Follow moveset",
+            Self::Moveset => "Game / moveset default",
             Self::Crouch => "Crouch",
-            Self::Guard => "Guard / dash",
+            Self::Guard => "Block / dodge",
         }
     }
 

@@ -9,6 +9,101 @@ fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
 }
 
 #[test]
+#[ignore = "requires both discs; T2 Circle stance blocks real frontal hits in T1 with the selected source reaction"]
+fn imported_circle_stance_blocks_melee_with_source_reactions() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let sources = load(&disc).unwrap();
+    let assets = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    for character in 0..2 {
+        for kind in 0..3 {
+            let source = &sources[&kind];
+            let reaction = source
+                .character
+                .motions
+                .iter()
+                .find(|m| m.action == MOT_ENGAGE)
+                .unwrap()
+                .clip;
+            let mut game = crate::session::Options {
+                character,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            game.events = Default::default();
+            for _ in 0..30 {
+                game.step(0).unwrap();
+            }
+            game.set_imported_player_moveset(source, Default::default())
+                .unwrap();
+            if game.player().attribute & ATTR_WEAPON_DRAWN == 0 {
+                game.step(SQUARE).unwrap();
+                for _ in 0..120 {
+                    game.step(0).unwrap();
+                }
+            }
+            let yaw = game.player().rotation[1];
+            let delta = game.math.velocity(yaw, 1100, 0);
+            let p = game.player().position;
+            let definition = game
+                .mission
+                .characters
+                .iter()
+                .position(|c| c.kind == 0x10)
+                .unwrap();
+            let enemy = game
+                .place_actor(
+                    tenchu_assets::stage::imports::Actor {
+                        definition,
+                        model: 0x10,
+                    },
+                    Default::default(),
+                    tenchu_core::math::Position::new(
+                        p.x + i32::from(delta[0]),
+                        p.y,
+                        p.z + i32::from(delta[2]),
+                    ),
+                    yaw.wrapping_add(2048),
+                    true,
+                )
+                .unwrap();
+            game.roster.get_mut(enemy).attribute |= ATTR_WEAPON_DRAWN;
+            game.roster.get_mut(enemy).setup_think(0x4444).unwrap();
+            let health = game.player().health;
+            let mut blocked = false;
+            for _ in 0..500 {
+                game.step(CIRCLE).unwrap();
+                assert_eq!(
+                    game.player().health,
+                    health,
+                    "T1 hero {character}, T2 moveset {kind}: frontal guard failed"
+                );
+                if game.effects.rumble.iter().any(|r| {
+                    r.actor == game.player_id
+                        && r.action == tenchu_core::effects::RumbleAction::Block
+                }) {
+                    assert_eq!(game.player().motion.action, MOT_ENGAGE);
+                    assert_eq!(
+                        game.mission.clips[game.player().motion.clip.unwrap()].id,
+                        reaction
+                    );
+                    blocked = true;
+                    break;
+                }
+            }
+            assert!(
+                blocked,
+                "T1 hero {character}, T2 moveset {kind}: no frontal hit was blocked"
+            );
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and TENCHU2_DISC; all imported hero stances and steps use their source clips, with crouch override and save continuation"]
 fn imported_circle_stance_follows_moveset_and_source_steps() {
     let disc =
@@ -190,6 +285,7 @@ fn imported_sheathing_uses_source_motions_and_weapon_frames() {
                         crate::savestate::decode(&saved).unwrap();
                     let mut swaps = Vec::new();
                     let mut voices = 0;
+                    let mut audible = false;
                     for _ in 0..150 {
                         let before = game.player().attribute & ATTR_WEAPON_DRAWN;
                         let count = game.player().motion.count;
@@ -206,6 +302,21 @@ fn imported_sheathing_uses_source_motions_and_weapon_frames() {
                                 actor == game.player_id && cue == i16::from(!drawing)
                             })
                             .count();
+                        for event in game.audio_with_burning([], None).unwrap() {
+                            if event.sound.id == i16::from(!drawing)
+                                && let Some(bank) = event.bank
+                            {
+                                let mut pcm = tenchu_audio::Mixer::new(48000);
+                                pcm.play_from(
+                                    &bank,
+                                    event.sound.id,
+                                    event.sound.volume,
+                                    event.sound.pan,
+                                );
+                                audible |=
+                                    (0..24000).any(|_| pcm.frame().iter().any(|v| v.abs() > 0.001));
+                            }
+                        }
                     }
                     assert_eq!(swaps, [frame], "source {kind}, action {action:x}");
                     assert_eq!(
@@ -220,9 +331,43 @@ fn imported_sheathing_uses_source_motions_and_weapon_frames() {
                     );
                     assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN != 0, drawing);
                     assert_eq!(
+                        audible,
+                        voices != 0,
+                        "source {kind}, action {action:x}: silent weapon cue"
+                    );
+                    assert_eq!(
                         postcard::to_allocvec(&game).unwrap(),
                         postcard::to_allocvec(&restored).unwrap()
                     );
+                    if !drawing {
+                        let normal = source
+                            .character
+                            .motions
+                            .iter()
+                            .find(|m| m.action == MOT_NORMAL)
+                            .unwrap()
+                            .clip;
+                        assert_eq!(
+                            game.mission.clips[game.player().motion.clip.unwrap()].id,
+                            normal,
+                            "source {kind}: sheathed idle"
+                        );
+                        for _ in 0..5 {
+                            restored.step(UP).unwrap();
+                        }
+                        let walking = source
+                            .character
+                            .motions
+                            .iter()
+                            .find(|m| m.action == MOT_MOVE)
+                            .unwrap()
+                            .clip;
+                        assert_eq!(
+                            restored.mission.clips[restored.player().motion.clip.unwrap()].id,
+                            walking,
+                            "source {kind}: sheathed movement uses armed pose"
+                        );
+                    }
                 }
                 game.set_player_moveset(None, &[], Default::default())
                     .unwrap();
@@ -640,6 +785,137 @@ fn imported_models_present_native_attacks_in_gaisen() {
         }
         for _ in 0..80 {
             game.step(0).unwrap();
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires both discs and TENCHU_SHEATHED_REVIEW; captures the legacy armed-movement fallback and corrected source sheathed movement"]
+fn imported_sheathed_movement_review() {
+    use crate::{
+        settings::Graphics,
+        visuals::{appearance, appearance::library::Library, models::Models, pack::Pack},
+    };
+    use glam::{Mat4, Vec3};
+    let assets = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&assets).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_SHEATHED_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    for name in ["rikimaru", "ayame"] {
+        let id = format!("tenchu2-jp:{name}");
+        let source = library.get(&id).unwrap().imported_moveset.as_ref().unwrap();
+        for legacy in [true, false] {
+            let mut game = crate::session::Options {
+                character: 1,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            game.events = Default::default();
+            game.intelligence.ignore_player = true;
+            for _ in 0..30 {
+                game.step(0).unwrap();
+            }
+            let mut selection = Imported {
+                character: source.character.clone(),
+                clips: source.clips.clone(),
+                voice: source.voice.clone(),
+                attacks: source.attacks.clone(),
+                equipment: source.equipment.clone(),
+                weapon_frames: source.weapon_frames.clone(),
+            };
+            if legacy {
+                selection
+                    .character
+                    .motions
+                    .retain(|m| !matches!(m.action, MOT_MOVE..=MOT_MOVE_DASH_LEFT));
+            }
+            game.set_imported_player_moveset(&selection, Default::default())
+                .unwrap();
+            crate::sheathing::configure(
+                &mut game,
+                &assets,
+                tenchu_core::game::sheathing::Settings {
+                    enabled: true,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+            assert_ne!(game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+            game.roster
+                .get_mut(game.player_id)
+                .sheathing
+                .as_mut()
+                .unwrap()
+                .input(true);
+            for _ in 0..120 {
+                game.step(0).unwrap();
+            }
+            assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+            for _ in 0..6 {
+                game.step(UP).unwrap();
+            }
+            assert_eq!(
+                game.player().motion.action,
+                if legacy { MOT_CHASE } else { MOT_MOVE }
+            );
+            let graphics = Graphics {
+                fog: false,
+                asset_pack: false,
+                ..Default::default()
+            };
+            let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+            review.configure(graphics.clone());
+            let mut models = Models::build(&game.mission, &Pack::default(), &graphics)
+                .unwrap()
+                .with_player(
+                    &game,
+                    &id,
+                    &Pack::default(),
+                    &Pack::default(),
+                    &graphics,
+                    Some(&library),
+                )
+                .unwrap();
+            review.renderer.bind_models(&mut models);
+            let mut vertices = Vec::new();
+            appearance::visit_parts(&game, true, Some(&models), None, |key, geometry, matrix| {
+                if let crate::visuals::interpolation::Part::Actor { root, .. } = key
+                    && root == game.player().root_model
+                    && !models.visit_part(key, geometry, matrix, false, 0, |tri| {
+                        vertices.extend(tri.into_iter().copied())
+                    })
+                {
+                    crate::render_mesh::append_geometry(&mut vertices, geometry, matrix, None);
+                }
+            });
+            let center = Vec3::from(game.player().position.to_array().map(|v| v as f32))
+                + Vec3::new(0.0, -900.0, 0.0);
+            let camera = Mat4::perspective_rh(42f32.to_radians(), 16.0 / 9.0, 10.0, 20000.0)
+                * Mat4::look_at_rh(
+                    center + Vec3::new(3300.0, -250.0, 1800.0),
+                    center,
+                    Vec3::NEG_Y,
+                );
+            let mesh = review.renderer.upload(&vertices);
+            review
+                .capture(
+                    camera,
+                    &[&mesh],
+                    None,
+                    false,
+                    &output.join(format!(
+                        "{name}-{}.png",
+                        if legacy { "before" } else { "after" }
+                    )),
+                )
+                .unwrap();
         }
     }
 }

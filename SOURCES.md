@@ -3299,3 +3299,23 @@ pause, manual stepping and scene replacement. Driver scaling and shared F1
 editing/reset/navigation are checked independently; these checks do not claim a
 physical controller feel comparison. Vibration stays outside graphical presets
 and retro/demo comparisons; Modern High/Ultra preserve its separate preferences.
+
+### Imported blocking and sheathed movement corrections (2026-11-11)
+
+The shared action map preserves T2 block reaction `0x916` as Gaisen `MOT_ENGAGE`
+(`0x500`). Native hit resolution at JP `800202bc` requests that registration before
+accepting a parry; clearing it with the ordinary attack range made imported
+movesets take damage. Native fallbacks now retain it and imported reactions do
+not acquire attack contacts. Default native input keeps the original Circle
+block/dodge and R1 crouch/roll mapping independently of the displayed body or
+imported moveset. Explicit optional button swapping remains separate.
+
+T1's optional sheathing fallback now yields to imported sheathed locomotion as
+well as idle and draw/sheath registrations. Native imports retain the complete
+source weapon event (frame and sound eligibility) from JP `80028704`, avoiding
+an attachment-order inference after equipment conversion. Source fist-only
+Tatsumaru transitions remain quiet. Disc-backed tests exercise real block
+contacts in both runtimes, source locomotion, event timing and audible mixed
+PCM for the applicable transitions. Existing read-only Gaisen MOTION.C and the
+previously verified native control implementations remain the references; no
+sibling code or copyrighted assets were modified or imported.

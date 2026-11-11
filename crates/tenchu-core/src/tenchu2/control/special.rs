@@ -76,12 +76,18 @@ impl Actor {
                             .actor(self.definition_kind())
                             .ok_or("Unknown Tenchu 2 actor")?
                             .weapon;
-                        if resources
-                            .weapons
-                            .parts(kind)
-                            .next()
-                            .is_some_and(|part| part.model.is_some())
-                        {
+                        let sound =
+                            resources
+                                .registry
+                                .imported_weapon_sound(id)
+                                .unwrap_or_else(|| {
+                                    resources
+                                        .weapons
+                                        .parts(kind)
+                                        .next()
+                                        .is_some_and(|part| part.model.is_some())
+                                });
+                        if sound {
                             cue(self, request, random, SpecialCue::Voice(u8::from(!drawing)))?;
                         }
                     }

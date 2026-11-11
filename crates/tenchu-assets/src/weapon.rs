@@ -115,6 +115,7 @@ pub struct ImportedModel {
     pub vram: Arc<crate::texture::Vram>,
 }
 
+#[derive(Clone)]
 pub struct Attachment {
     pub part: usize,
     pub melee: bool,
@@ -123,6 +124,7 @@ pub struct Attachment {
     pub model: Arc<ImportedModel>,
 }
 
+#[derive(Clone)]
 pub struct Equipment {
     pub draw: Draw,
     pub attachments: Vec<Attachment>,

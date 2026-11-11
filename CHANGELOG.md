@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix native T2 model/moveset overrides dropping the block reaction, which made
+  frontal melee attacks damage a guarding player. Native T2 defaults to its
+  original Circle block/dodge and R1 crouch/roll controls, including with T1
+  movesets. T2 movesets in T1 use those same buttons by default. F1 retains an
+  explicit crouch-on-Circle option; blocking requires a drawn weapon.
+- Imported movesets retain their own sheathed movement when optional sheathing
+  is enabled in T1, instead of using armed running poses. Native T2 imports also
+  preserve source draw/sheath sound eligibility alongside the weapon event frame.
+
 - Native T2 supports controller vibration in both launchers, including imported
   T1 stages. Original motor strengths and durations follow game updates, with
   global and per-action intensity controls in F1. Added native actions cover

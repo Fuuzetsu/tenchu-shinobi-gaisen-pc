@@ -32,6 +32,8 @@ pub struct Registry {
     cast: Vec<[Vec<i16>; 3]>,
     weapon_frames: Vec<(i16, i16)>,
     stealth: stealth::Events,
+    #[serde(default)]
+    imported_weapon_events: std::collections::BTreeMap<i16, crate::weapon::WeaponTransition>,
 }
 
 impl Registry {
@@ -103,6 +105,7 @@ impl Registry {
                     cast,
                     weapon_frames,
                     stealth: stealth::read(data, edition)?,
+                    imported_weapon_events: Default::default(),
                 });
             }
             if !(0..=255).contains(&kind) || !kinds.insert(kind) {
@@ -153,6 +156,9 @@ impl Registry {
     }
 
     pub fn weapon_frame(&self, clip: i16, duration: i16) -> i16 {
+        if let Some(event) = self.imported_weapon_events.get(&clip) {
+            return event.frame;
+        }
         self.weapon_frames
             .iter()
             .find(|&&(id, _)| id == clip)
@@ -170,9 +176,17 @@ impl Registry {
             .map_or(duration / 3, |&(_, frame)| frame)
     }
 
-    pub fn replace_imported_weapon_frames(&mut self, frames: impl IntoIterator<Item = (i16, i16)>) {
-        self.weapon_frames.retain(|&(clip, _)| clip >= 0);
-        self.weapon_frames.extend(frames);
+    pub fn imported_weapon_sound(&self, clip: i16) -> Option<bool> {
+        self.imported_weapon_events
+            .get(&clip)
+            .map(|event| event.sound)
+    }
+
+    pub fn replace_imported_weapon_events(
+        &mut self,
+        frames: impl IntoIterator<Item = (i16, crate::weapon::WeaponTransition)>,
+    ) {
+        self.imported_weapon_events = frames.into_iter().collect();
     }
 }
 

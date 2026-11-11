@@ -20,6 +20,8 @@ impl Runtime {
             && item == Item::VibrationAction(tenchu_core::effects::RumbleAction::TargetHit)
         {
             "Native T2's pulses when hitting animals or breakable scenery."
+        } else if self == Self::Tenchu2 && item == Item::CircleAction {
+            "Default keeps native T2 controls for every model and moveset: Circle holds the guard stance, directions dodge, and R1 crouches. Blocking needs a drawn weapon and a frontal attack. Crouch explicitly swaps Circle and R1. Rebind physical buttons under General > Controls."
         } else if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {

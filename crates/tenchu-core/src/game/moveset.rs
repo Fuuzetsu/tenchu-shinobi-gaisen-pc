@@ -202,7 +202,7 @@ impl Game {
                         | MOT_NORMAL_TURN_R
                         | MOT_STATE_DRAW
                         | MOT_STATE_SHEATHE
-                )
+                ) || (!options.player_movement && matches!(r.action, MOT_MOVE..=MOT_MOVE_DASH_LEFT))
             })
             .filter_map(|r| {
                 ctx.mission
@@ -305,4 +305,5 @@ pub const T2_ACTIONS: &[(i16, i16)] = &[
     (MOT_ATTACK_LUNGE_BACK, 0x913),
     (MOT_ATTACK_CROUCH, 0x914),
     (MOT_ATTACK_BACK, 0x915),
+    (MOT_ENGAGE, 0x916),
 ];

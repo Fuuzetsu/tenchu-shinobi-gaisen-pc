@@ -103,7 +103,7 @@ pub(super) fn convert_moves(
         };
         definition
             .motions
-            .retain(|r| !(0x900..0x917).contains(&r.action));
+            .retain(|r| !(0x900..0x916).contains(&r.action));
     }
     for &(gaisen, native) in T2_ACTIONS {
         if options.player_movement
@@ -143,7 +143,7 @@ pub(super) fn convert_moves(
             },
         );
         if matches!(native, 0x700 | 0x701) {
-            let frame = body
+            let event = body
                 .imported_moveset
                 .as_ref()
                 .and_then(|moveset| {
@@ -152,10 +152,16 @@ pub(super) fn convert_moves(
                         .iter()
                         .find(|&&(source, _)| source == clip.id)
                 })
-                .map_or(clip.duration / 2, |&(_, event)| event.frame);
-            weapon_frames.push((id, frame));
+                .map_or(
+                    tenchu_assets::weapon::WeaponTransition {
+                        frame: clip.duration / 2,
+                        sound: true,
+                    },
+                    |&(_, event)| event,
+                );
+            weapon_frames.push((id, event));
         }
-        if native >= 0x900 {
+        if native >= 0x900 && native != 0x916 {
             let Some(attack) = donor
                 .mission
                 .weapons
@@ -238,7 +244,7 @@ pub(super) fn convert_moves(
     assets
         .resources
         .registry
-        .replace_imported_weapon_frames(weapon_frames);
+        .replace_imported_weapon_events(weapon_frames);
     Ok(attacks)
 }
 

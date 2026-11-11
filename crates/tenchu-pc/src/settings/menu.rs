@@ -638,7 +638,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::CircleAction,
                 "Shift / Circle action",
                 s.circle_action.name().into(),
-                "Follow moveset uses guard/dash with T2 movesets and crouch with T1 movesets, independently of the displayed body. Guard / dash holds a stance and repeats directional steps; R1 crouches and adds rolls. Crouch restores the T1 Circle behavior. Rebind buttons under General > Controls. Gameplay setting; graphical presets leave it unchanged.",
+                "Default uses T2's block/dodge stance with T2 movesets and crouch with T1 movesets, independently of the displayed body. Block / dodge holds a guard stance with a drawn weapon; directions dodge and R1 crouches. Crouch explicitly restores T1's Circle behavior. Rebind buttons under General > Controls. Gameplay setting; graphical presets leave it unchanged.",
             ),
             (
                 Item::GuardControls,
@@ -650,13 +650,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::GuardDraw,
                 "Guard stance draws weapon",
                 on(s.guard_draw),
-                "With optional T1 R1 guard controls, automatically draw a sheathed weapon. Off keeps it sheathed; blocking still requires a drawn weapon. The Circle guard/dash scheme keeps the selected moveset's stance without automatically drawing.",
+                "With optional T1 R1 guard controls, automatically draw a sheathed weapon. Off keeps it sheathed; blocking still requires a drawn weapon. The Circle block/dodge scheme keeps the selected moveset's stance without automatically drawing.",
             ),
             (
                 Item::CameraRelative,
                 "Camera-relative controls",
                 on(s.navigation.camera_relative),
-                "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction selects a slash relative to your current facing, without turning first. Hold Left Ctrl / R1 and back to guard with a drawn weapon; modifier + left/right + attack selects side slashes regardless of camera angle. The Shift / Circle action setting selects crouch or guard/dash; guarded directions stay relative to the character. Recorded input tapes require classic controls.",
+                "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction selects a slash relative to your current facing, without turning first. Hold Left Ctrl / R1 and back to guard with a drawn weapon; modifier + left/right + attack selects side slashes regardless of camera angle. The Shift / Circle action setting selects crouch or block/dodge; guarded directions stay relative to the character. Recorded input tapes require classic controls.",
             ),
             (
                 Item::AlignAim,

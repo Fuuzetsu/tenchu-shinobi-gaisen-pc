@@ -2,8 +2,141 @@ use super::*;
 use tenchu_core::tenchu2::input::{ATTACK, UP};
 
 #[test]
-#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; stance follows the applied moveset rather than the body, with crouch override and idle-taunt suppression"]
-fn native_circle_stance_follows_moveset_and_repeats_steps() {
+#[ignore = "requires both discs; model/moveset swaps preserve real native melee blocking and its reaction clip"]
+fn native_imported_movesets_block_incoming_melee() {
+    use tenchu_core::tenchu2::{
+        physics::HIT,
+        world::controls::{Event, EventSource, Events},
+    };
+    #[derive(Default)]
+    struct Recorded(Vec<Event>);
+    impl tenchu_core::tenchu2::environment::Events for Recorded {
+        fn emit(
+            &mut self,
+            _: tenchu_core::tenchu2::environment::Event,
+            _: &mut tenchu_core::random::Random,
+        ) -> Result<()> {
+            Ok(())
+        }
+    }
+    impl Events for Recorded {
+        fn emit(
+            &mut self,
+            _: EventSource<'_>,
+            event: Event,
+            _: &mut tenchu_core::random::Random,
+        ) -> Result<()> {
+            self.0.push(event);
+            Ok(())
+        }
+    }
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&gaisen).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let mut donor = donor(&gaisen).unwrap();
+    for id in [
+        "",
+        "tenchu2-jp:rikimaru",
+        "tenchu2-jp:ayamea",
+        "tenchu2-jp:tatumaru",
+        "disc:0",
+    ] {
+        let (world, assets, guard) = crate::tenchu2::tests::native_world::fixture();
+        let bank = Arc::new(
+            tenchu_assets::tenchu2::audio::Audio::load(&disc, 0, world.map)
+                .unwrap()
+                .bank,
+        );
+        let mut session = super::super::Session::from_parts(world, assets, bank);
+        let settings = Settings {
+            model_moveset: !id.is_empty(),
+            moveset_model: id.into(),
+            ..Default::default()
+        };
+        session
+            .models
+            .sync(
+                &mut session.world,
+                &mut session.assets,
+                &mut donor,
+                &library,
+                &Arc::default(),
+                &settings,
+            )
+            .unwrap();
+        let world = &mut session.world;
+        let assets = &mut session.assets;
+        for who in [0, guard] {
+            let actor = &mut world.actors[who].actor;
+            actor
+                .set_weapon(
+                    &mut world.instances[who].rig,
+                    who,
+                    &mut world.collision,
+                    &assets.resources,
+                    WeaponMode::Draw,
+                )
+                .unwrap();
+            actor
+                .change_motion(
+                    if who == 0 { 0x110 } else { 0x900 },
+                    actor::Velocity::Stop,
+                    &assets.resources,
+                )
+                .unwrap();
+            actor.motion.frame = 0;
+            actor.flags |= 2;
+            actor.pad.update(if who == 0 {
+                tenchu_core::tenchu2::input::GUARD
+            } else {
+                0
+            });
+            actor.attack.index = assets
+                .resources
+                .weapons
+                .attacks
+                .iter()
+                .position(|a| Some(a.clip) == actor.motion.clip);
+            world.publish(who, assets);
+        }
+        world.finish_tick(assets, 6).unwrap();
+        let before = world.actors[0].actor.health;
+        let weapon = world
+            .collision
+            .slots()
+            .iter()
+            .position(|s| s.owner == Some(guard) && s.flags & 0x4000 != 0)
+            .unwrap();
+        world.actors[0].actor.flags |= HIT;
+        world.actors[0].actor.hit = Some(weapon);
+        let mut events = Recorded::default();
+        world.control_actor(0, assets, &mut events).unwrap();
+        assert_eq!(
+            world.actors[0].actor.health, before,
+            "moveset {id}: guard took melee damage"
+        );
+        assert_eq!(
+            world.actors[0].actor.motion.action, 0x916,
+            "moveset {id}: missing block reaction"
+        );
+        assert!(
+            events.0.iter().any(|event| matches!(
+                event,
+                Event::Rumble {
+                    action: tenchu_core::effects::RumbleAction::Block,
+                    ..
+                }
+            )),
+            "moveset {id}: no block impact"
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; native T2 buttons survive body/moveset swaps, with explicit crouch override and idle-taunt suppression"]
+fn native_circle_stance_preserves_t2_buttons_and_repeats_steps() {
     use tenchu_core::input::CircleAction;
     use tenchu_core::tenchu2::input::{CROUCH, DOWN, GUARD, LEFT, RIGHT};
     let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
@@ -66,7 +199,7 @@ fn native_circle_stance_follows_moveset_and_repeats_steps() {
             ] {
                 session.world = initial.clone();
                 session.circle_action = preference;
-                let guards = preference.guards(moveset != "disc:0");
+                let guards = preference.guards(true);
                 for _ in 0..5 {
                     session.step(GUARD).unwrap();
                 }
@@ -188,16 +321,42 @@ fn native_imported_sheathing_keeps_source_event_frames() {
                 .unwrap();
             assert!(actor.motion.clip.unwrap() < 0);
             let mut swaps = Vec::new();
+            let mut audible = false;
             for _ in 0..150 {
                 let actor = &session.world.actors[owner].actor;
                 let before = actor.weapon_drawn();
                 let frame = actor.motion.frame;
-                session.step(0).unwrap();
+                for event in session.step(0).unwrap() {
+                    if event.sound.id == u8::from(!drawn)
+                        && let Some(bank) = event.bank
+                    {
+                        let mut pcm = tenchu_audio::Mixer::new(48000);
+                        pcm.play_at_from(
+                            &bank,
+                            usize::from(event.sound.slot),
+                            i16::from(event.sound.id),
+                            event.sound.volume,
+                            event.sound.note,
+                        );
+                        audible |= (0..24000).any(|_| pcm.frame().iter().any(|v| v.abs() > 0.001));
+                    }
+                }
                 if before != session.world.actors[owner].actor.weapon_drawn() {
                     swaps.push(frame);
                 }
             }
             assert_eq!(swaps, [expected_frame], "{id} action {action:x}");
+            assert_eq!(
+                audible,
+                source
+                    .weapon_frames
+                    .iter()
+                    .find(|&&(clip, _)| clip == source_id)
+                    .unwrap()
+                    .1
+                    .sound,
+                "{id} action {action:x}: weapon sound"
+            );
             assert_eq!(
                 session.world.actors[owner].actor.motion.action,
                 if drawn { 0x100 } else { 0 }

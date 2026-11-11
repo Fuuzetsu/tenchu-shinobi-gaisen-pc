@@ -226,11 +226,7 @@ impl Session {
                 self.reset_interpolation()?;
             }
         }
-        #[cfg(not(target_arch = "wasm32"))]
-        let t2_moveset = self.models.uses_t2_moveset();
-        #[cfg(target_arch = "wasm32")]
-        let t2_moveset = true;
-        let buttons = if self.circle_action.guards(t2_moveset) {
+        let buttons = if self.circle_action.guards(true) {
             buttons
         } else {
             tenchu_core::input::swap_stance_buttons(buttons.swap_bytes()).swap_bytes()

@@ -125,7 +125,7 @@ pub fn load(
                     },
                 ));
             }
-            if original >= 0x900 {
+            if original >= 0x900 && original != 0x916 {
                 let Some(source_attack) = weapons.attack(id) else {
                     continue;
                 };

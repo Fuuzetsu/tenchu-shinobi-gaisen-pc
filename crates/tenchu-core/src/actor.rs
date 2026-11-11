@@ -629,7 +629,7 @@ impl Actor {
     }
 
     fn sheathing_action(&self, action: i16) -> i16 {
-        if self.sheathing.is_some() {
+        if self.sheathing.is_some() && !self.sheathing_motions.iter().any(|&(id, _)| id == action) {
             crate::game::sheathing::State::locomotion(action)
         } else {
             action
