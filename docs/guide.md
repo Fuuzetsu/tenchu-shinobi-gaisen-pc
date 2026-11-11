@@ -1552,6 +1552,12 @@ reset these options, graphical presets leave them alone, and enabling sheathing
 disables ordinary input recording and TRIAL records. Savestates and rewind retain
 the stance and settings. Try `sheathe-ayame` and `sheathe-rikimaru` demos.
 
+**Stay sheathed after damage** also covers an enemy jumping into you: the original
+body collision can trigger a hurt animation without reducing health. Enable this
+option to retain stowed weapons after that reaction. **Guard stance draws weapon**
+controls deliberate guarding separately. With recovery preservation off, T1 still
+draws automatically after the reaction; already-drawn weapons remain drawn.
+
 **Unarmed attacks while sheathed** is a separate option on the same page.
 With sheathing enabled and weapons put away, Attack uses Onikage's three-kick
 combo; timed presses continue the combo. His available left/right, crouched and

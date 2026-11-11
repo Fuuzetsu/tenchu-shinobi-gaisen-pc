@@ -188,6 +188,105 @@ fn sheathing_injury_recovery_can_leave_weapons_stowed() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; real NPC jumps trigger non-damaging contact recovery and preserve optional weapon/guard settings"]
+fn sheathing_jump_contact_recovery() {
+    let mut reactions = std::collections::BTreeSet::new();
+    for character in 0..2 {
+        let donor = oracle::game(1, character);
+        let ninja = donor
+            .mission
+            .characters
+            .iter()
+            .find(|c| c.kind == 0x21)
+            .unwrap();
+        for stay_sheathed in [false, true] {
+            for guard_draw in [false, true] {
+                for armed in [false, true] {
+                    for unarmed in [false, true] {
+                        for (x, z) in [(0, 900), (0, 1900), (4000, 900)] {
+                            let (mut game, enemy) = ready(
+                                character,
+                                Settings {
+                                    stay_sheathed,
+                                    unarmed,
+                                    ..Default::default()
+                                },
+                            );
+                            game.intelligence.guard_controls = true;
+                            game.intelligence.guard_draw = guard_draw;
+                            let source = game
+                                .mission
+                                .import_actor(
+                                    ninja.clone(),
+                                    donor.mission.models[&0x21].clone(),
+                                    &donor.mission.clips,
+                                    std::sync::Arc::new(donor.mission.vram.clone()),
+                                )
+                                .unwrap();
+                            game.replace_actor(enemy, source, 0).unwrap();
+                            if armed {
+                                let player = game.player_id;
+                                with_actor(&mut game, player, |a, ctx, _| {
+                                    a.equip(ctx, true);
+                                    a.enter(ctx, MOT_ENGAGE_STANCE, true);
+                                });
+                            }
+                            let commands = game.commands.clone();
+                            with_actor(&mut game, enemy, |a, ctx, world| {
+                                a.position = Position::new(x, 0, z);
+                                a.rotation = [0; 3];
+                                a.velocity = [0; 3];
+                                a.attribute = 0;
+                                assert!(a.enter(ctx, MOT_NORMAL, true));
+                                ctx.scene.update(a.root_model, a.root(ctx.math));
+                                a.pad.held = UP | CROSS;
+                                a.pad.trigger = CROSS;
+                                a.control(ctx, &commands, a.position, world).unwrap();
+                                assert_eq!(a.status, ActorState::Jump);
+                            });
+                            let health = game.player().health;
+                            let mut contact = false;
+                            let mut draw = false;
+                            for _ in 0..120 {
+                                game.step(0).unwrap();
+                                let a = game.player();
+                                if a.status == ActorState::Damaged {
+                                    reactions.insert(a.motion.action);
+                                    contact = true;
+                                }
+                                draw |= a.motion.action == MOT_STATE_DRAW;
+                                assert_eq!(a.health, health);
+                            }
+                            assert_eq!(contact, x == 0);
+                            assert!(game.roster.get(enemy).position.z < 0);
+                            assert_eq!(game.roster.get(enemy).position.y, 0);
+                            let drawn = armed || (contact && !stay_sheathed);
+                            assert_eq!(draw, !armed && contact && !stay_sheathed);
+                            assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN != 0, drawn);
+                            for _ in 0..60 {
+                                game.step(R1).unwrap();
+                            }
+                            assert_eq!(
+                                game.player().attribute & ATTR_WEAPON_DRAWN != 0,
+                                drawn || guard_draw,
+                                "hero={character}, stay={stay_sheathed}, guard={guard_draw}, armed={armed}, unarmed={unarmed}, jump=({x},{z})"
+                            );
+                            game.step(0).unwrap();
+                            let position = game.player().position;
+                            for _ in 0..20 {
+                                game.step(UP).unwrap();
+                            }
+                            assert_ne!(game.player().position, position);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(reactions, [MOT_DAMAGE, MOT_DAMAGE_BACK_LIGHT].into());
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; reduced sight range affects a sheathed player, with ordinary armed detection restored"]
 fn sheathing_visibility_tradeoff_uses_real_guard_detection() {
     let run = |visibility, armed| {

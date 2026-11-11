@@ -62,6 +62,15 @@ recordings and imported-stage continuation include the optional settings and inp
 These are controlled feature checks; source-default regressions reuse the existing
 damage/AI/controller oracles and BizHawk training recording.
 
+T1's jump-over sheathing regression (#94) starts NinjaA's actual forward jump and
+runs collision/recovery on a flat arena. Both heroes, front/back contact, a missed
+jump, armed/stowed weapons, optional unarmed mode, recovery preservation and guard
+drawing are checked in 96 combinations. Health remains unchanged; both source
+hurt reactions occur. Recovery preservation prevents automatic drawing, while a
+subsequent deliberate guard still obeys its own setting. This is an isolated
+fixture, not an ordinary-play recording. The contact and default draw behavior
+follow decomp `HUMAN.C` and `MOTION.C`'s `ActDAMAGE` completion.
+
 Native optional unarmed checks exercise both styles on all three heroes, source
 combo progression, striking-limb contacts, directional/crouch/dodge entries,
 recovery heading, retained weapons and armed-moveset fallback. Controlled damage

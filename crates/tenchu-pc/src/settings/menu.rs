@@ -638,7 +638,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::StaySheathed,
                 "Stay sheathed after damage",
                 on(s.sheathing.stay_sheathed),
-                "Keep a stowed weapon sheathed after recovering from a hit or knockdown. Injury animations and damage still apply. Already-drawn weapons stay drawn. Off restores automatic drawing after recovery.",
+                "Keep a stowed weapon sheathed after recovering from a hit or knockdown, including an enemy jumping into you without causing damage. Injury animations and damage still apply. Already-drawn weapons stay drawn. Off restores automatic drawing after recovery.",
             ),
             (
                 Item::CircleAction,
