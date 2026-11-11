@@ -87,11 +87,12 @@ impl Drawing {
                 level: &story.level,
                 meshes: &self.models.terrain,
                 math: &story.math,
-                tick: story.state.frame.max(0) as u64,
+                tick: story.state.effects.tick,
                 camera,
                 alpha: self.alpha,
-                contact: None,
+                contact: Some(&story.contact),
                 world: None,
+                sprites: &story.sprites,
             },
             renderer,
         );
@@ -144,7 +145,7 @@ pub(in crate::tenchu2::native) fn capture(
         Ok((drawing.scene, story.state.view, drawing.texts))
     })?;
     eprintln!(
-        "Native JP event {event}, sequence {sequence}, frame {}: {} actor tracks. Timed 3D effects and distortion remain pending; this still capture has no audio.",
+        "Native JP event {event}, sequence {sequence}, frame {}: {} actor tracks. Other timed 3D effects and distortion remain pending; this still capture has no audio.",
         story.state.frame,
         story.state.actors.len()
     );

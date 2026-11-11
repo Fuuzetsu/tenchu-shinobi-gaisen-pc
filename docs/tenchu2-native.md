@@ -262,6 +262,10 @@ size and retention. Normal T2 deaths already create pools: those remain controll
 by **Death pool / star**, and the extra option never duplicates them.
 Modern High/Ultra already enable Modern hit, ground and death blood. Original
 keeps source timing, growth and artwork.
+Scripted native T2 cutscene bursts, droplets and pools use these same styles.
+Their original timing and surface contact continue through fast-forward; camera
+movement, pausing and graphics changes do not advance the particle simulation.
+Other timed cutscene effects and distortion remain unfinished.
 
 **Detailed rope / hook** in Contact effects uses the shared round woven rope and
 hook refinement. T2 supplies its original flight/pull path; interpolation and

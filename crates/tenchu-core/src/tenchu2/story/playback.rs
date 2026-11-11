@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use tenchu_assets::tenchu2::{
     campaign::{Kind, Objective, Sequence},
+    effects::Rules,
+    level::Level,
     story::{Resources, Script},
 };
 
@@ -31,6 +33,8 @@ pub struct Playback {
     pub patches: BTreeMap<i16, [Option<u8>; 2]>,
     pub random: Random,
     pub ending: Option<Ending>,
+    #[serde(default)]
+    pub effects: super::Effects,
 }
 
 impl Playback {
@@ -46,6 +50,7 @@ impl Playback {
             patches: BTreeMap::new(),
             random: Random::new(seed),
             ending: None,
+            effects: Default::default(),
         }
     }
 
@@ -106,6 +111,8 @@ impl Playback {
         script: &Script,
         basis: &[[i16; 4]; 33],
         math: &Math,
+        rules: &Rules,
+        level: &Level,
         draw: bool,
     ) -> Result<Vec<TextureChange>> {
         if self.ending.is_some_and(|e| e.complete)
@@ -116,11 +123,21 @@ impl Playback {
         if self.ending.is_none() {
             self.frame += 1;
         }
+        self.effects.tick += 1;
         self.camera.update(&script.camera, self.frame, basis)?;
         self.view = self
             .camera
             .camera_view(i32::from(self.presentation.camera_roll), math)?;
         self.overlay = self.presentation.update(script, self.frame, draw);
+        for &index in &self.overlay.effects {
+            self.effects.dispatch(
+                &script.commands[index].command,
+                math,
+                rules,
+                &level.collision,
+                &mut self.random,
+            )?;
+        }
         let changes = self
             .faces
             .update(&script.expressions, self.frame, draw, &mut self.random);
@@ -131,6 +148,24 @@ impl Playback {
         }
         for (motion, animation) in self.actors.iter_mut().zip(&script.actors) {
             motion.update(animation, self.frame, basis)?;
+        }
+        if draw {
+            self.effects.frame = self.effects.particles.update(
+                &mut crate::scene::Scene::default(),
+                crate::tenchu2::visibility::View {
+                    eye: self.camera.position,
+                    look: self
+                        .camera
+                        .position
+                        .wrapping_add(self.camera.camera_direction(math)?),
+                    focus: self.camera.position,
+                    matrix: self.view,
+                    distance: (level.draw_distance >> 4) * 16,
+                },
+                &level.collision,
+                &mut self.effects.cursor,
+                math,
+            )?;
         }
         self.update_exit();
         Ok(changes)

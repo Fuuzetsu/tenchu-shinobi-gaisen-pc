@@ -8,6 +8,8 @@ mod presentation;
 pub use presentation::{Fade, Overlay, Presentation, PresentationFrame};
 mod playback;
 pub use playback::Playback;
+mod effects;
+pub use effects::Effects;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Motion {
@@ -20,21 +22,24 @@ pub struct Motion {
 
 impl Motion {
     pub fn camera_view(&self, roll: i32, math: &crate::math::Math) -> Result<crate::math::Matrix> {
+        crate::camera::view_matrix(
+            self.position,
+            self.position.wrapping_add(self.camera_direction(math)?),
+            roll,
+            math,
+        )
+    }
+
+    pub fn camera_direction(&self, math: &crate::math::Math) -> Result<Position> {
         let rotation = *self
             .rotation
             .first()
             .ok_or("Missing Tenchu 2 story camera rotation")?;
-        let direction = crate::math::Matrix {
+        Ok(crate::math::Matrix {
             rotation: math.rotate_yxz(rotation),
             ..Default::default()
         }
-        .transform([0, 0, 4096]);
-        crate::camera::view_matrix(
-            self.position,
-            self.position.wrapping_add(direction),
-            roll,
-            math,
-        )
+        .transform([0, 0, 4096]))
     }
 
     pub fn new(animation: &Animation) -> Self {

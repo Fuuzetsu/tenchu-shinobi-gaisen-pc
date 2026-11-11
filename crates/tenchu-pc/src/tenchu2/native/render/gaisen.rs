@@ -142,9 +142,12 @@ impl super::Drawing {
             &mut native,
         )?;
         native.particles(
-            &session.world,
-            &session.assets,
-            &session.frame.effects,
+            super::particles::Particles {
+                scene: &session.world.scene,
+                view: session.world.camera.view,
+                sprites: &session.assets.sprites,
+                frame: &session.frame.effects,
+            },
             graphics,
             1.0,
             true,
@@ -194,6 +197,7 @@ impl super::Drawing {
                 alpha: self.alpha,
                 contact: None,
                 world: None,
+                sprites: &session.assets.sprites,
             },
             renderer,
         );

@@ -216,7 +216,7 @@ impl<S: ReadAt> Playback<S> {
     pub fn vram(&self) -> &Vram {
         match &self.content {
             Content::Gameplay(session) => &session.assets.sprites.vram,
-            Content::Story { story, .. } => &story.level.vram,
+            Content::Story { story, .. } => &story.sprites.vram,
             _ => &self.blank,
         }
     }

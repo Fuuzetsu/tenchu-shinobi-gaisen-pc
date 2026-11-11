@@ -1,6 +1,123 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; authored blood, modern pools, pause and preset restoration"]
+fn cutscene_blood_renders_with_original_and_modern_settings() {
+    use crate::settings::{BloodStyle, presets};
+    use tenchu_assets::tenchu2::campaign::{Campaign, Kind};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let campaign = Campaign::load(&disc).unwrap();
+    for (event, frame) in [(11, 620), (5, 305)] {
+        let sequence = campaign
+            .sequences
+            .iter()
+            .position(|s| s.kind == Kind::Event && s.resource == event)
+            .unwrap();
+        let mut story = Story::load(&disc, sequence, event, 1).unwrap();
+        for _ in 0..=frame {
+            story.step(true).unwrap();
+        }
+        if event == 11 {
+            assert!(
+                story
+                    .state
+                    .effects
+                    .frame
+                    .points
+                    .iter()
+                    .any(|p| p.blood.is_some())
+            );
+        } else {
+            assert!(
+                story
+                    .state
+                    .effects
+                    .frame
+                    .quads
+                    .iter()
+                    .any(|q| q.blood == Some(tenchu_core::tenchu2::effects::surface::Blood::Death))
+            );
+        }
+        let state = postcard::to_allocvec(&story.state).unwrap();
+        story.restore(postcard::from_bytes(&state).unwrap());
+        let mut original = None;
+        for (name, preset, style) in [
+            ("original", 0, BloodStyle::Original),
+            ("hd", 0, BloodStyle::OriginalHd),
+            ("modern-high", presets::MODERN_HIGH, BloodStyle::Modern),
+            ("modern-ultra", presets::MODERN_ULTRA, BloodStyle::Modern),
+            ("off", 0, BloodStyle::Off),
+            ("restored", 0, BloodStyle::Original),
+        ] {
+            let mut graphics = Graphics::default();
+            graphics.set_preset(preset);
+            graphics.asset_pack = false;
+            graphics.blood.hit = style;
+            graphics.blood.ground = style;
+            graphics.blood.death = style;
+            let path = output.join(format!("story-blood-{event}-{frame}-{name}.png"));
+            capture_frame(&story.sprites.vram, &graphics, &path, |renderer| {
+                let mut drawing = Drawing::new(&story, &graphics, renderer)?;
+                if event == 5 {
+                    let pool = &story.state.effects.frame.quads[0];
+                    let center = glam::Vec3::from(pool.position.to_array().map(|n| n as f32));
+                    let mut camera =
+                        crate::debug::camera::Camera::from_view(story.state.view, 300.0);
+                    camera.pitch = -0.8;
+                    camera.position = center - camera.forward() * 3000.0;
+                    drawing.camera = Some(camera);
+                }
+                for _ in 0..3 {
+                    drawing.update(&story, renderer, None)?;
+                }
+                if style == BloodStyle::Modern && event == 5 {
+                    assert!(
+                        !drawing
+                            .scene
+                            .environment
+                            .as_ref()
+                            .unwrap()
+                            .blood
+                            .pool_geometry()
+                            .vertices
+                            .is_empty(),
+                        "modern cutscene pool was filtered without replacement"
+                    );
+                }
+                let view = drawing
+                    .camera
+                    .map_or(story.state.view, |camera| camera.source_view());
+                Ok((drawing.scene, view, drawing.texts))
+            })
+            .unwrap();
+            assert!(
+                postcard::to_allocvec(&story.state).unwrap() == state,
+                "render/preset changed playback"
+            );
+            let image = crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba;
+            if name == "original" {
+                original = Some(image);
+            } else if name == "restored" {
+                assert!(
+                    original.as_ref().unwrap() == &image,
+                    "original cutscene blood did not restore exactly"
+                );
+            } else if name == "off" {
+                assert!(
+                    original.as_ref().unwrap() != &image,
+                    "blood is invisible in scene {event}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; checks the training opening's stage palette instead of black Gaisen fog"]
 fn opening_scene_uses_its_own_distance_palette() {
     let disc =

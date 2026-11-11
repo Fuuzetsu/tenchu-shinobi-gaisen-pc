@@ -40,6 +40,7 @@ struct AnimatedMaterial {
 
 impl Models {
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
+        renderer.update_vram(&story.sprites.vram);
         let level = &story.level;
         let resources = &story.resources;
         let mut terrain_sources = sources(
@@ -260,6 +261,17 @@ impl Models {
                 )?;
             }
         }
+        output.particles(
+            super::super::particles::Particles {
+                scene: &tenchu_core::scene::Scene::default(),
+                view: story.state.view,
+                sprites: &story.sprites,
+                frame: &story.state.effects.frame,
+            },
+            renderer.graphics(),
+            1.0,
+            camera.is_some(),
+        )?;
         let texts = overlay::append(
             &mut output,
             resources,

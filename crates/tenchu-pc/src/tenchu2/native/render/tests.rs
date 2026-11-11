@@ -274,6 +274,7 @@ fn native_modern_water_uses_shared_materials_without_changing_logic() {
                     alpha: 1.0,
                     contact: None,
                     world: None,
+                    sprites: &session.assets.sprites,
                 };
                 let spray = environment.update(&frame, &graphics, renderer);
                 assert!(

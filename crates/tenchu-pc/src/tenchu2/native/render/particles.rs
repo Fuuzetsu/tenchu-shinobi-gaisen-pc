@@ -1,16 +1,27 @@
 use super::*;
 
+pub(super) struct Particles<'a> {
+    pub scene: &'a tenchu_core::scene::Scene,
+    pub view: Matrix,
+    pub sprites: &'a tenchu_assets::tenchu2::effects::Sprites,
+    pub frame: &'a tenchu_core::tenchu2::effects::Frame,
+}
+
 impl Builder {
     pub(super) fn particles(
         &mut self,
-        world: &World,
-        assets: &Assets,
-        frame: &tenchu_core::tenchu2::effects::Frame,
+        source: Particles<'_>,
         graphics: &Graphics,
         alpha: f32,
         reproject: bool,
     ) -> Result<()> {
-        let mut scene = world.scene.clone();
+        let Particles {
+            scene,
+            view,
+            sprites,
+            frame,
+        } = source;
+        let mut scene = scene.clone();
         for sprite in &frame.sprites {
             if modern_contact(sprite.contact, &graphics.effects) {
                 continue;
@@ -18,16 +29,15 @@ impl Builder {
             if self.blood_particle(sprite.position, sprite.blood, graphics.blood.hit, alpha) {
                 continue;
             }
-            let image = assets.sprites.effects[usize::from(sprite.image)];
+            let image = sprites.effects[usize::from(sprite.image)];
             let blend = blend(sprite.blend, sprite.image);
             let projected = self.project(sprite.position);
             if projected[2] <= 0.0 {
                 continue;
             }
             let adjustment = if reproject {
-                let source_depth = (world.camera.view.apply_large(sprite.position).z
-                    + world.camera.view.translation.z)
-                    .max(0) as f32;
+                let source_depth =
+                    (view.apply_large(sprite.position).z + view.translation.z).max(0) as f32;
                 source_depth / projected[2] * self.distance / 300.0
             } else {
                 1.0
@@ -82,7 +92,7 @@ impl Builder {
             let depth = (ribbon.depth * 16) as f32;
             let points = ribbon.corners.map(|p| {
                 if reproject {
-                    let inverse = crate::renderer::view_matrix(world.camera.view).inverse();
+                    let inverse = crate::renderer::view_matrix(view).inverse();
                     let world = inverse.transform_point3(glam::Vec3::new(
                         f32::from(p[0]) * depth / 300.0,
                         -f32::from(p[1]) * depth / 300.0,
@@ -139,13 +149,10 @@ impl Builder {
                 continue;
             }
             let (image, blend) = match quad.image {
-                SurfaceImage::Effect(id) => (
-                    assets.sprites.effects[usize::from(id)],
-                    blend(quad.blend, id),
-                ),
-                SurfaceImage::Item(id) => {
-                    (assets.sprites.items[usize::from(id)], blend(quad.blend, 0))
+                SurfaceImage::Effect(id) => {
+                    (sprites.effects[usize::from(id)], blend(quad.blend, id))
                 }
+                SurfaceImage::Item(id) => (sprites.items[usize::from(id)], blend(quad.blend, 0)),
             };
             let mut transform = Matrix {
                 translation: quad.position,

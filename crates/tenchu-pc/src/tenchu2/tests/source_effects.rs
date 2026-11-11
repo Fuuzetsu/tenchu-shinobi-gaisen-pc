@@ -197,3 +197,100 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
         _ => assert_eq!(actual, expected, "{path}"),
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_BLOOD_ORACLE from original EVENT.BIN dispatch and particle updates"]
+fn native_story_blood_commands_match_source() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let math = Math {
+        tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
+    };
+    let rules = Rules::load(&disc).unwrap();
+    let mut maps = std::collections::BTreeMap::new();
+    let mut checked = 0;
+    let mut kinds = std::collections::BTreeSet::new();
+    for (case, row) in
+        super::source_control::cases::<Value>("TENCHU2_STORY_BLOOD_ORACLE").enumerate()
+    {
+        let map = row["map"].as_u64().unwrap() as usize;
+        let level = maps
+            .entry(map)
+            .or_insert_with(|| Level::load(&disc, map).unwrap());
+        let mut state = tenchu_core::tenchu2::story::Effects::default();
+        state.particles.blood_phase = row["phase"].as_bool().unwrap();
+        let mut random = Random::new(row["seed"].as_u64().unwrap() as u32);
+        for command in row["commands"].as_array().unwrap() {
+            let id = command["id"].as_u64().unwrap() as u8;
+            kinds.insert(id);
+            state
+                .dispatch(
+                    &tenchu_assets::tenchu2::story::Command::Effect {
+                        id,
+                        position: serde_json::from_value(command["position"].clone()).unwrap(),
+                        heading: command["heading"].as_i64().unwrap() as i16,
+                        value: command["value"].as_i64().unwrap() as i32,
+                    },
+                    &math,
+                    &rules,
+                    &level.collision,
+                    &mut random,
+                )
+                .unwrap();
+        }
+        assert_eq!(
+            random.seed,
+            row["seed_after"].as_u64().unwrap() as u32,
+            "RNG {case}"
+        );
+        assert_eq!(
+            state.particles.blood_phase,
+            row["phase_after"].as_bool().unwrap(),
+            "phase {case}"
+        );
+        compare(
+            &serde_json::to_value(&state.particles.entries).unwrap(),
+            &row["before"],
+            &format!("story spawn {case}"),
+        );
+        let mut scene = Scene::default();
+        let mut sounds = Vec::new();
+        for (tick, draw) in row["draws"].as_array().unwrap().iter().enumerate() {
+            if draw.as_bool().unwrap() {
+                state.frame = state
+                    .particles
+                    .update(
+                        &mut scene,
+                        View {
+                            eye: Position::ZERO,
+                            look: Position::new(0, 0, 4096),
+                            focus: Position::ZERO,
+                            matrix: Matrix::default(),
+                            distance: level.draw_distance,
+                        },
+                        &level.collision,
+                        &mut state.cursor,
+                        &math,
+                    )
+                    .unwrap();
+                sounds.extend(state.frame.blood_sounds.iter().copied());
+            }
+            if tick == 4 {
+                state = serde_json::from_slice(&serde_json::to_vec(&state).unwrap()).unwrap();
+            }
+        }
+        compare(
+            &serde_json::to_value(&state.particles.entries).unwrap(),
+            &row["after"],
+            &format!("story update {case}"),
+        );
+        assert_eq!(
+            serde_json::to_value(sounds).unwrap(),
+            row["sounds"],
+            "contacts {case}"
+        );
+        checked += 1;
+    }
+    assert_eq!(checked, 240);
+    assert_eq!(kinds, [2, 3, 4, 25, 26, 29, 34].into());
+}

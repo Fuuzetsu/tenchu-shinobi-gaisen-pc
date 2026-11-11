@@ -300,7 +300,7 @@ impl Content {
                 }
                 Self::Story { story, audio } => {
                     ui.label(format!("{} actor tracks · disc dialogue {}", story.state.actors.len(), if audio.is_some() { "loaded" } else { "absent" }));
-                    ui.label("Timed 3D effects and distortion are not connected yet.");
+                    ui.label("Scripted blood is supported. Other timed effects and distortion remain pending.");
                     if story.state.finished(&story.resources.script) { ui.label("Scene complete."); }
                 }
                 Self::Introduction(intro) => {

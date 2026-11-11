@@ -22,6 +22,10 @@ fn native_story_exit_matches_original_outer_loop() {
     resources.script.commands.clear();
     resources.script.expressions.clear();
     let basis = motions::spline_basis(&disc).unwrap();
+    let rules = tenchu_assets::tenchu2::effects::Rules::load(&disc).unwrap();
+    let level =
+        tenchu_assets::tenchu2::level::Level::japanese_scene(&disc, resources.area, 10, true)
+            .unwrap();
     let math = tenchu_core::math::Math {
         tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
     };
@@ -67,7 +71,9 @@ fn native_story_exit_matches_original_outer_loop() {
                 !state.ending.is_some_and(|e| e.complete),
                 "ended early: {case}:{tick}"
             );
-            state.step(&resources.script, &basis, &math, true).unwrap();
+            state
+                .step(&resources.script, &basis, &math, &rules, &level, true)
+                .unwrap();
             if state.ending.is_none()
                 && (state.finished(&resources.script) || (button != 0 && tick == 2))
             {
@@ -163,6 +169,91 @@ fn native_story_faces_match_original_expression_and_draw_updates() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_BLOOD_FACES_ORACLE; blood dispatch precedes source facial RNG"]
+fn native_story_blood_and_faces_preserve_source_order() {
+    use tenchu_assets::tenchu2::{
+        effects::Rules,
+        level::Level,
+        story::{Command, Resources},
+    };
+    use tenchu_core::tenchu2::story::{Face, Playback, TextureChange};
+    #[derive(Deserialize)]
+    struct State {
+        frame: i16,
+        draw: bool,
+        changes: Vec<TextureChange>,
+        actors: Vec<Face>,
+        seed: u32,
+    }
+    #[derive(Deserialize)]
+    struct Case {
+        event: u16,
+        seed: u32,
+        states: Vec<State>,
+    }
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let campaign = Campaign::load(&disc).unwrap();
+    let math = tenchu_core::math::Math {
+        tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
+    };
+    let rules = Rules::load(&disc).unwrap();
+    let basis = motions::spline_basis(&disc).unwrap();
+    let mut checked = 0;
+    for case in super::source_control::cases::<Case>("TENCHU2_STORY_BLOOD_FACES_ORACLE") {
+        let mut resources = Resources::load(&disc, case.event).unwrap();
+        resources.script.commands.retain(|timed| {
+            matches!(
+                timed.command,
+                Command::Effect {
+                    id: 2 | 3 | 4 | 25 | 26 | 29 | 34,
+                    ..
+                }
+            )
+        });
+        let sequence = campaign
+            .sequences
+            .iter()
+            .position(|s| s.kind == Kind::Event && s.resource == case.event)
+            .unwrap();
+        let level = Level::japanese_scene(&disc, resources.area, sequence, true).unwrap();
+        let mut state = Playback::new(&resources, case.seed);
+        for expected in case.states {
+            let changes = state
+                .step(
+                    &resources.script,
+                    &basis,
+                    &math,
+                    &rules,
+                    &level,
+                    expected.draw,
+                )
+                .unwrap();
+            assert_eq!(
+                changes, expected.changes,
+                "changes {}:{}",
+                case.event, expected.frame
+            );
+            assert_eq!(
+                state.faces.actors, expected.actors,
+                "faces {}:{}",
+                case.event, expected.frame
+            );
+            assert_eq!(
+                state.random.seed, expected.seed,
+                "RNG {}:{}",
+                case.event, expected.frame
+            );
+            if expected.frame % 173 == 0 {
+                state = postcard::from_bytes(&postcard::to_allocvec(&state).unwrap()).unwrap();
+            }
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 6130);
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; loads every JP story cast, stage scenery and texture group"]
 fn native_story_models_load_from_their_event_bundles() {
     use tenchu_assets::tenchu2::{level::Level, story::Resources};
@@ -204,12 +295,32 @@ fn native_story_models_load_from_their_event_bundles() {
     let mut voices = 0;
     let mut characters = std::collections::BTreeSet::new();
     let weapon_textures = tenchu_assets::tenchu2::weapons::textures(&disc).unwrap();
+    let math = tenchu_core::math::Math {
+        tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
+    };
+    let basis = motions::spline_basis(&disc).unwrap();
+    let rules = tenchu_assets::tenchu2::effects::Rules::load(&disc).unwrap();
+    let mut updates = 0;
+    let mut blood_frames = 0;
     for (sequence, event) in events {
         let resources = Resources::load(&disc, event)
             .unwrap_or_else(|e| panic!("sequence {sequence}, event {event}: {e}"));
         let level = Level::japanese_scene(&disc, resources.area, sequence, true)
             .unwrap_or_else(|e| panic!("sequence {sequence}, event {event}: {e}"));
         assert!(!level.map.is_empty(), "event {event}: missing stage");
+        let mut playback = tenchu_core::tenchu2::story::Playback::new(&resources, 17);
+        while !playback.finished(&resources.script) {
+            playback
+                .step(&resources.script, &basis, &math, &rules, &level, true)
+                .unwrap_or_else(|e| {
+                    panic!(
+                        "sequence {sequence}, event {event}, frame {}: {e}",
+                        playback.frame
+                    )
+                });
+            updates += 1;
+            blood_frames += usize::from(!playback.effects.particles.entries.is_empty());
+        }
         for actor in &resources.script.actors {
             if let Some(model) = resources.models.get(&actor.model) {
                 tenchu_core::motion::Pose::new(&model.parts).unwrap();
@@ -292,6 +403,7 @@ fn native_story_models_load_from_their_event_bundles() {
     assert!(weapons > 100);
     assert!(captions > 1000);
     assert!(voices > 100);
+    assert!(blood_frames > 1000);
     let context = egui::Context::default();
     crate::fonts::install(&context);
     let _ = context.run(Default::default(), |context| {
@@ -307,7 +419,7 @@ fn native_story_models_load_from_their_event_bundles() {
         });
     });
     eprintln!(
-        "{models} native JP story model placements, {weapons} weapon attachments, {captions} captions and {voices} playable XA cues loaded"
+        "{models} native JP story model placements, {weapons} weapon attachments, {captions} captions and {voices} playable XA cues loaded; {updates} playback updates, {blood_frames} with active scripted particles"
     );
 }
 

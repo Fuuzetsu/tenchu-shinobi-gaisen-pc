@@ -3404,3 +3404,31 @@ checks each source-visible weapon face against the actual scene texture atlas;
 the former path failed on event201's ninB. Across 141 distinct reachable events,
 the fixture visits 866 model placements and 610 attachments (some events occur
 in multiple campaign sequences). No weapon geometry or timing is changed.
+
+### Native story blood commands (2026-11-11)
+
+EVENT.BIN `800d42b4` dispatches effect commands before scripted expressions and
+the `800d53c4` automatic facial RNG. `800d12cc` updates particles through
+`8003b134` after actor motion on drawn source updates; its explicit skipped
+updates dispatch commands without advancing particles. Host render cadence does
+not select that source skip branch. Playback now owns the particle state, last
+drawing frame, terrain cursor and elapsed update count, including exit draws.
+
+Commands 2/29 reuse GAME.EXE `80042130` (100/20 and 36/6 speed/gravity). Its
+16-byte position copy initializes active drops' floor word from the event value.
+Command 3 reuses `80041988` after Y-1000, then sets lifetime 3000 and age 60 when
+value is 2. Commands 4/25/26/34 use `80041c94`'s four-control weighted point
+burst, four RNG calls, narrowing, 30-update lifetime and original packed colors.
+Command 25 retains the source's zero-vector fourth burst; 26/34 retain their
+green/gray colors instead of being restyled as red blood. The existing scalar
+particle and terrain routines remain shared with gameplay. The private original-
+instruction fixtures cover dispatch, RNG, active particle fields, surface
+contacts and source draw skips, and combined blood/facial ordering in events
+5, 11 and 129. Non-blood timed effects, ignition, special effect tracks and warp
+remain separate unfinished adapters; this is not full cutscene-effect parity.
+
+Story presentation now uses the shared T2 effect atlas and particle renderer;
+the shared contact history and environment accept story sprites without a
+gameplay World. This preserves existing blood style, retention, pool and Modern
+preset behavior. All scene meshes/portraits keep their independent textures.
+No copyrighted assets, captured state or private oracle outputs are committed.

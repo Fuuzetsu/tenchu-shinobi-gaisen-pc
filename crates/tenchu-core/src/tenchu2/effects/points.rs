@@ -30,7 +30,7 @@ pub struct Points {
     pub size: Option<[i16; 2]>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Drawing {
     pub blood: Option<super::blood::Particle>,
     pub contact: Option<super::ContactKind>,

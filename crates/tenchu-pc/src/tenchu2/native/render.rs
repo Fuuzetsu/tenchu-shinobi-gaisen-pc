@@ -344,6 +344,7 @@ impl Drawing {
                 alpha: self.alpha,
                 contact: Some(&session.contact),
                 world: Some((&session.world, &session.assets)),
+                sprites: &session.assets.sprites,
             },
             renderer,
         );
@@ -1080,9 +1081,12 @@ impl Models {
             );
         }
         output.particles(
-            world,
-            assets,
-            &frame.effects,
+            particles::Particles {
+                scene: &world.scene,
+                view: world.camera.view,
+                sprites: &assets.sprites,
+                frame: &frame.effects,
+            },
             graphics,
             alpha,
             camera.is_some(),

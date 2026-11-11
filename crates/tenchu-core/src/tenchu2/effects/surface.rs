@@ -6,7 +6,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::terrain::Node;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Blend {
     Texture,
     Opaque,
@@ -64,7 +64,7 @@ impl Plane {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Quad {
     pub blood: Option<Blood>,
     pub image: Image,
@@ -75,14 +75,14 @@ pub struct Quad {
     pub blend: Blend,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Blood {
     Ground,
     Water,
     Death,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Image {
     Effect(u8),
     Item(u8),

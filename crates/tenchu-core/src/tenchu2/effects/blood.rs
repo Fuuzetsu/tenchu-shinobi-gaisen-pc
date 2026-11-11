@@ -17,7 +17,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::{collision::Collision, effects::Rules};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Particle {
     pub velocity: Position,
     pub index: u8,
@@ -321,6 +321,32 @@ impl Drop {
 }
 
 impl Effects {
+    pub fn directional_blood(
+        &mut self,
+        position: Position,
+        direction: Position,
+        color: [u8; 3],
+        gravity: i16,
+        rules: &Rules,
+        random: &mut Random,
+    ) -> Result<()> {
+        let direction = direction.map(|v| i32::from(v as i16));
+        let controls = std::array::from_fn(|i| {
+            let side = if i & 1 == 0 { 2 } else { -2 };
+            Vector3::new(
+                ((direction.x + side * direction.z) >> 8) as i16,
+                ((if i < 2 { -20 } else { 40 }) - random.next15() % 20) as i16,
+                ((direction.z + side * direction.x) >> 8) as i16,
+            )
+        });
+        let mut points = Points::burst(position, controls, gravity, rules);
+        points.color = color;
+        points.blood = color == [128, 0, 0];
+        points.lifetime = 30;
+        points.blend = 1;
+        self.insert(Effect::Points(points))
+    }
+
     pub fn blood(
         &mut self,
         spurt: Spurt,

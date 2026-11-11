@@ -1,7 +1,12 @@
 use tenchu_assets::{
     ReadAt, Result,
     disc::Disc,
-    tenchu2::{level::Level, math_tables, motions, story::Resources},
+    tenchu2::{
+        effects::{Rules, Sprites},
+        level::Level,
+        math_tables, motions,
+        story::Resources,
+    },
 };
 use tenchu_core::{
     math::{Math, Matrix},
@@ -18,6 +23,9 @@ pub struct Story {
     pub state: Playback,
     pub interpolation: Option<crate::visuals::interpolation::History>,
     pub models: super::models::story::Override,
+    pub sprites: Sprites,
+    pub contact: super::contact::History,
+    rules: Rules,
     basis: [[i16; 4]; 33],
 }
 
@@ -34,6 +42,9 @@ impl Story {
             state,
             interpolation: None,
             models: Default::default(),
+            sprites: Sprites::load(disc)?,
+            rules: Rules::load(disc)?,
+            contact: Default::default(),
             math: Math {
                 tables: math_tables(disc)?,
             },
@@ -42,9 +53,26 @@ impl Story {
     }
 
     pub fn step(&mut self, draw: bool) -> Result<()> {
-        let changes = self
-            .state
-            .step(&self.resources.script, &self.basis, &self.math, draw)?;
+        let changes = self.state.step(
+            &self.resources.script,
+            &self.basis,
+            &self.math,
+            &self.rules,
+            &self.level,
+            draw,
+        )?;
+        if draw {
+            self.contact
+                .record(self.state.effects.tick, &self.state.effects.frame);
+        } else {
+            self.contact.record(
+                self.state.effects.tick,
+                &tenchu_core::tenchu2::effects::Frame {
+                    quads: self.state.effects.frame.quads.clone(),
+                    ..Default::default()
+                },
+            );
+        }
         for change in changes {
             if let TextureChange::Patch { model, index } = change {
                 self.resources.faces[&model][usize::from(index)]
@@ -93,6 +121,9 @@ impl Story {
             }
         }
         self.state = state;
+        self.contact = Default::default();
+        self.contact
+            .record(self.state.effects.tick, &self.state.effects.frame);
         self.interpolation = None;
     }
 }

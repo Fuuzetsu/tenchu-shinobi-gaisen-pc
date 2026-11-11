@@ -40,6 +40,7 @@ pub(super) struct Frame<'a> {
     pub alpha: f32,
     pub contact: Option<&'a super::super::contact::History>,
     pub world: Option<(&'a World, &'a Assets)>,
+    pub sprites: &'a tenchu_assets::tenchu2::effects::Sprites,
 }
 
 impl Environment {
@@ -127,6 +128,7 @@ impl Environment {
         graphics: &Graphics,
         renderer: &mut Renderer,
     ) -> render_effects::Geometry {
+        self.configure_blood(&graphics.blood);
         let Frame {
             tick,
             camera,
@@ -198,8 +200,8 @@ impl Environment {
                 }
             }
         }
-        if let Some((_, assets)) = world {
-            let image = assets.sprites.effects[2];
+        {
+            let image = frame.sprites.effects[2];
             let pools_changed = std::mem::take(&mut self.blood_pools_changed)
                 | self
                     .blood
@@ -249,7 +251,7 @@ impl Environment {
                                 .map(|v| v as f32),
                         )
                     });
-                    let image = assets.sprites.effects[usize::from(image_id)];
+                    let image = frame.sprites.effects[usize::from(image_id)];
                     if death {
                         self.blood.surface_pool(
                             &self.surfaces,
@@ -281,7 +283,7 @@ impl Environment {
                                 id: PLAYER_POOL,
                                 player: true,
                                 corners,
-                                image: assets.sprites.effects[4],
+                                image: frame.sprites.effects[4],
                                 finished: age == 40
                                     && (graphics.blood.retain_original
                                         || graphics.blood.death

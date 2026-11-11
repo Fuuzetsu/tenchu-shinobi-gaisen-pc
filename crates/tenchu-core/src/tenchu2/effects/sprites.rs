@@ -53,7 +53,7 @@ pub struct Sprites {
     pub motion: Motion,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Drawing {
     pub blood: Option<super::blood::Particle>,
     pub contact: Option<super::ContactKind>,

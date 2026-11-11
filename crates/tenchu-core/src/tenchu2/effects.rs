@@ -54,7 +54,7 @@ pub enum ContactKind {
     Water,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Contact {
     Spark { position: Position, parried: bool },
     Splash { position: Position, size: i16 },
@@ -68,7 +68,7 @@ pub enum Emission {
     Embers,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Emitter {
     pub kind: Emission,
     pub position: Position,
@@ -77,7 +77,7 @@ pub struct Emitter {
     pub remaining: i32,
 }
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Frame {
     pub contacts: Vec<Contact>,
     pub emitters: Vec<Emitter>,

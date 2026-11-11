@@ -79,7 +79,7 @@ pub struct Ribbon {
     count: u8,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Drawing {
     pub corners: [[i16; 2]; 4],
     pub colors: [[u8; 3]; 4],

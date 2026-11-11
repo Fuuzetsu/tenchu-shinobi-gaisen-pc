@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore scripted blood bursts, droplets and pools in native T2 cutscenes.
+  They follow the original command timing, particle motion and terrain contact,
+  and honor Original, Original HD, Modern and Off blood settings. Modern presets
+  also retain cutscene ground stains and replace pools using the shared effects.
+
 - Fix missing weapon textures in native T2 cutscenes. The scene now loads the
   original shared weapon atlas before event textures, restoring enemy and player
   equipment, including separately animated weapon tracks.
