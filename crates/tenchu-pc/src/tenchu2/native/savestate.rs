@@ -210,6 +210,7 @@ fn restore_snapshot(
     settings.strict_corpse_sight = saved.preferences.strict_corpse_sight;
     settings.multi_target_attacks = saved.preferences.multi_target_attacks;
     settings.attack_assist = saved.preferences.attack_assist;
+    settings.damage_escalation = saved.preferences.damage_escalation;
     if recorded_visuals {
         settings.graphics = saved.preferences.graphics;
         settings.retro = saved.preferences.retro;

@@ -113,6 +113,7 @@ fn native_weapon_projectile_damage_and_resurrection_match_source() {
             body: vector(&row["body"]),
             contact_delta: vector(&row["delta"]),
             hit_disabled: false,
+            damage_bonus: 0,
             attacker: flag("owner").then(|| DamageAttacker {
                 actor: 8,
                 player: flag("attacker_player"),

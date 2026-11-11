@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports F1's repeat-detection damage and maximum-bonus controls.
+  Each guard gains damage only after fully calming down and directly seeing
+  the player again. Shared alarms and brief sight loss do not count. Melee,
+  arrows and gunshots retain native hit reactions and timing; saves and rewind
+  preserve each guard's history. Off by default; disabling it or entering a
+  new area resets encounters.
+
 - Native T2 supports F1's **Forward melee assist**. Forward and side melee
   attacks prefer a nearby enemy ahead with a clear terrain path, retain valid
   combo targets, and steer only during the original wind-up. Imported movesets

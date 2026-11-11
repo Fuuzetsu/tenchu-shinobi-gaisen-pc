@@ -85,6 +85,7 @@ fn world(w: &World) -> Value {
             "attack": a.attack, "inventory": a.inventory, "behavior": agent.behavior,
             "sight": agent.sight, "surroundings": agent.surroundings,
             "slot": agent.slot, "sight_range": agent.sight_range,
+            "encounters": a.encounters, "damage_bonus_percent": a.encounters.bonus(w.ai.damage_escalation),
             "root_model": rig.root, "voice": w.instances[id].voice,
         })
     }).collect();

@@ -126,6 +126,13 @@ impl<E: Events> Driver<'_, E> {
             contact_delta: Vector3::default(),
             hit_disabled: false,
             attacker,
+            damage_bonus: if input.player && c.damage_escalation.enabled() {
+                wound_source
+                    .and_then(|id| c.others.get(id, actor))
+                    .map_or(0, |a| a.encounters.bonus(c.damage_escalation))
+            } else {
+                0
+            },
         };
         let mut resurrect = false;
         let health = actor.health;

@@ -37,6 +37,8 @@ mod dismemberment_tests;
 #[cfg(not(target_arch = "wasm32"))]
 mod equipment;
 #[cfg(test)]
+mod escalation_tests;
+#[cfg(test)]
 mod feedback_tests;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;

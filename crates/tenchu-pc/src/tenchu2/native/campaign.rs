@@ -85,6 +85,9 @@ impl<S: ReadAt> Playback<S> {
         if let Content::Gameplay(session) = &mut self.content {
             session.world.ai.quick_shuriken_dodge = settings.quick_shuriken_dodge;
             session.world.ai.strict_corpse_sight = settings.strict_corpse_sight;
+            session
+                .world
+                .set_damage_escalation(settings.damage_escalation);
             session.world.controls.multi_target_attacks = settings.multi_target_attacks;
             session.world.controls.attack_assist = settings.attack_assist;
             session.world.controls.dismemberment = settings.dismemberment;

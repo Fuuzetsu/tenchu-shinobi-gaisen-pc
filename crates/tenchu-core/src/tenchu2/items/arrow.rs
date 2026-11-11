@@ -22,7 +22,7 @@ pub enum Phase {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Arrow {
     pub owner: Option<usize>,
-    /// Shooter for optional wounds; retail ordinary arrows have no collision owner.
+    /// Shooter for optional wounds/damage bonuses; retail ordinary arrows have no collision owner.
     #[serde(default)]
     pub launched_by: Option<usize>,
     pub flight: Flight,

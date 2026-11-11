@@ -1065,6 +1065,12 @@ fn native_archers_and_gunners_land_their_attacks() {
         let mut embedded = false;
         let mut snapshot = None;
         let mut original = world.clone();
+        let mut escalated = world.clone();
+        escalated.set_damage_escalation(tenchu_core::ai::escalation::Settings {
+            increment: 50,
+            maximum: 100,
+        });
+        escalated.actors[1].actor.encounters.detections = 3;
         world.set_bleeding(tenchu_core::game::bleeding::Settings {
             enabled: true,
             chance: 100,
@@ -1079,6 +1085,18 @@ fn native_archers_and_gunners_land_their_attacks() {
             original
                 .step([0; 2], &mut assets, &mut Recorded::default())
                 .unwrap();
+            escalated
+                .step([0; 2], &mut assets, &mut Recorded::default())
+                .unwrap();
+            assert_eq!(
+                escalated.random, original.random,
+                "{mode}: damage bonus altered RNG"
+            );
+            assert_eq!(
+                100 - escalated.actors[0].actor.health,
+                (100 - original.actors[0].actor.health) * 2,
+                "{mode}: projectile lost the shooter's damage bonus"
+            );
             assert_eq!(
                 world.random, original.random,
                 "{mode}: bleeding altered source RNG"

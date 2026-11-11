@@ -43,7 +43,7 @@ impl Default for Encounters {
 }
 
 impl Encounters {
-    pub(super) fn prepare(&mut self, enabled: bool, calm: bool) {
+    pub(crate) fn prepare(&mut self, enabled: bool, calm: bool) {
         if !enabled {
             *self = Self::default();
         } else if calm {
@@ -51,7 +51,7 @@ impl Encounters {
         }
     }
 
-    pub(super) fn see_player(&mut self) {
+    pub(crate) fn see_player(&mut self) {
         if self.ready {
             self.detections = self.detections.saturating_add(1);
             self.ready = false;
@@ -66,11 +66,26 @@ impl Encounters {
     }
 
     pub(crate) fn damage(self, damage: i16, settings: Settings) -> i16 {
-        if damage <= 0 {
-            return damage;
+        scale_damage(damage, self.bonus(settings))
+    }
+}
+
+pub(crate) fn scale_damage(damage: i16, bonus: u16) -> i16 {
+    if damage <= 0 {
+        return damage;
+    }
+    (i32::from(damage) * (100 + i32::from(bonus.min(400))) / 100).min(i32::from(i16::MAX)) as i16
+}
+
+impl crate::tenchu2::world::World {
+    pub fn set_damage_escalation(&mut self, mut settings: Settings) {
+        settings.validate();
+        if self.ai.damage_escalation.enabled() != settings.enabled() {
+            for agent in &mut self.actors {
+                agent.actor.encounters = Encounters::default();
+            }
         }
-        (i32::from(damage) * (100 + i32::from(self.bonus(settings))) / 100).min(i32::from(i16::MAX))
-            as i16
+        self.ai.damage_escalation = settings;
     }
 }
 

@@ -63,6 +63,7 @@ pub struct System {
     pub ignore_player: bool,
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
+    pub damage_escalation: crate::ai::escalation::Settings,
 }
 
 fn original_sight() -> u16 {
@@ -91,6 +92,7 @@ impl System {
             ignore_player: false,
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
+            damage_escalation: Default::default(),
         }
     }
 
@@ -121,6 +123,10 @@ impl System {
         }
         let (before, tail) = agents.split_at_mut(index);
         let (agent, after) = tail.split_first_mut().unwrap();
+        agent.actor.encounters.prepare(
+            self.damage_escalation.enabled(),
+            agent.actor.flags & 3 == 0 && self.global.perception.alert.remaining == 0,
+        );
         let mut others = Others { before, after };
         let target = agent
             .actor
@@ -185,6 +191,8 @@ impl System {
         let entry::Outcome::Perception { player_distance } = result else {
             unreachable!()
         };
+        let directly_seen =
+            *c.visibility == Visibility::Recognized && c.actor.target == Some(frame.player);
         callbacks.sample(&mut c, 1500)?;
         let scene = perception::Scene {
             map: frame.map,
@@ -234,6 +242,16 @@ impl System {
                 },
             )?
         };
+        if self.damage_escalation.enabled()
+            && directly_seen
+            && *c.visibility == Visibility::Recognized
+            && c.actor.health > 0
+            && index != frame.player
+            && frame.script == 0
+            && !(frame.map == 0 && c.actor.kind & 0xf0 == 0x60)
+        {
+            c.actor.encounters.see_player();
+        }
         let held = Navigation {
             actor: c.actor,
             target: c

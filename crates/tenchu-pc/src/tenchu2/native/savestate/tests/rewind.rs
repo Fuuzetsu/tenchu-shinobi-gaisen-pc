@@ -107,6 +107,10 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             strict_corpse_sight: true,
             multi_target_attacks: true,
             attack_assist: true,
+            damage_escalation: tenchu_core::ai::escalation::Settings {
+                increment: 50,
+                maximum: 200,
+            },
             ..Default::default()
         };
         playback.configure(&settings).unwrap();
@@ -154,6 +158,7 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             settings.strict_corpse_sight = false;
             settings.multi_target_attacks = false;
             settings.attack_assist = false;
+            settings.damage_escalation = Default::default();
             let saved = history.snapshot(index).unwrap();
             let started = std::time::Instant::now();
             restore_rewind(
@@ -169,6 +174,8 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             assert!(settings.quick_shuriken_dodge && settings.strict_corpse_sight);
             assert!(settings.multi_target_attacks);
             assert!(settings.attack_assist);
+            assert_eq!(settings.damage_escalation.increment, 50);
+            assert_eq!(settings.damage_escalation.maximum, 200);
             assert_eq!(geometry(&playback), pointers, "scene geometry was replaced");
             assert!(
                 postcard::to_allocvec(&snapshot(&playback, &drawing, &settings, &tools).unwrap())

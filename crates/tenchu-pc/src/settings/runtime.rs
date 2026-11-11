@@ -83,6 +83,8 @@ impl Runtime {
             "GAMEPLAY EDIT: player melee swings can keep hitting new enemies throughout their active frames. Each striking limb can hit a given enemy once per swing. Damage, blocks, recoil, weapon clashes and swing timing stay native. Off restores T2's original hit consumption."
         } else if self == Self::Tenchu2 && item == Item::AttackAssist {
             "GAMEPLAY EDIT: prefer a nearby enemy in front with a clear terrain path and retain it through a combo. Turn only during the original wind-up; reach, damage and active frames stay native. Stealth, ranged, backward and airborne attacks keep their original controls. Off restores T2's original nearest-target selection and steering."
+        } else if self == Self::Tenchu2 && item == Item::DetectionDamage {
+            "GAMEPLAY EDIT: each guard's first direct sighting deals normal damage. After fully calming down, seeing the player again increases that guard's melee and projectile damage. Shared alarms and brief sight loss do not count. Turning this off, setting the maximum to zero, or starting a new area resets encounters."
         } else if self == Self::Tenchu2 && item == Item::SharpText {
             "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. Authored title and rank artwork stays original."
         } else if self == Self::Tenchu2 && item == Item::SaveState {
@@ -94,7 +96,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && matches!(item, Item::Rewind | Item::RewindHistory) {
             "Record up to 30 seconds of native T2 gameplay and 3D cutscenes, including imported T1 stages. Ctrl+F12 plays backward; the timeline seeks or plays forward, and F3 resumes from the selected state. Menus and movie playback are omitted. Export selected frames or import a T2 recording under General. History uses at most 96 MiB and may be shorter for large scenes."
         } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
-            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking/sheathing, dismemberment, quick shuriken evasion, strict corpse sight, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
+            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking/sheathing, dismemberment, enemy/combat tweaks, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
         } else if self == Self::Tenchu2 && item == Item::Reset {
             "Reset all saved preferences and debug tools, including character overrides and simulation tweaks. Keeps the current mission, armour and inventory; does not undo actor edits, kills or campaign progress."
         } else {
@@ -175,7 +177,8 @@ impl Runtime {
             | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) | Reset | ResetTweaks | QuickShurikenDodge
-            | StrictCorpseSight | MultiTargetAttacks | AttackAssist => None,
+            | StrictCorpseSight | MultiTargetAttacks | AttackAssist | DetectionDamage
+            | DetectionDamageLimit => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight

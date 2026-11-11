@@ -18,6 +18,30 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 optional repeat-detection damage (2026-11-11)
+
+The native adapter reuses the existing scalar `ai/escalation.rs` settings,
+per-actor encounter latch and capped positive health-damage arithmetic. T2's
+translated `ai/entry`, `ai/sight`, `ai/perception` and `ai/status` delimit direct
+sight and full calm: a raw recognized player sighting must survive the source
+alert/script filters, while rearming requires both calm actor flags and an
+expired global alarm. Training actors and scripts do not create encounters.
+This is a new optional mechanic, independent of the retail detection statistic.
+
+The bonus is applied to health damage after original damage/armour selection
+and before optional sheathed vulnerability. Original attack power still controls
+recoil, knockback, effects and RNG; fatal sentinels and invulnerability retain
+their source handling. Melee/projectile collision owners and the existing
+ordinary-arrow shooter metadata identify the attacking guard without changing
+the source collider. History belongs to owned actor state; fresh area actors
+start at zero, while checkpoints and rewind preserve it.
+
+Read-only reviews of Gaisen `MOTION.C::DamageControl`, the TAS movement damage
+boundary and viewer weapon attachments confirm the existing ownership and
+damage/presentation separation. No sibling code or state architecture was
+imported. JP original-instruction AI and damage fixtures verify the default path;
+direct native fixtures check optional encounters and full-world ranged attacks.
+
 ## Native T2 optional multi-target melee (2026-11-11)
 
 This is an optional gameplay change, sharing Gaisen's existing per-striking-limb

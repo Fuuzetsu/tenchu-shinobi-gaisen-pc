@@ -95,6 +95,7 @@ pub struct Actor {
     pub max_health: i16,
     #[serde(default)]
     pub invulnerable: bool,
+    pub encounters: crate::ai::escalation::Encounters,
     #[serde(default)]
     pub bleeding: Option<crate::game::bleeding::State>,
     pub sheathing: Option<super::sheathing::State>,
@@ -182,6 +183,7 @@ impl Actor {
             health,
             max_health: health,
             invulnerable: false,
+            encounters: Default::default(),
             bleeding: None,
             sheathing: None,
             unarmed: None,

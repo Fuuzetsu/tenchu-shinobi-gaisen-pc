@@ -55,6 +55,7 @@ pub struct DamageInput {
     pub contact_delta: Vector3<i16>,
     pub hit_disabled: bool,
     pub attacker: Option<DamageAttacker>,
+    pub damage_bonus: u16,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -568,10 +569,11 @@ impl Damage<'_, '_> {
             self.emit(DamageCue::Alert)?;
         }
         if !self.actor.invulnerable {
+            let damage = crate::ai::escalation::scale_damage(power, self.input.damage_bonus);
             self.actor.health = self
                 .actor
                 .health
-                .wrapping_sub(self.actor.sheathed_damage(power));
+                .wrapping_sub(self.actor.sheathed_damage(damage));
         }
         if self.actor.health <= 0 || (power < 0 && !self.actor.invulnerable) {
             self.actor.health = 0;

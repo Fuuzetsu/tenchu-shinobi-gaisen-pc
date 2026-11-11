@@ -486,6 +486,15 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::DetectionDamage | Item::DetectionDamageLimit => {
+                            let defaults = Settings::default().damage_escalation;
+                            if item == Item::DetectionDamage {
+                                state.settings.damage_escalation.increment = defaults.increment;
+                            } else {
+                                state.settings.damage_escalation.maximum = defaults.maximum;
+                            }
+                            Ok(())
+                        }
                         Item::MultiTargetAttacks | Item::AttackAssist => {
                             if item == Item::MultiTargetAttacks {
                                 state.settings.multi_target_attacks =
@@ -573,6 +582,15 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::DetectionDamage | Item::DetectionDamageLimit => {
+                            let (field, step, maximum) = if item == Item::DetectionDamage {
+                                (&mut state.settings.damage_escalation.increment, 10, 100)
+                            } else {
+                                (&mut state.settings.damage_escalation.maximum, 25, 400)
+                            };
+                            *field = (i32::from(*field) + delta * step).clamp(0, maximum) as u16;
+                            Ok(())
+                        }
                         Item::MultiTargetAttacks | Item::AttackAssist => {
                             let field = if item == Item::MultiTargetAttacks {
                                 &mut state.settings.multi_target_attacks
@@ -664,6 +682,7 @@ impl Menu {
                                 state.settings.strict_corpse_sight = defaults.strict_corpse_sight;
                                 state.settings.multi_target_attacks = defaults.multi_target_attacks;
                                 state.settings.attack_assist = defaults.attack_assist;
+                                state.settings.damage_escalation = defaults.damage_escalation;
                             }
                             self.tools.restore_defaults(all);
                             state.controls.clear();
@@ -971,6 +990,8 @@ mod tests {
                 Item::StrictCorpseSight,
                 Item::MultiTargetAttacks,
                 Item::AttackAssist,
+                Item::DetectionDamage,
+                Item::DetectionDamageLimit,
             ] {
                 assert!(Runtime::Tenchu2.unavailable(item).is_none());
                 menu.apply(Edit::Change(item, 1), &mut state, &mut action);
@@ -983,11 +1004,14 @@ mod tests {
             assert!(session.world.ai.quick_shuriken_dodge && session.world.ai.strict_corpse_sight);
             assert!(session.world.controls.multi_target_attacks);
             assert!(session.world.controls.attack_assist);
+            assert_eq!(session.world.ai.damage_escalation.increment, 10);
+            assert_eq!(session.world.ai.damage_escalation.maximum, 125);
             let mut expected = session.world.clone();
             expected.ai.quick_shuriken_dodge = false;
             expected.ai.strict_corpse_sight = false;
             expected.controls.multi_target_attacks = false;
             expected.controls.attack_assist = false;
+            expected.set_damage_escalation(Default::default());
             if let Some(item) = reset {
                 menu.apply(Edit::Change(item, 1), &mut state, &mut action);
             } else {
@@ -996,6 +1020,8 @@ mod tests {
                     Item::StrictCorpseSight,
                     Item::MultiTargetAttacks,
                     Item::AttackAssist,
+                    Item::DetectionDamage,
+                    Item::DetectionDamageLimit,
                 ] {
                     menu.apply(Edit::Reset(item), &mut state, &mut action);
                 }
