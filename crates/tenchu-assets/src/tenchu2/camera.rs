@@ -3,6 +3,7 @@ use crate::{
     ReadAt, Result, camera::Pose, disc::Disc, executable::Executable, i16_le, short3, u32_le,
 };
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Tables {
     pub poses: [[Pose; 2]; 22],
     pub normal: [i16; 5],

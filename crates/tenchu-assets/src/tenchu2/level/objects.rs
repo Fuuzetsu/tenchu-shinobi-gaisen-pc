@@ -1,6 +1,6 @@
 use crate::{Result, i16_le, short3, slice, u16_le};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Variant {
     #[default]
     Base,
@@ -45,7 +45,7 @@ impl Variant {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Bounds {
     pub offset: [i16; 3],
     pub top: i16,
@@ -53,20 +53,20 @@ pub struct Bounds {
     pub half_depth: i16,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StaticKind {
     Model(usize),
     Effect(u16),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Static {
     pub position: [i32; 3],
     pub rotation: [i16; 3],
     pub kind: StaticKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Dynamic {
     pub position: [i32; 3],
     pub facing: i16,
@@ -75,7 +75,7 @@ pub struct Dynamic {
     pub trigger: Option<usize>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Trigger {
     pub position: [i32; 3],
     pub angle: i16,
@@ -83,7 +83,7 @@ pub struct Trigger {
     pub target: u16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Objects {
     pub variant: Variant,
     pub bounds: Vec<Bounds>,

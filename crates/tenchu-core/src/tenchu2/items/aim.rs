@@ -24,7 +24,7 @@ pub struct Input {
     pub grapple: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Reticle {
     pub scale: i16,
     pub ready: bool,

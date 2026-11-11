@@ -1,7 +1,7 @@
 use crate::{ReadAt, Result, model::Part, tenchu2::volume::Volume};
 
-#[derive(Clone)]
-pub struct Shading([[u8; 3]; 256]);
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct Shading(#[serde(with = "serde_big_array::BigArray")] [[u8; 3]; 256]);
 
 impl Shading {
     pub fn color(&self, index: u8) -> [u8; 3] {

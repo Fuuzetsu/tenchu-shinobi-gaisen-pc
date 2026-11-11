@@ -10,7 +10,7 @@ use crate::{
 #[derive(Default)]
 struct Voices(Vec<u8>);
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Frame {
     pub scenery: crate::tenchu2::environment::scenery::Frame,
     pub effects: crate::tenchu2::effects::Frame,

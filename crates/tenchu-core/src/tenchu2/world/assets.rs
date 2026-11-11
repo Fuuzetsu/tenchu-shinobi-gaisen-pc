@@ -18,6 +18,7 @@ use tenchu_assets::{
 
 mod gaisen;
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Assets {
     pub campaign: tenchu_assets::tenchu2::campaign::Campaign,
     pub ambient_interval: i16,
@@ -42,6 +43,7 @@ pub struct Assets {
     pub loot: Loot,
     pub terrain_rules: collision::Rules,
     pub combat_rules: combat::Rules,
+    #[serde(with = "serde_big_array::BigArray")]
     pub spline: [[i16; 4]; 33],
 }
 

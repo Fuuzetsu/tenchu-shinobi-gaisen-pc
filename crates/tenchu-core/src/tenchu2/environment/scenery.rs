@@ -31,7 +31,7 @@ impl Default for Fire {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Model {
     pub source: Source,
     pub model: usize,
@@ -40,7 +40,7 @@ pub struct Model {
     pub rotation: [i16; 3],
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Source {
     Static(usize),
     Object(usize),
@@ -70,7 +70,7 @@ impl Model {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Sprite {
     pub image: Image,
     pub position: Position,
@@ -80,7 +80,7 @@ pub struct Sprite {
     pub blend: u8,
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Frame {
     pub models: Vec<Model>,
     pub sprites: Vec<Sprite>,

@@ -7,6 +7,7 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Items {
     pub vram: Vram,
     pub images: Vec<Image>,

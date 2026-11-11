@@ -1,6 +1,8 @@
 use super::*;
 use tenchu_core::tenchu2::input::{ATTACK, CROUCH, JUMP, RIGHT, UP};
 
+mod state;
+
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC; controller-only approach and combat from mission start, with guard-only mixed voice audio"]
 fn native_guards_fight_and_speak_from_mission_start() {

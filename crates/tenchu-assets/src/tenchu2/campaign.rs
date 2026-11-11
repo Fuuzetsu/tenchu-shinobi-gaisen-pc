@@ -35,14 +35,14 @@ pub struct Sequence {
     pub failure: Option<usize>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Campaign {
     pub sequences: Vec<Sequence>,
     pub starts: [[Option<usize>; 11]; 3],
     pub rewards: [Reward; 7],
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Reward {
     pub grand_masters: u8,
     pub item: usize,

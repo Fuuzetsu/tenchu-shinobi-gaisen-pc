@@ -7,6 +7,7 @@ use crate::{
     u32_le,
 };
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Sprites {
     pub vram: Vram,
     pub effects: Vec<Image>,
@@ -43,7 +44,7 @@ impl Sprites {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Rules {
     pub burn_bones: [u8; 14],
     pub healing_bones: [u8; 6],
