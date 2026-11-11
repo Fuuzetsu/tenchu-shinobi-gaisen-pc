@@ -102,7 +102,7 @@ impl Mission {
             .enumerate()
             .filter(|(_, a)| a.actor.health >= 0)
         {
-            let kind = agent.actor.kind;
+            let kind = agent.actor.mission_kind();
             if let Objective::Weaken { targets } | Objective::Defeat { targets } = self.objective {
                 for (slot, target) in self.targets.iter_mut().zip(targets) {
                     if target != 0 && kind == target {

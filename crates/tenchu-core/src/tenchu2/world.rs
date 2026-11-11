@@ -32,11 +32,13 @@ mod mission;
 mod navigation;
 mod profiles;
 mod reinforcements;
+mod replacement;
 mod ribbons;
 mod update;
 pub use assets::Assets;
 pub use experiment::Placement;
 pub use frame::Frame;
+pub use replacement::Replacement;
 pub use update::Movement;
 
 pub struct Options {
@@ -285,10 +287,26 @@ impl World {
         &mut self,
         kind: i16,
         source: i16,
-        mut position: Position,
+        position: Position,
         facing: i16,
         assets: &Assets,
     ) -> Result<usize> {
+        let owner = self.actors.len();
+        let (agent, instance) = self.build_actor(owner, kind, source, position, facing, assets)?;
+        self.actors.push(agent);
+        self.instances.push(instance);
+        Ok(owner)
+    }
+
+    fn build_actor(
+        &mut self,
+        owner: usize,
+        kind: i16,
+        source: i16,
+        mut position: Position,
+        facing: i16,
+        assets: &Assets,
+    ) -> Result<(Agent, Instance)> {
         let resources = &assets.resources;
         let definition = resources
             .registry
@@ -302,7 +320,6 @@ impl World {
         position.y = position.y.wrapping_sub(10);
         actor.position = position;
         actor.previous = position;
-        let owner = self.actors.len();
         let mut rig = Rig::bind(&actor, &mut self.scene, &resources.math);
         actor.rotation.y = facing;
         actor.set_secondary_body_collision(&rig, owner, &mut self.collision, true)?;
@@ -342,21 +359,20 @@ impl World {
         agent
             .behavior
             .assign(1, self.map, self.difficulty, &mut self.random)?;
-        self.actors.push(agent);
         let voice = assets
             .cast
             .iter()
             .position(|&id| id == kind)
             .map_or(4, |slot| slot as u8 + 5);
-        self.instances.push(Instance {
+        let instance = Instance {
             rig,
             voice,
             model_height: super::actor::model_bounds(&model.parts)?[1],
             feet: [Foot::default(); 2],
             motion_changes: 0,
             translucent: false,
-        });
-        Ok(owner)
+        };
+        Ok((agent, instance))
     }
 
     pub fn publish(&mut self, index: usize, assets: &Assets) {

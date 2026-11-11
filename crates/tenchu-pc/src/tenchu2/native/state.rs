@@ -2,7 +2,7 @@ use super::*;
 use serde::{Deserialize, Serialize};
 use tenchu_core::tenchu2::world::gaisen::Director;
 
-const SIGNATURE: &str = "native-tenchu2-jp-session-3";
+const SIGNATURE: &str = "native-tenchu2-jp-session-4";
 
 mod reuse;
 
@@ -235,6 +235,11 @@ impl Owned {
         }
         for (index, (agent, instance)) in world.actors.iter().zip(&world.instances).enumerate() {
             let actor = &agent.actor;
+            if actor.mission_kind.is_some_and(|kind| {
+                index == world.player || kind < 0 || assets.resources.registry.actor(kind).is_none()
+            }) {
+                return Err("Invalid native T2 actor mission role".into());
+            }
             if agent
                 .behavior
                 .profile

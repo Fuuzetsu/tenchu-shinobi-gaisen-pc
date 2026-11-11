@@ -21,6 +21,28 @@ pub struct Director {
 }
 
 impl Director {
+    pub fn refresh_actor_health(&mut self, index: usize, maximum: i16) {
+        let Some(id) = self.bindings.iter().position(|&bound| bound == Some(index)) else {
+            return;
+        };
+        let old = self.source.roster.get(id).max_health;
+        if old <= 0 || maximum <= 0 || old == maximum {
+            return;
+        }
+        for event in &mut self.source.mission.scripts.events {
+            let target = if event.target == 255 {
+                Some(self.source.player_id)
+            } else {
+                self.source.roster.find(i16::from(event.target))
+            };
+            if event.mode == 5 && event.value > 0 && target == Some(id) {
+                event.value = (i32::from(event.value) * i32::from(maximum) / i32::from(old))
+                    .clamp(1, i32::from(i16::MAX)) as i16;
+            }
+        }
+        self.source.roster.get_mut(id).max_health = maximum;
+    }
+
     pub fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,
         out: &mut C,

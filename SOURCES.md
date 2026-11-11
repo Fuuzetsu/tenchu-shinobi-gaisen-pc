@@ -18,6 +18,33 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 starting-actor replacements (2026-11-12)
+
+The optional replacement path reuses this port's source-verified native actor,
+rig, collision and behavior constructors, and its existing cross-game actor
+placement loader. Like T1's `game/debug.rs::replace_actor`, it replaces an
+authored slot before the first update, retaining its home, route, hidden state
+and objective binding. Native controller kind remains distinct from the saved
+mission role: a guard wearing a civilian body still contributes to the authored
+kill quota. Original actors have no role override. Construction uses a temporary
+world and restores the campaign RNG; failed replacement leaves gameplay state
+unchanged. Voices and private imported definitions use the existing placement
+path. Imported T1 scripts retain their original actor IDs, and positive health
+thresholds scale with a replaced actor's maximum health.
+
+The read-only references were reviewed again: `tenchu-decomp`'s
+`src/main.exe/HUMAN.C::CreateHumanoid`, `tenchu-decomp-glitch-research`'s
+`src/main.exe/APPEAR.C::BreedLife`, and `tenchu-viewer`'s `src/scene.rs` layout
+parser and `src/weapons.rs` attachment catalog. These establish the separation
+between authored placement, controller definition and equipment. No sibling
+code or retail data was imported. The replacement policy is new optional code,
+not a retail randomizer or a new physics algorithm. The shared state format is
+38 and the native session signature is 4. This is groundwork for native
+randomizer runs; its Session adapter is exercised in tests until the native
+run lifecycle is connected, and the F1 randomizer is not enabled. Graphics
+presets and the demo catalog are unchanged because there is no presentation
+feature or user-facing mode to select yet.
+
 ## Native T2 portable unarmed export (2026-11-12)
 
 The native F1 export action reuses `tenchu_assets::tenchu2::import` against the

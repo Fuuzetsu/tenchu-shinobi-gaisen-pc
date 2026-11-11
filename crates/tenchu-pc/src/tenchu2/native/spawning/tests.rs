@@ -1,6 +1,7 @@
 use super::*;
 
 mod mixed;
+mod replacement;
 
 #[test]
 #[ignore = "requires both discs; cross-game actor gallery preserves native definitions, source bodies and voice ownership"]

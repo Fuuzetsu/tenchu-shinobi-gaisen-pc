@@ -88,6 +88,7 @@ impl Default for Attack {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Actor {
     pub kind: i16,
+    pub mission_kind: Option<i16>,
     pub moveset: Option<Box<Override>>,
     pub state: State,
     pub flags: u32,
@@ -130,6 +131,10 @@ pub struct Override {
 }
 
 impl Actor {
+    pub fn mission_kind(&self) -> i16 {
+        self.mission_kind.unwrap_or(self.kind)
+    }
+
     pub fn definition_kind(&self) -> i16 {
         self.moveset.as_ref().map_or(self.kind, |m| m.definition)
     }
@@ -170,6 +175,7 @@ impl Actor {
         };
         Ok(Self {
             kind,
+            mission_kind: None,
             moveset: (source != kind).then(|| {
                 Box::new(Override {
                     definition: source,

@@ -644,7 +644,7 @@ pub(in crate::tenchu2::world) fn credit(
     attacker_is_player: bool,
     tatsumaru_late: bool,
 ) {
-    match actor.kind & 0xf0 {
+    match actor.mission_kind() & 0xf0 {
         0x10 | 0x60 if attacker_is_player => {
             let count = if tatsumaru_late {
                 &mut stats.combat_kills

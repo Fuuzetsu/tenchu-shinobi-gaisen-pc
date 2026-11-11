@@ -177,7 +177,7 @@ impl World {
         use tenchu_assets::tenchu2::campaign::Objective;
         let actor = &self.actors[index].actor;
         if actor.health > 0
-            && !matches!(actor.kind & 0xf0, 0x10 | 0x60 | 0x70)
+            && !matches!(actor.mission_kind() & 0xf0, 0x10 | 0x60 | 0x70)
             && matches!(
                 self.mission.objective,
                 Objective::EliminateAll | Objective::EliminateUnseen { .. }
