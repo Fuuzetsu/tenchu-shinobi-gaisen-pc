@@ -217,6 +217,10 @@ fn grounded(action: i16) -> bool {
 }
 
 impl<S: ReadAt> campaign::Playback<S> {
+    pub fn tatsumaru_moves(&self) -> Result<tenchu_assets::tenchu2::Moves> {
+        tenchu_assets::tenchu2::import(&self.disc)
+    }
+
     pub fn configure_onikage(
         &mut self,
         assets: &GameAssets<impl ReadAt>,

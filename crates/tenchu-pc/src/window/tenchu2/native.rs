@@ -499,6 +499,7 @@ impl Application {
         let mut step = false;
         let mut reload_artwork = false;
         let mut save_diagnostics = false;
+        let mut export_unarmed = false;
         let mut state_action = None;
         let mut rewind_action = None;
         let was_open = native.menu.panel.open;
@@ -585,6 +586,7 @@ impl Application {
             }
             reload_artwork |= actions.reload_artwork;
             save_diagnostics |= actions.save_diagnostics;
+            export_unarmed |= actions.export_unarmed;
             state_action = actions.state;
             rewind_action = actions.rewind;
             if actions.clear_blood {
@@ -728,6 +730,12 @@ impl Application {
         }
         if save_diagnostics && let Err(error) = self.save_diagnostics() {
             self.native_tenchu2.as_mut().unwrap().menu.panel.notice = error;
+        }
+        if export_unarmed {
+            let native = self.native_tenchu2.as_mut().unwrap();
+            native.menu.export_unarmed(&native.playback);
+            native.transport.discard_backlog();
+            self.last_frame = Instant::now();
         }
         if leave {
             self.leave_native_tenchu2()?;

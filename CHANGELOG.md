@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2's F1 → Movement can export Tatsumaru's moves directly from the
+  running JP disc to a portable `.t2moves` file for T1 on other devices.
+  Native T2 already has these moves; the import button now explains that it
+  applies to T1.
+
 - F1 explains that native T2 already randomizes ordinary player death motions;
   **Alternate player deaths** applies to T1's fixed collapse animation.
 

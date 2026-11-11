@@ -88,6 +88,11 @@ link independently of the Gaisen pack.
 
 Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
+**F1 → Movement → Export Tatsumaru moves** reads the running JP disc and saves
+a portable `.t2moves` file for personal use in T1 on other devices, including
+the browser port. It works from native menus as well as gameplay and does not
+require a previously imported moves file. Native T2 already reads Tatsumaru's
+unarmed style from its disc, so the T1 import control does not apply here.
 **F1 → Overlays → Player trail** shows recent movement through the same bounded
 path recorder as Gaisen. Paused redraws do not add points, large teleports break
 the line, and new areas clear it. X-ray also applies to the trail; Photo mode hides

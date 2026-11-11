@@ -152,7 +152,7 @@ pub fn show(
                 });
             });
             if runtime == Runtime::Tenchu2 {
-                ui.weak("Native Tenchu 2 JP · Dimmed controls are not connected yet; hover or select one for details.");
+                ui.weak("Native Tenchu 2 JP · Dimmed controls are unavailable here; hover or select one for details.");
             }
             if settings.retro {
                 ui.label("Retro comparison is on. F8 restores your selected graphics; edits below are kept for that view.");
@@ -238,9 +238,11 @@ pub fn show(
                     if menu.page == 20 {
                         ui.horizontal_wrapped(|ui| {
                             action_button(ui, "Import Tatsumaru moves…", Edit::ImportUnarmed, runtime, &mut edits);
-                            action_button(ui, "Export imported moves…", Edit::ExportUnarmed, runtime, &mut edits);
+                            action_button(ui, if runtime == Runtime::Tenchu2 { "Export Tatsumaru moves…" } else { "Export imported moves…" }, Edit::ExportUnarmed, runtime, &mut edits);
                         });
-                        ui.weak(if cfg!(any(target_arch = "wasm32", target_os = "android")) {
+                        ui.weak(if runtime == Runtime::Tenchu2 {
+                            "Native T2 uses Tatsumaru's moves from this JP disc. Export them for personal use in T1 on your other devices."
+                        } else if cfg!(any(target_arch = "wasm32", target_os = "android")) {
                             "Import a .t2moves file exported from the desktop port."
                         } else {
                             "Import your Tenchu 2 Europe/Japan disc (CUE, folder or archive), or a .t2moves file."

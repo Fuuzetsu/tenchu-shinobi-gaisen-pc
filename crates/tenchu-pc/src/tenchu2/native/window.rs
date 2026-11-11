@@ -525,6 +525,7 @@ impl Application {
             }
         }
         let mut save_diagnostics = false;
+        let mut export_unarmed = false;
         let mut state_action = None;
         let mut rewind_action = None;
         let previous = self.settings.clone();
@@ -631,6 +632,7 @@ impl Application {
             )?;
             let prepare = Instant::now();
             save_diagnostics = action.save_diagnostics;
+            export_unarmed = action.export_unarmed;
             state_action = action.state;
             rewind_action = action.rewind;
             if let Some(bodies) = action.models
@@ -698,6 +700,11 @@ impl Application {
             if let Err(error) = self.save_diagnostics(paused) {
                 self.menu.panel.notice = error;
             }
+            self.last = Instant::now();
+        }
+        if export_unarmed {
+            self.menu.export_unarmed(&self.session);
+            self.transport.discard_backlog();
             self.last = Instant::now();
         }
         if previous != self.settings {

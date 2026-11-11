@@ -37,26 +37,10 @@ impl Application {
     }
 
     pub(super) fn export_unarmed(&mut self) -> Result<()> {
-        let bytes = crate::sheathing::imports::encode(&crate::sheathing::imports::load()?)?;
-        let name = "tatsumaru.t2moves";
-        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
-        {
-            let Some(path) = rfd::FileDialog::new()
-                .set_title("Export imported moves (game data; for personal use)")
-                .add_filter("Tatsumaru moves", &["t2moves"])
-                .set_file_name(name)
-                .save_file()
-            else {
-                return Ok(());
-            };
-            crate::storage::atomic_write(&path, &bytes)?;
+        if crate::sheathing::imports::export(&crate::sheathing::imports::load()?)? {
+            self.menu.notice =
+                "Exported imported game data for personal use on your other devices.".into();
         }
-        #[cfg(target_os = "android")]
-        crate::android::export(name, &bytes)?;
-        #[cfg(target_arch = "wasm32")]
-        crate::web::recording::download(name, &bytes)?;
-        self.menu.notice =
-            "Exported imported game data for personal use on your other devices.".into();
         Ok(())
     }
 }

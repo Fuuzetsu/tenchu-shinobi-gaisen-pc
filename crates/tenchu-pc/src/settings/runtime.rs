@@ -299,9 +299,10 @@ impl Runtime {
                 Some("Performance benchmarks are not connected to native Tenchu 2 JP yet.")
             }
             Edit::Diagnostics => None,
-            Edit::ImportUnarmed | Edit::ExportUnarmed => Some(
-                "Native T2 currently reads Tatsumaru from the running JP disc and Onikage from the connected Gaisen disc. Portable unarmed import/export is not connected here yet.",
+            Edit::ImportUnarmed => Some(
+                "This imports Tatsumaru moves into T1. Native T2 already reads them from the running JP disc; select Tatsumaru under Unarmed style. Export is available here for use in T1 on other devices.",
             ),
+            Edit::ExportUnarmed => None,
             Edit::GameplayPreset(_) => self.unavailable(Item::GameplayPreset),
             Edit::Randomizer => self.unavailable(Item::Randomizer),
             Edit::SeekRewind(_)

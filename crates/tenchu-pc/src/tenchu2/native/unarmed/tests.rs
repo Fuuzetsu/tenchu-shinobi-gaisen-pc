@@ -48,6 +48,101 @@ fn configure(
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; native export retains all authored moves and can drive both T1 heroes without a stored import"]
+fn native_tatsumaru_export_is_portable_and_preserves_source_motion() {
+    let playback = campaign::Playback::menu(disc(), 2, 17, None).unwrap();
+    let moves = playback.tatsumaru_moves().unwrap();
+    let bytes = crate::sheathing::imports::encode(&moves).unwrap();
+    let copy = crate::sheathing::imports::decode(&bytes).unwrap();
+    assert!(bytes.len() < crate::sheathing::imports::LIMIT);
+    let mut source = ready(2);
+    source.assets.load_actor(&disc(), 2).unwrap();
+    for entry in &copy.attacks {
+        let mut original = source.assets.resources.clips[&entry.clip.id].clone();
+        // Native motion also limits the optional sixteenth track to the actor's rig.
+        original.bones.truncate(BONES.len());
+        assert!(
+            super::super::models::gaisen_clip(&entry.clip, entry.clip.id) == original,
+            "portable motion {:#x}",
+            entry.clip.id
+        );
+        let bones = std::iter::once(entry.part)
+            .chain(entry.secondary_part)
+            .fold(0, |mask, part| mask | (1 << BONES[part]));
+        let actual = super::super::models::gaisen_attack(&entry.attack, entry.clip.id, bones);
+        let mut original = source
+            .assets
+            .resources
+            .weapons
+            .attack(entry.clip.id)
+            .unwrap()
+            .clone();
+        original.trail_start = 0;
+        original.trail_end = 0;
+        assert_eq!(actual, original);
+    }
+    let assets = gaisen();
+    for character in 0..2 {
+        let mut game = crate::session::Options {
+            character,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.events = Default::default();
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        let settings = Settings {
+            enabled: true,
+            ..Default::default()
+        };
+        crate::sheathing::configure(&mut game, &assets, settings).unwrap();
+        game.set_player_tatsumaru(&copy).unwrap();
+        game.set_player_sheathing(
+            Settings {
+                unarmed: true,
+                unarmed_style: UnarmedStyle::Tatsumaru,
+                ..settings
+            },
+            None,
+        )
+        .unwrap();
+        game.roster
+            .get_mut(game.player_id)
+            .sheathing
+            .as_mut()
+            .unwrap()
+            .input(true);
+        for _ in 0..100 {
+            game.step(0).unwrap();
+            game.roster
+                .get_mut(game.player_id)
+                .sheathing
+                .as_mut()
+                .unwrap()
+                .input(false);
+        }
+        assert_eq!(
+            game.player().attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN,
+            0
+        );
+        game.step(tenchu_core::input::SQUARE).unwrap();
+        let mut active = 0;
+        for _ in 0..60 {
+            if game.player().status == tenchu_core::actor::State::Attack {
+                let clip = &game.mission.clips[game.player().motion.clip.unwrap()];
+                assert_eq!(clip.id, copy.attacks[0].clip.id + 0x6000);
+                active += 1;
+            }
+            game.step(0).unwrap();
+        }
+        assert!(active > 10, "hero {character}: no portable punch");
+        assert_ne!(game.player().status, tenchu_core::actor::State::Attack);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; both optional unarmed styles use source hit contacts and complete combos while retaining stowed weapons for all heroes"]
 fn native_unarmed_combos_contacts_and_checkpoint() {
     let gaisen = gaisen();

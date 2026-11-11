@@ -101,11 +101,26 @@ pub struct Action {
     pub models: Option<std::sync::Arc<crate::visuals::pack::Pack>>,
     pub reload_artwork: bool,
     pub save_diagnostics: bool,
+    pub export_unarmed: bool,
     pub state: Option<bool>,
     pub rewind: Option<super::rewind::Action>,
 }
 
 impl Menu {
+    pub fn export_unarmed(
+        &mut self,
+        playback: &super::campaign::Playback<impl tenchu_assets::ReadAt>,
+    ) {
+        let result = playback
+            .tatsumaru_moves()
+            .and_then(|moves| crate::sheathing::imports::export(&moves));
+        match result {
+            Ok(true) => self.panel.notice = "Exported Tatsumaru moves from the running JP disc. Import the .t2moves file in T1 on your other devices; native T2 already has these moves.".into(),
+            Ok(false) => {},
+            Err(error) => self.panel.notice = error,
+        }
+    }
+
     pub fn notice(&mut self, message: String) {
         self.panel.notice = message;
         self.tools.debug.notice = Some((self.panel.notice.clone(), web_time::Instant::now()));
@@ -446,6 +461,10 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::ExportUnarmed => {
+                action.export_unarmed = true;
+                Ok(())
+            }
             Edit::SeekRewind(tick) => {
                 action.rewind = Some(super::rewind::Action::Seek(tick));
                 Ok(())
@@ -1538,6 +1557,9 @@ mod tests {
             assert!(!menu.panel.notice.is_empty());
             assert_eq!(*state.settings, original);
         }
+        menu.apply(Edit::ExportUnarmed, &mut state, &mut action);
+        assert!(action.export_unarmed && menu.panel.notice.is_empty());
+        assert_eq!(*state.settings, original);
         menu.apply(Edit::Diagnostics, &mut state, &mut action);
         assert!(action.save_diagnostics && menu.panel.notice.is_empty());
         assert_eq!(*state.settings, original);

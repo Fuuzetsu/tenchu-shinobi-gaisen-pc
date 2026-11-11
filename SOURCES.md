@@ -18,6 +18,18 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 portable unarmed export (2026-11-12)
+
+The native F1 export action reuses `tenchu_assets::tenchu2::import` against the
+running disc, including `T_00.cab/t_00.mot`, `atktbl.dat`, the existing fifteen-
+bone mapping and Tatsumaru's rest yaw. It uses the same validated `.t2moves`
+format and platform file boundary as T1's export. No gameplay, animation or
+state format changed, and no proprietary data is distributed. Native T2's
+existing unarmed loader already supplies those moves; its menu now explains
+that importing the portable bundle is a T1 operation. The export works in the
+main host and standalone native preview. Graphics presets and demo definitions
+remain unchanged because this adds a file operation, not a visual effect.
+
 ## Native T2 alternate-death control applicability (2026-11-12)
 
 The JP registry has no `0xb00` registration for heroes 0, 1 or 2. Their ordinary

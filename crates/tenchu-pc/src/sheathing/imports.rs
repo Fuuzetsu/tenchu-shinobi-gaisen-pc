@@ -24,6 +24,28 @@ pub fn load() -> Result<Moves> {
     decode(&bytes)
 }
 
+pub fn export(moves: &Moves) -> Result<bool> {
+    let bytes = encode(moves)?;
+    let name = "tatsumaru.t2moves";
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+    {
+        let Some(path) = rfd::FileDialog::new()
+            .set_title("Export Tatsumaru moves (game data; for personal use)")
+            .add_filter("Tatsumaru moves", &["t2moves"])
+            .set_file_name(name)
+            .save_file()
+        else {
+            return Ok(false);
+        };
+        crate::storage::atomic_write(&path, &bytes)?;
+    }
+    #[cfg(target_os = "android")]
+    crate::android::export(name, &bytes)?;
+    #[cfg(target_arch = "wasm32")]
+    crate::web::recording::download(name, &bytes)?;
+    Ok(true)
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn from_path(path: &std::path::Path) -> Result<Moves> {
     if path
