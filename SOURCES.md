@@ -3391,3 +3391,16 @@ results x84/195,y204,h20). Originals remain intact and Japanese confirmation
 restores them exactly, including while paused. The PC action labels follow the
 same preference. This is optional host UI behavior, not a new source-game rule;
 no sibling implementation or copyrighted assets were imported.
+
+### Native story weapon atlas (2026-11-11)
+
+EVENT.BIN `800d1150` loads the path at `800d0f78`,
+`o:\cdimage\game\weapon\weapon.arc`, through `8001779c` before loading the
+event texture groups. The port previously initialized its shared story atlas
+empty. It now reuses weapons::textures before those groups, preserving event
+overrides and per-character atlases. Attached weapons and standalone weapon
+tracks both inherit the corrected base. The existing resource fixture now
+checks each source-visible weapon face against the actual scene texture atlas;
+the former path failed on event201's ninB. Across 141 distinct reachable events,
+the fixture visits 866 model placements and 610 attachments (some events occur
+in multiple campaign sequences). No weapon geometry or timing is changed.

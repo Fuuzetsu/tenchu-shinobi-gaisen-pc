@@ -203,6 +203,7 @@ fn native_story_models_load_from_their_event_bundles() {
     let mut captions = 0;
     let mut voices = 0;
     let mut characters = std::collections::BTreeSet::new();
+    let weapon_textures = tenchu_assets::tenchu2::weapons::textures(&disc).unwrap();
     for (sequence, event) in events {
         let resources = Resources::load(&disc, event)
             .unwrap_or_else(|e| panic!("sequence {sequence}, event {event}: {e}"));
@@ -223,8 +224,43 @@ fn native_story_models_load_from_their_event_bundles() {
                 assert!(resources.effects.contains_key(&actor.model));
             }
         }
-        for model in resources.weapons.values() {
+        for model in resources.weapons.values().chain(
+            resources
+                .models
+                .iter()
+                .filter(|(id, _)| (106..=231).contains(*id))
+                .map(|(_, model)| model),
+        ) {
             tenchu_core::motion::Pose::new(&model.parts).unwrap();
+            for face in model
+                .parts
+                .iter()
+                .flat_map(|part| part.geometry.iter())
+                .flat_map(|geometry| &geometry.faces)
+            {
+                let Some(texture) = face.texture else {
+                    continue;
+                };
+                let bounds = [
+                    u16::from(face.corners.iter().map(|c| c.uv[0]).min().unwrap()),
+                    u16::from(face.corners.iter().map(|c| c.uv[1]).min().unwrap()),
+                    u16::from(face.corners.iter().map(|c| c.uv[0]).max().unwrap()),
+                    u16::from(face.corners.iter().map(|c| c.uv[1]).max().unwrap()),
+                ];
+                let has_pixels = |vram: &tenchu_assets::texture::Vram| {
+                    (bounds[1]..=bounds[3]).any(|v| {
+                        (bounds[0]..=bounds[2])
+                            .any(|u| vram.texel(texture.page, texture.palette, [u, v]) != 0)
+                    })
+                };
+                if has_pixels(&weapon_textures) {
+                    assert!(
+                        has_pixels(&model.vram),
+                        "event {event}, weapon {}: source weapon face is transparent in the scene atlas",
+                        model.name
+                    );
+                }
+            }
         }
         if let Some(track) = &resources.audio {
             let mut stream = tenchu_assets::audio::stream::Stream::open(&disc, track).unwrap();

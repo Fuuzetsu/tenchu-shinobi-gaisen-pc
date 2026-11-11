@@ -146,7 +146,7 @@ impl Resources {
         if u32_le(archive, 0)? as usize != count {
             return Err("Mismatched Tenchu 2 story texture groups".into());
         }
-        let mut base = Vram::default();
+        let mut base = super::super::weapons::textures(disc)?;
         let mut characters: Vec<Vram> = Vec::new();
         for index in 0..count {
             let at = u32_le(archive, 4 + index * 4)? as usize;

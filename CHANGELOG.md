@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix missing weapon textures in native T2 cutscenes. The scene now loads the
+  original shared weapon atlas before event textures, restoring enemy and player
+  equipment, including separately animated weapon tracks.
+
 - Native T2 supports **Circle confirms in menus** throughout F1, mission
   selection, equipment, results and retry screens in both launchers. Controller
   menu buttons use physical positions independently of gameplay remapping;
