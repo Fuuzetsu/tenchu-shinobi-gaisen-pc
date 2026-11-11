@@ -16,6 +16,7 @@ use tenchu_assets::{
     },
 };
 
+mod checkpoint;
 mod gaisen;
 
 #[derive(serde::Serialize, serde::Deserialize)]

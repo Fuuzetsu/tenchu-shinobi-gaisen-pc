@@ -1,7 +1,7 @@
 use super::{Cell, Collision};
 use crate::{Result, terrain::AreaMap};
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Gaisen {
     pub map: AreaMap,
     pub offsets: Vec<Vec<usize>>,

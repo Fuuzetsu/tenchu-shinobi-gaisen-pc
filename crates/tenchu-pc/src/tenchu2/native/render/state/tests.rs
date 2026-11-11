@@ -31,6 +31,14 @@ fn equal(a: &ContentDrawing, b: &ContentDrawing) {
     );
 }
 
+fn record(history: &mut crate::rewind::History, state: State, tick: u64) {
+    history.recorder.begin();
+    state.capture(&mut history.recorder).unwrap();
+    let snapshot = history.recorder.finish().unwrap();
+    assert!(snapshot.bytes().unwrap() == postcard::to_allocvec(&state).unwrap());
+    history.push(tick, 30, snapshot, None).unwrap();
+}
+
 fn output() -> std::path::PathBuf {
     let out = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
     std::fs::create_dir_all(&out).unwrap();
@@ -77,7 +85,9 @@ fn native_drawing_checkpoints_preserve_wounds_weather_and_motion() {
                 let original = Content::Gameplay(Box::new(session));
                 let restored = Content::Gameplay(Box::new(restored));
                 let mut a = ContentDrawing::Gameplay(Box::new(drawing));
+                let mut history = crate::rewind::History::default();
                 let saved = crate::savestate::encode(&a.capture_state().unwrap())?;
+                record(&mut history, a.capture_state().unwrap(), 0);
                 renderer.reset_vram(&vram);
                 let mut b = ContentDrawing::new(&restored, &graphics, renderer)?;
                 b.restore_state(crate::savestate::decode(&saved)?, &restored, renderer)?;
@@ -109,6 +119,7 @@ fn native_drawing_checkpoints_preserve_wounds_weather_and_motion() {
                             "hero {hero}, tick {tick}, alpha {alpha}"
                         );
                     }
+                    record(&mut history, a.capture_state(), tick + 1);
                     assert!(
                         postcard::to_allocvec(&original.world).unwrap()
                             == postcard::to_allocvec(&restored.world).unwrap()
@@ -120,6 +131,8 @@ fn native_drawing_checkpoints_preserve_wounds_weather_and_motion() {
                         y.iter().map(|s| s.sound).collect::<Vec<_>>()
                     );
                 }
+                let state: State = history.snapshot(0)?.decode()?;
+                assert!(crate::savestate::encode(&state)? == saved);
                 let ContentDrawing::Gameplay(drawing) = (if restored_image { b } else { a }) else {
                     unreachable!()
                 };
@@ -175,7 +188,9 @@ fn native_drawing_checkpoints_preserve_story_stains_and_motion() {
             }
             restored.restore_state(&disc, &saved)?;
             let a = ContentDrawing::Story(Box::new(drawing));
+            let mut history = crate::rewind::History::default();
             let saved = crate::savestate::encode(&a.capture_state().unwrap())?;
+            record(&mut history, a.capture_state().unwrap(), 0);
             let restored = Content::Story {
                 story: Box::new(restored),
                 audio: None,
@@ -213,11 +228,14 @@ fn native_drawing_checkpoints_preserve_story_stains_and_motion() {
                         "story tick {tick}"
                     );
                 }
+                record(&mut history, a.capture_state(), tick + 1);
                 assert!(
                     postcard::to_allocvec(&story.state).unwrap()
                         == postcard::to_allocvec(&restored.state).unwrap()
                 );
             }
+            let state: State = history.snapshot(0)?.decode()?;
+            assert!(crate::savestate::encode(&state)? == saved);
             let drawing = if restored_image { b } else { a };
             Ok((drawing.scene, story.state.view, drawing.texts))
         })

@@ -2,6 +2,108 @@ use super::*;
 use crate::source::DiscSource;
 use tenchu_core::tenchu2::mission::Outcome;
 
+#[test]
+#[ignore = "requires TENCHU2_DISC; complete native histories retain thirty seconds, changed resources and exact branch continuation"]
+fn native_rewind_capture_retains_history_and_branches() {
+    for sequence in [9, 119, 191, 23] {
+        let mut playback = start(sequence);
+        if let Content::Gameplay(session) = &mut playback.content {
+            session.world.actors[session.world.player]
+                .actor
+                .invulnerable = true;
+        }
+        let mut history = crate::rewind::History::default();
+        let mut elapsed = std::time::Duration::ZERO;
+        let mut expected = std::collections::BTreeMap::new();
+        let ticks = if let Content::Story { story, .. } = &playback.content {
+            u64::try_from(story.resources.script.duration)
+                .unwrap()
+                .saturating_sub(1)
+                .min(901)
+        } else {
+            901
+        };
+        for tick in 0..ticks {
+            if tick == 450
+                && let Content::Gameplay(session) = &playback.content
+            {
+                let position = session.world.actors[session.world.player].actor.position;
+                playback
+                    .spawn_actor(
+                        super::super::super::spawning::Request {
+                            source: super::super::super::spawning::Source::Native(0xe0),
+                            position: position
+                                .wrapping_add(tenchu_core::math::Position::new(1200, 0, 0)),
+                            yaw: 1024,
+                            snap: true,
+                        },
+                        None,
+                    )
+                    .unwrap();
+            }
+            playback.step(0).unwrap();
+            let started = std::time::Instant::now();
+            history.recorder.begin();
+            playback
+                .snapshot()
+                .unwrap()
+                .capture(&mut history.recorder)
+                .unwrap();
+            let state = history.recorder.finish().unwrap();
+            history.push(tick, 30, state, None).unwrap();
+            elapsed += started.elapsed();
+            if [0, 449, 450, ticks - 1].contains(&tick) {
+                expected.insert(
+                    tick as usize,
+                    postcard::to_allocvec(&playback.snapshot().unwrap()).unwrap(),
+                );
+            }
+        }
+        eprintln!(
+            "native rewind sequence={sequence}: capture+delta {:.3} ms/tick, raw={} bytes, history={} bytes, retained={}",
+            elapsed.as_secs_f64() * 1000.0 / ticks as f64,
+            expected[&0].len(),
+            history.bytes,
+            history.entries.len()
+        );
+        assert_eq!(history.entries.front().unwrap().tick, 0);
+        assert_eq!(history.entries.len(), ticks as usize);
+        for (&index, bytes) in expected.iter().rev() {
+            assert!(
+                history.snapshot(index).unwrap().bytes().unwrap() == *bytes,
+                "sequence {sequence}, tick {index}"
+            );
+        }
+        let mut restored = start(1);
+        restored
+            .restore_snapshot(history.snapshot(0).unwrap().decode().unwrap(), |_| Ok(()))
+            .unwrap();
+        history.branch(0).unwrap();
+        let mut original = start(sequence);
+        if let Content::Gameplay(session) = &mut original.content {
+            session.world.actors[session.world.player]
+                .actor
+                .invulnerable = true;
+        }
+        original.step(0).unwrap();
+        for tick in 1..=60 {
+            together(&mut original, &mut restored, 1);
+            history.recorder.begin();
+            restored
+                .snapshot()
+                .unwrap()
+                .capture(&mut history.recorder)
+                .unwrap();
+            let state = history.recorder.finish().unwrap();
+            history.push(tick, 30, state, None).unwrap();
+        }
+        assert!(
+            history.snapshot(60).unwrap().bytes().unwrap()
+                == postcard::to_allocvec(&original.snapshot().unwrap()).unwrap()
+        );
+    }
+}
+
 fn compare(a: &Playback<DiscSource>, b: &Playback<DiscSource>) {
     assert!(postcard::to_allocvec(&a.run).unwrap() == postcard::to_allocvec(&b.run).unwrap());
     assert_eq!(

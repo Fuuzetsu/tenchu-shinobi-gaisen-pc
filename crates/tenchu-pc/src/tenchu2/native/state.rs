@@ -23,6 +23,54 @@ pub(super) struct State<C, D> {
 pub(super) type Owned = State<(World, Assets, Frame), Director>;
 pub(super) type Borrowed<'a> = State<(&'a World, &'a Assets, &'a Frame), &'a Director>;
 
+#[cfg(test)]
+impl Borrowed<'_> {
+    pub(super) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            signature,
+            core: (world, assets, frame),
+            feedback,
+            contact,
+            bank,
+            actor_voices,
+            pending,
+            interpolation,
+            navigation,
+            circle_action,
+            models,
+            gaisen,
+        } = self;
+        out.value(signature)?;
+        world.capture(out)?;
+        assets.capture(out)?;
+        out.value(frame)?;
+        out.value(feedback)?;
+        out.value(contact)?;
+        out.shared_arc(bank, true)?;
+        out.value(&actor_voices.len())?;
+        for (actor, voice) in actor_voices {
+            out.value(actor)?;
+            out.value(&voice.is_some())?;
+            if let Some(voice) = voice {
+                out.shared_arc(voice, true)?;
+            }
+        }
+        out.value(pending)?;
+        out.value(interpolation)?;
+        out.value(navigation)?;
+        out.value(circle_action)?;
+        models.capture(out)?;
+        out.value(&gaisen.is_some())?;
+        if let Some(gaisen) = gaisen {
+            gaisen.capture(out)?;
+        }
+        Ok(())
+    }
+}
+
 impl Session {
     pub(super) fn snapshot(&self) -> Borrowed<'_> {
         let Self {

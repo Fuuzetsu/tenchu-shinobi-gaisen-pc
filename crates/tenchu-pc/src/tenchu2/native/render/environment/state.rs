@@ -14,6 +14,35 @@ pub(in crate::tenchu2::native::render) struct State {
     player_pool_age: Option<u64>,
 }
 
+#[cfg(test)]
+impl State {
+    pub(in crate::tenchu2::native::render) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            weather,
+            footprints,
+            tick,
+            thunder,
+            contact,
+            blood,
+            blood_pools_changed,
+            blood_serial,
+            player_pool_age,
+        } = self;
+        out.value(weather)?;
+        footprints.capture(out)?;
+        out.value(tick)?;
+        out.value(thunder)?;
+        contact.capture(out)?;
+        blood.capture(out)?;
+        out.value(blood_pools_changed)?;
+        out.value(blood_serial)?;
+        out.value(player_pool_age)
+    }
+}
+
 impl Environment {
     pub fn capture_state(&self) -> State {
         let Self {

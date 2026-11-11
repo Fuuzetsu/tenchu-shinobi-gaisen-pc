@@ -51,11 +51,20 @@ pub fn capture(
     settings: &Settings,
     tools: &Tools,
 ) -> Result<Vec<u8>> {
+    crate::savestate::encode(&snapshot(playback, drawing, settings, tools)?)
+}
+
+fn snapshot<'a>(
+    playback: &'a Playback<impl ReadAt>,
+    drawing: &ContentDrawing,
+    settings: &Settings,
+    tools: &Tools,
+) -> Result<State<campaign::state::Borrowed<'a>>> {
     let visuals = drawing
         .capture_state()
         .ok_or("Start a mission or 3D cutscene before saving a state")?;
     visuals.validate(&playback.content)?;
-    crate::savestate::encode(&State {
+    Ok(State {
         signature: SIGNATURE.into(),
         campaign: playback.snapshot()?,
         preferences: settings.clone(),
@@ -63,6 +72,33 @@ pub fn capture(
         actors_edited: tools.debug.actors_edited,
         visuals,
     })
+}
+
+#[cfg(test)]
+fn capture_rewind(
+    playback: &Playback<impl ReadAt>,
+    drawing: &ContentDrawing,
+    settings: &Settings,
+    tools: &Tools,
+    recorder: &mut crate::rewind::Recorder,
+) -> Result<crate::rewind::Snapshot> {
+    use tenchu_assets::checkpoint::Capture;
+    let State {
+        signature,
+        campaign,
+        preferences,
+        orbit,
+        actors_edited,
+        visuals,
+    } = snapshot(playback, drawing, settings, tools)?;
+    recorder.begin();
+    recorder.value(&signature)?;
+    campaign.capture(recorder)?;
+    recorder.shared(&serde_json::to_string(&preferences).map_err(|e| e.to_string())?)?;
+    recorder.value(&orbit)?;
+    recorder.value(&actors_edited)?;
+    visuals.capture(recorder)?;
+    recorder.finish()
 }
 
 pub fn restore(

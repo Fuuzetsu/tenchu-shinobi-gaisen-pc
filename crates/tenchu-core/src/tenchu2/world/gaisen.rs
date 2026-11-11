@@ -21,6 +21,22 @@ pub struct Director {
 }
 
 impl Director {
+    pub fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            source,
+            presenting,
+            bindings,
+            affected,
+        } = self;
+        source.capture(out)?;
+        out.value(presenting)?;
+        out.value(bindings)?;
+        out.value(affected)
+    }
+
     pub fn new(mut source: Game, world: &mut World, assets: &Assets) -> Result<Self> {
         if source.trial.is_some()
             || source.tick != 0

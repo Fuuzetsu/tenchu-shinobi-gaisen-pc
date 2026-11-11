@@ -20,6 +20,37 @@ pub(in crate::tenchu2::native) struct State<P, V> {
 pub(in crate::tenchu2::native) type Owned = State<Playback, Vram>;
 pub(in crate::tenchu2::native) type Borrowed<'a> = State<&'a Playback, &'a Vram>;
 
+#[cfg(test)]
+impl Borrowed<'_> {
+    pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            signature,
+            sequence,
+            event,
+            playback,
+            textures,
+            interpolation,
+            models,
+            contact,
+        } = self;
+        out.value(signature)?;
+        out.value(sequence)?;
+        out.value(event)?;
+        out.value(playback)?;
+        out.value(&textures.len())?;
+        for (id, vram) in textures {
+            out.value(id)?;
+            out.shared(*vram)?;
+        }
+        out.value(interpolation)?;
+        models.capture(out)?;
+        out.value(contact)
+    }
+}
+
 impl Story {
     pub(in crate::tenchu2::native) fn snapshot(&self) -> Borrowed<'_> {
         let Self {

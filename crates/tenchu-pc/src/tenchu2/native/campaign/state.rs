@@ -31,6 +31,52 @@ pub(in crate::tenchu2::native) type Owned =
 pub(in crate::tenchu2::native) type Borrowed<'a> =
     State<Scene<super::super::state::Borrowed<'a>, super::super::story::state::Borrowed<'a>>>;
 
+#[cfg(test)]
+impl Borrowed<'_> {
+    pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            signature,
+            run,
+            content,
+            action,
+            loadout,
+            previous_buttons,
+            from_menu,
+            death,
+            keep_all_active,
+            circle_action,
+            bleeding,
+            imported,
+            gaisen_water_depth,
+        } = self;
+        out.value(signature)?;
+        out.value(run)?;
+        match content {
+            Scene::Gameplay(session) => {
+                out.value(&0u32)?;
+                session.capture(out)?;
+            }
+            Scene::Story(story) => {
+                out.value(&1u32)?;
+                story.capture(out)?;
+            }
+        }
+        out.value(action)?;
+        out.value(loadout)?;
+        out.value(previous_buttons)?;
+        out.value(from_menu)?;
+        out.value(death)?;
+        out.value(keep_all_active)?;
+        out.value(circle_action)?;
+        out.value(bleeding)?;
+        out.value(imported)?;
+        out.value(gaisen_water_depth)
+    }
+}
+
 impl<S: ReadAt> Playback<S> {
     pub(in crate::tenchu2::native) fn snapshot(&self) -> Result<Borrowed<'_>> {
         let Self {

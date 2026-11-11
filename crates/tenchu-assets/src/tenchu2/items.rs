@@ -15,6 +15,20 @@ pub struct Items {
 }
 
 impl Items {
+    pub fn capture<C: crate::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            vram,
+            images,
+            models,
+        } = self;
+        out.shared(vram)?;
+        out.shared(images)?;
+        out.shared(models)
+    }
+
     pub fn models(&self) -> impl Iterator<Item = (u8, &[Part])> {
         self.models
             .iter()

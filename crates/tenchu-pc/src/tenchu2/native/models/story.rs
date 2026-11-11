@@ -19,6 +19,39 @@ pub struct Skin {
 }
 
 impl Override {
+    #[cfg(test)]
+    pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            selected,
+            hero,
+            actors,
+            skin,
+            custom,
+        } = self;
+        out.value(selected)?;
+        out.value(hero)?;
+        out.value(actors)?;
+        out.value(&skin.is_some())?;
+        if let Some(Skin {
+            parts,
+            vram,
+            sources,
+        }) = skin
+        {
+            out.shared(parts)?;
+            out.shared_arc(vram, true)?;
+            out.value(sources)?;
+        }
+        out.value(&custom.is_some())?;
+        if let Some(custom) = custom {
+            custom.capture(out)?;
+        }
+        Ok(())
+    }
+
     pub fn current(&self, hero: usize, selected: &str) -> bool {
         self.selected == selected && (selected.is_empty() || self.hero == hero)
     }

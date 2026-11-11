@@ -2,6 +2,7 @@ use super::{model, volume::Volume};
 use crate::{ReadAt, Result, disc::Disc, model::Part, texture::Vram, u32_le};
 
 pub mod background;
+mod checkpoint;
 pub mod grid;
 pub mod objects;
 mod shading;

@@ -21,6 +21,21 @@ fn renderer(playback: &Playback<DiscSource>, settings: &Settings) -> Renderer {
     renderer
 }
 
+fn check_rewind(
+    playback: &Playback<DiscSource>,
+    drawing: &ContentDrawing,
+    settings: &Settings,
+    tools: &Tools,
+) {
+    let state =
+        capture_rewind(playback, drawing, settings, tools, &mut Default::default()).unwrap();
+    assert!(
+        state.bytes().unwrap()
+            == postcard::to_allocvec(&snapshot(playback, drawing, settings, tools).unwrap())
+                .unwrap()
+    );
+}
+
 #[test]
 #[ignore = "requires TENCHU2_DISC and GPU; the host save boundary restores gameplay preferences/tools, retains current graphics and continues gameplay/cutscenes"]
 fn native_savestates_restore_gameplay_preferences_and_continue() {
@@ -49,6 +64,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
             .update(&original.content, &mut renderer, &tools.debug, &settings)
             .unwrap();
         let bytes = capture(&original, &drawing, &settings, &tools).unwrap();
+        check_rewind(&original, &drawing, &settings, &tools);
         let source = original.capture_state().unwrap();
         let mut restored = start(119);
         let mut current = Settings::default();
@@ -162,6 +178,7 @@ fn native_savestates_keep_embedded_overrides_with_an_empty_gallery() {
     let drawing = ContentDrawing::new(&original.content, &graphics, &mut renderer).unwrap();
     let mut tools = Tools::default();
     let bytes = capture(&original, &drawing, &settings, &tools).unwrap();
+    check_rewind(&original, &drawing, &settings, &tools);
     let mut restored = start(119);
     restore(
         &mut restored,
@@ -228,6 +245,7 @@ fn native_savestates_restore_imported_stages_from_disk() {
         .update(&original.content, &mut renderer, &tools.debug, &settings)
         .unwrap();
     let bytes = capture(&original, &drawing, &settings, &tools).unwrap();
+    check_rewind(&original, &drawing, &settings, &tools);
     let root = std::env::temp_dir().join(format!(
         "tenchu-native-state-file-{}-{}",
         std::process::id(),

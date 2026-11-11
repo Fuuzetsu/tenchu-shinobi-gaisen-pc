@@ -89,6 +89,25 @@ pub(super) struct State<D> {
     tick: u64,
 }
 
+#[cfg(test)]
+impl State<&Director> {
+    pub(super) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            director,
+            current,
+            started,
+            tick,
+        } = self;
+        director.capture(out)?;
+        out.value(current)?;
+        out.value(started)?;
+        out.value(tick)
+    }
+}
+
 impl Scene {
     pub(super) fn snapshot(&self) -> State<&Director> {
         State {

@@ -21,6 +21,7 @@ mod activation;
 mod assets;
 mod bleeding;
 mod camera;
+mod checkpoint;
 pub mod controls;
 mod effects;
 mod experiment;

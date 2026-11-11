@@ -28,6 +28,8 @@ use tenchu_core::{
     },
 };
 
+#[cfg(test)]
+mod checkpoint;
 mod convert;
 pub mod story;
 use convert::{convert_equipment, convert_moves, convert_weapons, native_parts};

@@ -16,6 +16,25 @@ pub(super) struct SceneState {
 }
 
 impl State {
+    #[cfg(test)]
+    pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            scene: SceneState { environment, sky },
+            motion,
+            wounds,
+        } = self;
+        out.value(&environment.is_some())?;
+        if let Some(environment) = environment {
+            environment.capture(out)?;
+        }
+        out.value(sky)?;
+        out.value(motion)?;
+        out.value(wounds)
+    }
+
     pub fn validate(&self, content: &Content) -> Result<()> {
         if !matches!(
             (content, &self.wounds),
