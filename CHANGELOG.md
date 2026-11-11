@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix blue-tinted T2 guards, player models and weapons on imported T1 stages.
+  Imported stages now use neutral shading instead of the palette from the T2
+  map used to load character resources.
+
 - Native T2 cutscene player overrides now use the selected character's weapons
   and scabbards, including explicit weapon choices and equipment inherited from
   an enabled moveset. Authored held/sheathed states and other actors are retained.

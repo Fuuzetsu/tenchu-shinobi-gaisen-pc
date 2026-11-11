@@ -208,6 +208,7 @@ impl Assets {
         level.objects = source.objects.as_ref().clone();
         level.stumps.clear();
         level.background = Background::default();
+        level.shading = Default::default();
         level.vram = source.vram.clone();
         self.gaisen_scrolls = source
             .misc

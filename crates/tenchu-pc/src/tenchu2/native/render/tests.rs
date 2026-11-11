@@ -1,5 +1,6 @@
 use super::*;
 use glam::Vec3;
+mod gaisen;
 
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; checks opaque night scenery independently of particles"]

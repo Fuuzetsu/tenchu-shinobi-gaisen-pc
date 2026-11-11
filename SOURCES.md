@@ -18,6 +18,19 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Imported-stage actor shading (2026-11-11)
+
+T1 stage import reused T2 map8 for character/effect resources but left that map's
+mapfog.tim palette attached to the replacement level. T1 scenery uses authored
+RGB; native T2 actors and weapons use shade indices. The import now selects the
+existing neutral grayscale fallback used when a native map has no mapfog.tim.
+Native T2 maps retain their own palettes, and T1's authored scenery is unchanged.
+This is a cross-game presentation correction, not a source physics change.
+Disc-backed checks cover every imported stage and hero, retain the real map8
+palette for a before/after GPU comparison, and verify unchanged World state.
+Graphical presets and the demo catalog require no new option; all presets use
+the corrected imported level resource. No sibling code or assets were imported.
+
 ## Native cutscene equipment overrides (2026-11-11)
 
 The existing EVENT.BIN resource loader resolves each script weapon entry through

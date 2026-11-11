@@ -38,6 +38,9 @@ fn gaisen_stages_load_and_advance_native_worlds() {
             .unwrap_or_else(|e| panic!("stage {stage} hero {hero}: {e}"));
             assert_eq!(session.assets.level.gaisen.as_ref().unwrap().id, stage);
             assert_eq!(session.assets.level.map, *source.map);
+            for index in 0..=255 {
+                assert_eq!(session.assets.level.shading.color(index), [index; 3]);
+            }
             assert_eq!(
                 &session.assets.level.objects[..source.objects.len()],
                 source.objects.as_slice()
