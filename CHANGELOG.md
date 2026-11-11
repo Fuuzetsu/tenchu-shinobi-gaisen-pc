@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.29.0 — 2026-11-11
+
 - Fix blue-tinted T2 guards, player models and weapons on imported T1 stages.
   Imported stages now use neutral shading instead of the palette from the T2
   map used to load character resources.
