@@ -10,10 +10,23 @@ impl Drawing {
         if self.motion.current(u64::from(session.world.tick), options) {
             return Ok(());
         }
+        let inputs = self.models.motion_inputs(session, options)?;
+        self.motion
+            .update(u64::from(session.world.tick), &inputs, options);
+        Ok(())
+    }
+}
+
+impl Models {
+    pub(super) fn motion_inputs(
+        &self,
+        session: &super::super::Session,
+        options: &crate::settings::Motion,
+    ) -> Result<Vec<Input>> {
         let mut inputs = Vec::new();
-        if options.actors() && self.models.has_motion() {
+        if options.actors() && self.has_motion() {
             let mut scene = session.world.scene.clone();
-            self.models.visit_actors(
+            self.visit_actors(
                 &session.world,
                 &session.assets,
                 &mut scene,
@@ -32,13 +45,9 @@ impl Drawing {
                 },
             )?;
         }
-        self.motion
-            .update(u64::from(session.world.tick), &inputs, options);
-        Ok(())
+        Ok(inputs)
     }
-}
 
-impl Models {
     fn has_motion(&self) -> bool {
         self.bodies
             .values()

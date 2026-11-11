@@ -49,6 +49,7 @@ pub struct Override {
     pub weapon_voice: Option<Arc<tenchu_assets::audio::voice::VoiceSet>>,
     original: Option<Original>,
     weapon_pool: Vec<Vec<usize>>,
+    voice_id: String,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -58,7 +59,6 @@ pub struct Custom {
 }
 
 impl Custom {
-    #[cfg(test)]
     fn validate_state(&self) -> Result<()> {
         let body = self
             .pack
@@ -124,7 +124,26 @@ struct Original {
 }
 
 impl Override {
-    #[cfg(test)]
+    pub fn current(&self, settings: &Settings) -> bool {
+        let body = if settings.player_model.starts_with("pack:") {
+            ""
+        } else {
+            &settings.player_model
+        };
+        let options = if settings.model_moveset {
+            settings.model_moveset_options
+        } else {
+            Options::default()
+        };
+        self.applied.body == body
+            && self.applied.moveset == settings.moveset_id().unwrap_or_default()
+            && self.applied.weapon == settings.weapon_model
+            && self.applied.options == options
+            && self.voice_id == settings.voice_model
+            && self.custom.as_ref().map(|c| c.id.as_str())
+                == settings.player_model.strip_prefix("pack:")
+    }
+
     pub(super) fn validate_state(&self, world: &World, assets: &Assets) -> Result<()> {
         let valid_model = |id: usize| id < world.scene.models.len();
         if self.original.as_ref().is_some_and(|original| {
@@ -180,6 +199,10 @@ impl Override {
         } else {
             Options::default()
         };
+        if self.current(settings) {
+            self.custom = custom;
+            return Ok(custom_changed);
+        }
         let moveset = library
             .moveset(settings)?
             .filter(|body| compatible_moveset(body));
@@ -199,6 +222,7 @@ impl Override {
         {
             self.voice = voice;
             self.weapon_voice = weapon_voice;
+            self.voice_id.clone_from(&settings.voice_model);
             self.custom = custom;
             return Ok(custom_changed);
         }
@@ -448,6 +472,7 @@ impl Override {
         world.scene.finish_tick();
         self.voice = voice;
         self.weapon_voice = weapon_voice;
+        self.voice_id.clone_from(&settings.voice_model);
         self.custom = custom;
         self.applied = selection;
         Ok(true)

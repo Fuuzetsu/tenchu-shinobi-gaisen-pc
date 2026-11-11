@@ -37,6 +37,27 @@ pub struct Tools {
 }
 
 impl Tools {
+    pub(super) fn orbit(&self) -> &crate::navigation::Orbit {
+        &self.orbit
+    }
+
+    pub(super) fn restore_checkpoint(
+        &mut self,
+        content: &Content,
+        generation: u64,
+        mut orbit: crate::navigation::Orbit,
+        actors_edited: bool,
+    ) {
+        let slot = self.debug.state_slot;
+        *self = Self::default();
+        self.sync(content, generation);
+        orbit.looking = false;
+        self.orbit = orbit;
+        self.debug.state_slot = slot;
+        self.debug.pause_view = true;
+        self.debug.actors_edited = actors_edited;
+    }
+
     pub fn restore_defaults(&mut self, all: bool) {
         if all {
             let actors_edited = self.debug.actors_edited;

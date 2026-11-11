@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 const SIGNATURE: &str = "native-tenchu2-jp-campaign-1";
 
 #[derive(Serialize, Deserialize)]
-pub(super) enum Scene<G, S> {
+pub(in crate::tenchu2::native) enum Scene<G, S> {
     Gameplay(Box<G>),
     Story(Box<S>),
 }
 
 #[derive(Serialize, Deserialize)]
-pub(super) struct State<C> {
+pub(in crate::tenchu2::native) struct State<C> {
     pub(super) signature: String,
     pub(super) run: Run,
     pub(super) content: C,
@@ -26,12 +26,13 @@ pub(super) struct State<C> {
     gaisen_water_depth: i16,
 }
 
-pub(super) type Owned = State<Scene<super::super::state::Owned, super::super::story::state::Owned>>;
-type Borrowed<'a> =
+pub(in crate::tenchu2::native) type Owned =
+    State<Scene<super::super::state::Owned, super::super::story::state::Owned>>;
+pub(in crate::tenchu2::native) type Borrowed<'a> =
     State<Scene<super::super::state::Borrowed<'a>, super::super::story::state::Borrowed<'a>>>;
 
 impl<S: ReadAt> Playback<S> {
-    fn snapshot(&self) -> Result<Borrowed<'_>> {
+    pub(in crate::tenchu2::native) fn snapshot(&self) -> Result<Borrowed<'_>> {
         let Self {
             disc: _,
             campaign: _,
@@ -73,12 +74,21 @@ impl<S: ReadAt> Playback<S> {
         })
     }
 
+    #[cfg(test)]
     pub fn capture_state(&self) -> Result<Vec<u8>> {
         crate::savestate::encode(&self.snapshot()?)
     }
 
+    #[cfg(test)]
     pub fn restore_state(&mut self, bytes: &[u8]) -> Result<()> {
-        let saved: Owned = crate::savestate::decode(bytes)?;
+        self.restore_snapshot(crate::savestate::decode(bytes)?, |_| Ok(()))
+    }
+
+    pub(in crate::tenchu2::native) fn restore_snapshot<T>(
+        &mut self,
+        saved: Owned,
+        prepare: impl FnOnce(&Content) -> Result<T>,
+    ) -> Result<T> {
         saved.validate(&self.campaign, self.gaisen.is_some())?;
         let State {
             run,
@@ -118,6 +128,7 @@ impl<S: ReadAt> Playback<S> {
                 }
             }
         };
+        let prepared = prepare(&content)?;
         self.run = run;
         self.content = content;
         self.action = action;
@@ -130,7 +141,18 @@ impl<S: ReadAt> Playback<S> {
         self.bleeding = bleeding;
         self.gaisen_water_depth = gaisen_water_depth;
         self.generation = self.generation.wrapping_add(1);
-        Ok(())
+        Ok(prepared)
+    }
+
+    pub(in crate::tenchu2::native) fn restore_preferences(
+        &self,
+        settings: &mut crate::settings::Settings,
+    ) {
+        settings.wait_after_death = self.death.enabled();
+        settings.live_death_scene = self.death.live();
+        settings.keep_enemies_active = self.keep_all_active;
+        settings.circle_action = self.circle_action;
+        settings.bleeding = self.bleeding;
     }
 }
 

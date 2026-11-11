@@ -1642,6 +1642,13 @@ releases. Browser slots live in IndexedDB for that site address, survive closing
 the browser, and are removed by clearing site data. The campaign **Export save**
 button does not include these separate slots.
 
+Native T2 uses the same F1/F11/F12 controls with separate `t2-jp-slot-1.tstate`
+through `t2-jp-slot-5.tstate` files. It can save gameplay and 3D cutscenes; open
+native T2 before loading. Imported T1 stages require the same stage, source
+character, layout and language. Native states embed selected folder-model
+resources and preserve campaign/retry context. See [native T2](tenchu2-native.md)
+for the supported workflow; its rewind controls remain unavailable.
+
 **F1 → Simulation → Rewind history** optionally keeps up to 30 seconds of play
 in memory. **Ctrl+F12**, or the **Rewind** button, plays the world backward.
 Press it again to stop. The timeline remains visible: drag it backward or forward,

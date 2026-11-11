@@ -157,6 +157,11 @@ impl Settings {
     }
 
     pub fn restore_gameplay(&mut self, saved: &Self, game: &tenchu_core::game::Game) {
+        self.restore_playback_preferences(saved);
+        self.restore_simulation(saved, game);
+    }
+
+    pub(crate) fn restore_playback_preferences(&mut self, saved: &Self) {
         self.wait_after_death = saved.wait_after_death;
         self.live_death_scene = saved.live_death_scene;
         self.navigation.clone_from(&saved.navigation);
@@ -167,6 +172,9 @@ impl Settings {
         self.weapon_model.clone_from(&saved.weapon_model);
         self.voice_model.clone_from(&saved.voice_model);
         self.model_moveset_options = saved.model_moveset_options;
+    }
+
+    fn restore_simulation(&mut self, saved: &Self, game: &tenchu_core::game::Game) {
         self.keep_enemies_active = game.roster.keep_all_active;
         self.reinforcement_limit = game.roster.reinforcement_limit.unwrap_or(0) as u16;
         self.reinforcement_call = game.roster.reinforcement_call;

@@ -22,6 +22,37 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(super) fn capture_state(&self) -> super::state::State {
+        super::state::State {
+            scene: self.scene.capture_state(),
+            motion: self.motion.clone(),
+            wounds: None,
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(super) fn restore_state(
+        &mut self,
+        state: super::state::State,
+        story: &Story,
+        renderer: &mut Renderer,
+    ) -> Result<()> {
+        let inputs = self
+            .models
+            .motion_inputs(story, &renderer.graphics().motion)?;
+        self.motion = state.motion;
+        self.motion.rebind_inputs(&inputs);
+        self.scene.restore_state(
+            state.scene,
+            &story.level,
+            &self.models.terrain,
+            &story.math,
+            renderer,
+        );
+        Ok(())
+    }
+
     pub fn clear_blood(&mut self) {
         self.scene.clear_blood();
     }

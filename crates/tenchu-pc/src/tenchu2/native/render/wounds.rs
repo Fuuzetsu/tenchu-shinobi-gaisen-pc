@@ -7,7 +7,7 @@ use glam::Vec3;
 use std::collections::BTreeSet;
 use tenchu_core::tenchu2::actor::State;
 
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub(super) struct Wounds {
     tick: Option<u32>,
     health: BTreeMap<usize, i16>,
@@ -341,4 +341,4 @@ fn point(position: Position) -> Vec3 {
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

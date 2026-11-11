@@ -6,6 +6,8 @@ use crate::tenchu2::native::{
     transport::{Input as PlaybackInput, Transport},
 };
 
+mod state;
+
 pub(in crate::window) struct Native {
     pub playback: Playback<DiscSource>,
     drawing: Option<ContentDrawing>,
@@ -299,12 +301,20 @@ impl Application {
         view.renderer.profiling = self.settings.show_performance;
         let native = self.native_tenchu2.as_mut().unwrap();
         let wants_models = (native.menu.panel.open && matches!(native.menu.panel.page, 4 | 10))
-            || !self.settings.player_model.is_empty()
-            || self.settings.moveset_id().is_some()
-            || !self.settings.weapon_model.is_empty()
-            || !self.settings.voice_model.is_empty();
+            || !native
+                .playback
+                .content
+                .current_model(native.playback.run.hero, &self.settings);
         if wants_models && view.model_library.is_none() {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
+            if native
+                .playback
+                .content
+                .current_model(native.playback.run.hero, &self.settings)
+                && let Some(pack) = native.playback.content.embedded_bodies()
+            {
+                view.bodies = pack;
+            }
         }
         let mut models_changed = std::mem::take(&mut native.menu.actor_assets_changed);
         if let Content::Gameplay(session) = &mut native.playback.content
@@ -411,6 +421,7 @@ impl Application {
         let mut step = false;
         let mut reload_artwork = false;
         let mut save_diagnostics = false;
+        let mut state_action = None;
         let was_open = native.menu.panel.open;
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
@@ -495,6 +506,7 @@ impl Application {
             }
             reload_artwork |= actions.reload_artwork;
             save_diagnostics |= actions.save_diagnostics;
+            state_action = actions.state;
             if actions.clear_blood {
                 native.drawing.as_mut().unwrap().clear_blood();
             }
@@ -627,6 +639,9 @@ impl Application {
         }
         if step && self.native_tenchu2.as_ref().unwrap().error.is_none() {
             leave |= self.step_native_tenchu2()?;
+        }
+        if let Some(save) = state_action {
+            self.native_state_action(save);
         }
         if save_diagnostics && let Err(error) = self.save_diagnostics() {
             self.native_tenchu2.as_mut().unwrap().menu.panel.notice = error;
@@ -829,6 +844,23 @@ impl Application {
                                 .unwrap()
                                 .menu
                                 .request_screenshot();
+                            return Ok(());
+                        }
+                        KeyCode::F11 | KeyCode::F12 => {
+                            if code == KeyCode::F12
+                                && (self.controls.held(KeyCode::ControlLeft)
+                                    || self.controls.held(KeyCode::ControlRight))
+                            {
+                                self.native_tenchu2.as_mut().unwrap().menu.state_result(
+                                    false,
+                                    Err(settings::runtime::Runtime::Tenchu2
+                                        .unavailable(settings::menu::Item::Rewind)
+                                        .unwrap()
+                                        .into()),
+                                );
+                                return Ok(());
+                            }
+                            self.native_state_action(code == KeyCode::F11);
                             return Ok(());
                         }
                         KeyCode::F6 => return self.leave_native_tenchu2(),

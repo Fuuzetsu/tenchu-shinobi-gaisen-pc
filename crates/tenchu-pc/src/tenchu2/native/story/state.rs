@@ -52,10 +52,12 @@ impl Story {
         }
     }
 
+    #[cfg(test)]
     pub fn capture_state(&self) -> Result<Vec<u8>> {
         crate::savestate::encode(&self.snapshot())
     }
 
+    #[cfg(test)]
     pub fn restore_state(&mut self, disc: &Disc<impl ReadAt>, bytes: &[u8]) -> Result<()> {
         let saved: Owned = crate::savestate::decode(bytes)?;
         let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(disc)?;

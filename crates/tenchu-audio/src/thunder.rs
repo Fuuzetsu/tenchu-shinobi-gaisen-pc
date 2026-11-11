@@ -44,7 +44,7 @@ impl Thunder {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ThunderCue {
     pub seed: u32,
     pub strength: f32,

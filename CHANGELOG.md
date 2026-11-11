@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports five separate savestate slots through **F1 → Simulation**,
+  **F11** and **F12** in both launchers. Save gameplay or 3D cutscenes, including
+  T1 stages running under T2; loading restores the campaign/retry state, character
+  overrides and accumulated presentation effects, then pauses. T2 slots are
+  separate from T1 slots, and loading does not write campaign progress. Imported
+  T1 stages require the same stage, source character, layout and language.
+
 - Native T2 supports **Restore defaults** and **Reset simulation tweaks** in
   F1. Reset experiments without restarting the mission or changing inventory,
   armour, kills or campaign progress; the simulation reset keeps graphics and

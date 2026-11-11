@@ -81,7 +81,6 @@ pub struct Scene {
     pub audio: Audio,
 }
 
-#[cfg(test)]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(super) struct State<D> {
     director: D,
@@ -90,7 +89,6 @@ pub(super) struct State<D> {
     tick: u64,
 }
 
-#[cfg(test)]
 impl Scene {
     pub(super) fn snapshot(&self) -> State<&Director> {
         State {
@@ -102,10 +100,10 @@ impl Scene {
     }
 }
 
-#[cfg(test)]
 impl State<Director> {
     pub(super) fn create(self, source: &Source) -> Result<Scene> {
         let game = &self.director.source;
+        crate::savestate::validate_game(game)?;
         if game.mission.stage.id != source.stage
             || game.mission.layout_index >= 3
             || source.layout != 0 && Some(game.mission.layout_index) != source.layout.checked_sub(1)
@@ -134,9 +132,11 @@ impl State<Director> {
         })
     }
 
+    #[cfg(test)]
     pub(super) fn validate(&self, current: Option<&Scene>) -> Result<()> {
         let current = current.ok_or("Open the matching T1 stage before restoring this state")?;
         let game = &self.director.source;
+        crate::savestate::validate_game(game)?;
         let previous = &current.director.source;
         if game.mission.stage != previous.mission.stage
             || game.mission.layout_index != previous.mission.layout_index
@@ -156,6 +156,7 @@ impl State<Director> {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(super) fn restore(self, scene: &mut Scene) {
         scene.director = self.director;
         scene.audio.current = self.current;

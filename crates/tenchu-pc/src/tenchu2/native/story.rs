@@ -14,7 +14,7 @@ use tenchu_core::{
     tenchu2::story::{Playback, TextureChange},
 };
 
-#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) mod state;
 
 pub struct Story {

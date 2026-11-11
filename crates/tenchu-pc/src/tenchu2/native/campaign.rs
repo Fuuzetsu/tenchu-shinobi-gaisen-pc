@@ -14,7 +14,6 @@ use tenchu_core::tenchu2::{
 };
 
 mod death;
-#[cfg(test)]
 pub(super) mod state;
 #[cfg(test)]
 mod tests;

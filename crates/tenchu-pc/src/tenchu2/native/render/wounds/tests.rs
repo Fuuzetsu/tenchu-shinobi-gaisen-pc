@@ -444,7 +444,9 @@ fn check_model_stains(custom: Option<&Pack>) {
     }
 }
 
-fn combat_fixture(hero: usize) -> (crate::tenchu2::native::Session, usize, usize) {
+pub(in crate::tenchu2::native::render) fn combat_fixture(
+    hero: usize,
+) -> (crate::tenchu2::native::Session, usize, usize) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let mut session =
@@ -549,7 +551,7 @@ fn combat_fixture(hero: usize) -> (crate::tenchu2::native::Session, usize, usize
     (session, player, guard)
 }
 
-fn weapon_hit(
+pub(in crate::tenchu2::native::render) fn weapon_hit(
     session: &mut crate::tenchu2::native::Session,
     attacker: usize,
     victim: usize,

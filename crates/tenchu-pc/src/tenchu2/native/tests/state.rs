@@ -275,9 +275,22 @@ fn native_session_snapshot_embeds_custom_body_resources() {
     std::fs::remove_dir_all(&folder).unwrap();
     let mut restored = Session::load(&disc, 9, 1).unwrap();
     restored.restore_state(&bytes).unwrap();
-    let saved = &restored.models.custom.as_ref().unwrap().pack;
+    let saved = restored.models.custom.as_ref().unwrap().pack.clone();
     assert!(saved.models.values().any(|model| !model.is_empty()) && !saved.images.is_empty());
-    assert!(postcard::to_allocvec(&bodies).unwrap() == postcard::to_allocvec(saved).unwrap());
+    assert!(postcard::to_allocvec(&bodies).unwrap() == postcard::to_allocvec(&saved).unwrap());
+    assert!(
+        !restored
+            .models
+            .sync(
+                &mut restored.world,
+                &mut restored.assets,
+                &mut donor,
+                &Library::default(),
+                &saved,
+                &settings
+            )
+            .unwrap()
+    );
     assert_continuation(&mut original, &mut restored, 90);
 }
 

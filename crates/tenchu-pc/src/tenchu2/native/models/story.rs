@@ -19,7 +19,10 @@ pub struct Skin {
 }
 
 impl Override {
-    #[cfg(test)]
+    pub fn current(&self, hero: usize, selected: &str) -> bool {
+        self.selected == selected && (selected.is_empty() || self.hero == hero)
+    }
+
     pub(crate) fn validate_state(&self, resources: &Resources) -> Result<()> {
         if self.hero >= 3
             || self

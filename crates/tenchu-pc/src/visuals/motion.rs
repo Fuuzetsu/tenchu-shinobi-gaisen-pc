@@ -263,6 +263,36 @@ pub struct Motion {
 
 impl Motion {
     #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn validate(&self) -> Result<()> {
+        if self.springs.len() > 256
+            || self.springs.iter().any(|((_, index), spring)| {
+                *index >= 4
+                    || [
+                        spring.anchor,
+                        spring.drive,
+                        spring.velocity,
+                        spring.previous,
+                        spring.offset,
+                    ]
+                    .iter()
+                    .any(|v| !v.is_finite())
+            })
+        {
+            return Err("Invalid secondary motion in savestate".into());
+        }
+        Ok(())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn rebind_inputs(&mut self, inputs: &[Input]) {
+        for input in inputs {
+            if let Some(spring) = self.springs.get_mut(&input.key) {
+                spring.geometry = input.geometry;
+            }
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn current(&self, tick: u64, options: &settings::Motion) -> bool {
         self.tick == Some(tick) && self.options.as_ref() == Some(options)
     }

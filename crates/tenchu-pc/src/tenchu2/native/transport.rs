@@ -50,6 +50,15 @@ pub struct Update {
 }
 
 impl Transport {
+    pub fn discard_backlog(&mut self) {
+        self.clock.discard_host_backlog();
+    }
+
+    pub fn restored(&mut self, playback: &mut Playback<impl ReadAt>, output: Option<&Output>) {
+        *self = Self::default();
+        self.audio(playback, false, output);
+    }
+
     pub fn interpolation(&self, playback: &Playback<impl ReadAt>, input: Input) -> f32 {
         if input.paused || input.pacing(&playback.content).0 == 0.0 || playback.death.frozen() {
             1.0

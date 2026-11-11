@@ -15,6 +15,8 @@ use crate::{
 use std::{sync::Arc, time::Instant};
 use tenchu_assets::Result;
 
+mod state;
+
 use winit::{
     application::ApplicationHandler,
     event::{ElementState, WindowEvent},
@@ -397,13 +399,23 @@ impl Application {
             &self.settings.navigation,
         );
         let wants_models = (self.menu.panel.open && matches!(self.menu.panel.page, 4 | 10))
-            || !self.settings.player_model.is_empty()
-            || self.settings.moveset_id().is_some()
-            || !self.settings.weapon_model.is_empty()
-            || !self.settings.voice_model.is_empty();
+            || !self
+                .session
+                .content
+                .current_model(self.session.run.hero, &self.settings);
         if wants_models && self.gallery.is_none() && self.gallery_error.is_none() {
             match super::models::Gallery::remembered(&self.settings.model_directory) {
-                Ok(gallery) => self.gallery = Some(gallery),
+                Ok(mut gallery) => {
+                    if self
+                        .session
+                        .content
+                        .current_model(self.session.run.hero, &self.settings)
+                        && let Some(pack) = self.session.content.embedded_bodies()
+                    {
+                        gallery.bodies = pack;
+                    }
+                    self.gallery = Some(gallery);
+                }
                 Err(error) => {
                     self.menu.panel.notice = error.clone();
                     self.gallery_error = Some(error);
@@ -446,6 +458,7 @@ impl Application {
             }
         }
         let mut save_diagnostics = false;
+        let mut state_action = None;
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
@@ -539,6 +552,7 @@ impl Application {
             )?;
             let prepare = Instant::now();
             save_diagnostics = action.save_diagnostics;
+            state_action = action.state;
             if let Some(bodies) = action.models
                 && let Some(gallery) = &mut self.gallery
             {
@@ -609,6 +623,9 @@ impl Application {
                 audio.send(Command::Volume(self.settings.volume));
             }
             self.store.write(&self.settings)?;
+        }
+        if let Some(save) = state_action {
+            self.state_action(save);
         }
         if let Some(view) = &mut self.view {
             view.performance.record_at(
@@ -791,6 +808,19 @@ impl ApplicationHandler for Application {
                                 }
                             }
                             KeyCode::F9 => self.menu.request_screenshot(),
+                            KeyCode::F12
+                                if self.controls.held(KeyCode::ControlLeft)
+                                    || self.controls.held(KeyCode::ControlRight) =>
+                            {
+                                self.menu.state_result(
+                                    false,
+                                    Err(crate::settings::runtime::Runtime::Tenchu2
+                                        .unavailable(crate::settings::menu::Item::Rewind)
+                                        .unwrap()
+                                        .into()),
+                                );
+                            }
+                            KeyCode::F11 | KeyCode::F12 => self.state_action(code == KeyCode::F11),
                             KeyCode::F3 => self.paused = !self.paused,
                             KeyCode::F4 if self.paused && self.error.is_none() => {
                                 if let Err(error) = self.step() {

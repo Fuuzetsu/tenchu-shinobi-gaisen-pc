@@ -42,6 +42,8 @@ mod scenery;
 mod scrolling;
 #[cfg(not(target_arch = "wasm32"))]
 mod sprites;
+#[cfg(not(target_arch = "wasm32"))]
+pub(super) mod state;
 mod story;
 #[cfg(test)]
 mod tests;

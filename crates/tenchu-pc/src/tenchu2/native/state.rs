@@ -56,10 +56,12 @@ impl Session {
         }
     }
 
+    #[cfg(test)]
     pub fn capture_state(&self) -> Result<Vec<u8>> {
         crate::savestate::encode(&self.snapshot())
     }
 
+    #[cfg(test)]
     pub fn restore_state(&mut self, bytes: &[u8]) -> Result<()> {
         let mut saved: Owned = crate::savestate::decode(bytes)?;
         saved.validate()?;

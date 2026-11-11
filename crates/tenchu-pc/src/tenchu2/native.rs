@@ -57,10 +57,12 @@ mod results;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod save;
 #[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod savestate;
+#[cfg(not(target_arch = "wasm32"))]
 mod selection;
 #[cfg(not(target_arch = "wasm32"))]
 mod spawning;
-#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod state;
 mod story;
 #[cfg(test)]

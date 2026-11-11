@@ -362,67 +362,13 @@ impl Application {
 
 impl State<Game> {
     fn validate(&self) -> Result<()> {
-        let game = &self.game;
-        let mut dismemberment = game.combat.dismemberment;
-        dismemberment.validate();
-        if dismemberment != game.combat.dismemberment {
-            return Err("Invalid dismemberment settings in savestate".into());
-        }
         if self.options.mission > 10
             || !(0..=1).contains(&self.options.character)
             || self.options.layout > 3
-            || game.mission.stage.id >= 11
-            || game
-                .roster
-                .actors
-                .get(game.player_id)
-                .is_none_or(Option::is_none)
-            || game.collision.len > game.collision.slots.len()
-            || game.mission.vram.words.len() != 1024 * 512
-            || game
-                .mission
-                .world_vram
-                .as_ref()
-                .is_some_and(|v| v.words.len() != 1024 * 512)
         {
             return Err("Invalid mission or player in savestate".into());
         }
-        for &id in &game.roster.order {
-            let actor = game
-                .roster
-                .actors
-                .get(id)
-                .and_then(Option::as_ref)
-                .ok_or("Missing savestate actor")?;
-            if actor
-                .bleeding
-                .as_ref()
-                .is_some_and(|s| id != game.player_id || !s.valid())
-            {
-                return Err("Invalid bleeding status in savestate".into());
-            }
-            if actor.id != id
-                || actor.parts.is_empty()
-                || actor.definition >= game.mission.characters.len()
-                || actor.root_model >= game.scene.models.len()
-                || actor.parts.iter().any(|&p| p >= game.scene.models.len())
-                || actor
-                    .motion
-                    .clip
-                    .is_some_and(|c| c >= game.mission.clips.len())
-            {
-                return Err("Invalid actor reference in savestate".into());
-            }
-            if let Some(part) = &actor.severed
-                && (!matches!(part.index, 2 | 4 | 6)
-                    || part.index >= actor.parts.len()
-                    || part.parent.is_none_or(|p| p >= game.scene.models.len())
-                    || game.scene.models[actor.parts[part.index]].parent != Some(0))
-            {
-                return Err("Invalid detached body part in savestate".into());
-            }
-        }
-        Ok(())
+        crate::savestate::validate_game(&self.game)
     }
 }
 

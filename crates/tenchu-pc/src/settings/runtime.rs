@@ -38,6 +38,12 @@ impl Runtime {
             "GAMEPLAY EDIT: keep all placed native actors simulating, patrolling and animating regardless of distance or the original activation budget. Scripted holds and deaths remain intact. Changes RNG and encounters; can cost more CPU. Off restores source distance/budget activation at its next check."
         } else if self == Self::Tenchu2 && item == Item::SharpText {
             "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. Authored title and rank artwork stays original."
+        } else if self == Self::Tenchu2 && item == Item::SaveState {
+            "F11 saves native T2 gameplay or a 3D cutscene, including imported T1 stages. Overwrites the selected T2 slot, separate from Gaisen slots. Retains campaign/retry context, overrides and presentation effects."
+        } else if self == Self::Tenchu2 && item == Item::LoadState {
+            "F12 loads the selected T2 state and pauses until F3. Open native T2 first; imported T1 states require the same stage, source character, layout and language. Current graphics remain in use. Loading does not write campaign progress."
+        } else if self == Self::Tenchu2 && item == Item::StateSlot {
+            "Select one of five native T2 save slots. These are separate from Gaisen slots and require the same game version."
         } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
             "Restore normal simulation speed, original sight and activation, native stance buttons, and disable God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
         } else if self == Self::Tenchu2 && item == Item::Reset {
@@ -148,8 +154,9 @@ impl Runtime {
             | WeaponReflections => None,
             HairMotion | ClothMotion | EquipmentMotion | MotionStrength | MotionResponse
             | MotionWind => None,
-            Rewind | RewindHistory | RewindSpeed | SaveState | LoadState | StateSlot => Some(
-                "Native Tenchu 2 JP does not yet support mid-mission saves or rewind. Campaign progress still saves normally.",
+            SaveState | LoadState | StateSlot => None,
+            Rewind | RewindHistory | RewindSpeed => Some(
+                "Native Tenchu 2 JP does not yet support rewind. Savestates and campaign progress are available.",
             ),
             _ => Some(
                 "Not implemented in native Tenchu 2 JP yet. Available in Gaisen; saved preferences are preserved.",

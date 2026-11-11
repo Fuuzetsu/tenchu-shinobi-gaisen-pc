@@ -852,7 +852,7 @@ mod tests {
                     .galley
                     .job
                     .text
-                    .contains("does not yet support mid-mission saves or rewind"),
+                    .contains(Runtime::Tenchu2.unavailable(Item::Rewind).unwrap()),
                 egui::Shape::Vec(shapes) => shapes.iter().any(has_reason),
                 _ => false,
             }

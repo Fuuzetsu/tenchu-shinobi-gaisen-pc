@@ -15,6 +15,11 @@ use tenchu_core::{
     tenchu2::world::{Assets, World},
 };
 
+#[cfg(not(target_arch = "wasm32"))]
+mod state;
+#[cfg(not(target_arch = "wasm32"))]
+pub(super) use state::State;
+
 pub(super) struct Environment {
     pub caster: Mesh,
     pub stale: bool,

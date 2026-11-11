@@ -106,9 +106,39 @@ pub struct Action {
     pub models: Option<std::sync::Arc<crate::visuals::pack::Pack>>,
     pub reload_artwork: bool,
     pub save_diagnostics: bool,
+    pub state: Option<bool>,
 }
 
 impl Menu {
+    pub fn state_result(&mut self, save: bool, result: Result<(), String>) {
+        self.panel.notice = match result {
+            Ok(()) => format!(
+                "{} T2 state {}{}",
+                if save { "Saved" } else { "Loaded" },
+                self.tools.debug.state_slot + 1,
+                if save { "" } else { " · F3 to resume" }
+            ),
+            Err(error) => error,
+        };
+        self.tools.debug.notice = Some((self.panel.notice.clone(), web_time::Instant::now()));
+    }
+
+    pub fn loaded_state(&mut self, controls: &mut Controls, presets: &mut Manager) {
+        self.panel.open = false;
+        self.panel.model_picker = false;
+        self.panel.touch_controls = false;
+        self.panel.edit = None;
+        self.diagnostics = false;
+        self.fast_forward = false;
+        self.actor_assets_changed = false;
+        self.screenshot = false;
+        self.pending = None;
+        controls.clear();
+        controls.stop_rumble();
+        controls.close_editor();
+        presets.open = false;
+    }
+
     pub fn apply_spawn(
         &mut self,
         playback: &mut super::campaign::Playback<impl tenchu_assets::ReadAt>,
@@ -413,6 +443,10 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::StateSlot => {
+                            self.tools.debug.state_slot = 0;
+                            Ok(())
+                        }
                         Item::KeepEnemiesActive => {
                             state.settings.keep_enemies_active =
                                 Settings::default().keep_enemies_active;
@@ -569,6 +603,16 @@ impl Menu {
                             self.request_screenshot();
                             Ok(())
                         }
+                        Item::StateSlot => {
+                            self.tools.debug.state_slot =
+                                (i32::from(self.tools.debug.state_slot) + delta.signum())
+                                    .rem_euclid(5) as u8;
+                            Ok(())
+                        }
+                        Item::SaveState | Item::LoadState => {
+                            action.state = Some(item == Item::SaveState);
+                            Ok(())
+                        }
                         Item::SpawnActor => super::spawning::Source::selected(
                             &self.panel.spawn_model,
                         )
@@ -630,6 +674,75 @@ mod tests {
             "tenchu-native-menu-presets-{}.json",
             std::process::id()
         )))
+    }
+
+    #[test]
+    fn native_savestate_menu_routes_controller_actions_and_clears_load_inputs() {
+        use tenchu_core::input;
+        for circle in [false, true] {
+            let mut settings = Settings {
+                circle_confirm: circle,
+                ..Default::default()
+            };
+            let mut menu = Menu::new(&settings);
+            menu.panel.open = true;
+            let mut controls = Controls::default();
+            let mut presets = presets();
+            let mut paused = false;
+            for item in [Item::StateSlot, Item::SaveState, Item::LoadState] {
+                let (page, row) = (0..settings::menu::PAGES.len())
+                    .find_map(|page| {
+                        settings::menu::rows(page, &settings, &menu.tools.debug, paused)
+                            .iter()
+                            .position(|row| row.item == item)
+                            .map(|row| (page, row))
+                    })
+                    .unwrap();
+                menu.panel.page = page;
+                menu.panel.row = row;
+                menu.controller(if circle { input::CIRCLE } else { input::CROSS }, circle);
+                let mut action = Action::default();
+                let ctx = egui::Context::default();
+                let _ = ctx.run(egui::RawInput::default(), |ctx| {
+                    action = menu.show(
+                        ctx,
+                        &mut State {
+                            settings: &mut settings,
+                            paused: &mut paused,
+                            controls: &mut controls,
+                            presets: &mut presets,
+                            lights: 0,
+                            samples: &[1],
+                            models: None,
+                        },
+                    );
+                });
+                assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+                if item == Item::StateSlot {
+                    assert_eq!(menu.tools.debug.state_slot, 1);
+                } else {
+                    assert_eq!(action.state, Some(item == Item::SaveState));
+                }
+            }
+            controls.touch(crate::touch::Sample {
+                buttons: u32::from(input::SQUARE),
+                ..Default::default()
+            });
+            controls.editor.open = true;
+            presets.open = true;
+            menu.fast_forward = true;
+            menu.panel.model_picker = true;
+            menu.panel.touch_controls = true;
+            menu.panel.edit = Some((Item::Target(0), "123".into()));
+            menu.loaded_state(&mut controls, &mut presets);
+            assert!(
+                !menu.panel.open && !controls.editor.open && !presets.open && !menu.fast_forward
+            );
+            assert_eq!(controls.buttons(), 0);
+            assert!(
+                !menu.panel.model_picker && !menu.panel.touch_controls && menu.panel.edit.is_none()
+            );
+        }
     }
 
     #[test]

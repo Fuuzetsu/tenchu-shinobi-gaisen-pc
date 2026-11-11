@@ -112,6 +112,24 @@ Rewind, randomizer, broader enemy-behaviour options
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
 
+**F1 → Simulation → Savestate slot** selects one of five native T2 slots.
+**Save state / F11** saves gameplay or a 3D cutscene; **Load state / F12** restores
+it and pauses until **F3**. Load from another scene or mission selection after
+opening native T2. For T1 stages running under T2, first open the same imported
+stage, source character, layout and language. T2 files are
+`states/t2-jp-slot-1.tstate` through `t2-jp-slot-5.tstate` in the usual data
+directory (`TENCHU_STATES` can override that directory), separately from T1 slots.
+
+States retain campaign/retry context, inventory, edited actors, model/moveset/
+equipment/voice overrides, cutscene faces, blood, weather, footprints and secondary
+motion. Folder-model resources are embedded. Gameplay choices follow the state;
+current graphics and installed artwork remain in use. Loading cancels pending
+click/editor actions and held physical inputs, returns to the player camera and
+resynchronizes cutscene audio. Loading itself does not write campaign progress;
+later normal mission completion can do so. State files require the same game
+version and contain disc-derived runtime data, so keep them outside source and
+asset releases. Rewind and Ctrl+F12 remain unavailable in native T2.
+
 **F1 → Bleeding** also works in native JP, including imported T1 stages. It is
 optional gameplay, separate from cosmetic wound drips: successful enemy melee,
 shuriken/kunai, darts, ordinary arrows and gunshots can start nonfatal blood loss.
@@ -127,8 +145,8 @@ Wounds and bandages carry through areas and cutscenes in the same mission; retry
 or a new mission starts a fresh supply. Changing the configured loadout does not
 refill current stock, and bandages never consume the campaign's item stock.
 Original stays unchanged, and Modern High/Ultra retain the separate gameplay
-choice. The existing `bleeding-bandages` demo exercises Gaisen; native demo and
-save/rewind adapters remain pending.
+choice. Savestates preserve wounds and supplies. The existing `bleeding-bandages`
+demo exercises Gaisen; native demo and rewind adapters remain pending.
 
 **F1 → Persistent effects → Stain wounded models** attaches soft stains to the
 body at native blood-emission positions after damage. It uses Gaisen's projector
