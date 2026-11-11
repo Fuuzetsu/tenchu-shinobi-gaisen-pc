@@ -30,7 +30,16 @@ fn native_story_checkpoints_preserve_faces_blood_and_overrides() {
         let mut original = Story::load(&disc, sequence, event, 17).unwrap();
         original
             .models
-            .sync(&original.resources, hero, &library, &bodies, model)
+            .sync(
+                &original.resources,
+                hero,
+                &library,
+                &bodies,
+                &crate::settings::Settings {
+                    player_model: model.into(),
+                    ..Default::default()
+                },
+            )
             .unwrap();
         original.interpolate(true).unwrap();
         for _ in 0..=frame {
@@ -87,11 +96,23 @@ fn native_story_checkpoints_preserve_faces_blood_and_overrides() {
         assert!(original.capture_state().unwrap() == restored.capture_state().unwrap());
         original
             .models
-            .sync(&original.resources, hero, &library, &bodies, "")
+            .sync(
+                &original.resources,
+                hero,
+                &library,
+                &bodies,
+                &crate::settings::Settings::default(),
+            )
             .unwrap();
         restored
             .models
-            .sync(&restored.resources, hero, &library, &bodies, "")
+            .sync(
+                &restored.resources,
+                hero,
+                &library,
+                &bodies,
+                &crate::settings::Settings::default(),
+            )
             .unwrap();
         assert!(original.models.actors.is_empty() && restored.models.actors.is_empty());
         assert!(original.capture_state().unwrap() == restored.capture_state().unwrap());

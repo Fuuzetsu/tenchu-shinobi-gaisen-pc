@@ -518,7 +518,7 @@ impl Application {
                 self.session.run.hero,
                 &gallery.library,
                 &gallery.bodies,
-                &self.settings.player_model,
+                &self.settings,
             ) {
                 Ok(changed) => models_changed |= changed,
                 Err(error) => self.menu.panel.notice = error,

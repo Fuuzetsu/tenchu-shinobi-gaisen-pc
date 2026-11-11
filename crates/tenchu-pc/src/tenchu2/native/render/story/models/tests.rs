@@ -18,11 +18,15 @@ fn native_story_model_override_preserves_cast_and_playback() {
     let folder = output.join(format!("custom-body-{}", std::process::id()));
     crate::visuals::export(&donor.mission, &folder).unwrap();
     let bodies = Pack::bodies(folder.to_str().unwrap()).unwrap();
-    for (hero, selected) in [
-        (0, "tenchu2-jp:ayamea"),
-        (1, "tenchu2-jp:rikimaru"),
-        (2, "disc:0"),
-        (0, "pack:0000"),
+    for (hero, selected, weapon, moveset) in [
+        (0, "tenchu2-jp:ayamea", "", ""),
+        (1, "tenchu2-jp:rikimaru", "", ""),
+        (2, "disc:0", "", ""),
+        (0, "pack:0000", "", ""),
+        (0, "", "tenchu2-jp:kagami", ""),
+        (1, "tenchu2-jp:ayame", "tenchu2-jp:yorojyu", ""),
+        (2, "disc:1", "tenchu2-jp:tatu2", ""),
+        (0, "disc:1", "", "tenchu2-jp:rikimaru"),
     ] {
         let (sequence, event) = campaign
             .sequences
@@ -37,18 +41,42 @@ fn native_story_model_override_preserves_cast_and_playback() {
         assert!(
             story
                 .models
-                .sync(&story.resources, hero, &library, &bodies, selected)
+                .sync(
+                    &story.resources,
+                    hero,
+                    &library,
+                    &bodies,
+                    &crate::settings::Settings {
+                        player_model: selected.into(),
+                        weapon_model: weapon.into(),
+                        model_moveset: !moveset.is_empty(),
+                        moveset_model: moveset.into(),
+                        ..Default::default()
+                    }
+                )
                 .unwrap()
         );
         assert!(
-            !story.models.actors.is_empty(),
+            !story.models.actors.is_empty() || !story.models.equipment.is_empty(),
             "hero {hero}, event {event}: missing hero track"
         );
         assert_eq!(bytes, postcard::to_allocvec(&story.state).unwrap());
         assert!(
             !story
                 .models
-                .sync(&story.resources, hero, &library, &bodies, selected)
+                .sync(
+                    &story.resources,
+                    hero,
+                    &library,
+                    &bodies,
+                    &crate::settings::Settings {
+                        player_model: selected.into(),
+                        weapon_model: weapon.into(),
+                        model_moveset: !moveset.is_empty(),
+                        moveset_model: moveset.into(),
+                        ..Default::default()
+                    }
+                )
                 .unwrap()
         );
         for _ in 0..360.min(story.resources.script.duration - 1) {
@@ -69,7 +97,11 @@ fn native_story_model_override_preserves_cast_and_playback() {
             .script
             .actors
             .iter()
-            .position(|a| story.models.actors.contains(&a.model))
+            .enumerate()
+            .find(|(slot, a)| {
+                story.models.actors.contains(&a.model) || story.models.equipment.contains_key(slot)
+            })
+            .map(|(slot, _)| slot)
             .unwrap();
         let center = glam::Vec3::from(
             reference.matrices(hero_slot).unwrap().unwrap()[0]
@@ -79,7 +111,20 @@ fn native_story_model_override_preserves_cast_and_playback() {
         ) - glam::Vec3::Y * 600.0;
         let mut camera = crate::debug::camera::Camera::from_view(reference.state.view, 300.0);
         camera.focus(center, false);
-        let label = format!("hero-{hero}-{}", selected.replace(':', "-"));
+        let label = format!(
+            "hero-{hero}-{}{}{}",
+            selected.replace(':', "-"),
+            if weapon.is_empty() {
+                String::new()
+            } else {
+                format!("-weapon-{}", weapon.replace(':', "-"))
+            },
+            if moveset.is_empty() {
+                String::new()
+            } else {
+                format!("-moves-{}", moveset.replace(':', "-"))
+            }
+        );
         for (suffix, scene) in [("before", &reference), ("after", &story)] {
             super::super::super::capture_frame(
                 &scene.level.vram,
@@ -138,6 +183,21 @@ fn native_story_model_override_preserves_cast_and_playback() {
                             assert_eq!(actor.matrices, source.matrices);
                         }
                     }
+                    for (&slot, gear) in &models.equipment {
+                        assert_eq!(gear.len(), scene.models.equipment[&slot].len());
+                        for part in gear {
+                            let mut triangles = 0;
+                            part.meshes.visit(
+                                &part.part.geometry,
+                                Matrix::default(),
+                                false,
+                                0,
+                                None,
+                                |_| triangles += 1,
+                            );
+                            assert!(triangles > 0, "replacement equipment is not drawable");
+                        }
+                    }
                     let (geometry, texts) =
                         models.geometry(scene, renderer, Some(camera), None, None)?;
                     Ok((
@@ -155,10 +215,16 @@ fn native_story_model_override_preserves_cast_and_playback() {
         assert!(
             story
                 .models
-                .sync(&story.resources, hero, &library, &bodies, "")
+                .sync(
+                    &story.resources,
+                    hero,
+                    &library,
+                    &bodies,
+                    &crate::settings::Settings::default()
+                )
                 .unwrap()
         );
-        assert!(story.models.actors.is_empty());
+        assert!(story.models.actors.is_empty() && story.models.equipment.is_empty());
         let path = output.join(format!("{label}-reset.png"));
         super::super::super::capture_frame(&story.level.vram, &graphics, &path, |renderer| {
             let mut models = Models::new(&story, &graphics, renderer)?;

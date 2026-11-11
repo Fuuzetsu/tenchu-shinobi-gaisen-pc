@@ -229,7 +229,7 @@ impl Content {
     pub fn current_model(&self, hero: usize, settings: &Settings) -> bool {
         match self {
             Self::Gameplay(session) => session.models.current(settings),
-            Self::Story { story, .. } => story.models.current(hero, &settings.player_model),
+            Self::Story { story, .. } => story.models.current(hero, settings),
             _ => true,
         }
     }

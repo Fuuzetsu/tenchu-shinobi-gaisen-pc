@@ -18,6 +18,26 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native cutscene equipment overrides (2026-11-11)
+
+The existing EVENT.BIN resource loader resolves each script weapon entry through
+the original weapon registry, retaining its actor slot, joint and source slot.
+Player appearance overrides now replace those attachments through the shared
+equipment library. Native slots 3/4 identify drawn weapons; slots 0/1 identify
+stowed components, and slot 2 is an accessory. The common equipment catalog stores
+the sheathed arrangement, so its existing Draw::swap selects visible components
+without changing source animation, commands or gameplay state. T1 heroes retain
+their built-in scabbards and do not render their hidden blades while sheathed.
+
+Explicit equipment wins over an enabled moveset, then the selected body. Matching
+native equipment retains the authored attachments; custom bodies without an
+equipment definition keep the source fallback. Imported RGB weapons retain their
+own textures and artwork identities rather than using T2 shade-index decoding.
+The override and embedded equipment survive checkpoints and renderer rebuilds.
+The read-only sibling attachment catalogs were reviewed; no sibling code or
+retail assets were imported. Campaign fixtures cover held/stowed tracks, dual
+swords, unarmed choices, untouched other actors and exact reset captures.
+
 ## Localized character voice overrides (2026-11-11)
 
 The shared appearance library now uses `audio::Bank::load`'s existing language

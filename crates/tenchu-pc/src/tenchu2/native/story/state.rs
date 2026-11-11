@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use tenchu_assets::texture::Vram;
 
-const SIGNATURE: &str = "native-tenchu2-jp-story-1";
+const SIGNATURE: &str = "native-tenchu2-jp-story-2";
 
 #[derive(Serialize, Deserialize)]
 pub(in crate::tenchu2::native) struct State<P, V> {

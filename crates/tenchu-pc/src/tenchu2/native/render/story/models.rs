@@ -22,6 +22,14 @@ pub(super) struct Models {
     weapons: BTreeMap<String, Meshes>,
     textures: Vec<AnimatedTextures>,
     overrides: BTreeMap<i16, super::super::custom::Player>,
+    equipment: BTreeMap<usize, Vec<Equipment>>,
+}
+
+struct Equipment {
+    bone: usize,
+    part: tenchu_assets::model::Part,
+    meshes: Meshes,
+    style: ModelStyle,
 }
 
 struct AnimatedTextures {
@@ -172,6 +180,40 @@ impl Models {
                 super::super::custom::Player::from_appearance(appearance, &source.parts, renderer)?,
             );
         }
+        let mut equipment = BTreeMap::new();
+        for (&slot, attachments) in &story.models.equipment {
+            let mut parts = Vec::new();
+            for attachment in attachments {
+                let part = tenchu_assets::model::Part {
+                    parent: -1,
+                    child: 0,
+                    position: attachment.position,
+                    geometry: attachment.model.geometry.clone(),
+                };
+                let mut meshes = build(
+                    &attachment.model.vram,
+                    vec![crate::visuals::catalog::ModelSource {
+                        id: attachment.model.source_id.clone(),
+                        role: Role::Other,
+                        label: String::new(),
+                        geometry: &part.geometry,
+                    }],
+                    graphics,
+                )?;
+                renderer.bind_meshes(&mut meshes);
+                parts.push(Equipment {
+                    bone: attachment.bone,
+                    part,
+                    meshes,
+                    style: if attachment.model.source_id.starts_with("tenchu2/") {
+                        ModelStyle::Actor
+                    } else {
+                        ModelStyle::Imported { concealed: false }
+                    },
+                });
+            }
+            equipment.insert(slot, parts);
+        }
         Ok(Self {
             terrain,
             lamps,
@@ -179,6 +221,7 @@ impl Models {
             weapons,
             textures,
             overrides,
+            equipment,
         })
     }
 
@@ -256,15 +299,29 @@ impl Models {
                     deformation.as_ref(),
                 );
             }
-            for attachment in resources.attachments.iter().filter(|a| a.actor == slot) {
-                let weapon = &resources.weapons[&attachment.model];
-                output.parts(
-                    &self.weapons[&attachment.model],
-                    &weapon.parts,
-                    actor.attachment(attachment.bone),
-                    math,
-                    false,
-                )?;
+            if let Some(equipment) = self.equipment.get(&slot) {
+                for gear in equipment {
+                    output.model(
+                        &gear.meshes,
+                        &gear.part,
+                        actor.attachment(gear.bone).compose(&Matrix {
+                            translation: gear.part.position.map(i32::from).into(),
+                            ..Default::default()
+                        }),
+                        gear.style,
+                    );
+                }
+            } else {
+                for attachment in resources.attachments.iter().filter(|a| a.actor == slot) {
+                    let weapon = &resources.weapons[&attachment.model];
+                    output.parts(
+                        &self.weapons[&attachment.model],
+                        &weapon.parts,
+                        actor.attachment(attachment.bone),
+                        math,
+                        false,
+                    )?;
+                }
             }
         }
         output.particles(

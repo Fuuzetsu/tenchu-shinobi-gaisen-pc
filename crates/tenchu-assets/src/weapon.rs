@@ -129,7 +129,7 @@ pub struct Attachment {
     pub part: usize,
     pub position: [i16; 3],
     pub melee: bool,
-    /// Held right/left, stowed right/left, and always-visible accessory.
+    /// Slots in the sheathed state: visible right/left, hidden right/left, accessory.
     pub slot: usize,
     pub model: Arc<ImportedModel>,
 }

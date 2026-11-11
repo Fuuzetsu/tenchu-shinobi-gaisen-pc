@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 cutscene player overrides now use the selected character's weapons
+  and scabbards, including explicit weapon choices and equipment inherited from
+  an enabled moveset. Authored held/sheathed states and other actors are retained.
+
 - T1 character voice overrides now follow T1's dialogue language instead of
   always using the Japanese bank. F1's voice selector also offers explicit
   English, French, Italian and Japanese T1 voices in both games, including

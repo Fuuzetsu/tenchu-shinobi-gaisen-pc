@@ -420,7 +420,7 @@ impl Application {
                 native.playback.run.hero,
                 library,
                 &view.bodies,
-                &self.settings.player_model,
+                &self.settings,
             ) {
                 Ok(changed) => models_changed |= changed,
                 Err(error) => native.menu.panel.notice = error,
