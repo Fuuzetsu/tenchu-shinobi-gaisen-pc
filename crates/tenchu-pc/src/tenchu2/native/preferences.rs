@@ -289,6 +289,8 @@ impl Menu {
                 crate::visuals::appearance::choices(models.game, models.bodies, models.library);
             self.panel.moveset_models = vec![(String::new(), "Selected player body".into())];
             if let Some(library) = models.library {
+                self.panel.weapon_models = library.equipment_choices();
+                self.panel.voice_models = library.voice_choices();
                 self.panel.moveset_models.extend(
                     library
                         .bodies
@@ -369,6 +371,14 @@ impl Menu {
             }
             Edit::PlayerModel(id) => {
                 state.settings.player_model = id;
+                Ok(())
+            }
+            Edit::WeaponModel(id) => {
+                state.settings.weapon_model = id;
+                Ok(())
+            }
+            Edit::VoiceModel(id) => {
+                state.settings.voice_model = id;
                 Ok(())
             }
             Edit::MovesetModel(id) => {
@@ -468,6 +478,23 @@ impl Menu {
                                 Ok(())
                             } else {
                                 Err("Open through play with the Gaisen disc to load the cross-game model gallery.".into())
+                            }
+                        }
+                        Item::WeaponModel | Item::VoiceModel => {
+                            let (choices, selected) = if item == Item::WeaponModel {
+                                (&self.panel.weapon_models, &mut state.settings.weapon_model)
+                            } else {
+                                (&self.panel.voice_models, &mut state.settings.voice_model)
+                            };
+                            if choices.is_empty() {
+                                Err("Load the model gallery first.".into())
+                            } else {
+                                let index = choices
+                                    .iter()
+                                    .position(|(id, _)| id == selected)
+                                    .unwrap_or(0);
+                                selected.clone_from(&choices[(index as i32 + delta).rem_euclid(choices.len() as i32) as usize].0);
+                                Ok(())
                             }
                         }
                         Item::MovesetModel => {
@@ -692,6 +719,64 @@ mod tests {
     }
 
     #[test]
+    fn weapon_and_voice_menu_choices_persist_and_reset_independently() {
+        let mut settings = Settings {
+            player_model: "body".into(),
+            moveset_model: "moves".into(),
+            model_moveset: true,
+            ..Default::default()
+        };
+        let mut paused = false;
+        let mut controls = Controls::default();
+        let mut presets = presets();
+        let mut menu = Menu::default();
+        menu.panel.weapon_models = vec![
+            (String::new(), "Follow moveset".into()),
+            ("sword".into(), "Sword".into()),
+        ];
+        menu.panel.voice_models = vec![
+            (String::new(), "Follow moveset".into()),
+            ("voice".into(), "Voice".into()),
+        ];
+        let mut action = Action::default();
+        let mut state = State {
+            settings: &mut settings,
+            paused: &mut paused,
+            controls: &mut controls,
+            presets: &mut presets,
+            lights: 0,
+            samples: &[],
+            models: None,
+        };
+        for item in [Item::WeaponModel, Item::VoiceModel] {
+            menu.apply(Edit::Change(item, 1), &mut state, &mut action);
+            assert!(menu.panel.notice.is_empty());
+        }
+        assert_eq!(state.settings.weapon_model, "sword");
+        assert_eq!(state.settings.voice_model, "voice");
+        let saved = serde_json::to_vec(&state.settings).unwrap();
+        let restored: Settings = serde_json::from_slice(&saved).unwrap();
+        assert_eq!(*state.settings, restored);
+        for preset in [0, 1, 2] {
+            state.settings.set_visual_preset(preset);
+        }
+        assert_eq!(state.settings.weapon_model, "sword");
+        assert_eq!(state.settings.voice_model, "voice");
+        menu.apply(Edit::Reset(Item::WeaponModel), &mut state, &mut action);
+        assert!(state.settings.weapon_model.is_empty());
+        assert_eq!(state.settings.voice_model, "voice");
+        menu.apply(Edit::VoiceModel("second".into()), &mut state, &mut action);
+        menu.apply(Edit::WeaponModel("other".into()), &mut state, &mut action);
+        assert_eq!(state.settings.voice_model, "second");
+        assert_eq!(state.settings.weapon_model, "other");
+        menu.apply(Edit::Reset(Item::VoiceModel), &mut state, &mut action);
+        assert!(state.settings.voice_model.is_empty());
+        assert_eq!(state.settings.player_model, "body");
+        assert_eq!(state.settings.moveset_model, "moves");
+        assert!(state.settings.model_moveset);
+    }
+
+    #[test]
     fn native_settings_share_edits_resets_and_nested_navigation() {
         let mut settings = Settings::default();
         let mut paused = false;
@@ -728,6 +813,8 @@ mod tests {
                             | Item::Actor
                             | Item::PhotoMode
                             | Item::MovesetModel
+                            | Item::WeaponModel
+                            | Item::VoiceModel
                             | Item::PlayerModel
                             | Item::DebugLight
                             | Item::FollowLight

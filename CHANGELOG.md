@@ -5,6 +5,19 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 Character adds independent **Weapon equipment** and **Player voice**
+  selectors for T1 and native T2. Choose Kagami's sword, Jubei's dual katana,
+  Tatsumaru/Suzaku's Izayoi or other available disc equipment without changing
+  the body or moveset. Held, stowed and sheath models retain their bindings;
+  attacks, reach, damage and controls still follow the moveset. Weapon sounds
+  and gameplay voices can come from different characters. **Follow moveset**
+  restores the previous combined behavior, and visual presets retain selections.
+- Native T2's 3D cutscenes honor the selected humanoid player body, including
+  folder models and alternate costumes, in both launchers. Only the campaign
+  hero is replaced; original scene motion, weapons, dialogue and the other cast
+  remain authored. Replacement bodies retain their own face textures. Resetting
+  Player body restores the original scene models and facial animation.
+
 - Fix native T2 model/moveset overrides dropping the block reaction, which made
   frontal melee attacks damage a guarding player. Native T2 defaults to its
   original Circle block/dodge and R1 crouch/roll controls, including with T1

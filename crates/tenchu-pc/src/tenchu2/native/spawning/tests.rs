@@ -343,6 +343,7 @@ fn native_spawn_voice_banks_are_independent_of_stage_slots() {
         player: session.world.player,
         feedback: &mut session.feedback,
         voice: None,
+        weapon_voice: None,
         actor_voices: &session.actor_voices,
         listener: session.world.listener(),
         requests: Vec::new(),

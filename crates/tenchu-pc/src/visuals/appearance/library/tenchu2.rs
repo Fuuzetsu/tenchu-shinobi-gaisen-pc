@@ -8,6 +8,7 @@ impl Library {
         let registry = tenchu_assets::tenchu2::registry::Registry::load(disc)?;
         let voices = tenchu_assets::tenchu2::audio::voices(disc, &registry)?;
         let movesets = moveset::load(disc, &registry, &voices)?;
+        let equipment = moveset::equipment_catalog(disc, &registry)?;
         let suzaku = models
             .iter()
             .find(|m| m.name == "tatu2")
@@ -57,6 +58,8 @@ impl Library {
                 "kei" => "Lady Kei",
                 "suzaku" => "Suzaku",
                 "kagami" => "Lady Kagami",
+                "jyubee" => "Jubei",
+                "yorojyu" => "Jubei (armored)",
                 "motohide" => "Motohide",
                 "toda" => "Lord Toda",
                 name => name,
@@ -91,6 +94,7 @@ impl Library {
                 idle,
                 think: behavior.think,
                 voice_set: voices.get(&kind).cloned(),
+                equipment: equipment.get(&kind).cloned(),
                 native: Some(native),
                 voice: crate::tenchu2::voices::donor_kind(&model.name)
                     .and_then(|kind| self.get(&format!("disc:{kind}")))

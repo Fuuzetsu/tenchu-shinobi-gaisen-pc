@@ -17,6 +17,7 @@ pub struct Story {
     pub math: Math,
     pub state: Playback,
     pub interpolation: Option<crate::visuals::interpolation::History>,
+    pub models: super::models::story::Override,
     basis: [[i16; 4]; 33],
 }
 
@@ -32,6 +33,7 @@ impl Story {
             level,
             state,
             interpolation: None,
+            models: Default::default(),
             math: Math {
                 tables: math_tables(disc)?,
             },

@@ -143,6 +143,8 @@ impl Application {
                         view.model_library = None;
                         view.model_picker.clear();
                         self.menu.moveset_models.clear();
+                        self.menu.weapon_models.clear();
+                        self.menu.voice_models.clear();
                     }
                 }
             }

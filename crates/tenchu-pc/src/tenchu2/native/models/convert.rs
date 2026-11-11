@@ -265,86 +265,67 @@ pub(super) fn convert_weapons(
     attacks: &BTreeMap<i16, ImportedAttack>,
     assets: &mut Assets,
 ) -> Result<Vec<weapons::Part>> {
+    let equipment = donor.player_equipment(&Arc::new(donor.mission.vram.clone()))?;
+    let mut contacts = BTreeMap::new();
+    for contact in attacks.values().flat_map(|a| a.contacts.iter().flatten()) {
+        contacts.entry(contact.part).or_insert(&contact.hitbox);
+    }
+    let contacts = contacts
+        .into_iter()
+        .map(|(bone, h)| weapons::Part {
+            kind,
+            bone,
+            model: None,
+            slot: 0,
+            trail: h.trail,
+            center: h.center,
+            radius: h.radius,
+        })
+        .collect();
+    Ok(convert_equipment(&equipment, kind, contacts, assets))
+}
+
+pub(super) fn convert_equipment(
+    equipment: &tenchu_assets::weapon::Equipment,
+    kind: i16,
+    mut contacts: Vec<weapons::Part>,
+    assets: &mut Assets,
+) -> Vec<weapons::Part> {
     assets
         .weapons
         .retain(|name, _| !assets.weapon_imports.contains_key(name));
     assets.weapon_imports.clear();
-    let actor = donor.player();
-    let mut slots = actor.weapons.clone();
-    if actor.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN != 0 {
-        if let Some(draw) = actor.imported_weapon_draw {
-            draw.swap(&mut slots);
-        } else {
-            if kind & 0xf00 == 0x200 {
-                slots.swap(1, 3);
-            }
-            if matches!(kind & 0xf00, 0x100 | 0x200) {
-                slots.swap(0, 2);
-            }
-        }
-    }
     let mut parts = Vec::new();
-    let vram = std::sync::Arc::new(donor.mission.vram.clone());
-    for (slot, weapon) in slots
-        .iter()
-        .enumerate()
-        .filter_map(|(i, w)| w.as_ref().map(|w| (i, w)))
-    {
-        let model = &donor.scene.models[weapon.model];
-        let bone = actor
-            .parts
-            .iter()
-            .position(|&p| Some(p) == model.parent)
-            .ok_or("Missing Gaisen weapon bone")?;
-        let name = format!("imported-weapon-{}", weapon.kind);
-        let source = donor
-            .mission
-            .weapons
-            .imported_models
-            .get(&weapon.kind)
-            .cloned()
-            .unwrap_or_else(|| {
-                std::sync::Arc::new(tenchu_assets::weapon::ImportedModel {
-                    id: format!("gaisen:weapons/{}", weapon.kind),
-                    source_id: format!("weapons/{:04x}", weapon.kind),
-                    geometry: donor.mission.weapons.models[&weapon.kind].clone(),
-                    vram: vram.clone(),
-                })
-            });
+    for attachment in &equipment.attachments {
+        let name = format!("imported-weapon-{}", attachment.slot);
         assets.weapons.insert(
             name.clone(),
             vec![Part {
                 parent: -1,
                 child: 0,
-                position: model.local.translation.to_array().map(|v| v as i16),
-                geometry: donor.mission.weapons.models[&weapon.kind].clone(),
+                position: attachment.position,
+                geometry: attachment.model.geometry.clone(),
             }],
         );
-        assets.weapon_imports.insert(name.clone(), source);
+        assets
+            .weapon_imports
+            .insert(name.clone(), attachment.model.clone());
         parts.push(weapons::Part {
             kind,
             model: Some(name),
-            bone: BONES[bone],
-            slot: [0, 1, 3, 4, 2][slot],
+            bone: BONES[attachment.part],
+            slot: [0, 1, 3, 4, 2][attachment.slot],
             trail: [[0; 3]; 2],
             center: [0; 3],
             radius: 0,
         });
     }
-    let mut contacts = BTreeMap::new();
-    for contact in attacks.values().flat_map(|a| a.contacts.iter().flatten()) {
-        contacts.entry(contact.part).or_insert(&contact.hitbox);
+    for part in &mut contacts {
+        part.kind = kind;
+        part.model = None;
     }
-    parts.extend(contacts.into_iter().map(|(bone, h)| weapons::Part {
-        kind,
-        bone,
-        model: None,
-        slot: 0,
-        trail: h.trail,
-        center: h.center,
-        radius: h.radius,
-    }));
+    parts.extend(contacts);
     assets.resources.weapons.parts.retain(|p| p.kind >= 0);
     assets.resources.weapons.parts.extend(parts.iter().cloned());
-    Ok(parts)
+    parts
 }

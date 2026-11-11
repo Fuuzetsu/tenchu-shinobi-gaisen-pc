@@ -30,6 +30,7 @@ fn native_feedback_matches_original_motor_instructions() {
             player: 0,
             feedback: &mut feedback,
             voice: None,
+            weapon_voice: None,
             actor_voices: &voices,
             listener: Listener {
                 actor: 0,
@@ -93,6 +94,7 @@ fn native_feedback_routes_gameplay_events_and_preserves_rng() {
         player: world.player,
         feedback: &mut feedback,
         voice: None,
+        weapon_voice: None,
         actor_voices: &voices,
         listener: world.listener(),
         requests: Vec::new(),

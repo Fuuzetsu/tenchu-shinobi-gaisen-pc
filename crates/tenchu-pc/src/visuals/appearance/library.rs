@@ -1,3 +1,4 @@
+mod equipment;
 mod import;
 #[cfg(not(target_arch = "wasm32"))]
 mod tenchu2;
@@ -33,6 +34,7 @@ pub struct Body {
     pub think: i16,
     pub voice: Option<tenchu_assets::stage::imports::Voice>,
     pub voice_set: Option<Arc<tenchu_assets::audio::voice::VoiceSet>>,
+    pub equipment: Option<Arc<tenchu_assets::weapon::Equipment>>,
     #[cfg(not(target_arch = "wasm32"))]
     pub native: Option<Native>,
 }
@@ -200,6 +202,7 @@ impl Library {
                 think,
                 voice,
                 voice_set: None,
+                equipment: None,
                 #[cfg(not(target_arch = "wasm32"))]
                 native: None,
             });
@@ -242,6 +245,7 @@ impl Library {
                 .or_else(|| idle_id.and_then(|id| body.clips.iter().position(|c| c.id == id)));
         }
         library.load_voices(assets)?;
+        library.load_equipment(assets)?;
         library.bodies.sort_by(|a, b| a.name.cmp(&b.name));
         for (index, body) in library.bodies.iter().enumerate() {
             library.aliases.insert(body.id.clone(), index);

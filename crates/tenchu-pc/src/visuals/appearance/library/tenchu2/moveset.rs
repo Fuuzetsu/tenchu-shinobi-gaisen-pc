@@ -232,6 +232,34 @@ pub fn load(
     Ok(out)
 }
 
+pub(super) fn equipment_catalog(
+    disc: &Disc<impl ReadAt>,
+    registry: &Registry,
+) -> Result<BTreeMap<i16, Arc<Equipment>>> {
+    let weapons = Weapons::load(disc)?;
+    let vram = Arc::new(tenchu2::weapons::textures(disc)?);
+    let mut models = BTreeMap::new();
+    let mut known = BTreeMap::new();
+    let mut out = BTreeMap::new();
+    for actor in &registry.actors {
+        if weapons
+            .parts(actor.weapon)
+            .any(|part| part.model.is_some() && !tenchu2::BONES.contains(&part.bone))
+        {
+            continue;
+        }
+        let equipment = if let Some(equipment) = known.get(&actor.weapon) {
+            Arc::clone(equipment)
+        } else {
+            let equipment = Arc::new(equipment(disc, &weapons, actor.weapon, &vram, &mut models)?);
+            known.insert(actor.weapon, equipment.clone());
+            equipment
+        };
+        out.insert(actor.kind, equipment);
+    }
+    Ok(out)
+}
+
 fn equipment(
     disc: &Disc<impl ReadAt>,
     weapons: &Weapons,
@@ -259,6 +287,7 @@ fn equipment(
             model
         };
         attachments.push(Attachment {
+            position: [0; 3],
             melee: part.radius > 0,
             part: tenchu2::BONES
                 .iter()

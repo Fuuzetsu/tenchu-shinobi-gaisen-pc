@@ -4,7 +4,7 @@ impl Actor {
     pub fn circle_guards(&self, intelligence: &crate::ai::Intelligence) -> bool {
         intelligence
             .circle_action
-            .guards(self.imported_weapon_draw.is_some())
+            .guards(self.imported_circle_guard)
     }
 
     pub(crate) fn guard_input(&self, world: &ActionContext) -> bool {

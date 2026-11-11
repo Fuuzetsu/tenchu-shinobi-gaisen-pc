@@ -135,6 +135,7 @@ pub struct Actor {
     pub patrol: Option<patrol::Patrol>,
     pub weapons: [Option<weapon::Weapon>; 5],
     pub imported_weapon_draw: Option<tenchu_assets::weapon::Draw>,
+    pub imported_circle_guard: bool,
     pub weapon_hitbox: [Option<usize>; 2],
     pub trails: [Option<trail::Trail>; 2],
 }
@@ -251,6 +252,7 @@ impl Actor {
             patrol: None,
             weapons: std::array::from_fn(|_| None),
             imported_weapon_draw: None,
+            imported_circle_guard: false,
             weapon_hitbox: [None; 2],
             trails: std::array::from_fn(|_| None),
         };

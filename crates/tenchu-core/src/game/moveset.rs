@@ -1,6 +1,9 @@
 use super::Game;
 use crate::{Result, actor::Context, ids::*, motion::Motion, scene::ModelId};
 use tenchu_assets::{executable::Character, motion::Clip};
+mod equipment;
+pub const SELECTED_WEAPON_VOICE: i16 = -1;
+pub const SELECTED_VOICE: i16 = -2;
 
 pub struct Imported {
     pub voice: Option<std::sync::Arc<tenchu_assets::audio::voice::VoiceSet>>,
@@ -28,6 +31,8 @@ pub struct State {
     original: Option<usize>,
     definition: Option<usize>,
     weapons: Vec<ModelId>,
+    pub weapon_model: String,
+    pub voice_model: String,
 }
 
 impl State {
@@ -63,6 +68,7 @@ impl Game {
                 .insert(attack.clip, contacts.clone());
         }
         self.import_player_weapons(&source.equipment)?;
+        self.roster.get_mut(self.player_id).imported_circle_guard = true;
         if let Some(voice) = &source.voice {
             std::sync::Arc::make_mut(&mut self.mission.moveset_voices)
                 .insert(source.character.kind, voice.clone());
@@ -109,7 +115,13 @@ impl Game {
                 .get(slot)
                 .ok_or("Invalid imported weapon slot")?;
             self.scene.models[model].parent = Some(parent);
-            self.scene.update(model, Matrix::default());
+            self.scene.update(
+                model,
+                Matrix {
+                    translation: attachment.position.map(i32::from).into(),
+                    ..Default::default()
+                },
+            );
             actor.weapons[slot] = Some(Weapon {
                 kind,
                 model,
@@ -213,6 +225,9 @@ impl Game {
             })
             .collect();
         actor.rebuild_weapons(&mut ctx, &mut self.moveset.weapons)?;
+        actor.imported_circle_guard = false;
+        self.moveset.weapon_model.clear();
+        std::sync::Arc::make_mut(&mut ctx.mission.moveset_voices).remove(&SELECTED_WEAPON_VOICE);
         actor.motion = Motion::new(&ctx.mission.models[&actor.mesh_kind])?;
         let action = actor.return_normal(&mut ctx, self.player_id)?;
         actor.enter(&ctx, action, false);

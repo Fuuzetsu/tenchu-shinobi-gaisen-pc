@@ -237,6 +237,10 @@ impl Session {
             feedback: &mut self.feedback,
             #[cfg(not(target_arch = "wasm32"))]
             voice: self.models.voice.as_ref(),
+            #[cfg(not(target_arch = "wasm32"))]
+            weapon_voice: self.models.weapon_voice.as_ref(),
+            #[cfg(target_arch = "wasm32")]
+            weapon_voice: None,
             #[cfg(target_arch = "wasm32")]
             voice: None,
             actor_voices: &self.actor_voices,
@@ -401,6 +405,7 @@ struct Output<'a> {
     player: usize,
     feedback: &'a mut tenchu_core::tenchu2::feedback::Feedback,
     voice: Option<&'a Arc<VoiceSet>>,
+    weapon_voice: Option<&'a Arc<VoiceSet>>,
     actor_voices: &'a BTreeMap<usize, Option<Arc<VoiceSet>>>,
     listener: Listener,
     requests: Vec<SoundRequest>,
@@ -482,7 +487,11 @@ impl Events for Output<'_> {
                         Some(voice)
                     } else {
                         (source.index == self.player)
-                            .then_some(self.voice)
+                            .then_some(if id <= 5 {
+                                self.weapon_voice
+                            } else {
+                                self.voice
+                            })
                             .flatten()
                     }
                 } else {

@@ -17,6 +17,8 @@ pub enum Edit {
     Coordinate(usize, i32),
     PlayerModel(String),
     MovesetModel(String),
+    WeaponModel(String),
+    VoiceModel(String),
     Benchmark,
     PresetLibrary,
     Controls,
@@ -228,7 +230,7 @@ pub fn show(
                                 ui.weak("Choose a body below. Folder edits apply on Load / reload.");
                             });
                             if runtime == Runtime::Tenchu2 {
-                                ui.weak("Swaps apply when standing or crouching outside a cutscene. Movesets bring their own weapons and character sounds. Unsupported projectile/scripted moves, items and paired kills retain host behavior.");
+                                ui.weak("Bodies also apply to 3D cutscenes. Moveset and equipment swaps apply when standing or crouching during gameplay. Weapons and voices can follow the moveset or use independent choices. Items, paired kills and unsupported scripted attacks retain host behavior.");
                             }
                         });
                         ui.separator();
@@ -430,31 +432,50 @@ fn widget(
     edits: &mut Vec<Edit>,
 ) -> egui::Response {
     let item = row.item;
-    if item == Item::MovesetModel {
-        let selected = menu
-            .moveset_models
+    if matches!(
+        item,
+        Item::MovesetModel | Item::WeaponModel | Item::VoiceModel
+    ) {
+        let (choices, search, fallback) = match item {
+            Item::WeaponModel => (
+                &menu.weapon_models,
+                &mut menu.weapon_search,
+                "Follow moveset",
+            ),
+            Item::VoiceModel => (&menu.voice_models, &mut menu.voice_search, "Follow moveset"),
+            _ => (
+                &menu.moveset_models,
+                &mut menu.moveset_search,
+                "Selected player body",
+            ),
+        };
+        let selected = choices
             .iter()
             .find(|(id, _)| id == &row.value)
-            .map_or("Selected player body", |(_, name)| name.as_str());
-        return egui::ComboBox::from_id_salt("moveset-source")
+            .map_or(fallback, |(_, name)| name.as_str());
+        return egui::ComboBox::from_id_salt(("character-source", &row.label))
             .selected_text(selected)
             .width(ui.available_width().min(240.0))
             .truncate()
             .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
             .show_ui(ui, |ui| {
                 ui.add(
-                    egui::TextEdit::singleline(&mut menu.moveset_search)
-                        .hint_text("Search movesets…")
+                    egui::TextEdit::singleline(search)
+                        .hint_text("Search characters…")
                         .desired_width(220.0),
                 );
-                let query = menu.moveset_search.to_lowercase();
-                for (id, name) in &menu.moveset_models {
+                let query = search.to_lowercase();
+                for (id, name) in choices {
                     if query
                         .split_whitespace()
                         .all(|word| name.to_lowercase().contains(word) || id.contains(word))
                         && ui.selectable_label(id == &row.value, name).clicked()
                     {
-                        edits.push(Edit::MovesetModel(id.clone()));
+                        edits.push(match item {
+                            Item::WeaponModel => Edit::WeaponModel(id.clone()),
+                            Item::VoiceModel => Edit::VoiceModel(id.clone()),
+                            _ => Edit::MovesetModel(id.clone()),
+                        });
                         ui.memory_mut(|memory| memory.close_popup());
                     }
                 }

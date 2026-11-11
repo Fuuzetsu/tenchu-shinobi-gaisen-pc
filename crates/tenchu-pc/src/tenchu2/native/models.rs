@@ -29,13 +29,15 @@ use tenchu_core::{
 };
 
 mod convert;
-use convert::{convert_moves, convert_weapons, native_parts};
+pub mod story;
+use convert::{convert_equipment, convert_moves, convert_weapons, native_parts};
 pub(super) use convert::{native_sources, placement_parts};
 
 #[derive(Clone, Default, PartialEq, Eq)]
 struct Selection {
     body: String,
     moveset: String,
+    weapon: String,
     options: Options,
 }
 
@@ -43,7 +45,8 @@ struct Selection {
 pub struct Override {
     applied: Selection,
     pub custom: Option<Custom>,
-    pub voice: Option<std::sync::Arc<tenchu_assets::audio::voice::VoiceSet>>,
+    pub voice: Option<Arc<tenchu_assets::audio::voice::VoiceSet>>,
+    pub weapon_voice: Option<Arc<tenchu_assets::audio::voice::VoiceSet>>,
     original: Option<Original>,
     weapon_pool: Vec<Vec<usize>>,
 }
@@ -87,6 +90,7 @@ struct Original {
 impl Override {
     pub fn diagnostic_snapshot(&self) -> serde_json::Value {
         serde_json::json!({"body": self.applied.body, "moveset": self.applied.moveset,
+            "weapon": self.applied.weapon,
             "custom": self.custom.as_ref().map(|c| &c.id),
             "source_voice": self.voice.as_ref().map(|v| format!("{:?}", v.dialect))})
     }
@@ -113,18 +117,37 @@ impl Override {
         } else {
             Options::default()
         };
+        let moveset = library
+            .moveset(settings)?
+            .filter(|body| compatible_moveset(body));
+        let weapon = library.weapon(&settings.weapon_model)?;
+        let voice = library.voice(&settings.voice_model)?;
+        let voice = voice
+            .or_else(|| moveset.and_then(|body| body.moveset_voice()))
+            .cloned();
+        let weapon_voice = weapon
+            .or(moveset)
+            .and_then(|body| body.moveset_voice())
+            .cloned();
         if self.applied.body == body_id
             && self.applied.moveset == moveset_id
+            && self.applied.weapon == settings.weapon_model
             && self.applied.options == options
         {
+            self.voice = voice;
+            self.weapon_voice = weapon_voice;
             self.custom = custom;
             return Ok(custom_changed);
         }
         let selection = Selection {
             body: body_id.into(),
             moveset: moveset_id.into(),
+            weapon: settings.weapon_model.clone(),
             options,
         };
+        let rig_changed = self.applied.body != selection.body
+            || self.applied.moveset != selection.moveset
+            || self.applied.options != selection.options;
         let owner = world.player;
         let actor = &world.actors[owner].actor;
         if actor.health <= 0
@@ -142,9 +165,6 @@ impl Override {
                     .ok_or("Selected model is unavailable")?,
             )
         };
-        let moveset = library
-            .moveset(settings)?
-            .filter(|body| compatible_moveset(body));
         if moveset.is_none() && settings.model_moveset && !settings.moveset_model.is_empty() {
             return Err("This moveset needs projectile or boss-script support that is not connected to native T2 yet. Its appearance can still be selected.".into());
         }
@@ -175,6 +195,27 @@ impl Override {
         } else {
             assets.resources.registry.replace_imported_weapon_events([]);
         }
+        if let Some(weapon) = weapon {
+            let equipment = weapon.equipment.as_ref().unwrap();
+            let contacts = assets
+                .resources
+                .weapons
+                .parts(definition.weapon)
+                .filter(|part| part.radius > 0)
+                .cloned()
+                .collect();
+            definition.weapon = match equipment.draw {
+                tenchu_assets::weapon::Draw::Fixed => i16::MIN,
+                tenchu_assets::weapon::Draw::Single => i16::MIN + 0x100,
+                tenchu_assets::weapon::Draw::Dual => i16::MIN + 0x200,
+            };
+            weapon_parts = Some(convert_equipment(
+                equipment,
+                definition.weapon,
+                contacts,
+                assets,
+            ));
+        }
         if let Some(body) = body {
             let name = "override-player".to_owned();
             let parts = replacement_parts.unwrap();
@@ -200,10 +241,16 @@ impl Override {
             assets.weapon_imports.clear();
         }
         let parts = &assets.models[&definition.model].parts;
-        let mut motion = Motion::new(parts)?;
-        let point = world.instances[owner]
-            .rig
-            .root_position(&world.actors[owner].actor, &mut world.scene)?;
+        let motion = rig_changed.then(|| Motion::new(parts)).transpose()?;
+        let point = if rig_changed {
+            Some(
+                world.instances[owner]
+                    .rig
+                    .root_position(&world.actors[owner].actor, &mut world.scene)?,
+            )
+        } else {
+            None
+        };
         world.effects.entries.retain(|effect| !matches!(effect,
             tenchu_core::tenchu2::effects::Effect::Ribbon(ribbon)
                 if matches!(ribbon.source, tenchu_core::tenchu2::effects::ribbon::Source::Weapon { actor, .. } if actor == owner)));
@@ -218,32 +265,36 @@ impl Override {
         )?;
         // Reclaim removed contacts even when browsing repeatedly while paused.
         world.collision.compute(|model| world.scene.world(model))?;
-        actor.commit_root(point);
-        actor.velocity = Default::default();
+        if let Some(point) = point {
+            actor.commit_root(point);
+            actor.velocity = Default::default();
+        }
         actor.attack = Default::default();
         actor.flags &= !0x200000;
         let drawn = actor.weapon_drawn();
         let crouching = actor.state == State::Crouched;
         actor.flags &= !0x40;
-        // Reuse joint slots across swaps; no orphaned collision bodies or growing rigs.
-        while rig.joints.len() < parts.len() {
-            rig.joints
-                .push(world.scene.add(Some(rig.root), Matrix::default()));
+        if rig_changed {
+            // Reuse joint slots across swaps; no orphaned collision bodies or growing rigs.
+            while rig.joints.len() < parts.len() {
+                rig.joints
+                    .push(world.scene.add(Some(rig.root), Matrix::default()));
+            }
+            for (index, part) in parts.iter().enumerate() {
+                let parent = parts
+                    .iter()
+                    .position(|p| p.child == part.parent)
+                    .map_or(rig.root, |p| rig.joints[p]);
+                let joint = &mut world.scene.models[rig.joints[index]];
+                joint.parent = Some(parent);
+                joint.flags = 0;
+                joint.local = Matrix {
+                    translation: part.position.map(i32::from).into(),
+                    ..Default::default()
+                };
+            }
         }
-        for (index, part) in parts.iter().enumerate() {
-            let parent = parts
-                .iter()
-                .position(|p| p.child == part.parent)
-                .map_or(rig.root, |p| rig.joints[p]);
-            let joint = &mut world.scene.models[rig.joints[index]];
-            joint.parent = Some(parent);
-            joint.flags = 0;
-            joint.local = Matrix {
-                translation: part.position.map(i32::from).into(),
-                ..Default::default()
-            };
-        }
-        let active = body.is_some() || moveset.is_some();
+        let active = body.is_some() || moveset.is_some() || weapon.is_some();
         if active {
             assets.resources.registry.actors.retain(|a| a.kind != -1);
             assets.resources.registry.actors.push(definition.clone());
@@ -293,28 +344,30 @@ impl Override {
                 }
             }
         }
-        let action = if crouching {
-            0x200
-        } else if drawn {
-            0x100
-        } else {
-            0
-        };
-        motion
-            .select(
-                action,
-                actor.definition_kind(),
-                &assets.resources.registry,
-                &assets.resources.clips,
-            )?
-            .ok_or("Missing override idle")?;
-        actor.motion = motion;
-        actor.state = State::from_action(action)?;
-        actor.turn = if moveset.is_some() {
-            definition.turn
-        } else {
-            original.turn
-        };
+        if let Some(mut motion) = motion {
+            let action = if crouching {
+                0x200
+            } else if drawn {
+                0x100
+            } else {
+                0
+            };
+            motion
+                .select(
+                    action,
+                    actor.definition_kind(),
+                    &assets.resources.registry,
+                    &assets.resources.clips,
+                )?
+                .ok_or("Missing override idle")?;
+            actor.motion = motion;
+            actor.state = State::from_action(action)?;
+            actor.turn = if moveset.is_some() {
+                definition.turn
+            } else {
+                original.turn
+            };
+        }
         if drawn {
             actor.set_weapon(
                 rig,
@@ -324,11 +377,14 @@ impl Override {
                 WeaponMode::Draw,
             )?;
         }
-        actor.set_body_collision(rig.joints[0], owner, &mut world.collision, true)?;
+        if rig_changed {
+            actor.set_body_collision(rig.joints[0], owner, &mut world.collision, true)?;
+        }
         world.instances[owner].model_height = actor::model_bounds(parts)?[1];
         world.publish(owner, assets);
         world.scene.finish_tick();
-        self.voice = moveset.and_then(|body| body.moveset_voice()).cloned();
+        self.voice = voice;
+        self.weapon_voice = weapon_voice;
         self.custom = custom;
         self.applied = selection;
         Ok(true)

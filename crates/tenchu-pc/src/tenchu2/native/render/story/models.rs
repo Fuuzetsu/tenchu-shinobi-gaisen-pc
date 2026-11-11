@@ -21,6 +21,7 @@ pub(super) struct Models {
     actors: BTreeMap<i16, Meshes>,
     weapons: BTreeMap<String, Meshes>,
     textures: Vec<AnimatedTextures>,
+    overrides: BTreeMap<i16, super::super::custom::Player>,
 }
 
 struct AnimatedTextures {
@@ -132,12 +133,45 @@ impl Models {
             renderer.bind_meshes(&mut mesh);
             weapons.insert(name.clone(), mesh);
         }
+        let mut overrides = BTreeMap::new();
+        for &id in &story.models.actors {
+            let source = &resources.models[&id];
+            let appearance = if let Some(custom) = &story.models.custom {
+                crate::visuals::appearance::Appearance::custom(
+                    &custom.id,
+                    &custom.pack,
+                    &source.vram,
+                    graphics,
+                )?
+            } else if let Some(skin) = &story.models.skin {
+                let parts = skin.parts.clone();
+                let sources = parts
+                    .iter()
+                    .zip(&skin.sources)
+                    .map(|(part, id)| crate::visuals::catalog::ModelSource {
+                        id: id.clone(),
+                        role: Role::Actor,
+                        label: String::new(),
+                        geometry: &part.geometry,
+                    })
+                    .collect();
+                let meshes = build(&skin.vram, sources, graphics)?;
+                crate::visuals::appearance::Appearance::from_parts(parts, meshes)?
+            } else {
+                continue;
+            };
+            overrides.insert(
+                id,
+                super::super::custom::Player::from_appearance(appearance, &source.parts, renderer)?,
+            );
+        }
         Ok(Self {
             terrain,
             lamps,
             actors,
             weapons,
             textures,
+            overrides,
         })
     }
 
@@ -193,43 +227,34 @@ impl Models {
                 ModelStyle::Prop,
             );
         }
-        for (slot, animation) in resources.script.actors.iter().enumerate() {
-            let Some(model) = resources.models.get(&animation.model) else {
+        for slot in 0..resources.script.actors.len() {
+            let Some(actor) = self.actor(story, slot, pose)? else {
                 continue;
             };
-            let Some(matrices) = story.matrices(slot)? else {
-                continue;
-            };
-            let matrices: Vec<_> = matrices
-                .into_iter()
-                .enumerate()
-                .map(|(joint, matrix)| {
-                    PoseFrame::transform(
-                        pose,
-                        interpolation::part(slot, joint, animation.model),
-                        matrix,
-                    )
-                })
-                .collect();
-            let mesh = &self.actors[&animation.model];
-            mesh.pose_skin(&matrices, None);
-            for (joint, (part, &matrix)) in model.parts.iter().zip(&matrices).enumerate() {
+            actor.meshes.pose_skin(&actor.matrices, None);
+            for (joint, (part, &matrix)) in actor.parts.iter().zip(&actor.matrices).enumerate() {
                 let deformation = motion.and_then(|frame| {
-                    mesh.deformation(
+                    actor.meshes.deformation(
                         frame,
-                        interpolation::part(slot, joint, animation.model),
+                        actor.key(slot, joint),
                         part.geometry.as_ptr() as usize,
                         matrix,
                     )
                 });
-                output.deformed_model(mesh, part, matrix, ModelStyle::Actor, deformation.as_ref());
+                output.deformed_model(
+                    actor.meshes,
+                    part,
+                    matrix,
+                    actor.style,
+                    deformation.as_ref(),
+                );
             }
             for attachment in resources.attachments.iter().filter(|a| a.actor == slot) {
                 let weapon = &resources.weapons[&attachment.model];
                 output.parts(
                     &self.weapons[&attachment.model],
                     &weapon.parts,
-                    matrices[attachment.bone],
+                    actor.attachment(attachment.bone),
                     math,
                     false,
                 )?;
@@ -262,6 +287,58 @@ impl Models {
         ))
     }
 
+    fn actor<'a>(
+        &'a self,
+        story: &'a Story,
+        slot: usize,
+        pose: Option<&PoseFrame>,
+    ) -> Result<Option<Actor<'a>>> {
+        let animation = &story.resources.script.actors[slot];
+        let Some(model) = story.resources.models.get(&animation.model) else {
+            return Ok(None);
+        };
+        let Some(matrices) = story.matrices(slot)? else {
+            return Ok(None);
+        };
+        let matrices = matrices
+            .into_iter()
+            .enumerate()
+            .map(|(joint, matrix)| {
+                PoseFrame::transform(
+                    pose,
+                    interpolation::part(slot, joint, animation.model),
+                    matrix,
+                )
+            })
+            .collect::<Vec<_>>();
+        if let Some(player) = self.overrides.get(&animation.model) {
+            let target = player.pose(
+                &matrices,
+                Matrix {
+                    translation: model.parts[0].position.map(i32::from).into(),
+                    rotation: matrices[0].rotation,
+                },
+            );
+            Ok(Some(Actor {
+                id: animation.model,
+                parts: &player.appearance.parts,
+                meshes: &player.appearance.meshes,
+                matrices: target,
+                original: Some(matrices),
+                style: ModelStyle::Imported { concealed: false },
+            }))
+        } else {
+            Ok(Some(Actor {
+                id: animation.model,
+                parts: &model.parts,
+                meshes: &self.actors[&animation.model],
+                matrices,
+                original: None,
+                style: ModelStyle::Actor,
+            }))
+        }
+    }
+
     pub fn motion_inputs(
         &self,
         story: &Story,
@@ -271,20 +348,19 @@ impl Models {
         if !options.actors() {
             return Ok(inputs);
         }
-        for (slot, animation) in story.resources.script.actors.iter().enumerate() {
-            let Some(meshes) = self.actors.get(&animation.model).filter(|m| m.has_motion()) else {
+        for slot in 0..story.resources.script.actors.len() {
+            let Some(actor) = self.actor(story, slot, None)? else {
                 continue;
             };
-            let Some(matrices) = story.matrices(slot)? else {
+            if !actor.meshes.has_motion() {
                 continue;
-            };
-            let model = &story.resources.models[&animation.model];
-            for (joint, (part, matrix)) in model.parts.iter().zip(matrices).enumerate() {
+            }
+            for (joint, (part, &matrix)) in actor.parts.iter().zip(&actor.matrices).enumerate() {
                 let geometry = part.geometry.as_ptr() as usize;
-                if let Some(rules) = meshes.motion_rules(geometry) {
+                if let Some(rules) = actor.meshes.motion_rules(geometry) {
                     crate::visuals::motion::Input::append(
                         &mut inputs,
-                        interpolation::part(slot, joint, animation.model),
+                        actor.key(slot, joint),
                         geometry,
                         matrix,
                         rules,
@@ -294,6 +370,34 @@ impl Models {
             }
         }
         Ok(inputs)
+    }
+}
+
+struct Actor<'a> {
+    id: i16,
+    parts: &'a [tenchu_assets::model::Part],
+    meshes: &'a Meshes,
+    matrices: Vec<Matrix>,
+    original: Option<Vec<Matrix>>,
+    style: ModelStyle,
+}
+
+impl Actor<'_> {
+    fn key(&self, slot: usize, joint: usize) -> crate::visuals::interpolation::Part {
+        let joint = if self.original.is_some() {
+            tenchu_assets::tenchu2::BONES[joint]
+        } else {
+            joint
+        };
+        interpolation::part(slot, joint, self.id)
+    }
+
+    fn attachment(&self, bone: usize) -> Matrix {
+        if let Some(original) = &self.original {
+            super::super::custom::Player::attach(original[bone], bone, original, &self.matrices)
+        } else {
+            self.matrices[bone]
+        }
     }
 }
 
@@ -332,3 +436,6 @@ impl AnimatedMaterial {
         renderer.bind_material(&self.material);
     }
 }
+
+#[cfg(test)]
+mod tests;

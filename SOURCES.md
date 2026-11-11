@@ -3319,3 +3319,36 @@ contacts in both runtimes, source locomotion, event timing and audible mixed
 PCM for the applicable transitions. Existing read-only Gaisen MOTION.C and the
 previously verified native control implementations remain the references; no
 sibling code or copyrighted assets were modified or imported.
+
+### Independent equipment/voice and native story appearance (2026-11-11)
+
+Equipment selection reuses Gaisen Actor::setup_weapons/equip and its original
+weapon table, plus T2's native registry at JP80081e5c. Its held/stowed/accessory
+slots and single/dual swap classes are imported independently of attack support.
+Gaisen local attachment offsets are retained, including character width offsets.
+The original moveset still owns attack contacts, damage, animation events and
+input semantics. Selecting a weapon alone does not enable T2 Circle controls.
+Sound cues0..5 follow equipment; vocal cues6..15 use the independently selected
+VoiceSet and the existing cross-game cue translation. Shared mission bank storage
+preserves resource sharing through Gaisen savestates/rewind. Native weapon-only
+changes retain the current root/motion instead of reinitializing the player rig.
+
+The Japanese character module identifies armored Jubei as kind239, model yorojyu,
+weapon0x1200. Its nitoA/syotoA blades bind to bones5/11 at slots3/4; nitoC/nitoD
+bind to root0 at slots0/2. The separate cinematic name jyubee does not identify
+that gameplay definition. Tatsumaru's Suzaku equipment supplies his sword;
+ordinary Tatsumaru's fist moveset remains distinct. All geometry and sound banks
+are loaded from the user's discs; no assets are included in source control.
+
+The native event module's model-name tables at offsets699c/6b44 identify hero
+tracks, including Riki2/3, Rikia2/3, alternate Ayame and Tatsumaru/Suzaku variants.
+The appearance adapter uses those names and the campaign hero, leaving other cast
+tracks and scenery untouched. It reuses the existing fifteen-joint permutation,
+scalar appearance retargeting and attachment relocation after pose interpolation.
+Cinematic world-root translation is preserved separately from rest-pose height.
+Source facial patching continues on original resources; replacement bodies use
+their own texture layouts, so patches for a different face are not applied.
+This is a presentation override, not a change to the event script or original
+playback/RNG. Custom-folder bodies share the native gameplay skinning adapter.
+The read-only sibling research/viewer repositories were consulted for the prior
+weapon/appearance work; no additional sibling implementation was imported here.

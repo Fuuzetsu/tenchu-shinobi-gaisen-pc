@@ -396,7 +396,9 @@ impl Application {
         );
         let wants_models = (self.menu.panel.open && matches!(self.menu.panel.page, 4 | 10))
             || !self.settings.player_model.is_empty()
-            || self.settings.moveset_id().is_some();
+            || self.settings.moveset_id().is_some()
+            || !self.settings.weapon_model.is_empty()
+            || !self.settings.voice_model.is_empty();
         if wants_models && self.gallery.is_none() && self.gallery_error.is_none() {
             match super::models::Gallery::remembered(&self.settings.model_directory) {
                 Ok(gallery) => self.gallery = Some(gallery),
@@ -424,6 +426,20 @@ impl Application {
                         session.reset_interpolation()?;
                     }
                 }
+                Err(error) => self.menu.panel.notice = error,
+            }
+        }
+        if let (Content::Story { story, .. }, Some(gallery)) =
+            (&mut self.session.content, &self.gallery)
+        {
+            match story.models.sync(
+                &story.resources,
+                self.session.run.hero,
+                &gallery.library,
+                &gallery.bodies,
+                &self.settings.player_model,
+            ) {
+                Ok(changed) => models_changed |= changed,
                 Err(error) => self.menu.panel.notice = error,
             }
         }

@@ -429,7 +429,10 @@ impl super::Application {
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
         let frontend_visible = self.frontend_visible();
         let trial_open = self.trial.open;
-        if (self.settings.model_moveset || self.campaign.game.moveset.kind.is_some())
+        if (self.settings.model_moveset
+            || self.campaign.game.moveset.kind.is_some()
+            || self.settings.weapon_model != self.campaign.game.moveset.weapon_model
+            || self.settings.voice_model != self.campaign.game.moveset.voice_model)
             && !self.campaign.game.cinematic.active
             && !self.campaign.game.player().scripted
             && self.campaign.playing()
@@ -464,6 +467,8 @@ impl super::Application {
             && assets_ready
             && ((self.menu.open && matches!(self.menu.page, 4 | 10))
                 || !self.settings.player_model.is_empty()
+                || !self.settings.weapon_model.is_empty()
+                || !self.settings.voice_model.is_empty()
                 || self.randomizer.open)
             && let Err(error) =
                 view.load_model_library(&self.assets, &self.campaign.game, &self.settings)
@@ -485,6 +490,12 @@ impl super::Application {
                     .filter(|body| body.has_moveset())
                     .map(|body| (body.id.clone(), body.name.clone())),
             );
+        }
+        if self.menu.weapon_models.is_empty()
+            && let Some(library) = &view.model_library
+        {
+            self.menu.weapon_models = library.equipment_choices();
+            self.menu.voice_models = library.voice_choices();
         }
         self.menu.artwork_status = view.artwork_status();
         let demo_run = self.demo.as_ref().and_then(|d| d.randomized.clone());
@@ -676,6 +687,14 @@ impl super::Application {
                 Edit::Reset(item) => self.reset_item(item),
                 Edit::PlayerModel(id) => {
                     self.settings.player_model = id;
+                    Ok(())
+                }
+                Edit::WeaponModel(id) => {
+                    self.settings.weapon_model = id;
+                    Ok(())
+                }
+                Edit::VoiceModel(id) => {
+                    self.settings.voice_model = id;
                     Ok(())
                 }
                 Edit::MovesetModel(id) => {

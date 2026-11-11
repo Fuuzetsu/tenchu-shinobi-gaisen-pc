@@ -96,6 +96,15 @@ pub enum Draw {
 }
 
 impl Draw {
+    pub fn gaisen(kind: i16) -> Self {
+        use kind::*;
+        match kind {
+            KODATI | JYUTE | EN | KATANA_2 => Self::Dual,
+            KOZUKA | NINJA | KEITOU | KATANA_0 | HOUTOU | KATANA_1 => Self::Single,
+            _ => Self::Fixed,
+        }
+    }
+
     pub fn swap<T>(self, slots: &mut [T; 5]) {
         if matches!(self, Self::Single | Self::Dual) {
             slots.swap(0, 2);
@@ -118,6 +127,7 @@ pub struct ImportedModel {
 #[derive(Clone)]
 pub struct Attachment {
     pub part: usize,
+    pub position: [i16; 3],
     pub melee: bool,
     /// Held right/left, stowed right/left, and always-visible accessory.
     pub slot: usize,

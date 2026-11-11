@@ -155,6 +155,17 @@ fn attached_severed_pose(
 }
 
 impl Appearance {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn from_parts(parts: Vec<model::Part>, mut meshes: Meshes) -> Result<Self> {
+        tenchu_core::motion::Pose::new(&parts)?;
+        meshes.skin(&parts);
+        Ok(Self {
+            parents: parents(&parts),
+            parts,
+            meshes,
+        })
+    }
+
     pub fn build(
         game: &Game,
         selection: &str,

@@ -166,11 +166,20 @@ impl Game {
             let Some(actor) = self.roster.actors.get(id).and_then(Option::as_ref) else {
                 continue;
             };
-            let voice = (id == self.player_id)
-                .then_some(self.moveset.kind)
-                .flatten()
-                .and_then(|kind| self.mission.moveset_voices.get(&kind))
-                .filter(|_| sound & 0xf0 == 0);
+            let voice = (id == self.player_id && sound & 0xf0 == 0)
+                .then(|| {
+                    let key = if sound <= 5 {
+                        crate::game::moveset::SELECTED_WEAPON_VOICE
+                    } else {
+                        crate::game::moveset::SELECTED_VOICE
+                    };
+                    self.mission.moveset_voices.get(&key).or_else(|| {
+                        self.moveset
+                            .kind
+                            .and_then(|kind| self.mission.moveset_voices.get(&kind))
+                    })
+                })
+                .flatten();
             if sound & 0xf0 == 0 {
                 if sound > 5 && (self.cinematic.frame || actor.attribute & ATTR_SUSPEND != 0) {
                     continue;

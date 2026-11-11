@@ -444,6 +444,17 @@ impl Item {
     }
 
     pub fn reset_setting(self, settings: &mut Settings) -> bool {
+        let selection = match self {
+            Self::PlayerModel => Some(&mut settings.player_model),
+            Self::MovesetModel => Some(&mut settings.moveset_model),
+            Self::WeaponModel => Some(&mut settings.weapon_model),
+            Self::VoiceModel => Some(&mut settings.voice_model),
+            _ => None,
+        };
+        if let Some(selection) = selection {
+            selection.clear();
+            return true;
+        }
         if let Self::VibrationAction(action) = self {
             settings.vibration.actions.remove(&action);
             return true;

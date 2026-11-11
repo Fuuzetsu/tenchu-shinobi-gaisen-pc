@@ -340,6 +340,8 @@ impl Application {
         }
         if (self.settings.model_moveset != previous.model_moveset
             || self.settings.moveset_model != previous.moveset_model
+            || self.settings.weapon_model != previous.weapon_model
+            || self.settings.voice_model != previous.voice_model
             || self.settings.model_moveset_options != previous.model_moveset_options
             || self.settings.player_model != previous.player_model)
             && let Err(error) = self.sync_model_moveset()
@@ -415,32 +417,25 @@ impl Application {
         let Some(view) = &mut self.view else {
             return Ok(());
         };
-        if self.settings.moveset_id().is_some_and(|id| !id.is_empty())
+        if (self.settings.moveset_id().is_some_and(|id| !id.is_empty())
+            || !self.settings.weapon_model.is_empty()
+            || !self.settings.voice_model.is_empty())
             && view.model_library.is_none()
         {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
         }
-        let body = view
-            .model_library
-            .as_ref()
-            .map(|library| library.moveset(&self.settings))
-            .transpose()?
-            .flatten();
-        let character = body.and_then(|b| b.moveset_character());
-        let options = self.settings.model_moveset_options;
-        if self
-            .campaign
-            .game
-            .moveset
-            .matches(character.map(|c| c.kind), options)
-        {
-            return Ok(());
-        }
         let weapons = self.campaign.game.mission.weapons.imported_models.clone();
-        if let Some(body) = body {
-            body.apply_moveset(&mut self.campaign.game, options)?;
+        let changed = if let Some(library) = &view.model_library {
+            library.apply_player(&mut self.campaign.game, &self.settings)?
         } else {
-            self.campaign.game.set_player_moveset(None, &[], options)?;
+            let changed = !self.campaign.game.moveset.matches(None, Default::default());
+            self.campaign
+                .game
+                .set_player_moveset(None, &[], Default::default())?;
+            changed
+        };
+        if !changed {
+            return Ok(());
         }
         if !std::sync::Arc::ptr_eq(
             &weapons,
@@ -640,6 +635,24 @@ impl Application {
                         [(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
                         .0
                         .clone();
+                }
+            }
+            Item::WeaponModel | Item::VoiceModel => {
+                let (choices, selected) = if item == Item::WeaponModel {
+                    (&self.menu.weapon_models, &mut self.settings.weapon_model)
+                } else {
+                    (&self.menu.voice_models, &mut self.settings.voice_model)
+                };
+                if !choices.is_empty() {
+                    let index = choices
+                        .iter()
+                        .position(|(id, _)| id == selected)
+                        .unwrap_or(0);
+                    selected.clone_from(
+                        &choices
+                            [(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
+                            .0,
+                    );
                 }
             }
             Item::MovesetModel => {

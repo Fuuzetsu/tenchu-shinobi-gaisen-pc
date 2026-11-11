@@ -134,9 +134,8 @@ impl Runtime {
             }
             Water | WaterReflective | WaterRipples | WaterReflections | WaterFlow | WaterFoam
             | WaterSpray | WaterDetail => None,
-            PlayerModel | ModelMoveset | MovesetModel | ModelPlayerMovement | ModelNoIdleTaunts => {
-                None
-            }
+            PlayerModel | ModelMoveset | MovesetModel | WeaponModel | VoiceModel
+            | ModelPlayerMovement | ModelNoIdleTaunts => None,
             ReloadModels | ReloadAssets | SmoothModels | ModelDetail | CharacterRefinement
             | WeaponReflections => None,
             HairMotion | ClothMotion | EquipmentMotion | MotionStrength | MotionResponse
@@ -155,7 +154,10 @@ impl Runtime {
             Edit::Change(item, _) | Edit::Reset(item) => self.unavailable(*item),
             _ if self == Self::Gaisen => None,
             Edit::Touch(_) | Edit::Preset(_) | Edit::PresetLibrary | Edit::Controls => None,
-            Edit::PlayerModel(_) | Edit::MovesetModel(_) => self.unavailable(Item::PlayerModel),
+            Edit::PlayerModel(_)
+            | Edit::MovesetModel(_)
+            | Edit::WeaponModel(_)
+            | Edit::VoiceModel(_) => self.unavailable(Item::PlayerModel),
             Edit::Coordinate(axis, _) => self.unavailable(Item::Target(*axis)),
             Edit::Benchmark => {
                 Some("Performance benchmarks are not connected to native Tenchu 2 JP yet.")

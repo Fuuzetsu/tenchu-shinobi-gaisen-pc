@@ -300,7 +300,9 @@ impl Application {
         let native = self.native_tenchu2.as_mut().unwrap();
         let wants_models = (native.menu.panel.open && matches!(native.menu.panel.page, 4 | 10))
             || !self.settings.player_model.is_empty()
-            || self.settings.moveset_id().is_some();
+            || self.settings.moveset_id().is_some()
+            || !self.settings.weapon_model.is_empty()
+            || !self.settings.voice_model.is_empty();
         if wants_models && view.model_library.is_none() {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
         }
@@ -309,7 +311,9 @@ impl Application {
             && let Some(library) = &view.model_library
             && (native.donor.is_some()
                 || !self.settings.player_model.is_empty()
-                || self.settings.moveset_id().is_some())
+                || self.settings.moveset_id().is_some()
+                || !self.settings.weapon_model.is_empty()
+                || !self.settings.voice_model.is_empty())
         {
             if native.donor.is_none() {
                 native.donor = Some(crate::tenchu2::native::models::donor(&self.assets)?);
@@ -328,6 +332,20 @@ impl Application {
                         session.reset_interpolation()?;
                     }
                 }
+                Err(error) => native.menu.panel.notice = error,
+            }
+        }
+        if let Content::Story { story, .. } = &mut native.playback.content
+            && let Some(library) = &view.model_library
+        {
+            match story.models.sync(
+                &story.resources,
+                native.playback.run.hero,
+                library,
+                &view.bodies,
+                &self.settings.player_model,
+            ) {
+                Ok(changed) => models_changed |= changed,
                 Err(error) => native.menu.panel.notice = error,
             }
         }
