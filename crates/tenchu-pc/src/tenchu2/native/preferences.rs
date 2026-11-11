@@ -440,6 +440,23 @@ impl Menu {
                                 !state.settings.keep_enemies_active;
                             Ok(())
                         }
+                        Item::Reset | Item::ResetTweaks => {
+                            let defaults = Settings::default();
+                            let all = item == Item::Reset;
+                            if all {
+                                *state.settings = defaults;
+                                self.panel.model_directory.clear();
+                                self.fast_forward = false;
+                            } else {
+                                state.settings.keep_enemies_active = defaults.keep_enemies_active;
+                                state.settings.circle_action = defaults.circle_action;
+                                state.settings.bleeding = defaults.bleeding;
+                                state.settings.sight_percent = defaults.sight_percent;
+                            }
+                            self.tools.restore_defaults(all);
+                            state.controls.clear();
+                            Ok(())
+                        }
                         Item::Preset => {
                             let choices = state.presets.library.choices();
                             let current = state.presets.library.current(state.settings);
@@ -613,6 +630,125 @@ mod tests {
             "tenchu-native-menu-presets-{}.json",
             std::process::id()
         )))
+    }
+
+    #[test]
+    #[ignore = "requires TENCHU2_DISC; F1 reset actions preserve live/dead mission state, inventory and source RNG"]
+    fn native_reset_actions_restore_preferences_without_restarting_the_mission() {
+        use super::super::{Session, campaign::Content};
+        use tenchu_core::{input, tenchu2::actor::State as ActorState};
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        for all in [false, true] {
+            for dead in [false, true] {
+                let mut session = Session::load(&disc, 9, 1).unwrap();
+                for _ in 0..60 {
+                    session.step(0).unwrap();
+                }
+                session.world.controls.armor = true;
+                let player = &mut session.world.actors[session.world.player].actor;
+                player.health = if dead { 0 } else { 37 };
+                if dead {
+                    player.state = ActorState::Dead;
+                    session.world.script = 1;
+                }
+                let expected_world = postcard::to_allocvec(&session.world).unwrap();
+                session.world.actors[session.world.player]
+                    .actor
+                    .invulnerable = true;
+                session.world.ai.ignore_player = true;
+                session.world.ai.sight_percent = 175;
+                session.world.keep_all_active = true;
+                let mut settings = Settings {
+                    player_model: "body".into(),
+                    weapon_model: "weapon".into(),
+                    voice_model: "voice".into(),
+                    model_directory: "models".into(),
+                    circle_confirm: true,
+                    keep_enemies_active: true,
+                    sight_percent: 175,
+                    independent_attacks: true,
+                    ..Default::default()
+                };
+                settings.bleeding.enabled = true;
+                session.world.set_bleeding(settings.bleeding);
+                settings.set_visual_preset(settings::presets::MODERN_ULTRA);
+                let mut expected_settings = settings.clone();
+                if all {
+                    expected_settings = Settings::default();
+                } else {
+                    expected_settings.keep_enemies_active = false;
+                    expected_settings.sight_percent = 100;
+                    expected_settings.bleeding = Default::default();
+                }
+                let mut content = Content::Gameplay(Box::new(session));
+                let mut menu = Menu::new(&settings);
+                menu.panel.open = true;
+                menu.tools.sync(&content, 7);
+                menu.tools.debug.speed = 400;
+                menu.tools.debug.hitboxes = true;
+                menu.tools.debug.actors_edited = true;
+                menu.tools.debug.click_kill = true;
+                menu.tools.debug.click_teleport = true;
+                menu.tools.debug.teleport_armed = true;
+                if !dead {
+                    menu.tools.change(Item::GiveItems, 1).unwrap();
+                }
+                let item = if all { Item::Reset } else { Item::ResetTweaks };
+                let (page, row) = (0..settings::menu::PAGES.len())
+                    .find_map(|page| {
+                        settings::menu::rows(page, &settings, &menu.tools.debug, true)
+                            .iter()
+                            .position(|row| row.item == item)
+                            .map(|row| (page, row))
+                    })
+                    .unwrap();
+                menu.panel.page = page;
+                menu.panel.row = row;
+                let mut paused = true;
+                let mut controls = Controls::default();
+                controls.touch(crate::touch::Sample {
+                    buttons: u32::from(input::SQUARE),
+                    ..Default::default()
+                });
+                let mut presets = presets();
+                let mut state = State {
+                    settings: &mut settings,
+                    paused: &mut paused,
+                    controls: &mut controls,
+                    presets: &mut presets,
+                    lights: 0,
+                    samples: &[1, 4],
+                    models: None,
+                };
+                menu.controller(input::CIRCLE, true);
+                let ctx = egui::Context::default();
+                let _ = ctx.run(egui::RawInput::default(), |ctx| {
+                    menu.show(ctx, &mut state);
+                });
+                assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+                menu.apply_tools(&mut content, [800, 600]);
+                assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+                assert_eq!(*state.settings, expected_settings);
+                assert!(*state.paused && menu.panel.open);
+                assert_eq!(menu.tools.debug.speed, 100);
+                assert!(!menu.tools.debug.click_kill && !menu.tools.debug.click_teleport);
+                assert!(!menu.tools.debug.teleport_armed && !menu.tools.debug.god_mode);
+                assert_eq!(menu.tools.debug.hitboxes, !all);
+                menu.tools.sync(&content, 7);
+                assert!(menu.tools.debug.actors_edited);
+                assert_eq!(
+                    menu.tools
+                        .input(&mut content, state.controls, state.settings, true),
+                    0,
+                );
+                let Content::Gameplay(session) = &content else {
+                    unreachable!()
+                };
+                assert!(postcard::to_allocvec(&session.world).unwrap() == expected_world);
+                assert!(session.world.controls.armor);
+            }
+        }
     }
 
     #[test]

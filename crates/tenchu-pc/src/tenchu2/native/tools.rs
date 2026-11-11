@@ -33,9 +33,39 @@ pub struct Tools {
     relative: bool,
     player_orbit: bool,
     menu_input: Option<bool>,
+    reset_simulation: bool,
 }
 
 impl Tools {
+    pub fn restore_defaults(&mut self, all: bool) {
+        if all {
+            let actors_edited = self.debug.actors_edited;
+            *self = Self {
+                actor_models: std::mem::take(&mut self.actor_models),
+                scene: std::mem::take(&mut self.scene),
+                generation: self.generation,
+                ..Self::default()
+            };
+            self.debug.actors_edited = actors_edited;
+            if let Some(player) = self.scene.actor(self.scene.player) {
+                self.debug.target = player.position.to_array().map(|v| v as i32).into();
+            }
+        } else {
+            self.debug.speed = 100;
+            self.debug.click_teleport = false;
+            self.debug.click_kill = false;
+            self.debug.teleport_armed = false;
+            self.debug.pick_actor_position = false;
+            self.click = None;
+            self.teleport = None;
+            self.kill = None;
+            self.actor_edit = None;
+            self.open_actor_editor = false;
+            self.edits.clear();
+        }
+        self.reset_simulation = true;
+    }
+
     pub fn sync(&mut self, content: &Content, generation: u64) {
         let changed = self.generation != Some(generation);
         if changed {
@@ -397,6 +427,19 @@ impl Tools {
     }
 
     pub fn apply(&mut self, content: &mut Content, size: [u32; 2]) -> Result<()> {
+        if std::mem::take(&mut self.reset_simulation) {
+            if let Content::Gameplay(session) = content {
+                session.world.actors[session.world.player]
+                    .actor
+                    .invulnerable = false;
+                session.world.ai.sight_percent = 100;
+                session.world.ai.ignore_player = false;
+                session.world.keep_all_active = false;
+                session.world.set_bleeding(Default::default());
+                session.circle_action = Default::default();
+            }
+            experiment::sync(&mut self.debug, content);
+        }
         if std::mem::take(&mut self.focus_light) {
             let (level, math) = match content {
                 Content::Gameplay(session) => (

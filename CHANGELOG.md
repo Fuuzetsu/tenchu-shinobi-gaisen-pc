@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **Restore defaults** and **Reset simulation tweaks** in
+  F1. Reset experiments without restarting the mission or changing inventory,
+  armour, kills or campaign progress; the simulation reset keeps graphics and
+  character choices. Pending click and actor-edit actions are cancelled.
+
 - **F1 → Clear blood** also clears retained native T2 cutscene stains, including
   while paused, and they stay cleared when graphics settings rebuild the scene.
 

@@ -38,6 +38,10 @@ impl Runtime {
             "GAMEPLAY EDIT: keep all placed native actors simulating, patrolling and animating regardless of distance or the original activation budget. Scripted holds and deaths remain intact. Changes RNG and encounters; can cost more CPU. Off restores source distance/budget activation at its next check."
         } else if self == Self::Tenchu2 && item == Item::SharpText {
             "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. Authored title and rank artwork stays original."
+        } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
+            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
+        } else if self == Self::Tenchu2 && item == Item::Reset {
+            "Reset all saved preferences and debug tools, including character overrides and simulation tweaks. Keeps the current mission, armour and inventory; does not undo actor edits, kills or campaign progress."
         } else {
             fallback
         }
@@ -98,7 +102,7 @@ impl Runtime {
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
-            | ClearItems | Inventory(_) => None,
+            | ClearItems | Inventory(_) | Reset | ResetTweaks => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight
@@ -170,7 +174,15 @@ impl Runtime {
             Edit::ImportUnarmed | Edit::ExportUnarmed => Some(
                 "Imported Gaisen unarmed moves are not used by native Tenchu 2 JP. Its characters already use their own source movesets.",
             ),
-            _ => self.unavailable(Item::Reset),
+            Edit::GameplayPreset(_) => self.unavailable(Item::GameplayPreset),
+            Edit::Randomizer => self.unavailable(Item::Randomizer),
+            Edit::SeekRewind(_)
+            | Edit::ResumeRewind
+            | Edit::PlayRewindForward
+            | Edit::SelectRewind(_)
+            | Edit::ExportRewind
+            | Edit::ImportRewind
+            | Edit::RecordedVisuals(_) => self.unavailable(Item::Rewind),
         }
     }
 }
