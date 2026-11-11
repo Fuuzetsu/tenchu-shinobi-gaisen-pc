@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.27.0 — 2026-11-11
+
 - Restore scripted blood bursts, droplets and pools in native T2 cutscenes.
   They follow the original command timing, particle motion and terrain contact,
   and honor Original, Original HD, Modern and Off blood settings. Modern presets
