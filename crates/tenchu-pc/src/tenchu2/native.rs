@@ -60,6 +60,8 @@ pub(crate) mod save;
 mod selection;
 #[cfg(not(target_arch = "wasm32"))]
 mod spawning;
+#[cfg(test)]
+mod state;
 mod story;
 #[cfg(test)]
 mod tests;

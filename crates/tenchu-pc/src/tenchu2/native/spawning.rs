@@ -49,7 +49,7 @@ impl<S: ReadAt> Playback<S> {
 }
 
 impl Session {
-    fn spawn_actor(
+    pub(super) fn spawn_actor(
         &mut self,
         disc: &Disc<impl ReadAt>,
         request: Request,

@@ -55,7 +55,7 @@ pub struct Manifest {
     pub player_models: BTreeMap<String, super::appearance::Body>,
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Pack {
     pub textures: BTreeMap<String, Arc<Image>>,
     pub surfaces: BTreeMap<String, super::relief::Surface>,
@@ -65,9 +65,11 @@ pub struct Pack {
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
     pub skins: BTreeMap<String, Vec<super::appearance::skin::Influence>>,
+    #[serde(with = "crate::savestate::json")]
     pub model_patches: BTreeMap<String, Vec<super::model_patch::Patch>>,
     pub materials: BTreeMap<String, Material>,
     pub lights: Option<Vec<super::lights::Rule>>,
+    #[serde(with = "crate::savestate::json")]
     pub player_models: BTreeMap<String, super::appearance::Body>,
 }
 

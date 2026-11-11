@@ -9,14 +9,14 @@ use tenchu_core::{
 };
 pub(super) mod blood;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Corpse {
     pub tick: u64,
     pub position: Position,
     pub source_pool: bool,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Wound {
     pub owner: usize,
     pub joint: usize,
@@ -24,7 +24,7 @@ pub struct Wound {
 }
 
 // Keep source contacts between rendered frames, including fast-forward updates.
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct History {
     frames: VecDeque<(u64, Vec<Contact>)>,
     pub blood: blood::History,

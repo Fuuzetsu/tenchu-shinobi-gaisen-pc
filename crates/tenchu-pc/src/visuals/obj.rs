@@ -1,7 +1,7 @@
 use glam::Vec3;
 use tenchu_assets::Result;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Corner {
     pub index: usize,
     pub position: [f32; 3],
@@ -10,6 +10,7 @@ pub struct Corner {
     pub uv: [f32; 2],
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Triangle {
     pub corners: [Corner; 3],
     pub material: String,

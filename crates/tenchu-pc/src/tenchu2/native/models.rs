@@ -33,7 +33,7 @@ pub mod story;
 use convert::{convert_equipment, convert_moves, convert_weapons, native_parts};
 pub(super) use convert::{native_sources, placement_parts};
 
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct Selection {
     body: String,
     moveset: String,
@@ -41,7 +41,7 @@ struct Selection {
     options: Options,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Override {
     applied: Selection,
     pub custom: Option<Custom>,
@@ -51,6 +51,7 @@ pub struct Override {
     weapon_pool: Vec<Vec<usize>>,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Custom {
     pub id: String,
     pub pack: Arc<Pack>,
@@ -80,6 +81,7 @@ impl Custom {
     }
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Original {
     definition: registry::Actor,
     rig: Rig,
@@ -88,6 +90,66 @@ struct Original {
 }
 
 impl Override {
+    #[cfg(test)]
+    pub(super) fn validate_state(&self, world: &World, assets: &Assets) -> Result<()> {
+        let valid_model = |id: usize| id < world.scene.models.len();
+        if self.original.as_ref().is_some_and(|original| {
+            !assets.models.contains_key(&original.definition.model)
+                || !valid_model(original.rig.root)
+                || original.rig.joints.iter().any(|&id| !valid_model(id))
+                || original
+                    .rig
+                    .weapons
+                    .iter()
+                    .flatten()
+                    .any(|&id| !valid_model(id))
+        }) || self
+            .weapon_pool
+            .iter()
+            .flatten()
+            .any(|&id| !valid_model(id))
+        {
+            return Err("Invalid saved original rig or weapon attachment".into());
+        }
+        if let Some(custom) = &self.custom {
+            let body = custom
+                .pack
+                .player_models
+                .get(&custom.id)
+                .ok_or("Missing saved custom player model")?;
+            body.validate()?;
+            for (index, part) in body.parts.iter().enumerate() {
+                let key = format!("player/{}/{index}", custom.id);
+                if !custom.pack.models.contains_key(&key)
+                    || part.skin.is_some() && !custom.pack.skins.contains_key(&key)
+                {
+                    return Err("Missing saved custom player geometry".into());
+                }
+            }
+            for image in custom
+                .pack
+                .textures
+                .values()
+                .chain(custom.pack.images.values())
+            {
+                let [width, height] = image.size;
+                if width == 0
+                    || height == 0
+                    || (width as usize)
+                        .checked_mul(height as usize)
+                        .and_then(|n| n.checked_mul(4))
+                        != Some(image.rgba.len())
+                {
+                    return Err("Invalid saved custom player texture".into());
+                }
+            }
+            for patch in custom.pack.model_patches.values().flatten() {
+                patch.validate()?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn diagnostic_snapshot(&self) -> serde_json::Value {
         serde_json::json!({"body": self.applied.body, "moveset": self.applied.moveset,
             "weapon": self.applied.weapon,

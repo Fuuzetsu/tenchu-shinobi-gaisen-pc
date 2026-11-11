@@ -81,6 +81,63 @@ pub struct Scene {
     pub audio: Audio,
 }
 
+#[cfg(test)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(super) struct State<D> {
+    director: D,
+    current: Option<Track>,
+    started: u64,
+    tick: u64,
+}
+
+#[cfg(test)]
+impl Scene {
+    pub(super) fn snapshot(&self) -> State<&Director> {
+        State {
+            director: &self.director,
+            current: self.audio.current.clone(),
+            started: self.audio.started,
+            tick: self.audio.tick,
+        }
+    }
+}
+
+#[cfg(test)]
+impl State<Director> {
+    pub(super) fn validate(&self, current: Option<&Scene>) -> Result<()> {
+        let current = current.ok_or("Open the matching T1 stage before restoring this state")?;
+        let game = &self.director.source;
+        let previous = &current.director.source;
+        if game.mission.stage != previous.mission.stage
+            || game.mission.layout_index != previous.mission.layout_index
+            || game.mission.scripts.language != previous.mission.scripts.language
+            || game
+                .roster
+                .actors
+                .get(game.player_id)
+                .is_none_or(Option::is_none)
+            || game.player().kind != previous.player().kind
+            || self.started > self.tick
+        {
+            return Err(
+                "Savestate requires the same T1 stage, character, layout and language".into(),
+            );
+        }
+        Ok(())
+    }
+
+    pub(super) fn restore(self, scene: &mut Scene) {
+        scene.director = self.director;
+        scene.audio.current = self.current;
+        scene.audio.started = self.started;
+        scene.audio.tick = self.tick;
+        scene.audio.clip = None;
+        scene.audio.sounds.clear();
+        scene.audio.changed = true;
+        scene.audio.loader.request(scene.audio.current.clone());
+    }
+}
+
 pub struct Audio {
     bank: Arc<Bank>,
     catalog: Catalog,

@@ -1,20 +1,21 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use tenchu_core::tenchu2::effects::surface::{Blend, Blood, Image, Quad};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Phase {
     Landed,
     Faded,
     Changed,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Pending {
     id: usize,
     quad: Quad,
     retained: bool,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct History {
     pending: BTreeMap<([i32; 3], u8), Pending>,
     events: VecDeque<(usize, usize, Phase, Quad)>,

@@ -27,7 +27,7 @@ impl Default for Rule {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Surface {
     pub height: Option<Arc<Image>>,
     pub strength: f32,

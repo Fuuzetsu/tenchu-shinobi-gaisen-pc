@@ -2,6 +2,27 @@ use super::*;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
+#[test]
+fn snapshot_validation_keeps_retained_tail_contacts() {
+    let mut collision = Collision::default();
+    collision.insert(1).unwrap().owner = Some(0);
+    collision.insert(2).unwrap().owner = Some(1);
+    collision.slots[0].contacts.push(1);
+    collision.len = 1;
+    collision.validate_references(3, 2).unwrap();
+    collision.slots[0].contacts[0] = collision.slots.len();
+    assert!(collision.validate_references(3, 2).is_err());
+    collision.slots[0].contacts[0] = 1;
+    collision.len = collision.slots.len() + 1;
+    assert!(collision.validate_references(3, 2).is_err());
+    collision.len = 1;
+    collision.slots[1].model = 3;
+    assert!(collision.validate_references(3, 2).is_err());
+    collision.slots[1].model = 2;
+    collision.slots[1].owner = Some(2);
+    assert!(collision.validate_references(3, 2).is_err());
+}
+
 fn vector<T: serde::de::DeserializeOwned>(value: &Value) -> Vector3<T> {
     Vector3::from(serde_json::from_value::<[T; 3]>(value.clone()).unwrap())
 }

@@ -3,7 +3,7 @@ use crate::navigation::{directions, heading, movement_vector, relative_movement}
 use glam::Vec2;
 use tenchu_core::input;
 
-#[derive(Clone, Copy, serde::Serialize)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Input {
     pub yaw: f32,
     pub pitch: i16,

@@ -1,4 +1,4 @@
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Image {
     pub size: [u32; 2],
     pub rgba: Vec<u8>,

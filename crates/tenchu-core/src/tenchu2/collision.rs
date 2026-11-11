@@ -47,6 +47,20 @@ pub struct Contact {
 }
 
 impl Collision {
+    pub fn validate_references(&self, models: usize, actors: usize) -> Result<()> {
+        if self.len > self.slots.len()
+            || self.slots.iter().any(|slot| {
+                slot.model >= models
+                    || slot.owner.is_some_and(|owner| owner >= actors)
+                    // Source contacts can retain slots beyond the active prefix.
+                    || slot.contacts.iter().any(|&id| id >= self.slots.len())
+            })
+        {
+            return Err("Invalid Tenchu 2 collision references".into());
+        }
+        Ok(())
+    }
+
     pub(super) fn allow_expansion(&mut self) {
         // Keep expanded storage until area reload: frozen contacts may still use it.
         self.expanded = true;
