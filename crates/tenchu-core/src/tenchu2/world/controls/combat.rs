@@ -1,6 +1,15 @@
 use super::*;
 
 impl<E: Events> Context<'_, E> {
+    pub(super) fn unarmed_input(&self, actor: &Actor) -> bool {
+        self.index == self.player
+            && self.enabled
+            && self.input_allowed
+            && *self.script == 0
+            && !matches!(self.camera.mode, 6 | 20)
+            && actor.unarmed_available()
+    }
+
     pub(super) fn start_attack(
         &mut self,
         actor: &mut Actor,
@@ -11,13 +20,32 @@ impl<E: Events> Context<'_, E> {
         let victim = (self.index == self.player)
             .then(|| self.nearest(actor, i32::from(actor.height), false, resources))
             .flatten();
-        let attack = actor.attack_input(
+        let mut attack = actor.attack_input(
             *request,
             held,
             victim.and_then(|id| self.others.get(id, actor)),
             self.map as i16,
             &resources.math,
         )?;
+        if self.unarmed_input(actor)
+            && !matches!(attack.start, AttackStart::Stealth(_))
+            && actor.flags & crate::tenchu2::physics::FALLING == 0
+            && !matches!(
+                actor.state,
+                State::Jumping | State::Wall | State::Ledge | State::Swimming
+            )
+        {
+            attack.draw_weapon = false;
+            attack.start = actor.strike_input(*request, held);
+            if let AttackStart::Strike { action, .. } = attack.start {
+                let unarmed = actor.unarmed.as_mut().unwrap();
+                if unarmed.moves.motions.contains_key(&action) {
+                    unarmed.active = true;
+                } else {
+                    attack.start = AttackStart::None;
+                }
+            }
+        }
         if attack.draw_weapon {
             self.weapon(actor, WeaponMode::Draw, resources)?;
         }

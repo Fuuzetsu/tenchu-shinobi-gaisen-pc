@@ -155,11 +155,11 @@ impl Actor {
         resources: &Resources,
         mode: Contacts,
     ) -> Result<()> {
-        if !self.weapon_drawn() {
+        if !self.weapon_drawn() && !self.unarmed_attack() {
             return Ok(());
         }
         if mode == Contacts::Start
-            && let Some(attack) = self.imported_attack()
+            && let Some(attack) = self.attack_contacts()
         {
             let owner = rig
                 .joints

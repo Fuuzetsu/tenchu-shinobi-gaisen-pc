@@ -76,6 +76,8 @@ mod tests;
 mod tools;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod transport;
+#[cfg(not(target_arch = "wasm32"))]
+mod unarmed;
 mod walking;
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 mod window;

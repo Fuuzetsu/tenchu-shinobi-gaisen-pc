@@ -242,6 +242,35 @@ impl Owned {
                 .models
                 .get(&definition.model)
                 .ok_or("Missing native T2 actor model")?;
+            if let Some(unarmed) = &actor.unarmed {
+                let moves = &unarmed.moves;
+                if !moves.motions.contains_key(&0x900)
+                    || moves.motions.len() > 32
+                    || moves.attacks.len() > 32
+                    || moves.motions.iter().any(|(&action, &clip)| {
+                        !matches!(action, 0x900..=0x910 | 0x913..=0x915)
+                            || !assets.resources.clips.contains_key(&clip)
+                            || !moves.attacks.contains_key(&action)
+                            || assets.resources.weapons.attack(clip).is_none()
+                    })
+                    || moves.attacks.values().any(|attack| {
+                        attack.contacts[0].is_none()
+                            || attack.contacts.iter().flatten().any(|c| {
+                                c.part >= instance.rig.joints.len() || c.hitbox.radius <= 0
+                            })
+                            || attack
+                                .combo
+                                .iter()
+                                .flatten()
+                                .any(|a| !moves.motions.contains_key(a))
+                    })
+                    || unarmed.active
+                        && (actor.weapon_drawn()
+                            || actor.state != tenchu_core::tenchu2::actor::State::Attack)
+                {
+                    return Err("Invalid native T2 unarmed moveset".into());
+                }
+            }
             if instance.rig.root >= world.scene.models.len()
                 || instance.rig.joints.len() < model.parts.len()
                 || instance
@@ -280,6 +309,17 @@ mod tests {
             crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
         let mut session = Session::load(&disc, 9, 17).unwrap();
         session.step(0).unwrap();
+        session
+            .configure_tatsumaru(
+                &disc,
+                tenchu_core::game::sheathing::Settings {
+                    enabled: true,
+                    unarmed: true,
+                    unarmed_style: tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
         let original = session.capture_state().unwrap();
         let rejected = |session: &mut Session, bytes: &[u8]| {
             assert!(session.restore_state(bytes).is_err());
@@ -301,6 +341,14 @@ mod tests {
             |s| s.core.0.instances[0].rig.root = usize::MAX,
             |s| s.core.0.instances[0].rig.weapons[0] = Some(usize::MAX),
             |s| s.core.0.actors[0].actor.motion.clip = Some(i16::MAX),
+            |s| {
+                Arc::make_mut(&mut s.core.0.actors[0].actor.unarmed.as_mut().unwrap().moves)
+                    .motions
+                    .clear();
+            },
+            |s| {
+                s.core.0.actors[0].actor.unarmed.as_mut().unwrap().active = true;
+            },
             |s| s.core.1.level.vram.words.clear(),
             |s| {
                 s.navigation = Some(navigation::Input {

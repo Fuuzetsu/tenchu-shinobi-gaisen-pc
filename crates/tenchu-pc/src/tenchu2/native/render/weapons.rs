@@ -61,8 +61,10 @@ impl Weapons {
                         root + 1 + index,
                         actor.definition_kind(),
                     );
-                    weapons.live.insert(key, actor.state == State::Attack);
-                    if slot < 3 && hits.contains(&owner) {
+                    weapons
+                        .live
+                        .insert(key, actor.weapon_drawn() && actor.state == State::Attack);
+                    if actor.weapon_drawn() && slot < 3 && hits.contains(&owner) {
                         weapons.hits.insert(key);
                     }
                 }

@@ -309,6 +309,55 @@ fn native_walking_with_imported_movesets() {
             !drawn,
             "{id}"
         );
+        for style in [
+            tenchu_core::game::sheathing::UnarmedStyle::Onikage,
+            tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,
+        ] {
+            super::super::sheathing_tests::weapon(&mut session, false);
+            let settings = tenchu_core::game::sheathing::Settings {
+                enabled: true,
+                unarmed: true,
+                unarmed_style: style,
+                ..Default::default()
+            };
+            session.configure_tatsumaru(&disc, settings).unwrap();
+            session.configure_onikage(&gaisen, settings).unwrap();
+            session
+                .world
+                .set_player_sheathing(settings, &session.assets)
+                .unwrap();
+            let weapon = session.world.instances[owner].rig.weapons;
+            let moveset =
+                postcard::to_allocvec(&session.world.actors[owner].actor.moveset).unwrap();
+            session.step(tenchu_core::tenchu2::input::ATTACK).unwrap();
+            assert!(
+                session.world.actors[owner].actor.unarmed_attack(),
+                "{id} {style:?}"
+            );
+            for _ in 0..100 {
+                session.step(0).unwrap();
+            }
+            assert_eq!(session.world.instances[owner].rig.weapons, weapon);
+            assert!(
+                postcard::to_allocvec(&session.world.actors[owner].actor.moveset).unwrap()
+                    == moveset
+            );
+            super::super::sheathing_tests::weapon(&mut session, true);
+            session.step(tenchu_core::tenchu2::input::ATTACK).unwrap();
+            let actor = &session.world.actors[owner].actor;
+            assert!(!actor.unarmed_attack());
+            assert_eq!(
+                actor.motion.clip,
+                session
+                    .assets
+                    .resources
+                    .registry
+                    .clip(actor.definition_kind(), 0x900)
+            );
+            for _ in 0..100 {
+                session.step(0).unwrap();
+            }
+        }
     }
 }
 
@@ -419,4 +468,26 @@ fn native_walking_on_imported_stages() {
         session.step(0).unwrap();
     }
     assert!(session.capture_state().unwrap() == expected);
+    let settings = tenchu_core::game::sheathing::Settings {
+        enabled: true,
+        unarmed: true,
+        unarmed_style: tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,
+        ..Default::default()
+    };
+    session
+        .configure_tatsumaru(&super::super::sheathing_tests::disc(), settings)
+        .unwrap();
+    session
+        .world
+        .set_player_sheathing(settings, &session.assets)
+        .unwrap();
+    super::super::sheathing_tests::weapon(session, false);
+    session.step(tenchu_core::tenchu2::input::ATTACK).unwrap();
+    assert!(session.world.actors[player].actor.unarmed_attack());
+    for _ in 0..100 {
+        session.step(0).unwrap();
+    }
+    assert!(!session.world.actors[player].actor.unarmed_attack());
+    assert!(!session.world.actors[player].actor.weapon_drawn());
+    assert!(session.gaisen.is_some());
 }

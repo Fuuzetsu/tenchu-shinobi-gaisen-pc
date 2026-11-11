@@ -7,11 +7,11 @@ use tenchu_core::{
 
 mod damage;
 
-fn disc() -> tenchu_assets::disc::Disc<crate::source::DiscSource> {
+pub(super) fn disc() -> tenchu_assets::disc::Disc<crate::source::DiscSource> {
     crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap()
 }
 
-fn ready(sequence: usize) -> Session {
+pub(super) fn ready(sequence: usize) -> Session {
     let mut session = Session::load(&disc(), sequence, 17).unwrap();
     for _ in 0..30 {
         session.step(0).unwrap();
@@ -26,7 +26,7 @@ fn configure(session: &mut Session, settings: Sheathing) {
         .unwrap();
 }
 
-fn weapon(session: &mut Session, drawn: bool) {
+pub(super) fn weapon(session: &mut Session, drawn: bool) {
     let world = &mut session.world;
     let id = world.player;
     let actor = &mut world.actors[id].actor;

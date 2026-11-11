@@ -55,6 +55,8 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         settings.walking.enabled = true;
         settings.walking.threshold = 45;
         settings.sheathing.enabled = true;
+        settings.sheathing.unarmed = true;
+        settings.sheathing.unarmed_style = tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru;
         settings.sheathing.speed = 125;
         settings.sheathing.visibility = 50;
         settings.sheathing.damage = 200;

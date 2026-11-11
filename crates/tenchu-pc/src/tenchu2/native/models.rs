@@ -32,7 +32,7 @@ mod checkpoint;
 mod convert;
 pub mod story;
 use convert::{convert_equipment, convert_moves, convert_weapons, native_parts};
-pub(super) use convert::{native_sources, placement_parts};
+pub(super) use convert::{gaisen_attack, gaisen_clip, native_sources, placement_parts};
 
 #[derive(Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct Selection {

@@ -62,6 +62,16 @@ recordings and imported-stage continuation include the optional settings and inp
 These are controlled feature checks; source-default regressions reuse the existing
 damage/AI/controller oracles and BizHawk training recording.
 
+Native optional unarmed checks exercise both styles on all three heroes, source
+combo progression, striking-limb contacts, directional/crouch/dodge entries,
+recovery heading, retained weapons and armed-moveset fallback. Controlled damage
+fixtures place a native target in an active limb's contact volume on a flat floor
+and use the original collision/damage path. Save/rewind, model overrides and an
+imported T1 stage are checked separately. Presentation checks report hits from
+both styles and require stowed blades to stay clean, then verify drawn attacks
+still coat blades. These fixtures do not establish a new ordinary-play route;
+source-default validation reuses the existing recordings.
+
 ## Emulator comparisons
 
 The combat/item searches under `~/tenchu-searches/ayame-mission-*` provide

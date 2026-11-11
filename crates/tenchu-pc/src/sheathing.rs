@@ -64,6 +64,21 @@ pub(crate) fn stowed_mount(
     ))
 }
 
+pub(crate) fn onikage_attacks(
+    assets: &GameAssets<impl ReadAt>,
+) -> Result<Vec<(i16, tenchu_assets::motion::Clip)>> {
+    let characters = Executable::new(&assets.executable)?.characters()?;
+    let character = characters
+        .iter()
+        .find(|c| c.kind == 0x87)
+        .ok_or("Missing Onikage character")?;
+    let clips = tenchu_assets::motion::parse(&assets.asset(ONIKAGE_MOTIONS)?)?;
+    character.motions.iter()
+        .filter(|m| matches!(m.action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_LUNGE_BACK))
+        .map(|m| clips.iter().find(|c| c.id == m.clip).cloned().map(|c| (m.action, c)).ok_or("Missing Onikage attack motion".to_string()))
+        .collect()
+}
+
 pub fn configure(
     game: &mut Game,
     assets: &GameAssets<impl ReadAt>,
@@ -113,15 +128,7 @@ pub fn configure(
         None
     };
     let attacks = if needs_attacks && settings.unarmed_style == UnarmedStyle::Onikage {
-        let characters = Executable::new(&assets.executable)?.characters()?;
-        let character = characters
-            .iter()
-            .find(|c| c.kind == 0x87)
-            .ok_or("Missing Onikage character")?;
-        let clips = tenchu_assets::motion::parse(&assets.asset(ONIKAGE_MOTIONS)?)?;
-        Some(character.motions.iter().filter(|m| matches!(m.action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_LUNGE_BACK))
-            .map(|m| clips.iter().find(|c| c.id == m.clip).cloned().map(|c| (m.action, c)).ok_or("Missing Onikage attack motion".to_string()))
-            .collect::<Result<Vec<_>>>()?)
+        Some(onikage_attacks(assets)?)
     } else {
         None
     };

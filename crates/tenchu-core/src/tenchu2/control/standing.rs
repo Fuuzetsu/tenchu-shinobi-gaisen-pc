@@ -11,6 +11,7 @@ use crate::{
 
 pub struct StandingInput {
     pub held: u16,
+    pub unarmed: bool,
     pub player: bool,
     pub controls_enabled: bool,
     pub water: bool,
@@ -188,7 +189,7 @@ impl Actor {
                         cue(self, request, random, StandingCue::Voice(19))?;
                     }
                 }
-                if pressed & ATTACK != 0 && self.weapon_drawn() {
+                if pressed & ATTACK != 0 && (self.weapon_drawn() || input.unarmed) {
                     cue(self, request, random, StandingCue::Attack)?;
                 }
                 return Ok(());

@@ -12,6 +12,7 @@ impl<E: Events> Driver<'_, E> {
         let mut ledge = c.ledge_input(input);
         let standing = StandingInput {
             held: input.held,
+            unarmed: c.unarmed_input(actor),
             player: input.player,
             controls_enabled: c.enabled,
             water: input.water.depth.is_some(),
@@ -148,6 +149,7 @@ impl<E: Events> Driver<'_, E> {
             request,
             &mut CrouchInput {
                 held: input.held,
+                unarmed: c.unarmed_input(actor),
                 body: body.as_mut(),
                 unlocked: &unlocked,
                 wall_allowed: c.controls.wall_allowed,

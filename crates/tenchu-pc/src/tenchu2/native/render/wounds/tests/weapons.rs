@@ -2,6 +2,100 @@ use super::*;
 use tenchu_core::tenchu2::actor::Velocity;
 
 #[test]
+#[ignore = "requires TENCHU_DISC, Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; optional punches and kicks cannot stain or swing stowed blades"]
+fn native_unarmed_hits_leave_stowed_blades_clean() {
+    use tenchu_core::game::sheathing::{Settings, UnarmedStyle};
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let out = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&out).unwrap();
+    for style in [UnarmedStyle::Onikage, UnarmedStyle::Tatsumaru] {
+        let (mut session, player, guard) = combat_fixture(0);
+        let settings = Settings {
+            enabled: true,
+            unarmed: true,
+            unarmed_style: style,
+            ..Default::default()
+        };
+        session.configure_tatsumaru(&disc, settings).unwrap();
+        session.configure_onikage(&gaisen, settings).unwrap();
+        session
+            .world
+            .set_player_sheathing(settings, &session.assets)
+            .unwrap();
+        crate::tenchu2::native::sheathing_tests::weapon(&mut session, false);
+        session.step(tenchu_core::tenchu2::input::ATTACK).unwrap();
+        assert!(session.world.actors[player].actor.unarmed_attack());
+        // Exercise the presentation boundary with a reported hit from a stowed attack.
+        session.contact.melee_hits.insert(player);
+        let graphics = Graphics {
+            blood: crate::settings::Blood {
+                weapons: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let vram = session.assets.sprites.vram.clone();
+        crate::tenchu2::native::render::capture_frame(
+            &vram,
+            &graphics,
+            &out.join(format!("unarmed-{style:?}.png")),
+            |renderer| {
+                let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+                let root = session.world.instances[player].rig.root;
+                let selected =
+                    super::super::super::weapons::Weapons::new(&session, &drawing.models)?;
+                let blades: Vec<_> = selected
+                    .live
+                    .iter()
+                    .filter(|(key, _)| matches!(key, PartId::Actor { root: r, .. } if *r == root))
+                    .collect();
+                assert!(!blades.is_empty());
+                assert!(
+                    blades
+                        .iter()
+                        .all(|(key, swinging)| !**swinging && !selected.hits.contains(key))
+                );
+                let state = session.capture_state()?;
+                drawing.tick(&session, &graphics)?;
+                assert!(state == session.capture_state()?);
+                assert!(
+                    !drawing
+                        .scene
+                        .environment
+                        .as_ref()
+                        .unwrap()
+                        .blood
+                        .weapon_parts()
+                        .any(|key| { matches!(key, PartId::Actor { root: r, .. } if r == root) })
+                );
+                session.world.actors[player].actor.change_motion(
+                    0,
+                    Velocity::Stop,
+                    &session.assets.resources,
+                )?;
+                weapon_hit(&mut session, player, guard)?;
+                drawing.tick(&session, &graphics)?;
+                assert!(
+                    drawing
+                        .scene
+                        .environment
+                        .as_ref()
+                        .unwrap()
+                        .blood
+                        .weapon_parts()
+                        .any(|key| { matches!(key, PartId::Actor { root: r, .. } if r == root) })
+                );
+                drawing.update(&session, renderer, None)?;
+                Ok((drawing.scene, session.world.camera.view, Vec::new()))
+            },
+        )
+        .unwrap();
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC, Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; native/imported blades share coating, flow, controls and clean restoration"]
 fn native_weapon_blood_follows_hits_blades_and_shared_controls() {
     let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();

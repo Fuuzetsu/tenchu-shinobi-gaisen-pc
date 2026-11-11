@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **Unarmed attacks while sheathed** and **Unarmed style**.
+  Tatsumaru uses the running JP disc's punches, kicks, hit frames and striking
+  limbs; Onikage uses the connected Gaisen disc. Grounded attacks and combos
+  leave weapons stowed and retain the selected armed moveset and voice. Style
+  changes wait for the current attack to finish. Saves and rewind retain the
+  optional attack state, including on imported T1 stages. Unarmed hits do not
+  add blood coatings or swing spray to stowed blades.
+
 - Native T2 supports the rebindable **Draw / sheathe** action and F1's sheathed
   movement speed, detection range, damage multiplier and one-hit challenge.
   Manual transitions use the active moveset's original animation, weapon-swap

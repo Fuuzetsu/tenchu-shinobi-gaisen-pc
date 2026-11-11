@@ -126,6 +126,7 @@ fn native_crouching_looting_carrying_and_wall_entry_match_source() {
         };
         let unlocked = std::array::from_fn(|i| row["unlocked"][i].as_bool().unwrap());
         let mut input = CrouchInput {
+            unarmed: false,
             held: int("input") as u16,
             body: boolean("found").then_some(&mut body),
             unlocked: &unlocked,

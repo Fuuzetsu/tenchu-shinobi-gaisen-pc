@@ -503,6 +503,16 @@ impl Menu {
                                 Settings::default().sheathing.enabled;
                             Ok(())
                         }
+                        Item::UnarmedAttacks => {
+                            state.settings.sheathing.unarmed =
+                                Settings::default().sheathing.unarmed;
+                            Ok(())
+                        }
+                        Item::UnarmedStyle => {
+                            state.settings.sheathing.unarmed_style =
+                                Settings::default().sheathing.unarmed_style;
+                            Ok(())
+                        }
                         Item::SheathedOneHit => {
                             state.settings.sheathing.one_hit =
                                 Settings::default().sheathing.one_hit;
@@ -553,6 +563,19 @@ impl Menu {
                     match item {
                         Item::Sheathing => {
                             state.settings.sheathing.enabled = !state.settings.sheathing.enabled;
+                            Ok(())
+                        }
+                        Item::UnarmedAttacks => {
+                            state.settings.sheathing.unarmed = !state.settings.sheathing.unarmed;
+                            Ok(())
+                        }
+                        Item::UnarmedStyle => {
+                            use tenchu_core::game::sheathing::UnarmedStyle;
+                            state.settings.sheathing.unarmed_style =
+                                match state.settings.sheathing.unarmed_style {
+                                    UnarmedStyle::Onikage => UnarmedStyle::Tatsumaru,
+                                    UnarmedStyle::Tatsumaru => UnarmedStyle::Onikage,
+                                };
                             Ok(())
                         }
                         Item::SheathedOneHit => {
@@ -814,6 +837,8 @@ mod tests {
         let mut action = Action::default();
         for (item, delta) in [
             (Item::Sheathing, 1),
+            (Item::UnarmedAttacks, 1),
+            (Item::UnarmedStyle, 1),
             (Item::SheathedSpeed, 100),
             (Item::SheathedVisibility, -100),
             (Item::SheathedDamage, 100),
@@ -832,7 +857,17 @@ mod tests {
             .sheathing
             .unwrap()
             .settings;
-        assert!(actual.enabled && actual.one_hit);
+        assert!(actual.enabled && actual.one_hit && actual.unarmed);
+        assert_eq!(
+            actual.unarmed_style,
+            tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru
+        );
+        assert!(
+            session.world.actors[session.world.player]
+                .actor
+                .unarmed
+                .is_some()
+        );
         assert_eq!(
             (actual.speed, actual.visibility, actual.damage),
             (200, 25, 400)
@@ -840,6 +875,8 @@ mod tests {
         let original = session.world.clone();
         for item in [
             Item::Sheathing,
+            Item::UnarmedAttacks,
+            Item::UnarmedStyle,
             Item::SheathedSpeed,
             Item::SheathedVisibility,
             Item::SheathedDamage,

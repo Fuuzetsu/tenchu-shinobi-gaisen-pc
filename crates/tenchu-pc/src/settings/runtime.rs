@@ -53,6 +53,10 @@ impl Runtime {
                     "With Draw / sheathe enabled and the weapon stowed, any damaging melee or item/projectile hit is fatal. Replaces the damage multiplier; God mode and resurrection items retain their original rules."
                 }
             }
+        } else if self == Self::Tenchu2 && item == Item::UnarmedAttacks {
+            "GAMEPLAY EDIT: with Draw / sheathe enabled and weapons stowed, use the selected grounded punches/kicks and combos. Draw explicitly to use your armed moveset. Existing weapons, voices and source stealth kills are retained. Disabling lets the active attack finish. Off by default."
+        } else if self == Self::Tenchu2 && item == Item::UnarmedStyle {
+            "Tatsumaru uses the current Japanese T2 disc, including its original hit frames and striking limbs. Onikage uses your connected Gaisen disc. The style changes after the active attack finishes; your armed moveset is retained."
         } else if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
@@ -147,9 +151,8 @@ impl Runtime {
             CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,
-            Sheathing | SheathedSpeed | SheathedVisibility | SheathedDamage | SheathedOneHit => {
-                None
-            }
+            Sheathing | UnarmedAttacks | UnarmedStyle | SheathedSpeed | SheathedVisibility
+            | SheathedDamage | SheathedOneHit => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) | Reset | ResetTweaks => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
@@ -222,7 +225,7 @@ impl Runtime {
             }
             Edit::Diagnostics => None,
             Edit::ImportUnarmed | Edit::ExportUnarmed => Some(
-                "Imported Gaisen unarmed moves are not used by native Tenchu 2 JP. Its characters already use their own source movesets.",
+                "Native T2 currently reads Tatsumaru from the running JP disc and Onikage from the connected Gaisen disc. Portable unarmed import/export is not connected here yet.",
             ),
             Edit::GameplayPreset(_) => self.unavailable(Item::GameplayPreset),
             Edit::Randomizer => self.unavailable(Item::Randomizer),

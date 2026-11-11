@@ -133,32 +133,7 @@ impl Actor {
             }
         }
         let start = if self.weapon_drawn() || draw_weapon {
-            if self.flags & FALLING != 0 && self.terrain.blocked != 0 {
-                AttackStart::None
-            } else {
-                let (action, velocity) = if self.state == State::Jumping || request.action == 0x702
-                {
-                    (0x911, Velocity::Keep)
-                } else if self.state == State::Crouched {
-                    (0x914, Velocity::Motion)
-                } else if request.action == 0x111 {
-                    (0x910, Velocity::Motion)
-                } else if request.action == 0x112 {
-                    (0x913, Velocity::Motion)
-                } else if input & UP != 0 {
-                    (
-                        if input & DOWN != 0 { 0x915 } else { 0x900 },
-                        Velocity::Motion,
-                    )
-                } else if input & RIGHT != 0 {
-                    (0x907, Velocity::Motion)
-                } else if input & LEFT != 0 {
-                    (0x90a, Velocity::Motion)
-                } else {
-                    (0x900, Velocity::Motion)
-                };
-                AttackStart::Strike { action, velocity }
-            }
+            self.strike_input(request, input)
         } else if self.flags & FALLING != 0 {
             AttackStart::None
         } else {
@@ -167,6 +142,34 @@ impl Actor {
             }
         };
         Ok(AttackInput { draw_weapon, start })
+    }
+
+    pub(crate) fn strike_input(&self, request: Request, input: u16) -> AttackStart {
+        if self.flags & FALLING != 0 && self.terrain.blocked != 0 {
+            AttackStart::None
+        } else {
+            let (action, velocity) = if self.state == State::Jumping || request.action == 0x702 {
+                (0x911, Velocity::Keep)
+            } else if self.state == State::Crouched {
+                (0x914, Velocity::Motion)
+            } else if request.action == 0x111 {
+                (0x910, Velocity::Motion)
+            } else if request.action == 0x112 {
+                (0x913, Velocity::Motion)
+            } else if input & UP != 0 {
+                (
+                    if input & DOWN != 0 { 0x915 } else { 0x900 },
+                    Velocity::Motion,
+                )
+            } else if input & RIGHT != 0 {
+                (0x907, Velocity::Motion)
+            } else if input & LEFT != 0 {
+                (0x90a, Velocity::Motion)
+            } else {
+                (0x900, Velocity::Motion)
+            };
+            AttackStart::Strike { action, velocity }
+        }
     }
 
     fn stealth_style(

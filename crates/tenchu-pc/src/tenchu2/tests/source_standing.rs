@@ -73,6 +73,7 @@ fn native_standing_ready_dodges_and_carrying_match_source() {
         actor.pad.previous = int("previous") as u16;
         actor.pad.history = std::array::from_fn(|i| row["history"][i].as_u64().unwrap() as u16);
         let input = StandingInput {
+            unarmed: false,
             held: int("input") as u16,
             player: boolean("player"),
             controls_enabled: boolean("enabled"),

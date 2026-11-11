@@ -163,6 +163,9 @@ impl Application {
         let native = self.native_tenchu2.as_mut().unwrap();
         native.rewind.resume()?;
         if !native.rewind.preview {
+            native
+                .playback
+                .configure_onikage(&self.assets, &self.settings)?;
             native.playback.configure(&self.settings)?;
         }
         let buttons = if native.rewind.preview {
@@ -246,6 +249,9 @@ impl Application {
         self.sync_audio_pause();
         let native = self.native_tenchu2.as_mut().unwrap();
         if !native.rewind.preview {
+            native
+                .playback
+                .configure_onikage(&self.assets, &self.settings)?;
             native.playback.configure(&self.settings)?;
         }
         let buttons = if native.rewind.preview {

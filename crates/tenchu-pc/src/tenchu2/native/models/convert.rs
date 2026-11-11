@@ -120,28 +120,7 @@ pub(super) fn convert_moves(
         };
         let id = -2 - mapped.len() as i16;
         let id = *mapped.entry(clip.id).or_insert(id);
-        let mut bones = vec![
-            vec![tenchu_assets::motion::Key {
-                time: 0,
-                value: [0; 3]
-            }];
-            15
-        ];
-        for (&bone, keys) in BONES.iter().zip(&clip.bones) {
-            bones[bone].clone_from(keys);
-        }
-        assets.resources.clips.insert(
-            id,
-            motions::Clip {
-                id,
-                duration: clip.duration,
-                blend: i16::from(clip.sweep).saturating_neg().max(0),
-                forward_speed: clip.forward_speed,
-                side_speed: clip.side_speed,
-                root: clip.root.clone(),
-                bones,
-            },
-        );
+        assets.resources.clips.insert(id, gaisen_clip(clip, id));
         if matches!(native, 0x700 | 0x701) {
             let event = body
                 .imported_moveset
@@ -216,17 +195,11 @@ pub(super) fn convert_moves(
                 .iter()
                 .flatten()
                 .fold(0, |mask, c| mask | (1 << c.part));
-            assets.resources.weapons.attacks.push(weapons::Attack {
-                clip: id,
-                power: attack.power.clamp(0, 255) as u8,
-                steering: attack.steering.clamp(0, 255) as u8,
-                combo: attack.combo.clamp(0, 255) as u8,
-                start: attack.start.clamp(0, 255) as u8,
-                end: attack.end.clamp(0, 255) as u8,
-                trail_start: attack.trail_start.clamp(0, 255) as u8,
-                trail_end: attack.trail_end.clamp(0, 255) as u8,
-                bones,
-            });
+            assets
+                .resources
+                .weapons
+                .attacks
+                .push(gaisen_attack(attack, id, bones));
             attacks.insert(id, metadata);
         }
         definition.motions.retain(|r| r.action != native);
@@ -246,6 +219,49 @@ pub(super) fn convert_moves(
         .registry
         .replace_imported_weapon_events(weapon_frames);
     Ok(attacks)
+}
+
+pub(in crate::tenchu2::native) fn gaisen_clip(
+    clip: &tenchu_assets::motion::Clip,
+    id: i16,
+) -> motions::Clip {
+    let mut bones = vec![
+        vec![tenchu_assets::motion::Key {
+            time: 0,
+            value: [0; 3]
+        }];
+        15
+    ];
+    for (&bone, keys) in BONES.iter().zip(&clip.bones) {
+        bones[bone].clone_from(keys);
+    }
+    motions::Clip {
+        id,
+        duration: clip.duration,
+        blend: i16::from(clip.sweep).saturating_neg().max(0),
+        forward_speed: clip.forward_speed,
+        side_speed: clip.side_speed,
+        root: clip.root.clone(),
+        bones,
+    }
+}
+
+pub(in crate::tenchu2::native) fn gaisen_attack(
+    attack: &tenchu_assets::weapon::Attack,
+    id: i16,
+    bones: u32,
+) -> weapons::Attack {
+    weapons::Attack {
+        clip: id,
+        power: attack.power.clamp(0, 255) as u8,
+        steering: attack.steering.clamp(0, 255) as u8,
+        combo: attack.combo.clamp(0, 255) as u8,
+        start: attack.start.clamp(0, 255) as u8,
+        end: attack.end.clamp(0, 255) as u8,
+        trail_start: attack.trail_start.clamp(0, 255) as u8,
+        trail_end: attack.trail_end.clamp(0, 255) as u8,
+        bones,
+    }
 }
 
 fn native_combo(action: i16) -> [Option<i16>; 3] {

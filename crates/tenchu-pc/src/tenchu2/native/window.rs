@@ -263,10 +263,32 @@ struct Application {
 }
 
 impl Application {
+    fn configure_gameplay(&mut self) -> Result<()> {
+        use tenchu_core::game::sheathing::UnarmedStyle;
+        if let Content::Gameplay(session) = &mut self.session.content
+            && self.settings.sheathing.unarmed_style == UnarmedStyle::Onikage
+            && session.needs_unarmed(self.settings.sheathing)
+        {
+            let mut load = || {
+                let saved = crate::storage::UserFile::LastDisc.path()?;
+                let path = crate::startup::remembered_path(&saved)
+                    .ok_or("Open Gaisen once with play to connect its disc for Onikage attacks. Tatsumaru uses the current T2 disc.")?;
+                let assets = crate::startup::open(&path)?;
+                session.configure_onikage(&assets, self.settings.sheathing)
+            };
+            if let Err(error) = load() {
+                self.settings.sheathing.unarmed = false;
+                self.store.write(&self.settings)?;
+                self.menu.panel.notice = error;
+            }
+        }
+        self.session.configure(&self.settings)
+    }
+
     fn step(&mut self) -> Result<()> {
         self.rewind.resume()?;
         self.controls.stop_rumble();
-        self.session.configure(&self.settings)?;
+        self.configure_gameplay()?;
         let buttons = self.menu.tools.input(
             &mut self.session.content,
             &mut self.controls,
@@ -338,7 +360,7 @@ impl Application {
             || self.controls.editor.open
             || self.presets.open;
         if !self.rewind.preview {
-            self.session.configure(&self.settings)?;
+            self.configure_gameplay()?;
         }
         let input = PlaybackInput {
             buttons: if self.rewind.preview {

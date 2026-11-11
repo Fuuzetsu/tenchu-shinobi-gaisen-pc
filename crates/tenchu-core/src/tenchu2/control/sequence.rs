@@ -238,6 +238,9 @@ impl Actor {
         slot: usize,
         cue: &mut impl FnMut(&mut Actor, &mut Request, AttackCue) -> Result<()>,
     ) -> Result<()> {
+        if self.unarmed_attack() {
+            return Ok(());
+        }
         if frame == hold || frame == release {
             cue(
                 self,

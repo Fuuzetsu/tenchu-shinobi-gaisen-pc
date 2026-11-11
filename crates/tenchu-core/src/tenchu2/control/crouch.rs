@@ -14,6 +14,7 @@ use crate::{
 
 pub struct CrouchInput<'a> {
     pub held: u16,
+    pub unarmed: bool,
     pub body: Option<&'a mut Actor>,
     pub unlocked: &'a [bool; 20],
     pub wall_allowed: bool,
@@ -169,7 +170,7 @@ impl Actor {
                     }
                 }
                 if self.motion.loops > 0 {
-                    if self.weapon_drawn() && held & ATTACK != 0 {
+                    if (self.weapon_drawn() || input.unarmed) && held & ATTACK != 0 {
                         cue(self, request, held, CrouchCue::Attack)?;
                     } else {
                         next = Some(0x200);

@@ -98,6 +98,7 @@ pub struct Actor {
     #[serde(default)]
     pub bleeding: Option<crate::game::bleeding::State>,
     pub sheathing: Option<super::sheathing::State>,
+    pub unarmed: Option<super::sheathing::Unarmed>,
     pub breath: u8,
     pub width: i16,
     pub height: i16,
@@ -132,6 +133,9 @@ impl Actor {
     }
 
     pub fn imported_attack(&self) -> Option<&tenchu_assets::weapon::ImportedAttack> {
+        if self.unarmed_attack() {
+            return self.unarmed.as_ref()?.imported_attack(self.motion.action);
+        }
         self.moveset.as_ref()?.attacks.get(&self.motion.clip?)
     }
 
@@ -179,6 +183,7 @@ impl Actor {
             invulnerable: false,
             bleeding: None,
             sheathing: None,
+            unarmed: None,
             width,
             breath: 100,
             height,
@@ -208,20 +213,33 @@ impl Actor {
     ) -> Result<Option<Change>> {
         let changed = self.motion.action != action;
         if changed {
-            if self.state == State::Attack && self.motion.loops < 1 && self.weapon_drawn() {
+            if self.state == State::Attack
+                && self.motion.loops < 1
+                && (self.weapon_drawn() || self.unarmed_attack())
+            {
                 self.attack.contacts = 0;
                 self.attack.trails = 0;
             }
-            if self
-                .motion
-                .select(
+            let selected = if self.unarmed_attack_action(action) {
+                if let Some(id) = self
+                    .unarmed
+                    .as_ref()
+                    .and_then(|u| u.moves.motions.get(&action))
+                {
+                    self.motion.select_clip(action, *id, &resources.clips)?;
+                    Some(*id)
+                } else {
+                    None
+                }
+            } else {
+                self.motion.select(
                     action,
                     self.definition_kind(),
                     &resources.registry,
                     &resources.clips,
                 )?
-                .is_none()
-            {
+            };
+            if selected.is_none() {
                 if action != 0x110 {
                     return Ok(None);
                 }
@@ -237,6 +255,11 @@ impl Actor {
                 }
             }
             self.state = State::from_action(action)?;
+            if self.state != State::Attack
+                && let Some(unarmed) = &mut self.unarmed
+            {
+                unarmed.active = false;
+            }
             self.motion_changes = self.motion_changes.wrapping_add(1);
         }
         self.update_velocity(velocity, resources)?;

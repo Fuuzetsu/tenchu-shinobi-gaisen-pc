@@ -1339,6 +1339,29 @@ The sibling research, decompilation and viewer repositories were searched read-o
 no new code was imported. Shared sheathing demo and graphical presets were reviewed:
 this remains an optional gameplay edit; native demo sequencing is still separate.
 
+## Native T2 optional unarmed styles (2026-11-11)
+
+These styles reuse the existing Gaisen Onikage
+loader (`HUMAN/MOTION/STAGE4.AMD`, kind `0x87`) and FIST contact table. Scalar
+Gaisen-to-native clip and hit-table conversion is shared with the model override
+path; Onikage clips use the separate `0x6000 + source ID` range so changing an
+armed moveset cannot discard them. Action aliases keep their own combo metadata.
+Tatsumaru uses JP kind 2's original grounded registrations, native clips, attack
+table bone masks and weapon-part contact volumes. The existing native sequence
+controller retains its combo and intentional-turn rules; recovery uses Tatsumaru's
+combat stance as the reference. Blade attachment swaps and blade ribbons are
+omitted during these optional unarmed attacks. Weapon-blood attribution and
+swing spray require drawn blades, while existing stowed coatings are retained.
+
+Only the interactive player attack-entry boundary enables the optional clip
+selection. Scripted, airborne, wall and stealth actions retain the native path.
+An active attack retains its resources after disabling or changing the preference;
+the replacement is loaded after recovery. The existing snapshot/rewind machinery
+captures that state and its disc resources. No sibling research, decompilation or
+viewer repository was modified and no code was imported from them. The shared
+Sheathing demo already enables unarmed attacks; native demo sequencing and portable
+unarmed import/export remain outstanding. Graphical presets are unchanged.
+
 ## Optional effects and geometry refinement (2026-10-24)
 
 Persistent stains, surface queries, weather particles/coatings, the sky clock,

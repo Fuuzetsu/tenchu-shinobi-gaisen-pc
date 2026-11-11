@@ -4,8 +4,35 @@ use super::{
     physics::{FALLING, HIT},
     world::{Assets, World},
 };
-use crate::{Result, game::sheathing::Settings};
+use crate::{
+    Result,
+    game::sheathing::{Settings, UnarmedStyle},
+};
 use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, sync::Arc};
+use tenchu_assets::weapon::ImportedAttack;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UnarmedMoves {
+    pub style: UnarmedStyle,
+    pub rest_yaw: Option<i16>,
+    pub motions: BTreeMap<i16, i16>,
+    pub attacks: BTreeMap<i16, ImportedAttack>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Unarmed {
+    pub moves: Arc<UnarmedMoves>,
+    pub active: bool,
+}
+
+impl Unarmed {
+    pub(crate) fn imported_attack(&self, action: i16) -> Option<&ImportedAttack> {
+        (self.moves.style == UnarmedStyle::Onikage)
+            .then(|| self.moves.attacks.get(&action))
+            .flatten()
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct State {
@@ -31,6 +58,40 @@ fn free_stance(action: i16) -> bool {
 }
 
 impl Actor {
+    pub fn unarmed_attack(&self) -> bool {
+        self.unarmed.as_ref().is_some_and(|u| u.active)
+    }
+
+    pub(crate) fn unarmed_attack_action(&self, action: i16) -> bool {
+        self.unarmed_attack() && matches!(action, 0x900..=0x910 | 0x913..=0x915)
+    }
+
+    pub(crate) fn unarmed_available(&self) -> bool {
+        self.sheathed_settings().is_some_and(|s| s.unarmed) && self.unarmed.is_some()
+    }
+
+    pub(crate) fn attack_contacts(&self) -> Option<&ImportedAttack> {
+        if self.unarmed_attack() {
+            self.unarmed
+                .as_ref()?
+                .moves
+                .attacks
+                .get(&self.motion.action)
+        } else {
+            self.imported_attack()
+        }
+    }
+
+    pub(crate) fn retain_combo_pose(&self) -> bool {
+        if self.unarmed_attack() {
+            self.unarmed
+                .as_ref()
+                .is_some_and(|u| u.moves.style == UnarmedStyle::Onikage)
+        } else {
+            self.moveset.as_ref().is_some_and(|m| m.retain_combo_pose)
+        }
+    }
+
     pub(crate) fn take_sheathing_request(&mut self) -> bool {
         self.sheathing
             .as_mut()

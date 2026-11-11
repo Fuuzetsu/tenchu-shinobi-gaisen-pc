@@ -129,8 +129,10 @@ impl Actor {
             let turn_on_exit = self
                 .imported_attack()
                 .map_or(matches!(old, 0x907..=0x90c | 0x915), |a| a.turn_on_exit);
-            let retain_combo_pose = request.action >> 8 == 9
-                && self.moveset.as_ref().is_some_and(|m| m.retain_combo_pose);
+            let retain_combo_pose = request.action >> 8 == 9 && self.retain_combo_pose();
+            let rest_yaw = (request.action >> 8 != 9 && self.unarmed_attack())
+                .then(|| self.unarmed.as_ref().and_then(|u| u.moves.rest_yaw))
+                .flatten();
             if self
                 .change_motion(request.action, request.velocity, resources)?
                 .is_some()
@@ -144,10 +146,9 @@ impl Actor {
                     .ok_or("Missing Tenchu 2 root rotation")?
                     .value[1];
                 if turn_on_exit && !retain_combo_pose {
-                    self.rotation.y = self
-                        .rotation
-                        .y
-                        .wrapping_add(self.motion.pose.rotation[0][1].wrapping_sub(yaw));
+                    self.rotation.y = self.rotation.y.wrapping_add(
+                        self.motion.pose.rotation[0][1].wrapping_sub(rest_yaw.unwrap_or(yaw)),
+                    );
                 }
                 if !retain_combo_pose {
                     self.motion.pose.rotation[0][1] = yaw;
@@ -200,12 +201,13 @@ impl Actor {
                 .ok_or("Missing Tenchu 2 actor")?
                 .weapon;
             let mut slot = 0;
+            let unarmed = self.unarmed_attack();
             for (part, weapon) in resources
                 .weapons
                 .parts
                 .iter()
                 .enumerate()
-                .filter(|(_, part)| part.kind == kind)
+                .filter(|(_, part)| part.kind == kind && !unarmed)
             {
                 if weapon.radius != 0 && attack.bones & 1u32.wrapping_shl(weapon.bone as u32) != 0 {
                     if slot >= 4 {
@@ -238,7 +240,7 @@ impl Actor {
         context: &mut AttackContext<'_>,
         cue: &mut impl FnMut(&Actor, &mut AttackContext<'_>, CombatCue) -> Result<()>,
     ) -> Result<()> {
-        if self.weapon_drawn() {
+        if self.weapon_drawn() || self.unarmed_attack() {
             self.end_attack_trails(context, cue)?;
         }
         self.set_attack_contacts(context.rig, context.collision, resources, Contacts::Finish)

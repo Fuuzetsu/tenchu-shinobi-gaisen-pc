@@ -342,6 +342,16 @@ Native T2 already retains a stowed weapon after injury and knockdown, so the
 T1 **Stay sheathed after damage** option is unnecessary here. Saves, rewind and
 recordings retain the settings and pending manual input.
 
+**Unarmed attacks while sheathed** uses Onikage's Gaisen kicks or Tatsumaru's JP
+punches and kicks while Draw / sheathe is enabled and weapons are stowed. Select
+the style in F1; Tatsumaru reads the running T2 disc, while Onikage needs your
+connected Gaisen disc. Grounded directional attacks, crouching attacks and combos
+use that style's available moves and hit contacts. Your armed moveset, weapons and
+voice remain selected. Airborne, wall and stealth attacks keep T2's rules. Style
+changes wait until the current attack finishes; disabling the option also lets
+that attack finish. Saves and rewind retain the active attack. Portable `.t2moves`
+import/export is still unavailable in native T2.
+
 **F1 → Player model** uses the shared searchable gallery of Gaisen and connected
 T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**
 on **Selected player body** to inherit its moves. You can also select an explicit
