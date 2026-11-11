@@ -19,6 +19,104 @@ use tenchu_core::{
 };
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; expanded all-active collision lists retain every clash and source contact order"]
+fn native_weapon_clashes_handle_expanded_contact_lists() {
+    use tenchu_core::tenchu2::collision::{BODY, DISABLED, WEAPON};
+    let (mut world, assets, _) = super::native_world::fixture();
+    world.keep_all_active = true;
+    world
+        .update_activation(world.camera.eye, world.camera.look, 4, &assets)
+        .unwrap();
+    let models: Vec<_> = world
+        .collision
+        .slots()
+        .iter()
+        .map(|slot| slot.model)
+        .collect();
+    for model in models {
+        world.collision.remove(model);
+    }
+    world.collision.compute(|_| unreachable!()).unwrap();
+    assert!(world.collision.slots().is_empty());
+    let rig = world.instances[world.player].rig.clone();
+    let joint = rig.joints[0];
+    let mut template = world.actors[world.player].actor.clone();
+    template
+        .change_motion(0x900, Velocity::Motion, &assets.resources)
+        .unwrap()
+        .unwrap();
+    let attack = assets
+        .resources
+        .weapons
+        .attacks
+        .iter()
+        .position(|a| Some(a.clip) == template.motion.clip)
+        .unwrap();
+    let definition = &assets.resources.weapons.attacks[attack];
+    assert!(definition.start + 1 < definition.end);
+    template.attack.index = Some(attack);
+    template.motion.frame = i16::from(definition.start) + 1;
+    for count in [63, 65, 130] {
+        let mut actor = template.clone();
+        let mut scene = world.scene.clone();
+        let mut collision = world.collision.clone();
+        let center = scene.world(joint).unwrap().translation;
+        let slot = collision.insert(joint).unwrap();
+        slot.owner = Some(0);
+        slot.flags = WEAPON;
+        slot.size = Vector3::new(1000, 1000, 1000);
+        let mut opponents = Vec::new();
+        for index in 0..count {
+            let model = scene.add(
+                None,
+                Matrix {
+                    translation: center.wrapping_add(Position::new(index, 0, 0)),
+                    ..Default::default()
+                },
+            );
+            let slot = collision.insert(model).unwrap();
+            slot.owner = Some(index as usize + 1);
+            slot.flags = if index % 3 == 0 { WEAPON } else { BODY };
+            slot.size = Vector3::new(1000, 1000, 1000);
+            if slot.flags == WEAPON {
+                opponents.push(index as usize + 1);
+            }
+        }
+        collision.compute(|id| scene.world(id)).unwrap();
+        assert_eq!(collision.contacts(joint).count(), count as usize);
+        let mut observed = Vec::new();
+        actor
+            .finish_attack(
+                &mut Request {
+                    action: actor.motion.action,
+                    velocity: Velocity::Keep,
+                },
+                0,
+                &assets.resources,
+                &mut AttackContext {
+                    rig: &rig,
+                    scene: &mut scene,
+                    collision: &mut collision,
+                    random: &mut Random::new(1),
+                },
+                |_, _, cue| {
+                    if let CombatCue::Clash { opponent, .. } = cue {
+                        observed.push(opponent);
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert_eq!(observed, opponents, "contact count {count}");
+        assert_eq!(actor.motion.loops, -5);
+        assert_eq!(collision.get_mut(joint).unwrap().flags, WEAPON | DISABLED);
+        for opponent in opponents {
+            assert_eq!(collision.slot(opponent).unwrap().flags, WEAPON | DISABLED);
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_ATTACK_ORACLE from original enclosing attack controllers"]
 fn native_attack_contacts_parries_steering_and_recovery_match_source() {
     let rows: Vec<Value> = cases("TENCHU2_ATTACK_ORACLE").collect();

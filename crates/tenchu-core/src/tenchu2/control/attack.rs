@@ -278,13 +278,12 @@ impl Actor {
                 continue;
             }
             let position = slot.position;
-            let mut contacts = [0; 64];
-            let mut count = 0;
-            for contact in context.collision.contacts(joint) {
-                contacts[count] = contact.index;
-                count += 1;
-            }
-            for &other_index in &contacts[..count] {
+            let contacts: Vec<_> = context
+                .collision
+                .contacts(joint)
+                .map(|contact| contact.index)
+                .collect();
+            for other_index in contacts {
                 let other = context
                     .collision
                     .slot(other_index)

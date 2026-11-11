@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix a native T2 weapon-clash crash when all-active mode or placed actors
+  produce more than 64 overlapping collision entries. Clashes retain their
+  original order and process contacts beyond the original pool size.
+
 - Native T2 supports F1's **Quick shuriken evasion** and **Strict corpse
   visibility**. Enemies can sidestep during shuriken aim, with a per-enemy
   cooldown and terrain checks; corpse discovery can require sight to the animated
