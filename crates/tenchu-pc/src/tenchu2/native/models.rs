@@ -202,6 +202,18 @@ impl Override {
         bodies: &Arc<Pack>,
         settings: &Settings,
     ) -> Result<bool> {
+        self.sync_optional(world, assets, Some(donor), library, bodies, settings)
+    }
+
+    pub fn sync_optional(
+        &mut self,
+        world: &mut World,
+        assets: &mut Assets,
+        mut donor: Option<&mut Game>,
+        library: &Library,
+        bodies: &Arc<Pack>,
+        settings: &Settings,
+    ) -> Result<bool> {
         let custom = Custom::selected(&settings.player_model, bodies)?;
         let custom_changed = !Custom::same(self.custom.as_ref(), custom.as_ref());
         let body_id = if custom.is_some() {
@@ -285,11 +297,25 @@ impl Override {
         let mut imported = BTreeMap::new();
         let mut weapon_parts = None;
         if let Some(source) = moveset {
-            source.apply_moveset(donor, Options::default())?;
-            imported = convert_moves(source, donor, &mut definition, assets, selection.options)?;
+            if source.imported_moveset.is_none() {
+                source.apply_moveset(
+                    donor
+                        .as_deref_mut()
+                        .ok_or("Connect the T1 disc to use this moveset")?,
+                    Options::default(),
+                )?;
+            }
+            imported = convert_moves(
+                source,
+                donor.as_deref(),
+                &mut definition,
+                assets,
+                selection.options,
+            )?;
             if definition.weapon < 0 {
                 weapon_parts = Some(convert_weapons(
-                    donor,
+                    source,
+                    donor.as_deref(),
                     definition.weapon,
                     &imported,
                     assets,

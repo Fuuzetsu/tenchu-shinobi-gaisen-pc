@@ -3,6 +3,81 @@ use crate::source::DiscSource;
 
 mod rewind;
 
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; seeded model rendering and rewind metadata survive a host state restore without changing global preferences"]
+fn native_randomizer_host_state_and_pixels() {
+    use crate::randomizer::{Document, Player, Range, Run, Source};
+    let mut playback = start(9);
+    playback.prepare_randomizer(None).unwrap();
+    let mut run = Run::new(Document::for_source(Source::Tenchu2));
+    run.document.rules.player = Player::Chosen;
+    run.document.rules.character = 2;
+    run.document.rules.health = Some(Range::new(321, 321));
+    run.document.rules.keep_active = true;
+    playback.start_randomizer(run.clone()).unwrap();
+    let mut settings = Settings::default();
+    playback.configure(&settings).unwrap();
+    for _ in 0..60 {
+        playback.step(0).unwrap();
+    }
+    let mut tools = Tools::default();
+    tools.sync(&playback.content, playback.generation);
+    let mut renderer = renderer(&playback, &settings);
+    let graphics = renderer.graphics().clone();
+    let mut drawing = ContentDrawing::new(&playback.content, &graphics, &mut renderer).unwrap();
+    drawing
+        .update(&playback.content, &mut renderer, &tools.debug, &settings)
+        .unwrap();
+    let initial = playback.capture_state().unwrap();
+    let before = rewind::image(&playback, &drawing, &mut renderer, "randomizer-before");
+    let saved = capture(&playback, &drawing, &settings, &tools).unwrap();
+    check_rewind(&playback, &drawing, &settings, &tools);
+    let mut next = run.next().unwrap();
+    next.document.rules.mission = 12;
+    next.document.rules.character = 0;
+    playback.start_randomizer(next).unwrap();
+    for _ in 0..30 {
+        playback.step(0).unwrap();
+    }
+    drawing = restore(
+        &mut playback,
+        &saved,
+        &mut settings,
+        &mut tools,
+        &mut renderer,
+    )
+    .unwrap();
+    assert!(
+        !settings.keep_enemies_active,
+        "seed activation leaked into normal preferences"
+    );
+    assert!(
+        !playback
+            .randomizer_models(&settings, &Default::default())
+            .unwrap()
+    );
+    assert_eq!(playback.randomized().unwrap().0, &run);
+    assert!(playback.capture_state().unwrap() == initial);
+    let after = rewind::image(&playback, &drawing, &mut renderer, "randomizer-restored");
+    assert!(before == after, "restored native seed pixels changed");
+    for _ in 0..60 {
+        playback.step(0).unwrap();
+    }
+    let expected = playback.capture_state().unwrap();
+    restore(
+        &mut playback,
+        &saved,
+        &mut settings,
+        &mut tools,
+        &mut renderer,
+    )
+    .unwrap();
+    for _ in 0..60 {
+        playback.step(0).unwrap();
+    }
+    assert!(playback.capture_state().unwrap() == expected);
+}
+
 fn start(sequence: usize) -> Playback<DiscSource> {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();

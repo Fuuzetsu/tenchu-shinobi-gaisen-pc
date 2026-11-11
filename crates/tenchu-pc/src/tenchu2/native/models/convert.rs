@@ -59,17 +59,23 @@ pub(in crate::tenchu2::native) fn native_sources(body: &Body, count: usize) -> V
 
 pub(super) fn convert_moves(
     body: &Body,
-    donor: &Game,
+    donor: Option<&Game>,
     definition: &mut registry::Actor,
     assets: &mut Assets,
     options: Options,
 ) -> Result<BTreeMap<i16, ImportedAttack>> {
+    let donor = donor.filter(|_| body.imported_moveset.is_none());
     let character = body.moveset_character().ok_or("Model has no moveset")?;
     let clips = body
         .imported_moveset
         .as_ref()
         .map_or(body.clips.as_slice(), |m| m.clips.as_slice());
-    let weapon_kind = donor.mission.characters[donor.player().definition].weapon;
+    let weapon_kind = if body.imported_moveset.is_some() {
+        character.weapon
+    } else {
+        let donor = donor.ok_or("Connect the T1 disc to use this moveset")?;
+        donor.mission.characters[donor.player().definition].weapon
+    };
     if !options.player_movement {
         definition.turn = character.turn;
     }
@@ -144,23 +150,32 @@ pub(super) fn convert_moves(
             weapon_frames.push((id, event));
         }
         if native >= 0x900 && native != 0x916 {
-            let Some(attack) = donor
-                .mission
-                .weapons
-                .attacks
-                .iter()
-                .find(|a| a.clip == clip.id)
-            else {
+            let source_attack = body
+                .imported_moveset
+                .as_ref()
+                .and_then(|source| source.attacks.iter().find(|(a, _)| a.clip == clip.id));
+            let Some(attack) = source_attack.map(|(attack, _)| attack).or_else(|| {
+                donor.and_then(|donor| {
+                    donor
+                        .mission
+                        .weapons
+                        .attacks
+                        .iter()
+                        .find(|a| a.clip == clip.id)
+                })
+            }) else {
                 continue;
             };
             if attack.start <= 0 {
                 continue;
             }
             let mut metadata = if let Some(imported) =
-                donor.mission.weapons.imported_attacks.get(&clip.id)
-            {
+                source_attack.map(|(_, metadata)| metadata).or_else(|| {
+                    donor.and_then(|donor| donor.mission.weapons.imported_attacks.get(&clip.id))
+                }) {
                 imported.clone()
             } else {
+                let donor = donor.ok_or("Missing T1 attack contacts")?;
                 let parts = match weapon_kind {
                     kind::FIST => [8, 11],
                     kind::JAW => [2, 1],
@@ -279,12 +294,18 @@ fn native_combo(action: i16) -> [Option<i16>; 3] {
 }
 
 pub(super) fn convert_weapons(
-    donor: &Game,
+    body: &Body,
+    donor: Option<&Game>,
     kind: i16,
     attacks: &BTreeMap<i16, ImportedAttack>,
     assets: &mut Assets,
 ) -> Result<Vec<weapons::Part>> {
-    let equipment = donor.player_equipment(&Arc::new(donor.mission.vram.clone()))?;
+    let equipment = if let Some(source) = &body.imported_moveset {
+        std::borrow::Cow::Borrowed(&source.equipment)
+    } else {
+        let donor = donor.ok_or("Connect the T1 disc to use these weapons")?;
+        std::borrow::Cow::Owned(donor.player_equipment(&Arc::new(donor.mission.vram.clone()))?)
+    };
     let mut contacts = BTreeMap::new();
     for contact in attacks.values().flat_map(|a| a.contacts.iter().flatten()) {
         contacts.entry(contact.part).or_insert(&contact.hitbox);

@@ -26,7 +26,7 @@ pub struct Plan {
     pub difficulty: u8,
     pub player_model: Option<String>,
     pub health: Option<u16>,
-    pub inventory: [u8; 20],
+    pub inventory: Vec<u8>,
     pub sight: u16,
     pub seed: u32,
 }
@@ -65,6 +65,7 @@ impl Run {
     pub fn plan(&self, catalog: &Catalog) -> Result<Plan> {
         let document = &self.document;
         document.validate(catalog)?;
+        let source = catalog.source;
         let rules = &document.rules;
         let random = |domain| document.random(self.round, domain, 0);
         let mut stages: Vec<_> = catalog
@@ -83,9 +84,8 @@ impl Run {
                 stages[self.round as usize % stages.len()]
             }
         };
-        let protagonists: Vec<_> = [0, 1]
-            .into_iter()
-            .filter(|c| !rules.player_pool.blocked.contains(&format!("disc:{c}")))
+        let protagonists: Vec<_> = (0..source.heroes().len() as i16)
+            .filter(|&hero| !rules.player_pool.blocked.contains(&source.hero_model(hero)))
             .collect();
         let character = if rules.player == Player::Chosen || protagonists.is_empty() {
             rules.character
@@ -99,12 +99,16 @@ impl Run {
                     .id
                     .clone(),
             )
+        } else if source == Source::Tenchu2 {
+            Some(source.hero_model(character))
         } else {
             None
         };
-        let mut inventory = [0; 20];
+        let mut inventory = vec![0; source.item_names().len()];
         if rules.equipment {
-            let mut choices: Vec<_> = (0..20)
+            let mut choices: Vec<_> = source
+                .items()
+                .map(|(id, _)| id)
                 .filter(|i| !rules.blocked_items.contains(i) && (*i != 0 || !rules.keep_grapple))
                 .collect();
             random("item-choice").shuffle(&mut choices);
@@ -124,7 +128,13 @@ impl Run {
                 };
             }
         } else {
-            inventory[..4].copy_from_slice(&[0, 10, 5, 2]);
+            if source == Source::Tenchu2 {
+                inventory[1] = 2;
+                inventory[4] = 10;
+                inventory[5] = 5;
+            } else {
+                inventory[..4].copy_from_slice(&[0, 10, 5, 2]);
+            }
             for &item in &rules.blocked_items {
                 inventory[item] = 0;
             }
@@ -136,7 +146,9 @@ impl Run {
             mission,
             character,
             player_model,
-            layout: if rules.layout == 0 {
+            layout: if source == Source::Tenchu2 && mission < 100 {
+                0
+            } else if rules.layout == 0 {
                 random("layout").index(3) + 1
             } else {
                 rules.layout
@@ -217,7 +229,7 @@ impl Run {
 
     fn enemies(&self, game: &mut Game, library: &Library, catalog: &Catalog) -> Result<()> {
         let rules = &self.document.rules;
-        let pool = rules.enemy_pool.choices(catalog);
+        let pool = rules.enemy_pool.choices_for(catalog, true);
         let protected: BTreeSet<_> = game
             .mission
             .story

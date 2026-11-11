@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 
 fn catalog() -> Catalog {
     Catalog {
+        source: Source::Gaisen,
         actors: [
             ("disc:0", Group::Players),
             ("disc:1", Group::Players),
@@ -16,6 +17,8 @@ fn catalog() -> Catalog {
             id: id.into(),
             name: id.into(),
             group,
+            enemy: true,
+            player: true,
         })
         .collect(),
         stages: (0..=10).map(|i| (i, format!("Stage {i}"))).collect(),
@@ -68,7 +71,11 @@ fn retries_preserve_the_roll_without_touching_normal_progress() {
     let plan = &campaign.randomized.as_ref().unwrap().plan;
     let original = plan
         .options(run.document.rules.language.game())
-        .load_equipped(&assets, plan.seed, plan.inventory)
+        .load_equipped(
+            &assets,
+            plan.seed,
+            plan.inventory.as_slice().try_into().unwrap(),
+        )
         .unwrap();
     assert_eq!(
         campaign.game.mission.vram.words,
@@ -407,4 +414,34 @@ fn finish_randomized_cinematic(game: &mut tenchu_core::game::Game) {
         }
         game.step(0).unwrap();
     }
+}
+
+#[test]
+fn existing_t1_seed_plans_and_fingerprints_are_stable() {
+    use sha2::{Digest, Sha256};
+    let catalog = catalog();
+    let mut hash = Sha256::new();
+    for i in 0..1000u32 {
+        let mut run = Run::new(Document::default());
+        run.round = i * 13;
+        run.document.seed = format!("v1-compatibility-{}", i / 10);
+        let r = &mut run.document.rules;
+        r.stages = [Stages::Chosen, Stages::Random, Stages::Tour][i as usize % 3];
+        r.player = [Player::Chosen, Player::Protagonists, Player::Models][i as usize / 3 % 3];
+        r.layout = i as usize % 4;
+        r.difficulty = (i % 2 == 0).then_some((i % 3) as u8);
+        r.equipment = i % 5 != 0;
+        r.keep_grapple = i % 7 != 0;
+        r.infinite_items = i % 11 == 0;
+        r.blocked_stages = [0, 2, 7].into();
+        r.blocked_items = [4, 9, 17].into();
+        let actual = serde_json::to_value(run.plan(&catalog).unwrap()).unwrap();
+        hash.update(serde_json::to_vec(&actual).unwrap());
+        hash.update(run.document.fingerprint().as_bytes());
+    }
+    // Recorded from the original version-one implementation at 389fcae.
+    assert_eq!(
+        format!("{:x}", hash.finalize()),
+        "fbf73dd3edacfbd3f4c0acaca1b9bd8e65098c49a838414af6c7f9f05cca2030"
+    );
 }

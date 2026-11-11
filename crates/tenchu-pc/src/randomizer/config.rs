@@ -1,4 +1,4 @@
-use super::{Catalog, Entry, Group, random::Random};
+use super::{Catalog, Entry, Group, Source, random::Random};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -112,10 +112,14 @@ impl Pool {
     }
 
     pub fn choices<'a>(&self, catalog: &'a Catalog) -> Vec<&'a Entry> {
+        self.choices_for(catalog, false)
+    }
+
+    pub fn choices_for<'a>(&self, catalog: &'a Catalog, enemy: bool) -> Vec<&'a Entry> {
         catalog
             .actors
             .iter()
-            .filter(|entry| self.allows(entry))
+            .filter(|entry| self.allows(entry) && if enemy { entry.enemy } else { entry.player })
             .collect()
     }
 }
@@ -192,6 +196,25 @@ impl Default for Rules {
 }
 
 impl Document {
+    pub fn for_source(source: Source) -> Self {
+        let mut document = Self {
+            format: source.format().into(),
+            ..Default::default()
+        };
+        if source == Source::Tenchu2 {
+            document.rules.language = Language::Japanese;
+        }
+        document
+    }
+
+    pub fn source(&self) -> Result<Source> {
+        match self.format.as_str() {
+            "tenchu-randomizer" => Ok(Source::Gaisen),
+            "tenchu2-jp-randomizer" => Ok(Source::Tenchu2),
+            _ => Err("Unknown randomizer game format".into()),
+        }
+    }
+
     #[cfg(test)]
     pub fn export(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
@@ -208,7 +231,7 @@ impl Document {
     }
 
     pub(crate) fn validate_format(&self) -> Result<()> {
-        if self.format != "tenchu-randomizer" || self.version != 1 {
+        if self.source().is_err() || self.version != 1 {
             return Err(
                 "Unsupported randomizer format/version; use a version 1 seed document".into(),
             );
@@ -228,21 +251,35 @@ impl Document {
     }
 
     pub fn random(&self, round: u32, domain: &str, entry: u32) -> Random {
-        Random::new(&self.seed, round, domain, entry)
+        if self.format == Source::Tenchu2.format() {
+            Random::new(&self.seed, round, &format!("t2-{domain}"), entry)
+        } else {
+            Random::new(&self.seed, round, domain, entry)
+        }
     }
 
     pub fn validate(&self, catalog: &Catalog) -> Result<()> {
         self.validate_format()?;
+        let source = self.source()?;
+        if source != catalog.source {
+            return Err("This seed is for the other game. Open its randomizer to use it.".into());
+        }
         let r = &self.rules;
-        if r.mission > 10
+        if !catalog.stages.iter().any(|stage| stage.0 == r.mission)
             || r.layout > 3
             || r.character < 0
-            || r.character > 1
+            || r.character as usize >= source.heroes().len()
             || r.difficulty.is_some_and(|d| d > 2)
         {
             return Err("Invalid mission, layout, protagonist or difficulty".into());
         }
-        if r.blocked_stages.iter().any(|&s| s > 10) || r.blocked_items.iter().any(|&i| i > 19) {
+        if r.blocked_stages
+            .iter()
+            .any(|&s| !catalog.stages.iter().any(|stage| stage.0 == s))
+            || r.blocked_items
+                .iter()
+                .any(|&i| !source.items().any(|(id, _)| id == i))
+        {
             return Err("The blacklist contains an unknown stage or item".into());
         }
         if r.blocked_stages.len() == catalog.stages.len()
@@ -250,9 +287,9 @@ impl Document {
         {
             return Err("Allow at least one stage, including the chosen stage".into());
         }
-        for (name, pool, needed) in [
-            ("player", &r.player_pool, r.player == Player::Models),
-            ("enemy", &r.enemy_pool, r.enemies != Enemies::Original),
+        for (name, pool, needed, enemy) in [
+            ("player", &r.player_pool, r.player == Player::Models, false),
+            ("enemy", &r.enemy_pool, r.enemies != Enemies::Original, true),
         ] {
             if pool
                 .blocked
@@ -261,21 +298,23 @@ impl Document {
             {
                 return Err(format!("The {name} blacklist contains an unknown model ID"));
             }
-            if needed && pool.choices(catalog).is_empty() {
+            if needed && pool.choices_for(catalog, enemy).is_empty() {
                 return Err(format!("Allow at least one {name} model"));
             }
         }
         if r.player == Player::Protagonists
-            && ["disc:0", "disc:1"]
-                .iter()
-                .all(|id| r.player_pool.blocked.contains(*id))
+            && (0..source.heroes().len()).all(|hero| {
+                r.player_pool
+                    .blocked
+                    .contains(&source.hero_model(hero as i16))
+            })
         {
-            return Err("Allow Rikimaru or Ayame in the player pool".into());
+            return Err("Allow at least one protagonist in the player pool".into());
         }
         if r.player == Player::Chosen
             && r.player_pool
                 .blocked
-                .contains(&format!("disc:{}", r.character))
+                .contains(&source.hero_model(r.character))
         {
             return Err("Allow the chosen protagonist in the player pool".into());
         }
@@ -288,7 +327,9 @@ impl Document {
         r.item_count.validate("Item quantity", 1, 99)?;
         if r.equipment
             && r.item_types.min as usize
-                > (0..20)
+                > source
+                    .items()
+                    .map(|(id, _)| id)
                     .filter(|i| !r.blocked_items.contains(i) && (*i != 0 || !r.keep_grapple))
                     .count()
         {
@@ -297,7 +338,13 @@ impl Document {
         if r.keep_grapple && r.blocked_items.contains(&0) {
             return Err("Allow the grappling hook or turn off Guaranteed grapple".into());
         }
-        if r.pickups && (1..19).all(|i| r.blocked_items.contains(&i)) {
+        if r.pickups
+            && source
+                .items()
+                .map(|(id, _)| id)
+                .filter(|&i| source.consumable(i))
+                .all(|i| r.blocked_items.contains(&i))
+        {
             return Err("Allow at least one consumable for randomized pickups".into());
         }
         Ok(())

@@ -39,11 +39,43 @@ parser and `src/weapons.rs` attachment catalog. These establish the separation
 between authored placement, controller definition and equipment. No sibling
 code or retail data was imported. The replacement policy is new optional code,
 not a retail randomizer or a new physics algorithm. The shared state format is
-38 and the native session signature is 4. This is groundwork for native
-randomizer runs; its Session adapter is exercised in tests until the native
-run lifecycle is connected, and the F1 randomizer is not enabled. Graphics
-presets and the demo catalog are unchanged because there is no presentation
-feature or user-facing mode to select yet.
+38 and the native session signature is 4 at this groundwork commit. The native
+randomizer lifecycle below now calls the Session replacement adapter.
+
+## Native T2 seeded runs (2026-11-12)
+
+The native adapter reuses the shared randomizer editor, validated rules and
+SHA-derived independent streams. Native version-one documents have a distinct
+format/domain prefix. The existing T1 generator at 389fcae was compared directly
+over 1,000 seed/round/rule combinations; serialized plans and document fingerprints
+match. A recorded digest protects that compatibility. Native mission keys encode
+the campaign hero and mission (`hero * 11 + mission`); imported T1 choices use
+`100 + stage.order`. They are validated against the connected discs' catalogs.
+
+Starting NPCs use the existing source-verified native replacement path. NPC
+eligibility requires a living JP controller and available source clips; player
+bodies are checked separately. T2 moveset conversion now reads its existing
+imported attack/equipment bundle directly, so native-only catalogs need no T1
+donor. The optional T1 donor remains for T1 movesets. Model conversions and 120
+updates match between native-only and combined catalogs for 58 available movesets.
+No new game asset or sibling-repository code was imported. The read-only actor
+and equipment references listed above were reviewed again.
+
+Optional run ownership lives at the native campaign boundary. It retains the
+normal session, uses separate progress, suppresses normal-save writes and applies
+seeded starting actors/pickups without consuming gameplay RNG. Source campaign
+transitions retain inventory and a separate full-width health value for optional
+rolls above 255. Unlimited supplies are replenished after original item updates;
+the source inventory algorithm remains unchanged. Original play still uses its
+existing carry initialization and item quantities. Saves/rewind retain active
+seed metadata and require a native randomizer session when loading; its normal
+return context remains the session from which the user started the run.
+
+Both native hosts share the editor and pause/input boundary. Native setup/current
+run storage is separate from T1. The common state format is now 39 and native
+campaign signature 2. Graphics presets remain unchanged: this is a gameplay mode.
+The existing Randomizer demo remains for T1; native demo/benchmark sequencing is
+the next host adapter, separate from enabling this mode.
 
 ## Native T2 portable unarmed export (2026-11-12)
 

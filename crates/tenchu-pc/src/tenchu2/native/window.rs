@@ -144,7 +144,7 @@ impl View {
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
                 self.drawing.paint(&session.content, ctx);
-                if !menu.panel.open {
+                if !menu.panel.open && !menu.randomizer_open() {
                     session.action = session
                         .content
                         .controls(ctx, state.settings.circle_confirm)
@@ -159,7 +159,7 @@ impl View {
                     );
                 }
                 menu.cutscene_controls(ctx, session.content.cutscene());
-                if !menu.panel.open {
+                if !menu.panel.open && !menu.randomizer_open() {
                     session.death_controls(ctx, menu.tools.debug.photo_mode);
                 }
                 if state.settings.show_performance && !menu.tools.debug.photo_mode {
@@ -172,6 +172,7 @@ impl View {
                     );
                 }
                 action = menu.show(ctx, state);
+                action.randomizer = menu.show_randomizer(ctx, session);
                 if state.settings.show_fps && !menu.tools.debug.photo_mode {
                     egui::Area::new("native-fps".into())
                         .anchor(egui::Align2::RIGHT_TOP, [-12.0, 12.0])
@@ -263,6 +264,18 @@ struct Application {
 }
 
 impl Application {
+    fn toggle_randomizer(&mut self) -> Result<()> {
+        let saved = crate::storage::UserFile::LastDisc.path()?;
+        let gaisen = crate::startup::remembered_path(&saved).filter(|p| p.exists());
+        self.menu
+            .toggle_randomizer(&mut self.session, gaisen.as_deref())?;
+        self.controls.clear();
+        self.controls.close_editor();
+        self.transport.discard_backlog();
+        self.last = Instant::now();
+        Ok(())
+    }
+
     fn configure_gameplay(&mut self) -> Result<()> {
         use tenchu_core::game::sheathing::UnarmedStyle;
         if let Content::Gameplay(session) = &mut self.session.content
@@ -293,7 +306,7 @@ impl Application {
             &mut self.session.content,
             &mut self.controls,
             &self.settings,
-            self.focused && !self.menu.panel.open,
+            self.focused && !self.menu.panel.open && !self.menu.randomizer_open(),
         );
         let mut view = self
             .view
@@ -343,6 +356,7 @@ impl Application {
         self.menu
             .controller(polled.menu_pressed, self.settings.circle_confirm);
         if !self.menu.panel.open
+            && !self.menu.randomizer_open()
             && self
                 .session
                 .controller_pause(polled.menu_pressed, self.settings.circle_confirm)
@@ -356,6 +370,7 @@ impl Application {
         let paused = self.paused
             || !self.focused && self.settings.pause_on_defocus
             || self.error.is_some()
+            || self.menu.randomizer_open()
             || self.menu.panel.open && self.settings.pause_in_menu
             || self.controls.editor.open
             || self.presets.open;
@@ -370,7 +385,7 @@ impl Application {
                     &mut self.session.content,
                     &mut self.controls,
                     &self.settings,
-                    self.focused && !self.menu.panel.open,
+                    self.focused && !self.menu.panel.open && !self.menu.randomizer_open(),
                 )
             },
             cutscene_speed: self.settings.cutscene_speed,
@@ -462,14 +477,16 @@ impl Application {
         self.menu.tools.advance(
             &mut self.controls,
             elapsed.as_secs_f32(),
-            self.focused && !self.menu.panel.open,
+            self.focused && !self.menu.panel.open && !self.menu.randomizer_open(),
             &self.settings.navigation,
         );
-        let wants_models = (self.menu.panel.open && matches!(self.menu.panel.page, 4 | 10))
-            || !self
-                .session
-                .content
-                .current_model(self.session.run.hero, &self.settings);
+        let randomized = self.session.randomized().is_some();
+        let wants_models = !randomized
+            && ((self.menu.panel.open && matches!(self.menu.panel.page, 4 | 10))
+                || !self
+                    .session
+                    .content
+                    .current_model(self.session.run.hero, &self.settings));
         if wants_models && self.gallery.is_none() && self.gallery_error.is_none() {
             match super::models::Gallery::remembered(&self.settings.model_directory) {
                 Ok(mut gallery) => {
@@ -490,8 +507,16 @@ impl Application {
             }
         }
         let mut models_changed = std::mem::take(&mut self.menu.actor_assets_changed);
+        if randomized {
+            let bodies = self
+                .gallery
+                .as_ref()
+                .map_or_else(Arc::default, |g| g.bodies.clone());
+            models_changed |= self.session.randomizer_models(&self.settings, &bodies)?;
+        }
         if let (Content::Gameplay(session), Some(gallery)) =
             (&mut self.session.content, &mut self.gallery)
+            && !randomized
         {
             match session.models.sync(
                 &mut session.world,
@@ -512,6 +537,7 @@ impl Application {
         }
         if let (Content::Story { story, .. }, Some(gallery)) =
             (&mut self.session.content, &self.gallery)
+            && !randomized
         {
             match story.models.sync(
                 &story.resources,
@@ -528,6 +554,8 @@ impl Application {
         let mut export_unarmed = false;
         let mut state_action = None;
         let mut rewind_action = None;
+        let mut open_randomizer = false;
+        let mut randomizer_action = None;
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
@@ -635,6 +663,8 @@ impl Application {
             export_unarmed = action.export_unarmed;
             state_action = action.state;
             rewind_action = action.rewind;
+            open_randomizer = action.open_randomizer;
+            randomizer_action = action.randomizer;
             if let Some(bodies) = action.models
                 && let Some(gallery) = &mut self.gallery
             {
@@ -700,6 +730,21 @@ impl Application {
             if let Err(error) = self.save_diagnostics(paused) {
                 self.menu.panel.notice = error;
             }
+            self.last = Instant::now();
+        }
+        if open_randomizer {
+            self.toggle_randomizer()?;
+        }
+        if let Some(event) = randomizer_action {
+            if let Err(error) = self.menu.randomizer_action(&mut self.session, event) {
+                self.menu.panel.notice = error;
+            } else {
+                self.error = None;
+                self.rewind.clear();
+                self.paused = false;
+            }
+            self.controls.clear();
+            self.transport.discard_backlog();
             self.last = Instant::now();
         }
         if export_unarmed {
@@ -871,7 +916,11 @@ impl ApplicationHandler for Application {
                                 self.menu.tools.debug.teleport_armed = false;
                                 self.menu.tools.debug.pick_actor_position = false;
                             }
-                            KeyCode::Escape if self.menu.panel.open || self.menu.diagnostics => {
+                            KeyCode::Escape
+                                if self.menu.panel.open
+                                    || self.menu.diagnostics
+                                    || self.menu.randomizer_open() =>
+                            {
                                 self.menu.back(&mut self.controls, &mut self.presets);
                             }
                             KeyCode::Escape
@@ -883,7 +932,15 @@ impl ApplicationHandler for Application {
                             }
                             KeyCode::Escape => events.exit(),
                             KeyCode::F6 => events.exit(),
+                            KeyCode::F7 => {
+                                if let Err(error) = self.toggle_randomizer() {
+                                    self.menu.panel.notice = error;
+                                }
+                            }
                             KeyCode::F1 => {
+                                if let Some(editor) = &mut self.menu.randomizer {
+                                    editor.open = false;
+                                }
                                 self.menu.panel.open = !self.menu.panel.open;
                                 self.controls.clear();
                             }
@@ -924,13 +981,19 @@ impl ApplicationHandler for Application {
                                     self.fail(error);
                                 }
                             }
-                            KeyCode::Enter if !self.menu.panel.open && !consumed => {
+                            KeyCode::Enter
+                                if !self.menu.panel.open
+                                    && !self.menu.randomizer_open()
+                                    && !consumed =>
+                            {
                                 self.session.confirm();
                             }
                             _ => {}
                         }
                     }
-                    if !consumed && !self.menu.panel.open || !pressed {
+                    if !consumed && !self.menu.panel.open && !self.menu.randomizer_open()
+                        || !pressed
+                    {
                         self.controls.key(code, pressed);
                     }
                 }

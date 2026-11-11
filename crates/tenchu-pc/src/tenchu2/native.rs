@@ -55,6 +55,8 @@ mod melee_tests;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod models;
 mod navigation;
+#[cfg(not(target_arch = "wasm32"))]
+mod randomizer;
 #[cfg(test)]
 mod sheathing_tests;
 #[cfg(test)]

@@ -279,6 +279,7 @@ impl Runtime {
             | MotionWind => None,
             SaveState | LoadState | StateSlot => None,
             Rewind | RewindHistory | RewindSpeed => None,
+            Randomizer => None,
             _ => Some(
                 "Not implemented in native Tenchu 2 JP yet. Available in Gaisen; saved preferences are preserved.",
             ),

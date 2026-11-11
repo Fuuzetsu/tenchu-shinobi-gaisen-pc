@@ -70,6 +70,7 @@ pub struct Menu {
     pub screenshot: bool,
     pub actor_assets_changed: bool,
     pub tools: super::tools::Tools,
+    pub randomizer: Option<crate::randomizer::Editor>,
     pending: Option<Navigation>,
 }
 
@@ -104,9 +105,87 @@ pub struct Action {
     pub export_unarmed: bool,
     pub state: Option<bool>,
     pub rewind: Option<super::rewind::Action>,
+    pub open_randomizer: bool,
+    pub randomizer: Option<crate::randomizer::Event>,
 }
 
 impl Menu {
+    pub fn randomizer_open(&self) -> bool {
+        self.randomizer.as_ref().is_some_and(|editor| editor.open)
+    }
+
+    pub fn toggle_randomizer(
+        &mut self,
+        playback: &mut super::campaign::Playback<impl tenchu_assets::ReadAt>,
+        gaisen: Option<&std::path::Path>,
+    ) -> tenchu_assets::Result<()> {
+        if self.randomizer.is_none() {
+            self.randomizer = Some(crate::randomizer::Editor::for_source(
+                crate::storage::UserFile::Tenchu2Randomizer.path()?,
+                crate::randomizer::Source::Tenchu2,
+            ));
+        }
+        let editor = self.randomizer.as_mut().unwrap();
+        editor.open = !editor.open;
+        if editor.open {
+            self.panel.open = false;
+            if let Err(error) = playback.prepare_randomizer(gaisen) {
+                editor.notice = error;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn show_randomizer(
+        &mut self,
+        ctx: &egui::Context,
+        playback: &super::campaign::Playback<impl tenchu_assets::ReadAt>,
+    ) -> Option<crate::randomizer::Event> {
+        let editor = self.randomizer.as_mut()?;
+        if let Some((run, _)) = playback.randomized()
+            && editor.current.as_ref() != Some(run)
+        {
+            editor.current = Some(run.clone());
+            editor.save();
+        }
+        editor.show(
+            ctx,
+            playback.randomizer_catalog(),
+            playback.randomized(),
+            true,
+        )
+    }
+
+    pub fn randomizer_action(
+        &mut self,
+        playback: &mut super::campaign::Playback<impl tenchu_assets::ReadAt>,
+        event: crate::randomizer::Event,
+    ) -> tenchu_assets::Result<()> {
+        match event {
+            crate::randomizer::Event::Start(run) => {
+                if let Err(error) = playback.start_randomizer((*run).clone()) {
+                    if let Some(editor) = &mut self.randomizer {
+                        editor.notice.clone_from(&error);
+                        editor.open = true;
+                    }
+                    return Err(error);
+                }
+                if let Some(editor) = &mut self.randomizer {
+                    editor.started(&run);
+                }
+            }
+            crate::randomizer::Event::End => {
+                playback.end_randomizer();
+                if let Some(editor) = &mut self.randomizer {
+                    editor.open = false;
+                }
+            }
+        }
+        self.panel.open = false;
+        self.actor_assets_changed = true;
+        Ok(())
+    }
+
     pub fn export_unarmed(
         &mut self,
         playback: &super::campaign::Playback<impl tenchu_assets::ReadAt>,
@@ -140,6 +219,9 @@ impl Menu {
     }
 
     pub fn loaded_state(&mut self, controls: &mut Controls, presets: &mut Manager) {
+        if let Some(editor) = &mut self.randomizer {
+            editor.open = false;
+        }
         self.panel.open = false;
         self.panel.model_picker = false;
         self.panel.touch_controls = false;
@@ -250,6 +332,11 @@ impl Menu {
     }
 
     pub fn back(&mut self, controls: &mut Controls, presets: &mut Manager) {
+        if self.randomizer_open() {
+            self.randomizer.as_mut().unwrap().open = false;
+            controls.clear();
+            return;
+        }
         if controls.editor.open {
             controls.close_editor();
         } else if presets.open {
@@ -266,6 +353,15 @@ impl Menu {
     }
 
     pub fn controller(&mut self, pressed: u16, circle_confirm: bool) {
+        if self.randomizer_open() {
+            if matches!(
+                controls::gamepad_command(pressed, false, false, circle_confirm),
+                Some(controls::Command::Menu(MenuAction::Back))
+            ) {
+                self.pending = Some(Navigation::Action(MenuAction::Back));
+            }
+            return;
+        }
         if !self.panel.open {
             return;
         }
@@ -319,6 +415,15 @@ impl Menu {
 
     pub fn show(&mut self, ctx: &egui::Context, state: &mut State<'_>) -> Action {
         let mut action = Action::default();
+        if self.randomizer_open() {
+            if matches!(
+                self.pending.take(),
+                Some(Navigation::Action(MenuAction::Back))
+            ) {
+                self.back(state.controls, state.presets);
+            }
+            return action;
+        }
         self.tools.hint(ctx, self.panel.open);
         if !self.panel.open {
             for edit in overlay::show(
@@ -461,6 +566,10 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::Randomizer | Edit::Change(Item::Randomizer, _) => {
+                action.open_randomizer = true;
+                Ok(())
+            }
             Edit::ExportUnarmed => {
                 action.export_unarmed = true;
                 Ok(())
@@ -1552,13 +1661,16 @@ mod tests {
                 }
             }
         }
-        for edit in [Edit::Randomizer, Edit::Benchmark, Edit::ImportUnarmed] {
+        for edit in [Edit::Benchmark, Edit::ImportUnarmed] {
             menu.apply(edit, &mut state, &mut action);
             assert!(!menu.panel.notice.is_empty());
             assert_eq!(*state.settings, original);
         }
         menu.apply(Edit::ExportUnarmed, &mut state, &mut action);
         assert!(action.export_unarmed && menu.panel.notice.is_empty());
+        assert_eq!(*state.settings, original);
+        menu.apply(Edit::Randomizer, &mut state, &mut action);
+        assert!(action.open_randomizer && menu.panel.notice.is_empty());
         assert_eq!(*state.settings, original);
         menu.apply(Edit::Diagnostics, &mut state, &mut action);
         assert!(action.save_diagnostics && menu.panel.notice.is_empty());

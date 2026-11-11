@@ -55,7 +55,7 @@ pub(super) fn check_seek(
         .unwrap();
 }
 
-fn image(
+pub(super) fn image(
     playback: &Playback<DiscSource>,
     drawing: &ContentDrawing,
     renderer: &mut Renderer,

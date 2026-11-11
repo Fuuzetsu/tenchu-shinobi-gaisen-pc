@@ -13,7 +13,7 @@ use tenchu_core::tenchu2::{
     mission::Phase,
 };
 
-mod death;
+pub(super) mod death;
 pub(super) mod state;
 #[cfg(test)]
 mod tests;
@@ -55,28 +55,35 @@ pub struct Update {
 
 pub struct Playback<S> {
     pub(super) disc: Disc<S>,
-    campaign: Campaign,
+    pub(super) campaign: Campaign,
     pub run: Run,
     pub content: Content,
     pub generation: u64,
     pub action: Option<Action>,
-    loadout: Option<[u8; 21]>,
-    previous_buttons: u16,
+    pub(super) loadout: Option<[u8; 21]>,
+    pub(super) previous_buttons: u16,
     blank: Vram,
     save: Option<super::save::SaveFile>,
-    from_menu: bool,
+    pub(super) from_menu: bool,
     pub death: death::Hold,
-    keep_all_active: bool,
+    pub(super) keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
     bleeding: tenchu_core::game::bleeding::Settings,
-    gaisen: Option<super::gaisen::Source>,
-    gaisen_water_depth: i16,
+    pub(super) gaisen: Option<super::gaisen::Source>,
+    pub(super) gaisen_water_depth: i16,
+    pub(super) randomizer: super::randomizer::Runtime,
 }
 
 impl<S: ReadAt> Playback<S> {
     pub fn configure(&mut self, settings: &crate::settings::Settings) -> Result<()> {
         self.death.configure(settings);
-        self.keep_all_active = settings.keep_enemies_active;
+        self.keep_all_active = self
+            .randomizer
+            .active
+            .as_ref()
+            .map_or(settings.keep_enemies_active, |a| {
+                a.run.document.rules.keep_active
+            });
         self.circle_action = settings.circle_action;
         self.bleeding = settings.bleeding;
         if !self.bleeding.enabled {
@@ -223,6 +230,7 @@ impl<S: ReadAt> Playback<S> {
             bleeding: Default::default(),
             gaisen: None,
             gaisen_water_depth: tenchu_assets::tenchu2::collision::Gaisen::DEFAULT_WATER_DEPTH,
+            randomizer: Default::default(),
         }
     }
 
@@ -246,13 +254,25 @@ impl<S: ReadAt> Playback<S> {
         }
     }
 
-    fn load_current(&mut self) -> Result<()> {
+    pub(super) fn load_current(&mut self) -> Result<()> {
         self.death.clear();
         let descriptor = *self.run.descriptor(&self.campaign)?;
         self.content =
             match descriptor.kind {
                 Kind::Gameplay(_) => {
-                    if self.run.prepare_area(&self.campaign)? {
+                    let carry = self
+                        .randomizer
+                        .active
+                        .as_ref()
+                        .map(|_| self.run.carry.clone());
+                    let equipment = self.run.prepare_area(&self.campaign)?;
+                    if let Some(carry) = carry {
+                        self.run.carry = carry;
+                    }
+                    if let Some(active) = &self.randomizer.active {
+                        self.run.carry.health = active.health.clamp(0, 255) as u8;
+                    }
+                    if equipment && self.randomizer.active.is_none() {
                         if let Some(items) = self.loadout.or_else(|| {
                             tenchu_core::tenchu2::equipment::training(descriptor.resource)
                         }) {
@@ -296,6 +316,13 @@ impl<S: ReadAt> Playback<S> {
                         Session::for_run(&self.disc, &self.run)?
                     };
                     session.world.set_bleeding(self.bleeding);
+                    if let Some(active) = &self.randomizer.active {
+                        self.randomizer
+                            .resources
+                            .as_mut()
+                            .ok_or("Missing native randomizer resources")?
+                            .apply(&self.disc, &mut session, active)?;
+                    }
                     Content::Gameplay(Box::new(session))
                 }
                 Kind::Event => {
@@ -332,6 +359,7 @@ impl<S: ReadAt> Playback<S> {
             };
         self.generation += 1;
         if matches!(self.content, Content::Results(_))
+            && self.randomizer.active.is_none()
             && let Some(save) = &self.save
         {
             save.write(&self.run.progress)?;
@@ -356,6 +384,9 @@ impl<S: ReadAt> Playback<S> {
     }
 
     pub fn step(&mut self, buttons: u16) -> Result<Update> {
+        if let Some(update) = self.randomizer_step(buttons)? {
+            return Ok(update);
+        }
         let previous = self.previous_buttons;
         let pressed = buttons & !previous;
         self.previous_buttons = buttons;
@@ -497,9 +528,16 @@ impl<S: ReadAt> Playback<S> {
                         None
                     }
                 } else if matches!(session.world.mission.phase, Phase::Finished { .. }) {
+                    if let Some(active) = &mut self.randomizer.active {
+                        active.health = session.world.actors[session.world.player].actor.health;
+                    }
                     Some(self.run.finish_area(&session.world, &self.campaign)?)
                 } else {
                     update.sounds = session.step(buttons)?;
+                    if let Some(active) = &mut self.randomizer.active {
+                        active.replenish(session);
+                        active.health = session.world.actors[session.world.player].actor.health;
+                    }
                     if let Some(scene) = &mut session.gaisen {
                         update.original_sounds = std::mem::take(&mut scene.audio.sounds);
                     }

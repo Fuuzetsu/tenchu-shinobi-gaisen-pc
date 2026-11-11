@@ -11,7 +11,7 @@ use tenchu_assets::{
 use tenchu_core::math::Position;
 use tenchu_core::tenchu2::world::Replacement;
 
-mod body;
+pub(super) mod body;
 
 pub enum Source {
     Native(i16),
@@ -81,7 +81,6 @@ impl Session {
         Ok(id)
     }
 
-    #[cfg(test)]
     pub(super) fn replace_actor(
         &mut self,
         disc: &Disc<impl ReadAt>,

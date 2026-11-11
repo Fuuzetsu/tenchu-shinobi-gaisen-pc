@@ -174,9 +174,15 @@ pub fn report(
     };
     report["runtime"] = json!({"screen": screen, "tick": playback.content.tick(),
         "menu_open": menu.panel.open, "integration_diagnostics_open": menu.diagnostics,
+        "randomizer_open": menu.randomizer_open(),
         "fast_forward": menu.fast_forward, "notice": menu.panel.notice,
         "death_hold": playback.death.waiting(), "live_death_scene": playback.death.live()});
     report["recent_inputs"] = json!(transport.recent);
+    report["randomizer"] = json!(
+        playback
+            .randomized()
+            .map(|(run, plan)| json!({"run": run, "plan": plan}))
+    );
     report
 }
 

@@ -44,9 +44,13 @@ impl Editor {
         }
     }
     pub fn new(path: PathBuf) -> Self {
+        Self::for_source(path, Source::Gaisen)
+    }
+
+    pub fn for_source(path: PathBuf, source: Source) -> Self {
         let mut editor = Self {
             open: false,
-            setup: Run::new(Document::default()),
+            setup: Run::new(Document::for_source(source)),
             current: None,
             notice: String::new(),
             tab: 0,
@@ -56,7 +60,14 @@ impl Editor {
         };
         match crate::storage::read(&editor.path) {
             Ok(bytes) => match serde_json::from_slice::<Saved>(&bytes) {
-                Ok(saved) if bytes.len() <= 131072 => {
+                Ok(saved)
+                    if bytes.len() <= 131072
+                        && saved.setup.document.source() == Ok(source)
+                        && saved
+                            .current
+                            .as_ref()
+                            .is_none_or(|run| run.document.source() == Ok(source)) =>
+                {
                     editor.setup = saved.setup;
                     editor.current = saved.current;
                 }
@@ -121,14 +132,20 @@ impl Editor {
                 ui.label(
                     "A separate seeded run. Normal campaign saves and visual preferences are kept.",
                 );
+                if catalog.is_some_and(|c| c.source == Source::Tenchu2) {
+                    ui.weak("Native JP missions keep their story hero and authored area order. Seeds choose the player body independently. Start a native seed before loading its savestate; End returns to your normal session.");
+                }
                 if let Some((run, plan)) = active {
                     ui.group(|ui| {
                         ui.label(
                             RichText::new(format!(
-                                "Playing {} · round {} · mission {} · {}",
+                                "Playing {} · round {} · {} · {}",
                                 run.document.seed,
                                 u64::from(run.round) + 1,
-                                plan.mission,
+                                catalog.map_or_else(
+                                    || format!("Mission {}", plan.mission),
+                                    |catalog| stage_name(catalog, plan.mission)
+                                ),
                                 run.document.fingerprint()
                             ))
                             .strong(),
@@ -187,10 +204,12 @@ impl Editor {
                 });
                 ui.separator();
                 let Some(catalog) = catalog else {
-                    ui.spinner();
-                    ui.label(
-                        "Loading the full disc catalog… Browser assets may still be prefetching.",
-                    );
+                    if self.notice.is_empty() {
+                        ui.spinner();
+                        ui.label("Loading the full disc catalog… Browser assets may still be prefetching.");
+                    } else {
+                        ui.colored_label(Color32::from_rgb(240, 193, 120), &self.notice);
+                    }
                     return;
                 };
                 egui::ScrollArea::vertical()
@@ -198,11 +217,11 @@ impl Editor {
                     .max_height((screen.height() - 300.0).clamp(180.0, 480.0))
                     .auto_shrink([false, false])
                     .show(ui, |ui| match self.tab {
-                        0 => self.setup(ui),
+                        0 => self.setup(ui, catalog),
                         1 => self.player(ui, catalog),
                         2 => self.enemies(ui, catalog),
                         3 => self.stages(ui, catalog),
-                        4 => self.items(ui),
+                        4 => self.items(ui, catalog),
                         5 => preview(ui, &self.setup, catalog),
                         _ => self.share(ui, ctx, catalog),
                     });
@@ -241,7 +260,7 @@ impl Editor {
         event
     }
 
-    fn setup(&mut self, ui: &mut Ui) {
+    fn setup(&mut self, ui: &mut Ui, catalog: &Catalog) {
         ui.horizontal(|ui| {
             ui.label("Seed phrase");
             ui.add(
@@ -268,7 +287,7 @@ impl Editor {
             ui.label("Quick setups:");
             for name in ["Balanced", "Wild", "Boss patrols", "Scavenger"] {
                 if ui.button(name).clicked() {
-                    let mut rules = Rules::default();
+                    let mut rules = Document::for_source(catalog.source).rules;
                     match name {
                         "Wild" => {
                             rules.player = Player::Models;
@@ -303,7 +322,11 @@ impl Editor {
         ui.separator();
         choice(
             ui,
-            "Language",
+            if catalog.source == Source::Tenchu2 {
+                "Imported T1 dialogue"
+            } else {
+                "Language"
+            },
             &mut r.language,
             &[
                 (Language::English, "English"),
@@ -312,6 +335,9 @@ impl Editor {
                 (Language::Japanese, "Japanese"),
             ],
         );
+        if catalog.source == Source::Tenchu2 {
+            ui.weak("Native T2 missions use their original Japanese dialogue and authored areas.");
+        }
         choice(
             ui,
             "Difficulty",
@@ -325,7 +351,11 @@ impl Editor {
         );
         choice(
             ui,
-            "Layout",
+            if catalog.source == Source::Tenchu2 {
+                "Imported T1 layout"
+            } else {
+                "Layout"
+            },
             &mut r.layout,
             &[(0, "Random"), (1, "1"), (2, "2"), (3, "3")],
         );
@@ -345,16 +375,37 @@ impl Editor {
             &mut r.player,
             &[
                 (Player::Chosen, "Chosen protagonist"),
-                (Player::Protagonists, "Random Rikimaru / Ayame"),
+                (
+                    Player::Protagonists,
+                    if catalog.source == Source::Tenchu2 {
+                        "Random Rikimaru / Ayame / Tatsumaru"
+                    } else {
+                        "Random Rikimaru / Ayame"
+                    },
+                ),
                 (Player::Models, "Any allowed model"),
             ],
         );
+        let heroes: Vec<_> = catalog
+            .source
+            .heroes()
+            .iter()
+            .enumerate()
+            .map(|(id, name)| (id as i16, *name))
+            .collect();
         choice(
             ui,
-            "Story / fallback protagonist",
+            if catalog.source == Source::Tenchu2 {
+                "Chosen / fallback protagonist"
+            } else {
+                "Story / fallback protagonist"
+            },
             &mut r.character,
-            &[(0, "Rikimaru"), (1, "Ayame")],
+            &heroes,
         );
+        if catalog.source == Source::Tenchu2 {
+            ui.weak("Native missions retain their story hero. The chosen body and moveset override that hero; imported T1 stages use the fallback hero's campaign.");
+        }
         let mut random_health = r.health.is_some();
         if ui
             .checkbox(&mut random_health, "Randomize maximum HP")
@@ -376,7 +427,7 @@ impl Editor {
         );
         ui.weak("Non-player bodies retain a protagonist's mission scripts and missing actions. Animal rigs and unusual movesets can look strange.");
         ui.separator();
-        pool(ui, &mut self.search, &mut r.player_pool, catalog);
+        pool(ui, &mut self.search, &mut r.player_pool, catalog, false);
     }
 
     fn enemies(&mut self, ui: &mut Ui, catalog: &Catalog) {
@@ -403,7 +454,7 @@ impl Editor {
         }
         ui.weak("Original positions and patrol routes remain. Replacements bring their body, motions, weapons and AI from any mission; story roles stay attached to their original slots.");
         ui.separator();
-        pool(ui, &mut self.search, &mut r.enemy_pool, catalog);
+        pool(ui, &mut self.search, &mut r.enemy_pool, catalog, true);
     }
 
     fn stages(&mut self, ui: &mut Ui, catalog: &Catalog) {
@@ -425,7 +476,7 @@ impl Editor {
                     ui.selectable_value(&mut r.mission, *id, stage_name(catalog, *id));
                 }
             });
-        ui.weak("A tour visits every allowed stage once before shuffling again. Completing any stage offers the next roll, including mission 10.");
+        ui.weak("A tour visits every allowed mission once before shuffling again. Completing a mission offers the next roll, including campaign finales.");
         ui.separator();
         ui.label("Allowed stages (uncheck to blacklist)");
         ui.horizontal(|ui| {
@@ -435,8 +486,21 @@ impl Editor {
             if ui.small_button("None").clicked() {
                 r.blocked_stages = catalog.stages.iter().map(|s| s.0).collect();
             }
-            if ui.small_button("Missions 1–10").clicked() {
-                r.blocked_stages = [0].into();
+            if ui.small_button("Skip training").clicked() {
+                r.blocked_stages = catalog
+                    .stages
+                    .iter()
+                    .filter_map(|(id, _)| {
+                        let training = if catalog.source == Source::Gaisen {
+                            *id == 0
+                        } else if *id < 100 {
+                            id % 11 == 0
+                        } else {
+                            *id == 100
+                        };
+                        training.then_some(*id)
+                    })
+                    .collect();
             }
         });
         for (id, _) in &catalog.stages {
@@ -444,7 +508,7 @@ impl Editor {
         }
     }
 
-    fn items(&mut self, ui: &mut Ui) {
+    fn items(&mut self, ui: &mut Ui, catalog: &Catalog) {
         let r = &mut self.setup.document.rules;
         ui.checkbox(&mut r.equipment, "Randomize starting loadout");
         range(ui, "Different item types", &mut r.item_types, 0, 20);
@@ -456,6 +520,9 @@ impl Editor {
         );
         ui.checkbox(&mut r.keep_grapple, "Guaranteed grapple (unlimited)");
         ui.checkbox(&mut r.pickups, "Randomize ordinary ground pickups");
+        if catalog.source == Source::Tenchu2 {
+            ui.weak("Randomizes starting loose pickups on imported stages. Native item drops and corpse loot retain their source rules.");
+        }
         ui.weak("Armour is equipment, not a ground pickup. Special mission objects stay intact. Without a grapple some routes may be unreachable.");
         ui.separator();
         ui.label("Allowed items (uncheck to blacklist)");
@@ -464,7 +531,12 @@ impl Editor {
                 r.blocked_items.clear();
             }
             if ui.small_button("Grapple only").clicked() {
-                r.blocked_items = (1..20).collect();
+                r.blocked_items = catalog
+                    .source
+                    .items()
+                    .map(|(id, _)| id)
+                    .filter(|&id| id != 0)
+                    .collect();
                 r.item_types = Range::new(0, 0);
                 r.pickups = false;
             }
@@ -472,9 +544,9 @@ impl Editor {
         egui::Grid::new("randomizer-items")
             .num_columns(2)
             .show(ui, |ui| {
-                for (id, name) in crate::ui::ITEMS.iter().enumerate() {
-                    allowed(ui, &mut r.blocked_items, id, *name);
-                    if id % 2 == 1 {
+                for (column, (id, name)) in catalog.source.items().enumerate() {
+                    allowed(ui, &mut r.blocked_items, id, name);
+                    if column % 2 == 1 {
                         ui.end_row();
                     }
                 }
@@ -523,7 +595,7 @@ impl Editor {
                 if ui.button("Save file…").clicked()
                     && let Some(path) = rfd::FileDialog::new()
                         .add_filter("Randomizer seed", &["json"])
-                        .set_file_name("tenchu-randomizer.json")
+                        .set_file_name(format!("{}.json", catalog.source.format()))
                         .save_file()
                 {
                     match std::fs::write(path, self.setup.export()) {
@@ -625,10 +697,10 @@ fn allowed<T: Ord + Clone>(
     }
 }
 
-fn pool(ui: &mut Ui, search: &mut String, pool: &mut Pool, catalog: &Catalog) {
+fn pool(ui: &mut Ui, search: &mut String, pool: &mut Pool, catalog: &Catalog, enemy: bool) {
     ui.label(format!(
         "Eligible classes · {} allowed models across the full disc",
-        pool.choices(catalog).len()
+        pool.choices_for(catalog, enemy).len()
     ));
     ui.horizontal_wrapped(|ui| {
         for group in Group::ALL {
@@ -660,6 +732,7 @@ fn pool(ui: &mut Ui, search: &mut String, pool: &mut Pool, catalog: &Catalog) {
     let mut entries: Vec<_> = catalog
         .actors
         .iter()
+        .filter(|a| if enemy { a.enemy } else { a.player })
         .filter(|a| a.name.to_lowercase().contains(&query))
         .collect();
     entries.sort_by(|a, b| a.name.cmp(&b.name));
@@ -679,6 +752,13 @@ fn pool(ui: &mut Ui, search: &mut String, pool: &mut Pool, catalog: &Catalog) {
 }
 
 fn stage_name(catalog: &Catalog, id: usize) -> String {
+    if catalog.source == Source::Tenchu2 {
+        return catalog
+            .stages
+            .iter()
+            .find(|stage| stage.0 == id)
+            .map_or_else(|| "Unavailable mission".into(), |stage| stage.1.clone());
+    }
     format!(
         "{} · {}",
         if id == 0 {
@@ -699,25 +779,26 @@ fn preview(ui: &mut Ui, run: &Run, catalog: &Catalog) {
         Ok(plan) => {
             ui.heading(stage_name(catalog, plan.mission));
             ui.label(format!(
-                "Roll {} · layout {} · {} difficulty",
+                "Roll {} · {} · {} difficulty",
                 u64::from(run.round) + 1,
-                plan.layout,
+                if plan.layout == 0 {
+                    "Authored native areas".into()
+                } else {
+                    format!("Layout {}", plan.layout)
+                },
                 ["Easy", "Normal", "Hard"][plan.difficulty as usize]
             ));
             ui.label(format!(
                 "Player: {} · story: {}",
-                plan.player_model.as_ref().map_or(
-                    if plan.character == 0 {
-                        "Rikimaru"
-                    } else {
-                        "Ayame"
-                    },
-                    |id| catalog.name(id)
-                ),
-                if plan.character == 0 {
-                    "Rikimaru"
+                plan.player_model
+                    .as_ref()
+                    .map_or(catalog.source.heroes()[plan.character as usize], |id| {
+                        catalog.name(id)
+                    }),
+                if catalog.source == Source::Tenchu2 && plan.mission < 100 {
+                    catalog.source.heroes()[plan.mission / 11]
                 } else {
-                    "Ayame"
+                    catalog.source.heroes()[plan.character as usize]
                 }
             ));
             ui.label(format!(
@@ -730,7 +811,7 @@ fn preview(ui: &mut Ui, run: &Run, catalog: &Catalog) {
             for (i, &count) in plan.inventory.iter().enumerate().filter(|(_, n)| **n != 0) {
                 ui.label(format!(
                     "{} × {}",
-                    crate::ui::ITEMS[i],
+                    catalog.source.item_names()[i],
                     if count == 255 {
                         "unlimited".into()
                     } else {
@@ -741,7 +822,11 @@ fn preview(ui: &mut Ui, run: &Run, catalog: &Catalog) {
             ui.separator();
             ui.label(format!(
                 "{} enemy models eligible · {}",
-                run.document.rules.enemy_pool.choices(catalog).len(),
+                run.document
+                    .rules
+                    .enemy_pool
+                    .choices_for(catalog, true)
+                    .len(),
                 if run.document.rules.protect_story {
                     "Story objectives protected"
                 } else {

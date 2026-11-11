@@ -22,6 +22,16 @@ pub(in crate::window) struct Native {
 }
 
 impl Application {
+    fn native_toggle_randomizer(&mut self) -> Result<()> {
+        let native = self.native_tenchu2.as_mut().unwrap();
+        native
+            .menu
+            .toggle_randomizer(&mut native.playback, Some(&self.disc))?;
+        self.controls.close_editor();
+        self.sync_pause();
+        Ok(())
+    }
+
     pub(in crate::window) fn native_diagnostic_report(&self) -> Result<Vec<u8>> {
         let native = self.native_tenchu2.as_ref().unwrap();
         let mut report = crate::tenchu2::native::diagnostics::report(
@@ -175,7 +185,7 @@ impl Application {
                 &mut native.playback.content,
                 &mut self.controls,
                 &self.settings,
-                self.focused && !native.menu.panel.open,
+                self.focused && !native.menu.panel.open && !native.menu.randomizer_open(),
             )
         };
         let ready = native.generation == Some(native.playback.generation)
@@ -229,6 +239,7 @@ impl Application {
             .menu
             .controller(update.menu_pressed, self.settings.circle_confirm);
         if !self.native_tenchu2.as_ref().unwrap().menu.panel.open
+            && !self.native_tenchu2.as_ref().unwrap().menu.randomizer_open()
             && self
                 .native_tenchu2
                 .as_mut()
@@ -261,7 +272,7 @@ impl Application {
                 &mut native.playback.content,
                 &mut self.controls,
                 &self.settings,
-                self.focused && !native.menu.panel.open,
+                self.focused && !native.menu.panel.open && !native.menu.randomizer_open(),
             )
         };
         let input = PlaybackInput {
@@ -337,7 +348,7 @@ impl Application {
         native.menu.tools.advance(
             &mut self.controls,
             elapsed.as_secs_f32(),
-            self.focused && !native.menu.panel.open,
+            self.focused && !native.menu.panel.open && !native.menu.randomizer_open(),
             &self.settings.navigation,
         );
         if update.quit {
@@ -367,11 +378,13 @@ impl Application {
         view.presentation_settings(&self.settings);
         view.renderer.profiling = self.settings.show_performance;
         let native = self.native_tenchu2.as_mut().unwrap();
-        let wants_models = (native.menu.panel.open && matches!(native.menu.panel.page, 4 | 10))
-            || !native
-                .playback
-                .content
-                .current_model(native.playback.run.hero, &self.settings);
+        let randomized = native.playback.randomized().is_some();
+        let wants_models = !randomized
+            && ((native.menu.panel.open && matches!(native.menu.panel.page, 4 | 10))
+                || !native
+                    .playback
+                    .content
+                    .current_model(native.playback.run.hero, &self.settings));
         if wants_models && view.model_library.is_none() {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
             if native
@@ -384,7 +397,13 @@ impl Application {
             }
         }
         let mut models_changed = std::mem::take(&mut native.menu.actor_assets_changed);
+        if randomized {
+            models_changed |= native
+                .playback
+                .randomizer_models(&self.settings, &view.bodies)?;
+        }
         if let Content::Gameplay(session) = &mut native.playback.content
+            && !randomized
             && let Some(library) = &view.model_library
             && (native.donor.is_some()
                 || !self.settings.player_model.is_empty()
@@ -413,6 +432,7 @@ impl Application {
             }
         }
         if let Content::Story { story, .. } = &mut native.playback.content
+            && !randomized
             && let Some(library) = &view.model_library
         {
             match story.models.sync(
@@ -502,7 +522,9 @@ impl Application {
         let mut export_unarmed = false;
         let mut state_action = None;
         let mut rewind_action = None;
-        let was_open = native.menu.panel.open;
+        let mut open_randomizer = false;
+        let mut randomizer_action = None;
+        let was_open = native.menu.panel.open || native.menu.randomizer_open();
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
         view.overlay.custom(&view.window, &view.renderer, |ctx| {
@@ -511,7 +533,7 @@ impl Application {
                 .as_mut()
                 .unwrap()
                 .paint(&native.playback.content, ctx);
-            if !native.menu.panel.open {
+            if !native.menu.panel.open && !native.menu.randomizer_open() {
                 native.playback.action = native
                     .playback
                     .content
@@ -529,7 +551,7 @@ impl Application {
             native
                 .menu
                 .cutscene_controls(ctx, native.playback.content.cutscene());
-            if !native.menu.panel.open {
+            if !native.menu.panel.open && !native.menu.randomizer_open() {
                 native
                     .playback
                     .death_controls(ctx, native.menu.tools.debug.photo_mode);
@@ -589,6 +611,8 @@ impl Application {
             export_unarmed |= actions.export_unarmed;
             state_action = actions.state;
             rewind_action = actions.rewind;
+            open_randomizer = actions.open_randomizer;
+            randomizer_action = native.menu.show_randomizer(ctx, &native.playback);
             if actions.clear_blood {
                 native.drawing.as_mut().unwrap().clear_blood();
             }
@@ -617,6 +641,7 @@ impl Application {
                     });
             }
             let mode = if native.menu.panel.open
+                || native.menu.randomizer_open()
                 || native.menu.diagnostics
                 || !matches!(native.playback.content, Content::Gameplay(_))
             {
@@ -701,7 +726,7 @@ impl Application {
             timing,
             view.renderer.timings.as_ref().and_then(|t| t.latest),
         );
-        if was_open != native.menu.panel.open
+        if was_open != (native.menu.panel.open || native.menu.randomizer_open())
             || was_paused != self.paused
             || previous_settings.pause_in_menu != self.settings.pause_in_menu
             || previous_settings.pause_on_defocus != self.settings.pause_on_defocus
@@ -718,6 +743,20 @@ impl Application {
                 audio.volume(self.settings.volume);
             }
             self.settings_store.write(&self.settings)?;
+        }
+        if open_randomizer {
+            self.native_toggle_randomizer()?;
+        }
+        if let Some(event) = randomizer_action {
+            let native = self.native_tenchu2.as_mut().unwrap();
+            if let Err(error) = native.menu.randomizer_action(&mut native.playback, event) {
+                native.menu.panel.notice = error;
+            } else {
+                native.error = None;
+                native.rewind.clear();
+                self.paused = false;
+            }
+            self.sync_pause();
         }
         if step && self.native_tenchu2.as_ref().unwrap().error.is_none() {
             leave |= self.step_native_tenchu2()?;
@@ -747,6 +786,9 @@ impl Application {
         match action {
             crate::touch::Action::Settings => {
                 let native = self.native_tenchu2.as_mut().unwrap();
+                if let Some(editor) = &mut native.menu.randomizer {
+                    editor.open = false;
+                }
                 native.menu.panel.open = !native.menu.panel.open;
                 self.controls.clear();
             }
@@ -759,7 +801,10 @@ impl Application {
             }
             crate::touch::Action::Back => {
                 let native = self.native_tenchu2.as_mut().unwrap();
-                if native.menu.panel.open || native.menu.diagnostics {
+                if native.menu.panel.open
+                    || native.menu.diagnostics
+                    || native.menu.randomizer_open()
+                {
                     native.menu.back(&mut self.controls, &mut self.presets);
                 } else if native.menu.tools.debug.click_teleport
                     || native.menu.tools.debug.click_kill
@@ -838,6 +883,7 @@ impl Application {
                 || native.menu.tools.debug.teleport_armed
                 || native.menu.tools.debug.pick_actor_position)
             && !native.menu.panel.open
+            && !native.menu.randomizer_open()
         {
             native.menu.tools.debug.click_teleport = false;
             native.menu.tools.debug.click_kill = false;
@@ -849,6 +895,7 @@ impl Application {
             &event,
             self.focused
                 && !native.menu.panel.open
+                && !native.menu.randomizer_open()
                 && !native.menu.diagnostics
                 && !self
                     .view
@@ -897,7 +944,8 @@ impl Application {
                     }
                     return Ok(());
                 }
-                let menu_open = self.native_tenchu2.as_ref().unwrap().menu.panel.open;
+                let menu = &self.native_tenchu2.as_ref().unwrap().menu;
+                let menu_open = menu.panel.open || menu.randomizer_open();
                 if pressed
                     && !menu_open
                     && matches!(
@@ -957,6 +1005,7 @@ impl Application {
                             return Ok(());
                         }
                         KeyCode::F6 => return self.leave_native_tenchu2(),
+                        KeyCode::F7 => return self.native_toggle_randomizer(),
                         KeyCode::F8 => {
                             self.settings.retro = !self.settings.retro;
                             self.settings_store.write(&self.settings)?;
@@ -1010,11 +1059,13 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "requires TENCHU_DISC, TENCHU2_JP_DISC and isolated TENCHU_T2_CONFIG/TENCHU_T2_SAVE; main launcher must execute the JP runtime without touching Gaisen progress"]
+    #[ignore = "requires TENCHU_DISC, TENCHU2_JP_DISC and isolated TENCHU_T2_CONFIG/TENCHU_T2_SAVE/TENCHU_T2_RANDOMIZER; main launcher and native seeds must preserve normal progress"]
     fn quick_launcher_runs_native_jp_and_restores_gaisen() {
         use crate::tenchu2::menu::Event;
         let config = std::env::var_os("TENCHU_T2_CONFIG").expect("Isolate disc preferences");
         std::env::var_os("TENCHU_T2_SAVE").expect("Isolate Japanese campaign progress");
+        let seed_path =
+            std::env::var_os("TENCHU_T2_RANDOMIZER").expect("Isolate native seed preferences");
         let disc = std::env::var_os("TENCHU2_JP_DISC").unwrap();
         let mut app = crate::window::tests::application(Options::default());
         app.campaign.screen = Screen::Launcher;
@@ -1116,6 +1167,52 @@ mod tests {
         app.native_tenchu2_touch(crate::touch::Action::Back)
             .unwrap();
         assert!(!app.is_suspended());
+        let normal = app
+            .native_tenchu2
+            .as_ref()
+            .unwrap()
+            .playback
+            .capture_state()
+            .unwrap();
+        let preferences = app.settings.clone();
+        app.native_toggle_randomizer().unwrap();
+        assert!(app.native_tenchu2.as_ref().unwrap().menu.randomizer_open());
+        assert!(app.is_suspended());
+        app.native_tenchu2_redraw().unwrap();
+        assert!(
+            app.native_tenchu2
+                .as_ref()
+                .unwrap()
+                .playback
+                .capture_state()
+                .unwrap()
+                == normal
+        );
+        let native = app.native_tenchu2.as_mut().unwrap();
+        let run = crate::randomizer::Run::new(crate::randomizer::Document::for_source(
+            crate::randomizer::Source::Tenchu2,
+        ));
+        native
+            .menu
+            .randomizer_action(
+                &mut native.playback,
+                crate::randomizer::Event::start(run.clone()),
+            )
+            .unwrap();
+        assert_eq!(native.playback.randomized().unwrap().0, &run);
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&seed_path).unwrap()).unwrap();
+        assert_eq!(
+            saved["current"]["document"]["format"],
+            "tenchu2-jp-randomizer"
+        );
+        native
+            .menu
+            .randomizer_action(&mut native.playback, crate::randomizer::Event::End)
+            .unwrap();
+        assert!(native.playback.capture_state().unwrap() == normal);
+        assert_eq!(app.settings, preferences);
+        std::fs::remove_file(seed_path).unwrap();
         app.native_tenchu2_touch(crate::touch::Action::QuickMenu)
             .unwrap();
         assert!(app.native_tenchu2.is_none());

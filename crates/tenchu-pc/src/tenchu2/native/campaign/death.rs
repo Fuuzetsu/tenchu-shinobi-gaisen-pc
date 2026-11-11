@@ -32,7 +32,7 @@ impl Hold {
         self.waiting() && !self.live
     }
 
-    pub(super) fn clear(&mut self) {
+    pub(in crate::tenchu2::native) fn clear(&mut self) {
         self.pending = None;
     }
 

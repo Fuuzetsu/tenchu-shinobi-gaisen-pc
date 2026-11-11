@@ -5,6 +5,17 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **F1 → General → Randomizer** and **F7** in both desktop
+  hosts. Roll native JP missions or connected T1 stages, player bodies and
+  movesets, starting enemies, health, facing, equipment and ground pickups.
+  Mission roles and patrols remain attached to their authored slots. Native
+  seeds use a separate format and preferences file; existing T1 seeds retain
+  their rolls.
+- Native randomized runs preserve health and supplies across areas, retry the
+  same roll, advance after results and leave normal campaign saves untouched.
+  Start a native seed before loading its savestate; **End randomizer** restores
+  the normal session. T2 models and movesets can load without a T1 donor disc.
+
 - Native T2's F1 → Movement can export Tatsumaru's moves directly from the
   running JP disc to a portable `.t2moves` file for T1 on other devices.
   Native T2 already has these moves; the import button now explains that it

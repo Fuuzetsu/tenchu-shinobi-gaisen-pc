@@ -1,7 +1,7 @@
 use super::*;
 use serde::{Deserialize, Serialize};
 
-const SIGNATURE: &str = "native-tenchu2-jp-campaign-1";
+const SIGNATURE: &str = "native-tenchu2-jp-campaign-2";
 
 #[derive(Serialize, Deserialize)]
 pub(in crate::tenchu2::native) enum Scene<G, S> {
@@ -24,6 +24,7 @@ pub(in crate::tenchu2::native) struct State<C> {
     bleeding: tenchu_core::game::bleeding::Settings,
     imported: bool,
     gaisen_water_depth: i16,
+    randomized: Option<super::super::randomizer::Active>,
 }
 
 pub(in crate::tenchu2::native) type Owned =
@@ -50,6 +51,7 @@ impl Borrowed<'_> {
             bleeding,
             imported,
             gaisen_water_depth,
+            randomized,
         } = self;
         out.value(signature)?;
         out.value(run)?;
@@ -72,7 +74,8 @@ impl Borrowed<'_> {
         out.value(circle_action)?;
         out.value(bleeding)?;
         out.value(imported)?;
-        out.value(gaisen_water_depth)
+        out.value(gaisen_water_depth)?;
+        out.value(randomized)
     }
 }
 
@@ -96,6 +99,7 @@ impl<S: ReadAt> Playback<S> {
             bleeding,
             gaisen,
             gaisen_water_depth,
+            randomizer,
         } = self;
         let content = match content {
             Content::Gameplay(session) => Scene::Gameplay(Box::new(session.snapshot())),
@@ -116,6 +120,7 @@ impl<S: ReadAt> Playback<S> {
             bleeding: *bleeding,
             imported: gaisen.is_some(),
             gaisen_water_depth: *gaisen_water_depth,
+            randomized: randomizer.active.clone(),
         })
     }
 
@@ -143,7 +148,46 @@ impl<S: ReadAt> Playback<S> {
         saved: Owned,
         prepare: impl FnOnce(&Content, bool) -> Result<T>,
     ) -> Result<T> {
-        saved.validate(&self.campaign, self.gaisen.is_some())?;
+        if saved.randomized.is_some() != self.randomizer.active.is_some() {
+            return Err("Start a native randomizer run before loading its state; end the run before loading a normal campaign state".into());
+        }
+        if let Some(active) = &saved.randomized {
+            let resources = self
+                .randomizer
+                .resources
+                .as_ref()
+                .ok_or("Missing native randomizer catalog")?;
+            if active.run.plan(&resources.catalog)? != active.plan
+                || active.health < 0
+                || active.plan.mission < 100
+                    && saved
+                        .run
+                        .hero
+                        .checked_mul(11)
+                        .and_then(|n| n.checked_add(saved.run.mission))
+                        != Some(active.plan.mission)
+            {
+                return Err("Invalid native randomizer state".into());
+            }
+        }
+        let context = saved
+            .randomized
+            .as_ref()
+            .zip(self.randomizer.active.as_ref())
+            .filter(|(saved, current)| !saved.same_source(current))
+            .map(|(active, _)| {
+                self.randomizer.resources.as_ref().unwrap().context(
+                    &self.disc,
+                    active,
+                    saved.gaisen_water_depth,
+                )
+            })
+            .transpose()?;
+        let campaign = context.as_ref().map_or(&self.campaign, |c| &c.0);
+        let source = context
+            .as_ref()
+            .map_or(self.gaisen.as_ref(), |c| c.1.as_ref());
+        saved.validate(campaign, source.is_some())?;
         let State {
             run,
             mut content,
@@ -156,13 +200,15 @@ impl<S: ReadAt> Playback<S> {
             circle_action,
             bleeding,
             gaisen_water_depth,
+            randomized,
             ..
         } = saved;
-        let reused = match (&content, &self.content) {
-            (Scene::Gameplay(saved), Content::Gameplay(current)) => saved.reusable(current)?,
-            (Scene::Story(saved), Content::Story { story, .. }) => saved.reusable(story)?,
-            _ => false,
-        };
+        let reused = context.is_none()
+            && match (&content, &self.content) {
+                (Scene::Gameplay(saved), Content::Gameplay(current)) => saved.reusable(current)?,
+                (Scene::Story(saved), Content::Story { story, .. }) => saved.reusable(story)?,
+                _ => false,
+            };
         let prepared = if reused {
             content.swap(&mut self.content);
             match prepare(&self.content, true) {
@@ -181,11 +227,9 @@ impl<S: ReadAt> Playback<S> {
             }
         } else {
             let content = match content {
-                Scene::Gameplay(session) => {
-                    Content::Gameplay(Box::new(session.restore(self.gaisen.as_ref())?))
-                }
+                Scene::Gameplay(session) => Content::Gameplay(Box::new(session.restore(source)?)),
                 Scene::Story(story) => {
-                    let story = story.restore(&self.disc, &self.campaign)?;
+                    let story = story.restore(&self.disc, campaign)?;
                     let audio = match &self.content {
                         Content::Story {
                             story: previous,
@@ -218,6 +262,11 @@ impl<S: ReadAt> Playback<S> {
         self.circle_action = circle_action;
         self.bleeding = bleeding;
         self.gaisen_water_depth = gaisen_water_depth;
+        self.randomizer.active = randomized;
+        if let Some((campaign, source)) = context {
+            self.campaign = campaign;
+            self.gaisen = source;
+        }
         self.generation = self.generation.wrapping_add(1);
         Ok(prepared)
     }
@@ -228,7 +277,9 @@ impl<S: ReadAt> Playback<S> {
     ) {
         settings.wait_after_death = self.death.enabled();
         settings.live_death_scene = self.death.live();
-        settings.keep_enemies_active = self.keep_all_active;
+        if self.randomizer.active.is_none() {
+            settings.keep_enemies_active = self.keep_all_active;
+        }
         settings.circle_action = self.circle_action;
         settings.bleeding = self.bleeding;
     }

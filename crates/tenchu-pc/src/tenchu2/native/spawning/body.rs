@@ -5,7 +5,7 @@ use crate::{
 use tenchu_assets::{Result, tenchu2::characters::Rig};
 use tenchu_core::tenchu2::world::Assets;
 
-pub(super) fn kind(library: &Library, body: &Body) -> Result<i16> {
+pub(in crate::tenchu2::native) fn kind(library: &Library, body: &Body) -> Result<i16> {
     if let Some(native) = &body.native {
         return Ok(native.kind);
     }

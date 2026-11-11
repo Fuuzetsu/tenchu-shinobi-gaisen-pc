@@ -42,6 +42,8 @@ pub enum UserFile {
     Presets,
     Controls,
     Randomizer,
+    #[cfg(not(target_arch = "wasm32"))]
+    Tenchu2Randomizer,
     Trials,
     Tatsumaru,
     #[cfg(not(target_arch = "wasm32"))]
@@ -101,6 +103,12 @@ impl UserFile {
             Self::Randomizer => (
                 "randomizer.json",
                 "TENCHU_RANDOMIZER",
+                "XDG_CONFIG_HOME",
+                ".config",
+            ),
+            Self::Tenchu2Randomizer => (
+                "tenchu2-randomizer.json",
+                "TENCHU_T2_RANDOMIZER",
                 "XDG_CONFIG_HOME",
                 ".config",
             ),

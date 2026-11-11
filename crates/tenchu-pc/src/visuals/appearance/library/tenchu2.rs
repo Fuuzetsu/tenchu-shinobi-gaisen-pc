@@ -33,9 +33,8 @@ impl Library {
                 .bodies
                 .iter()
                 .find(|b| b.resource == format!("HUMAN/{family}.MAD") && b.character.is_some())
-                .or_else(|| self.get("disc:16"))
-                .ok_or("Missing Gaisen fallback behavior")?;
-            let mut clips = (*behavior.clips).clone();
+                .or_else(|| self.get("disc:16"));
+            let mut clips = behavior.map_or_else(Vec::new, |body| (*body.clips).clone());
             let idle = model.idle.map(|mut idle| {
                 // Preview-only clip: keep Gaisen registrations and combat intact.
                 idle.id = i16::MAX;
@@ -78,7 +77,7 @@ impl Library {
                 resource: format!("tenchu2/actors/{}", model.name),
                 parts: model.parts,
                 vram: Arc::new(model.vram),
-                character: behavior.character.clone(),
+                character: behavior.and_then(|body| body.character.clone()),
                 imported_moveset: moveset::hero(&model.name)
                     .or_else(|| (model.name == "tatu2_m").then_some(suzaku).flatten())
                     .or_else(|| {
@@ -92,14 +91,14 @@ impl Library {
                     .cloned(),
                 clips: Arc::new(clips),
                 idle,
-                think: behavior.think,
+                think: behavior.map_or(0, |body| body.think),
                 voice_set: voices.get(&kind).cloned(),
                 equipment: equipment.get(&kind).cloned(),
                 native: Some(native),
                 voice: crate::tenchu2::voices::donor_kind(&model.name)
                     .and_then(|kind| self.get(&format!("disc:{kind}")))
                     .and_then(|body| body.voice)
-                    .or(behavior.voice),
+                    .or_else(|| behavior.and_then(|body| body.voice)),
             };
             self.aliases.insert(id, self.bodies.len());
             self.bodies.push(body);
