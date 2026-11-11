@@ -86,6 +86,7 @@ impl<S: ReadAt> Playback<S> {
             session.world.ai.quick_shuriken_dodge = settings.quick_shuriken_dodge;
             session.world.ai.strict_corpse_sight = settings.strict_corpse_sight;
             session.world.controls.multi_target_attacks = settings.multi_target_attacks;
+            session.world.controls.attack_assist = settings.attack_assist;
             session.world.controls.dismemberment = settings.dismemberment;
             if let Some(scene) = &mut session.gaisen {
                 scene.director.source.combat.dismemberment = settings.dismemberment;

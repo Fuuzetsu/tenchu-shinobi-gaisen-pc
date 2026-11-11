@@ -51,6 +51,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
             quick_shuriken_dodge: true,
             strict_corpse_sight: true,
             multi_target_attacks: true,
+            attack_assist: true,
             ..Default::default()
         };
         settings.bleeding.enabled = true;
@@ -118,6 +119,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         assert_eq!(current.dismemberment, settings.dismemberment);
         assert!(current.quick_shuriken_dodge && current.strict_corpse_sight);
         assert!(current.multi_target_attacks);
+        assert!(current.attack_assist);
         assert!(
             current.keep_enemies_active && current.wait_after_death && current.live_death_scene
         );

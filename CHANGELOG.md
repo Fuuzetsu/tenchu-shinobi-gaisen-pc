@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports F1's **Forward melee assist**. Forward and side melee
+  attacks prefer a nearby enemy ahead with a clear terrain path, retain valid
+  combo targets, and steer only during the original wind-up. Imported movesets
+  and optional unarmed styles work with the same setting. Native damage,
+  reach, hit timing and other attack types stay unchanged. The option stays
+  off by default and persists through saves and rewind.
+
 - Native T2 supports F1's **Multi-target player attacks**, including imported
   movesets and optional unarmed attacks. Each striking limb can hit each enemy
   once during its active frames, while native damage, blocks, terrain checks,

@@ -94,6 +94,9 @@ impl<E: Events> Context<'_, E> {
             self.controls.story_damage = input.story_damage;
         } else {
             actor.start_strike(attack.start, request, resources, |actor| self.root(actor))?;
+            if self.assisted_melee(actor, resources) {
+                actor.target = None;
+            }
         }
         self.sync_contacts(actor);
         Ok(())
@@ -183,18 +186,36 @@ impl<E: Events> Driver<'_, E> {
         if preparation.interrupted {
             return Ok(());
         }
+        let assisted = c.assisted_melee(actor, resources);
         if preparation.retarget {
-            actor.target = c.nearest(actor, 3000, true, resources);
+            actor.target = if assisted {
+                c.select_melee_target(actor, &self.terrain, resources)?
+            } else {
+                c.nearest(actor, 3000, true, resources)
+            };
             *c.tracking = actor.target;
         }
-        actor.steer_attack(
-            *request,
-            actor
-                .target
-                .and_then(|id| c.others.get(id, actor))
-                .map(|a| a.position),
-            resources,
-        )?;
+        if assisted {
+            if let Some(attack) = actor
+                .attack
+                .index
+                .and_then(|i| resources.weapons.attacks.get(i))
+                && actor.motion.frame >= 0
+                && actor.motion.frame < i16::from(attack.steering.min(attack.start))
+            {
+                c.steer_melee_target(actor, &self.terrain, resources)?;
+                *c.tracking = actor.target;
+            }
+        } else {
+            actor.steer_attack(
+                *request,
+                actor
+                    .target
+                    .and_then(|id| c.others.get(id, actor))
+                    .map(|a| a.position),
+                resources,
+            )?;
+        }
         let mut falling_dead = false;
         if actor
             .attack_sequence(request, input.held, resources, |actor, _, cue| {

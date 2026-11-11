@@ -53,6 +53,8 @@ pub(crate) mod models;
 mod navigation;
 #[cfg(test)]
 mod sheathing_tests;
+#[cfg(test)]
+mod tracking_tests;
 pub(crate) use navigation::Input as NavigationInput;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod preferences;

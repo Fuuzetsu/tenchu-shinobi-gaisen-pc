@@ -37,6 +37,19 @@ native/imported/unarmed contacts, and original-instruction attack, damage and
 body-response comparisons check the option-off path. Hit history belongs to
 owned collision state and is validated and preserved by checkpoints and rewind.
 
+Native Forward melee assist reuses the existing optional scalar policy in
+`actor/tracking.rs`: a 3000-unit horizontal range, 1200-unit height difference,
+60-degree forward cone, distance-plus-angle scoring and retained valid combo
+targets. It uses T2's source direction calculation and terrain segment reader,
+including imported ACM terrain, without changing the live terrain cursor.
+Steering is limited to 136 angle units and stops at the earlier of the original
+steering boundary or first active frame. Native attack entry distinguishes new
+swings from combo continuations; source ranged clips and imported contact
+metadata distinguish melee. Optional target state uses the existing actor target
+and checkpoint ownership. Original nearest-target selection, steering and
+attack/stealth/projectile controllers remain when disabled or ineligible.
+This assist is a new gameplay option, not a claim about original T2 behavior.
+
 ## Native T2 optional bleeding and bandages (2026-11-11)
 
 This adapter reuses the port's optional `game/bleeding.rs` scalar state and its

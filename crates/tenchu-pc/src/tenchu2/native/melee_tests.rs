@@ -7,7 +7,7 @@ use tenchu_core::tenchu2::{
     rig::WeaponMode,
 };
 
-fn fixture(hero: usize) -> (Session, [usize; 2]) {
+pub(super) fn fixture(hero: usize) -> (Session, [usize; 2]) {
     let (mut s, first) = dismemberment_tests::fixture(hero);
     compute(&mut s);
     let second = s

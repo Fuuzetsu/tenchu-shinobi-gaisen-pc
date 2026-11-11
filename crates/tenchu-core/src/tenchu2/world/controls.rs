@@ -22,6 +22,7 @@ mod injury;
 mod items;
 pub(super) use injury::credit;
 mod locomotion;
+mod tracking;
 mod walking;
 pub use walking::Walking;
 
@@ -46,6 +47,7 @@ pub struct Controls {
     pub walking: Option<Walking>,
     pub dismemberment: crate::game::dismemberment::Settings,
     pub multi_target_attacks: bool,
+    pub attack_assist: bool,
 }
 
 impl Default for Controls {
@@ -69,6 +71,7 @@ impl Default for Controls {
             walking: None,
             dismemberment: Default::default(),
             multi_target_attacks: false,
+            attack_assist: false,
         }
     }
 }

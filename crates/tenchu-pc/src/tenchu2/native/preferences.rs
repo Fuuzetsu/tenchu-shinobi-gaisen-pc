@@ -486,9 +486,13 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
-                        Item::MultiTargetAttacks => {
-                            state.settings.multi_target_attacks =
-                                Settings::default().multi_target_attacks;
+                        Item::MultiTargetAttacks | Item::AttackAssist => {
+                            if item == Item::MultiTargetAttacks {
+                                state.settings.multi_target_attacks =
+                                    Settings::default().multi_target_attacks;
+                            } else {
+                                state.settings.attack_assist = Settings::default().attack_assist;
+                            }
                             Ok(())
                         }
                         Item::QuickShurikenDodge | Item::StrictCorpseSight => {
@@ -569,9 +573,13 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
-                        Item::MultiTargetAttacks => {
-                            state.settings.multi_target_attacks =
-                                !state.settings.multi_target_attacks;
+                        Item::MultiTargetAttacks | Item::AttackAssist => {
+                            let field = if item == Item::MultiTargetAttacks {
+                                &mut state.settings.multi_target_attacks
+                            } else {
+                                &mut state.settings.attack_assist
+                            };
+                            *field = !*field;
                             Ok(())
                         }
                         Item::QuickShurikenDodge | Item::StrictCorpseSight => {
@@ -655,6 +663,7 @@ impl Menu {
                                 state.settings.quick_shuriken_dodge = defaults.quick_shuriken_dodge;
                                 state.settings.strict_corpse_sight = defaults.strict_corpse_sight;
                                 state.settings.multi_target_attacks = defaults.multi_target_attacks;
+                                state.settings.attack_assist = defaults.attack_assist;
                             }
                             self.tools.restore_defaults(all);
                             state.controls.clear();
@@ -961,6 +970,7 @@ mod tests {
                 Item::QuickShurikenDodge,
                 Item::StrictCorpseSight,
                 Item::MultiTargetAttacks,
+                Item::AttackAssist,
             ] {
                 assert!(Runtime::Tenchu2.unavailable(item).is_none());
                 menu.apply(Edit::Change(item, 1), &mut state, &mut action);
@@ -972,10 +982,12 @@ mod tests {
             };
             assert!(session.world.ai.quick_shuriken_dodge && session.world.ai.strict_corpse_sight);
             assert!(session.world.controls.multi_target_attacks);
+            assert!(session.world.controls.attack_assist);
             let mut expected = session.world.clone();
             expected.ai.quick_shuriken_dodge = false;
             expected.ai.strict_corpse_sight = false;
             expected.controls.multi_target_attacks = false;
+            expected.controls.attack_assist = false;
             if let Some(item) = reset {
                 menu.apply(Edit::Change(item, 1), &mut state, &mut action);
             } else {
@@ -983,6 +995,7 @@ mod tests {
                     Item::QuickShurikenDodge,
                     Item::StrictCorpseSight,
                     Item::MultiTargetAttacks,
+                    Item::AttackAssist,
                 ] {
                     menu.apply(Edit::Reset(item), &mut state, &mut action);
                 }
