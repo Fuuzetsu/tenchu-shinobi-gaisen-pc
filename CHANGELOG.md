@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- **F1 → General → Benchmarks** now runs native T2 scenes in both hosts,
+  including automatic graphics tuning. The active campaign or randomizer stays
+  untouched; returning preserves weather, cloth and wound effects. The existing
+  `benchmark` command also accepts a Japanese T2 disc.
+
 - Native T2 supports **F1 → General → Randomizer** and **F7** in both desktop
   hosts. Roll native JP missions or connected T1 stages, player bodies and
   movesets, starting enemies, health, facing, equipment and ground pickups.

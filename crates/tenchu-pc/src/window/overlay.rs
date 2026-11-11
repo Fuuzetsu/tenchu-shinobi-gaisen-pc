@@ -4,7 +4,7 @@ use crate::{
 };
 use winit::{event::WindowEvent, window::Window};
 
-pub(super) struct Overlay {
+pub(crate) struct Overlay {
     pub opaque: bool,
     pub dirty: bool,
     renderer: egui_wgpu::Renderer,
@@ -123,7 +123,7 @@ impl Overlay {
         self.context.is_pointer_over_area()
     }
 
-    pub fn update(
+    pub(super) fn update(
         &mut self,
         window: &Window,
         renderer: &Renderer,

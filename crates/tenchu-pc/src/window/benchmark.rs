@@ -33,16 +33,16 @@ impl Default for Options {
     }
 }
 
-#[derive(Default)]
-pub(super) struct Benchmarks {
+pub(crate) struct Benchmarks<S = Saved> {
     pub pending: Option<Options>,
-    pub run: Option<Run>,
+    pub run: Option<Run<S>>,
     pub report: Option<Report>,
     pub open: bool,
+    pub description: &'static str,
     target_fps: u16,
 }
 
-struct Saved {
+pub(crate) struct Saved {
     campaign: Campaign,
     settings: Settings,
     debug: crate::debug::Debug,
@@ -52,9 +52,9 @@ struct Saved {
     recording: Option<Recorder<BufWriter<File>>>,
 }
 
-pub(super) struct Run {
+pub(crate) struct Run<S = Saved> {
     pub target: Option<wgpu::TextureView>,
-    saved: Saved,
+    saved: S,
     options: Options,
     pub settings: Settings,
     report: Report,
@@ -114,7 +114,7 @@ pub(super) struct SceneResult {
 }
 
 #[derive(Serialize)]
-pub(super) struct Report {
+pub(crate) struct Report {
     schema: u8,
     gpu_scene_columns: [&'static str; SCENE_COUNT],
     adapter: String,
@@ -166,7 +166,7 @@ impl Samples {
     }
 }
 
-impl Run {
+impl<S> Run<S> {
     pub fn record(
         &mut self,
         cpu: performance::CpuFrame,
@@ -180,7 +180,7 @@ impl Run {
         );
     }
 
-    fn finish_scene(&mut self, player: &crate::demo::Player) {
+    pub fn finish_scene(&mut self, id: &str) -> bool {
         let quality = self.tuner.as_ref().map_or_else(
             || {
                 self.options
@@ -194,12 +194,12 @@ impl Run {
             cpu, gpu, scene, ..
         } = &mut self.samples;
         if cpu.is_empty() {
-            return;
+            return false;
         }
         self.report.scenes.push(SceneResult {
             quality,
             graphics: self.settings.graphics.clone(),
-            id: player.clip().id.clone(),
+            id: id.into(),
             title: self.title.clone(),
             artwork: self.artwork.clone(),
             frame: Distribution::new(cpu.iter().map(|f| f.interval)),
@@ -219,6 +219,7 @@ impl Run {
         cpu.clear();
         gpu.clear();
         scene.clear();
+        true
     }
 }
 
@@ -242,7 +243,7 @@ fn meets_target(
         && (gpu.samples == 0 || gpu.p95_ms <= budget * WORK_HEADROOM)
 }
 
-impl Run {
+impl<S> Run<S> {
     fn recommend(&mut self) {
         let fps = self.options.auto_target.unwrap();
         let tuner = self.tuner.as_ref().unwrap();
@@ -259,12 +260,199 @@ impl Run {
     }
 }
 
-impl Benchmarks {
+impl Report {
+    fn publish(&self, options: &Options) -> Result<()> {
+        for s in &self.scenes {
+            println!(
+                "Benchmark {} / {}: {:.1} FPS, frame p95 {:.2} ms, CPU p95 {:.2} ms, GPU p95 {:.2} ms ({} samples)",
+                s.quality,
+                s.id,
+                1000.0 / s.frame.mean_ms.max(0.001),
+                s.frame.p95_ms,
+                s.cpu_work.p95_ms,
+                s.gpu.p95_ms,
+                s.gpu.samples
+            );
+        }
+        options
+            .output
+            .as_ref()
+            .map(|path| {
+                let bytes = serde_json::to_vec_pretty(self).map_err(|e| e.to_string())?;
+                std::fs::write(path, bytes)
+                    .map_err(|e| format!("Benchmark report {}: {e}", path.display()))
+            })
+            .transpose()
+            .map(|_| ())
+    }
+}
+
+pub(crate) struct Finished<S> {
+    pub saved: S,
+    pub options: Options,
+    pub recommendation: Option<settings::library::Auto>,
+    pub export: Result<()>,
+    pub cancelled: Option<String>,
+}
+
+impl<S> Benchmarks<S> {
+    pub fn finish(&mut self, cancelled: Option<String>) -> Option<Finished<S>> {
+        let mut run = self.run.take()?;
+        run.report.cancelled = cancelled;
+        if let Some(tuner) = run.tuner {
+            run.report.trials = tuner.trials;
+        }
+        let recommendation = if run.report.cancelled.is_none() {
+            run.report.recommendation.clone()
+        } else {
+            None
+        };
+        let cancelled = run.report.cancelled.clone();
+        let export = run.report.publish(&run.options);
+        self.report = Some(run.report);
+        self.open = true;
+        Some(Finished {
+            saved: run.saved,
+            options: run.options,
+            recommendation,
+            export,
+            cancelled,
+        })
+    }
+}
+
+impl<S> Run<S> {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        saved: S,
+        options: Options,
+        current: &Settings,
+        renderer: &crate::renderer::Renderer,
+        adapter: &wgpu::AdapterInfo,
+        size: [u32; 2],
+        format: wgpu::TextureFormat,
+        artwork: String,
+    ) -> Self {
+        let mut settings = if options.auto_target.is_some() {
+            tuning::starting_settings(current)
+        } else {
+            current.rendering().into_owned()
+        };
+        if let Some(preset) = options.preset.filter(|_| options.auto_target.is_none()) {
+            settings.set_visual_preset(preset);
+        }
+        settings.retro = false;
+        settings.show_performance = false;
+        settings.show_fps = false;
+        settings.vsync = false;
+        settings.pause_on_defocus = true;
+        settings.volume = 0;
+        settings.graphics.samples = renderer
+            .sample_counts
+            .iter()
+            .copied()
+            .filter(|&n| n <= settings.graphics.samples)
+            .max()
+            .unwrap_or(1);
+        let report = Report {
+            schema: 3,
+            gpu_scene_columns: crate::renderer::timing::SCENE_COLUMNS,
+            adapter: adapter.name.clone(),
+            backend: format!("{:?}", adapter.backend),
+            size,
+            browser: cfg!(target_arch = "wasm32"),
+            offscreen: options.offscreen,
+            warmup_frames: WARMUP,
+            frames_per_scene: u64::from(options.seconds) * 60,
+            graphics: settings.graphics.clone(),
+            artwork,
+            scenes: Vec::new(),
+            trials: Vec::new(),
+            selected_trial: None,
+            cancelled: None,
+            recommendation: None,
+        };
+        Self {
+            target: options.offscreen.then(|| {
+                renderer
+                    .device
+                    .create_texture(&wgpu::TextureDescriptor {
+                        label: Some("Benchmark target"),
+                        size: wgpu::Extent3d {
+                            width: size[0],
+                            height: size[1],
+                            depth_or_array_layers: 1,
+                        },
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format,
+                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                        view_formats: &[],
+                    })
+                    .create_view(&Default::default())
+            }),
+            tuner: options.auto_target.map(|fps| {
+                tuning::Tuner::new(fps, options.offscreen, renderer.sample_counts.clone())
+            }),
+            saved,
+            options,
+            settings,
+            report,
+            samples: Samples::default(),
+            artwork: String::new(),
+            frame: 0,
+            scene: 0,
+            title: String::new(),
+            trial_start: 0,
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn offscreen(&self) -> bool {
+        self.options.offscreen
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn frames(&self) -> u64 {
+        self.report.frames_per_scene
+    }
+
+    pub fn next_trial(&mut self) -> bool {
+        let Some(tuner) = &mut self.tuner else {
+            return false;
+        };
+        let more = tuner.advance(
+            &mut self.settings.graphics,
+            &self.report.scenes[self.trial_start..],
+            self.trial_start,
+        );
+        let trial = tuner.trials.last().unwrap();
+        println!("Auto tuning: {} — {}", trial.change, trial.reason);
+        if more {
+            self.trial_start = self.report.scenes.len();
+        } else {
+            self.recommend();
+        }
+        more
+    }
+}
+
+impl<S> Default for Benchmarks<S> {
+    fn default() -> Self {
+        Self::new(None)
+    }
+}
+
+impl<S> Benchmarks<S> {
     pub fn new(pending: Option<Options>) -> Self {
         Self {
             pending,
             target_fps: 60,
-            ..Default::default()
+            run: None,
+            report: None,
+            open: false,
+            description: "Run fixed camera paths through lights, architecture, vegetation and water.",
         }
     }
     pub fn show(&mut self, ctx: &egui::Context) -> bool {
@@ -295,7 +483,7 @@ impl Benchmarks {
             egui::Window::new("Benchmarks").open(&mut self.open).default_width(520.0)
                 .max_width(ctx.screen_rect().width() - 32.0)
                 .max_height(ctx.screen_rect().height() - 64.0).vscroll(true).show(ctx, |ui| {
-                ui.label("Run fixed camera paths through lights, architecture, vegetation and water.");
+                ui.label(self.description);
                 ui.weak("Loading and the first 60 frames of each scene are excluded. Your game and settings are restored afterwards. Keep the window focused and its size unchanged.");
                 if ui.button("Benchmark current graphics").clicked() {
                     self.pending = Some(Options::default());
@@ -309,7 +497,7 @@ impl Benchmarks {
                         self.pending = Some(Options { auto_target: Some(self.target_fps), seconds: 5, ..Default::default() });
                     }
                 });
-                ui.weak("Automatic optimisation starts at Ultra, measures CPU/GPU pressure and tests individual adjustments across all four scenes. Unhelpful changes are reverted. Artwork, weather and gameplay settings are kept. This can take several minutes.");
+                ui.weak("Automatic optimisation starts at Ultra, measures CPU/GPU pressure and tests individual adjustments across all scenes. Unhelpful changes are reverted. Artwork, weather and gameplay settings are kept. This can take several minutes.");
                 if let Some(report) = &self.report {
                     ui.separator();
                     ui.label(format!("{} · {} · {} × {}", report.adapter, report.backend, report.size[0], report.size[1]));
@@ -375,86 +563,22 @@ impl Application {
             menu_open: self.menu.open,
             recording: self.recording.take(),
         };
-        let mut settings = if options.auto_target.is_some() {
-            tuning::starting_settings(&self.settings)
-        } else {
-            self.settings.rendering().into_owned()
-        };
-        if let Some(preset) = options.preset.filter(|_| options.auto_target.is_none()) {
-            settings.set_visual_preset(preset);
-        }
-        settings.retro = false;
-        settings.show_performance = false;
-        settings.show_fps = false;
-        settings.vsync = false;
-        settings.pause_on_defocus = true;
-        settings.volume = 0;
-        settings.graphics.samples = view
-            .renderer
-            .sample_counts
-            .iter()
-            .copied()
-            .filter(|&n| n <= settings.graphics.samples)
-            .max()
-            .unwrap_or(1);
         if let Some(size) = options.size {
             let _ = view
                 .window
                 .request_inner_size(winit::dpi::PhysicalSize::new(size[0], size[1]));
             view.resize(size[0], size[1])?;
         }
-        let report = Report {
-            schema: 3,
-            gpu_scene_columns: crate::renderer::timing::SCENE_COLUMNS,
-            adapter: view.adapter.name.clone(),
-            backend: format!("{:?}", view.adapter.backend),
-            size: view.size,
-            browser: cfg!(target_arch = "wasm32"),
-            offscreen: options.offscreen,
-            warmup_frames: WARMUP,
-            frames_per_scene: u64::from(options.seconds) * 60,
-            graphics: settings.graphics.clone(),
-            artwork: view.artwork_status(),
-            scenes: Vec::new(),
-            trials: Vec::new(),
-            selected_trial: None,
-            cancelled: None,
-            recommendation: None,
-        };
-        self.benchmarks.run = Some(Run {
-            target: options.offscreen.then(|| {
-                view.renderer
-                    .device
-                    .create_texture(&wgpu::TextureDescriptor {
-                        label: Some("Benchmark target"),
-                        size: wgpu::Extent3d {
-                            width: view.size[0],
-                            height: view.size[1],
-                            depth_or_array_layers: 1,
-                        },
-                        mip_level_count: 1,
-                        sample_count: 1,
-                        dimension: wgpu::TextureDimension::D2,
-                        format: view.config.format,
-                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                        view_formats: &[],
-                    })
-                    .create_view(&Default::default())
-            }),
-            tuner: options.auto_target.map(|fps| {
-                tuning::Tuner::new(fps, options.offscreen, view.renderer.sample_counts.clone())
-            }),
+        self.benchmarks.run = Some(Run::new(
             saved,
             options,
-            settings,
-            report,
-            samples: Samples::default(),
-            artwork: String::new(),
-            frame: 0,
-            scene: 0,
-            title: String::new(),
-            trial_start: 0,
-        });
+            &self.settings,
+            &view.renderer,
+            &view.adapter,
+            view.size,
+            view.config.format,
+            view.artwork_status(),
+        ));
         self.demo = Some(player);
         self.benchmarks.open = false;
         self.release_pointer();
@@ -475,21 +599,9 @@ impl Application {
                     "No frames were measured; keep the game visible".into(),
                 ));
             }
-            run.finish_scene(player);
+            run.finish_scene(&player.clip().id);
             if !player.next() {
-                if let Some(tuner) = &mut run.tuner {
-                    let more = tuner.advance(
-                        &mut run.settings.graphics,
-                        &run.report.scenes[run.trial_start..],
-                        run.trial_start,
-                    );
-                    let trial = tuner.trials.last().unwrap();
-                    println!("Auto tuning: {} — {}", trial.change, trial.reason);
-                    if !more {
-                        run.recommend();
-                        return self.finish_benchmark(None);
-                    }
-                    run.trial_start = run.report.scenes.len();
+                if run.next_trial() {
                     player.reset(0);
                 } else {
                     return self.finish_benchmark(None);
@@ -513,15 +625,11 @@ impl Application {
     }
 
     pub(super) fn finish_benchmark(&mut self, cancelled: Option<String>) -> Result<()> {
-        let Some(mut run) = self.benchmarks.run.take() else {
+        let Some(run) = self.benchmarks.finish(cancelled) else {
             return Ok(());
         };
         if run.options.exit {
-            self.error = cancelled.clone();
-        }
-        run.report.cancelled = cancelled;
-        if let Some(tuner) = run.tuner {
-            run.report.trials = tuner.trials;
+            self.error = run.cancelled;
         }
         self.demo = None;
         self.campaign = run.saved.campaign;
@@ -532,9 +640,8 @@ impl Application {
         self.faulted = self.fault.is_some();
         self.menu.open = run.saved.menu_open;
         self.recording = run.saved.recording;
-        let optimisation = if !run.options.exit && run.report.cancelled.is_none() {
-            run.report
-                .recommendation
+        let optimisation = if !run.options.exit {
+            run.recommendation
                 .as_ref()
                 .map(|auto| {
                     self.presets.save_auto(auto.clone())?;
@@ -545,32 +652,7 @@ impl Application {
         } else {
             Ok(None)
         };
-        self.benchmarks.report = Some(run.report);
-        self.benchmarks.open = true;
         self.demo_exit = run.options.exit;
-        let report = self.benchmarks.report.as_ref().unwrap();
-        for s in &report.scenes {
-            println!(
-                "Benchmark {} / {}: {:.1} FPS, frame p95 {:.2} ms, CPU p95 {:.2} ms, GPU p95 {:.2} ms ({} samples)",
-                s.quality,
-                s.id,
-                1000.0 / s.frame.mean_ms.max(0.001),
-                s.frame.p95_ms,
-                s.cpu_work.p95_ms,
-                s.gpu.p95_ms,
-                s.gpu.samples
-            );
-        }
-        let export = run
-            .options
-            .output
-            .as_ref()
-            .map(|path| {
-                let bytes = serde_json::to_vec_pretty(report).map_err(|e| e.to_string())?;
-                std::fs::write(path, bytes)
-                    .map_err(|e| format!("Benchmark report {}: {e}", path.display()))
-            })
-            .transpose();
         if let Some(view) = &mut self.view {
             view.reload(&self.campaign.game, &self.settings)?;
             view.settings(&self.settings, &self.campaign.game)?;
@@ -584,7 +666,7 @@ impl Application {
         self.sync_pause();
         self.update_view();
         optimisation?;
-        export?;
+        run.export?;
         Ok(())
     }
 }

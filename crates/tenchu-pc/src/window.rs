@@ -7,7 +7,7 @@ mod demo;
 mod diagnostics;
 mod frontend;
 mod navigation;
-mod overlay;
+pub(crate) mod overlay;
 mod playback;
 mod randomizer;
 #[cfg(not(target_arch = "wasm32"))]
@@ -273,7 +273,7 @@ impl Application {
                 || self.view.as_ref().is_some_and(View::preparing)
                 || self.paused
                 || native.error.is_some()
-                || native.menu.randomizer_open()
+                || native.menu.modal_open()
                 || native.menu.panel.open && self.settings.pause_in_menu
                 || self.controls.editor.open
                 || self.presets.open
@@ -322,10 +322,11 @@ impl Application {
         let scene_visible = scene_visible || self.native_tenchu2.is_some();
         #[cfg(not(target_arch = "wasm32"))]
         let music_while_paused = music_while_paused
-            && !self
-                .native_tenchu2
-                .as_ref()
-                .is_some_and(|native| native.playback.content.cutscene() || native.rewind.preview);
+            && !self.native_tenchu2.as_ref().is_some_and(|native| {
+                native.playback.content.cutscene()
+                    || native.rewind.preview
+                    || native.menu.benchmarks.running()
+            });
         if let Some(audio) = &mut self.audio {
             audio.pause(
                 paused,

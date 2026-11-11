@@ -77,7 +77,10 @@ geometry/uploads, menu work, submission, presentation waits and unclassified tim
 GPU samples require timestamp support and arrive asynchronously; they are not
 added to CPU time. F1 allows freezing the charts; photo mode hides them.
 Diagnostic reports include these bounded timing histories. The charts work in
-the main launcher and standalone JP preview; automated benchmarks remain pending.
+the main launcher and standalone JP preview. **General → Benchmarks** runs four
+fixed native scenes and supports automatic graphics tuning. It keeps the current
+campaign or randomizer untouched and restores its presentation afterwards.
+See [performance measurements](performance.md) for sampling and tuning rules.
 The resizable F1 panel uses the same categories and controls as Gaisen. Tab /
 Shift+Tab (or controller shoulders) changes category; arrows / D-pad selects and
 changes values. R resets the hovered or selected value. General contains the
@@ -113,8 +116,12 @@ It persists across areas; switching it off restores the original activation chec
 on its normal one-second cadence. It is off by default and graphical presets do
 not change it. Enabling it expands collision storage for larger casts until the
 area reloads, including retained contacts after the option is switched off.
-Randomizer and automated benchmarks are **not connected to native JP yet**.
-Gaisen and its scenery sandbox still provide those features.
+**General → Randomizer** or **F7** opens a separate native seed editor, including
+native missions and connected T1 stages. Starting enemy replacements retain
+authored slots and mission roles; retries keep the same roll and normal campaign
+saves are isolated. **End randomizer** returns to the previous normal session.
+Native seeds and setup files are separate from T1; see [Randomizer](randomizer.md)
+for supported rolls, area carry, savestates and source-specific limits.
 
 **Enemy behavior** enables optional Coward, Reckless, Cautious, Flanker and
 Watchman policies, or a seeded mix. Native sight, navigation, weapon reach,

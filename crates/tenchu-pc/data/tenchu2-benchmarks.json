@@ -1,0 +1,6 @@
+[
+  {"id":"t2-rikimaru-close","title":"Rikimaru · close view","sequence":9,"distance":5000.0,"pitch":-0.25},
+  {"id":"t2-rikimaru-wide","title":"Rikimaru · wide view","sequence":28,"distance":11000.0,"pitch":-0.45},
+  {"id":"t2-ayame-wide","title":"Ayame · wide view","sequence":134,"distance":14000.0,"pitch":-0.5},
+  {"id":"t2-tatsumaru-close","title":"Tatsumaru · close view","sequence":189,"distance":6500.0,"pitch":-0.3}
+]

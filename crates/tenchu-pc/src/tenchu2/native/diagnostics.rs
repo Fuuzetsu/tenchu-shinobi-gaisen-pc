@@ -175,6 +175,7 @@ pub fn report(
     report["runtime"] = json!({"screen": screen, "tick": playback.content.tick(),
         "menu_open": menu.panel.open, "integration_diagnostics_open": menu.diagnostics,
         "randomizer_open": menu.randomizer_open(),
+        "benchmarks_open": menu.benchmarks.open(), "benchmark_running": menu.benchmarks.running(),
         "fast_forward": menu.fast_forward, "notice": menu.panel.notice,
         "death_hold": playback.death.waiting(), "live_death_scene": playback.death.live()});
     report["recent_inputs"] = json!(transport.recent);

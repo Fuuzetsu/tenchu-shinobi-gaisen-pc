@@ -296,9 +296,7 @@ impl Runtime {
             | Edit::WeaponModel(_)
             | Edit::VoiceModel(_) => self.unavailable(Item::PlayerModel),
             Edit::Coordinate(axis, _) => self.unavailable(Item::Target(*axis)),
-            Edit::Benchmark => {
-                Some("Performance benchmarks are not connected to native Tenchu 2 JP yet.")
-            }
+            Edit::Benchmark => None,
             Edit::Diagnostics => None,
             Edit::ImportUnarmed => Some(
                 "This imports Tatsumaru moves into T1. Native T2 already reads them from the running JP disc; select Tatsumaru under Unarmed style. Export is available here for use in T1 on other devices.",

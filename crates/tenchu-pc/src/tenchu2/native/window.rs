@@ -15,6 +15,7 @@ use crate::{
 use std::{sync::Arc, time::Instant};
 use tenchu_assets::Result;
 
+mod benchmark;
 mod rewind;
 mod state;
 
@@ -144,7 +145,7 @@ impl View {
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
                 self.drawing.paint(&session.content, ctx);
-                if !menu.panel.open && !menu.randomizer_open() {
+                if !menu.panel.open && !menu.modal_open() {
                     session.action = session
                         .content
                         .controls(ctx, state.settings.circle_confirm)
@@ -159,7 +160,7 @@ impl View {
                     );
                 }
                 menu.cutscene_controls(ctx, session.content.cutscene());
-                if !menu.panel.open && !menu.randomizer_open() {
+                if !menu.panel.open && !menu.modal_open() {
                     session.death_controls(ctx, menu.tools.debug.photo_mode);
                 }
                 if state.settings.show_performance && !menu.tools.debug.photo_mode {
@@ -306,7 +307,7 @@ impl Application {
             &mut self.session.content,
             &mut self.controls,
             &self.settings,
-            self.focused && !self.menu.panel.open && !self.menu.randomizer_open(),
+            self.focused && !self.menu.panel.open && !self.menu.modal_open(),
         );
         let mut view = self
             .view
@@ -346,6 +347,9 @@ impl Application {
     }
 
     fn redraw(&mut self) -> Result<()> {
+        if self.benchmark_redraw()? {
+            return Ok(());
+        }
         let now = Instant::now();
         let elapsed = now.duration_since(self.last);
         self.last = now;
@@ -356,7 +360,7 @@ impl Application {
         self.menu
             .controller(polled.menu_pressed, self.settings.circle_confirm);
         if !self.menu.panel.open
-            && !self.menu.randomizer_open()
+            && !self.menu.modal_open()
             && self
                 .session
                 .controller_pause(polled.menu_pressed, self.settings.circle_confirm)
@@ -370,7 +374,7 @@ impl Application {
         let paused = self.paused
             || !self.focused && self.settings.pause_on_defocus
             || self.error.is_some()
-            || self.menu.randomizer_open()
+            || self.menu.modal_open()
             || self.menu.panel.open && self.settings.pause_in_menu
             || self.controls.editor.open
             || self.presets.open;
@@ -385,7 +389,7 @@ impl Application {
                     &mut self.session.content,
                     &mut self.controls,
                     &self.settings,
-                    self.focused && !self.menu.panel.open && !self.menu.randomizer_open(),
+                    self.focused && !self.menu.panel.open && !self.menu.modal_open(),
                 )
             },
             cutscene_speed: self.settings.cutscene_speed,
@@ -477,7 +481,7 @@ impl Application {
         self.menu.tools.advance(
             &mut self.controls,
             elapsed.as_secs_f32(),
-            self.focused && !self.menu.panel.open && !self.menu.randomizer_open(),
+            self.focused && !self.menu.panel.open && !self.menu.modal_open(),
             &self.settings.navigation,
         );
         let randomized = self.session.randomized().is_some();
@@ -833,11 +837,22 @@ impl ApplicationHandler for Application {
         if self.view.is_some() {
             return;
         }
+        let size: winit::dpi::Size = self
+            .menu
+            .benchmarks
+            .ui
+            .pending
+            .as_ref()
+            .and_then(|o| o.size)
+            .map_or_else(
+                || winit::dpi::LogicalSize::new(1280, 720).into(),
+                |s| winit::dpi::PhysicalSize::new(s[0], s[1]).into(),
+            );
         let result = events
             .create_window(
                 Window::default_attributes()
                     .with_title("Tenchu 2 JP — native integration preview")
-                    .with_inner_size(winit::dpi::LogicalSize::new(1280, 720)),
+                    .with_inner_size(size),
             )
             .map_err(|e| e.to_string())
             .and_then(|window| {
@@ -866,6 +881,9 @@ impl ApplicationHandler for Application {
         let Some(view) = &mut self.view else {
             return;
         };
+        if self.menu.benchmarks.event(&view.window, &event) {
+            return;
+        }
         let consumed = view.state.on_window_event(&view.window, &event).consumed;
         self.menu.tools.event(
             &event,
@@ -919,7 +937,7 @@ impl ApplicationHandler for Application {
                             KeyCode::Escape
                                 if self.menu.panel.open
                                     || self.menu.diagnostics
-                                    || self.menu.randomizer_open() =>
+                                    || self.menu.modal_open() =>
                             {
                                 self.menu.back(&mut self.controls, &mut self.presets);
                             }
@@ -938,6 +956,7 @@ impl ApplicationHandler for Application {
                                 }
                             }
                             KeyCode::F1 => {
+                                self.menu.benchmarks.ui.open = false;
                                 if let Some(editor) = &mut self.menu.randomizer {
                                     editor.open = false;
                                 }
@@ -983,7 +1002,7 @@ impl ApplicationHandler for Application {
                             }
                             KeyCode::Enter
                                 if !self.menu.panel.open
-                                    && !self.menu.randomizer_open()
+                                    && !self.menu.modal_open()
                                     && !consumed =>
                             {
                                 self.session.confirm();
@@ -991,9 +1010,7 @@ impl ApplicationHandler for Application {
                             _ => {}
                         }
                     }
-                    if !consumed && !self.menu.panel.open && !self.menu.randomizer_open()
-                        || !pressed
-                    {
+                    if !consumed && !self.menu.panel.open && !self.menu.modal_open() || !pressed {
                         self.controls.key(code, pressed);
                     }
                 }
@@ -1022,13 +1039,30 @@ impl ApplicationHandler for Application {
 }
 
 pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
+    run_options(session, settings, None)
+}
+
+pub(super) fn run_benchmark(
+    session: Playback<DiscSource>,
+    settings: Settings,
+    options: crate::window::benchmark::Options,
+) -> Result<()> {
+    run_options(session, settings, Some(options))
+}
+
+fn run_options(
+    session: Playback<DiscSource>,
+    settings: Settings,
+    benchmark: Option<crate::window::benchmark::Options>,
+) -> Result<()> {
     let audio = Output::new()
         .map_err(|error| eprintln!("Audio unavailable: {error}"))
         .ok();
     if let Some(audio) = &audio {
         audio.send(Command::Volume(settings.volume));
     }
-    let menu = preferences::Menu::new(&settings);
+    let mut menu = preferences::Menu::new(&settings);
+    menu.benchmarks.ui.pending = benchmark;
     let mut application = Application {
         session,
         settings,

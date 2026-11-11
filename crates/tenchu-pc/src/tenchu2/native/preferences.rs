@@ -71,6 +71,7 @@ pub struct Menu {
     pub actor_assets_changed: bool,
     pub tools: super::tools::Tools,
     pub randomizer: Option<crate::randomizer::Editor>,
+    pub benchmarks: super::benchmark::Benchmarks,
     pending: Option<Navigation>,
 }
 
@@ -110,6 +111,10 @@ pub struct Action {
 }
 
 impl Menu {
+    pub fn modal_open(&self) -> bool {
+        self.randomizer_open() || self.benchmarks.open() || self.benchmarks.running()
+    }
+
     pub fn randomizer_open(&self) -> bool {
         self.randomizer.as_ref().is_some_and(|editor| editor.open)
     }
@@ -119,6 +124,7 @@ impl Menu {
         playback: &mut super::campaign::Playback<impl tenchu_assets::ReadAt>,
         gaisen: Option<&std::path::Path>,
     ) -> tenchu_assets::Result<()> {
+        self.benchmarks.ui.open = false;
         if self.randomizer.is_none() {
             self.randomizer = Some(crate::randomizer::Editor::for_source(
                 crate::storage::UserFile::Tenchu2Randomizer.path()?,
@@ -219,6 +225,7 @@ impl Menu {
     }
 
     pub fn loaded_state(&mut self, controls: &mut Controls, presets: &mut Manager) {
+        self.benchmarks.ui.open = false;
         if let Some(editor) = &mut self.randomizer {
             editor.open = false;
         }
@@ -321,7 +328,7 @@ impl Menu {
             self.fast_forward = false;
             return;
         }
-        if !self.panel.open {
+        if !self.panel.open && !self.modal_open() {
             egui::Area::new("jp-fast-forward".into())
                 .anchor(egui::Align2::RIGHT_TOP, [-12.0, 42.0])
                 .show(ctx, |ui| {
@@ -332,6 +339,14 @@ impl Menu {
     }
 
     pub fn back(&mut self, controls: &mut Controls, presets: &mut Manager) {
+        if self.benchmarks.open() || self.benchmarks.running() {
+            self.benchmarks.ui.open = false;
+            if self.benchmarks.running() {
+                self.benchmarks.cancel("Cancelled by user");
+            }
+            controls.clear();
+            return;
+        }
         if self.randomizer_open() {
             self.randomizer.as_mut().unwrap().open = false;
             controls.clear();
@@ -353,7 +368,16 @@ impl Menu {
     }
 
     pub fn controller(&mut self, pressed: u16, circle_confirm: bool) {
-        if self.randomizer_open() {
+        if self.benchmarks.running() {
+            if matches!(
+                controls::gamepad_command(pressed, false, false, circle_confirm),
+                Some(controls::Command::Menu(MenuAction::Back))
+            ) {
+                self.benchmarks.cancel("Cancelled by user");
+            }
+            return;
+        }
+        if self.modal_open() {
             if matches!(
                 controls::gamepad_command(pressed, false, false, circle_confirm),
                 Some(controls::Command::Menu(MenuAction::Back))
@@ -415,13 +439,14 @@ impl Menu {
 
     pub fn show(&mut self, ctx: &egui::Context, state: &mut State<'_>) -> Action {
         let mut action = Action::default();
-        if self.randomizer_open() {
+        if self.modal_open() {
             if matches!(
                 self.pending.take(),
                 Some(Navigation::Action(MenuAction::Back))
             ) {
                 self.back(state.controls, state.presets);
             }
+            self.benchmarks.show(ctx);
             return action;
         }
         self.tools.hint(ctx, self.panel.open);
@@ -566,6 +591,12 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::Benchmark => {
+                self.benchmarks.ui.open = true;
+                self.panel.open = false;
+                state.controls.clear();
+                Ok(())
+            }
             Edit::Randomizer | Edit::Change(Item::Randomizer, _) => {
                 action.open_randomizer = true;
                 Ok(())
@@ -1661,11 +1692,13 @@ mod tests {
                 }
             }
         }
-        for edit in [Edit::Benchmark, Edit::ImportUnarmed] {
-            menu.apply(edit, &mut state, &mut action);
-            assert!(!menu.panel.notice.is_empty());
-            assert_eq!(*state.settings, original);
-        }
+        menu.apply(Edit::ImportUnarmed, &mut state, &mut action);
+        assert!(!menu.panel.notice.is_empty());
+        assert_eq!(*state.settings, original);
+        menu.apply(Edit::Benchmark, &mut state, &mut action);
+        assert!(menu.benchmarks.open() && menu.panel.notice.is_empty());
+        assert_eq!(*state.settings, original);
+        menu.benchmarks.ui.open = false;
         menu.apply(Edit::ExportUnarmed, &mut state, &mut action);
         assert!(action.export_unarmed && menu.panel.notice.is_empty());
         assert_eq!(*state.settings, original);

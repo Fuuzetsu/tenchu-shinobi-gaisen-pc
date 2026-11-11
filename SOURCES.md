@@ -42,6 +42,25 @@ not a retail randomizer or a new physics algorithm. The shared state format is
 38 and the native session signature is 4 at this groundwork commit. The native
 randomizer lifecycle below now calls the Session replacement adapter.
 
+## Native T2 benchmark scenes (2026-11-12)
+
+Native benchmarks use the existing source-backed Session loader, nominal 30 Hz
+updates, interpolation and ContentDrawing renderer. Four staged scenes from the
+user's JP disc have fixed 60 Hz presentation timelines. Their free-camera paths
+reuse the existing demo framing and path interpolation helpers; they do not
+change gameplay cameras, collision, source clocks or activation rules. These are
+performance fixtures, not ordinary-play or campaign-completion evidence.
+
+Sampling, warm-up exclusion, asynchronous GPU serial filtering, distributions,
+reports, automatic tuning and result UI are shared with T1. Only saved host
+context is generic. Native scene ownership is separate from the live Playback;
+both hosts pause the active campaign or randomizer and rebind its renderer on
+return, retaining the existing presentation checkpoint for weather, wounds and
+cloth. CLI selection recognizes the JP disc and uses the same standalone host.
+No game assets or sibling-repository code were imported. Modern High/Ultra and
+Original remain unchanged; the native benchmark catalog supplies the staged
+views for the existing F1 benchmark action.
+
 ## Native T2 seeded runs (2026-11-12)
 
 The native adapter reuses the shared randomizer editor, validated rules and
@@ -74,8 +93,8 @@ return context remains the session from which the user started the run.
 Both native hosts share the editor and pause/input boundary. Native setup/current
 run storage is separate from T1. The common state format is now 39 and native
 campaign signature 2. Graphics presets remain unchanged: this is a gameplay mode.
-The existing Randomizer demo remains for T1; native demo/benchmark sequencing is
-the next host adapter, separate from enabling this mode.
+The existing Randomizer demo remains for T1; the native staged benchmark adapter
+above is separate from enabling this mode.
 
 ## Native T2 portable unarmed export (2026-11-12)
 

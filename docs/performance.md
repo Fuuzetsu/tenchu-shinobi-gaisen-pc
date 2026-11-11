@@ -8,6 +8,15 @@ frames are excluded. Escape cancels. The current game, preferences and input
 recording are restored afterwards; temporary presentation particles are rebuilt.
 Changing the window size or losing focus cancels a windowed measurement.
 
+While playing native T2 JP, the same menu runs four native scenes across
+Rikimaru, Ayame and Tatsumaru, including architecture, vegetation, water and
+local lighting. These scenes use fixed native heroes and original gameplay,
+with your selected graphics and artwork. The active campaign or randomizer
+remains untouched. Weather, cloth and wound presentation are restored when
+the run ends or is cancelled. Automatic tuning uses the same measurements and
+selection rules below. The command-line `benchmark` also selects these scenes
+when its disc is Japanese T2; it requires no T1 disc.
+
 For individual controls, see the [graphics setting cost breakdown](graphics-performance.md):
 4K measurements with one option changed at a time, plus the cost model for the
 remaining sliders and event-driven effects.

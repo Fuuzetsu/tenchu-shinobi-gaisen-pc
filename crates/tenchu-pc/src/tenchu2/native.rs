@@ -27,11 +27,15 @@ use tenchu_core::{
 
 #[cfg(test)]
 mod behavior_tests;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod benchmark;
 #[cfg(test)]
 mod bleeding_tests;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod campaign;
 mod contact;
+#[cfg(not(target_arch = "wasm32"))]
+mod demo;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod diagnostics;
 #[cfg(test)]

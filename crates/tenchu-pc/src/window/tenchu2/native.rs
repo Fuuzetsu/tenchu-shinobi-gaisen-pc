@@ -6,6 +6,7 @@ use crate::tenchu2::native::{
     transport::{Input as PlaybackInput, Transport},
 };
 
+mod benchmark;
 mod rewind;
 mod state;
 
@@ -185,7 +186,7 @@ impl Application {
                 &mut native.playback.content,
                 &mut self.controls,
                 &self.settings,
-                self.focused && !native.menu.panel.open && !native.menu.randomizer_open(),
+                self.focused && !native.menu.panel.open && !native.menu.modal_open(),
             )
         };
         let ready = native.generation == Some(native.playback.generation)
@@ -224,6 +225,9 @@ impl Application {
     }
 
     fn native_tenchu2_redraw(&mut self) -> Result<()> {
+        if self.native_benchmark_redraw()? {
+            return Ok(());
+        }
         if self.view.as_ref().is_some_and(View::preparing) {
             self.controls.stop_rumble();
             return Ok(());
@@ -239,7 +243,7 @@ impl Application {
             .menu
             .controller(update.menu_pressed, self.settings.circle_confirm);
         if !self.native_tenchu2.as_ref().unwrap().menu.panel.open
-            && !self.native_tenchu2.as_ref().unwrap().menu.randomizer_open()
+            && !self.native_tenchu2.as_ref().unwrap().menu.modal_open()
             && self
                 .native_tenchu2
                 .as_mut()
@@ -272,7 +276,7 @@ impl Application {
                 &mut native.playback.content,
                 &mut self.controls,
                 &self.settings,
-                self.focused && !native.menu.panel.open && !native.menu.randomizer_open(),
+                self.focused && !native.menu.panel.open && !native.menu.modal_open(),
             )
         };
         let input = PlaybackInput {
@@ -348,7 +352,7 @@ impl Application {
         native.menu.tools.advance(
             &mut self.controls,
             elapsed.as_secs_f32(),
-            self.focused && !native.menu.panel.open && !native.menu.randomizer_open(),
+            self.focused && !native.menu.panel.open && !native.menu.modal_open(),
             &self.settings.navigation,
         );
         if update.quit {
@@ -524,7 +528,7 @@ impl Application {
         let mut rewind_action = None;
         let mut open_randomizer = false;
         let mut randomizer_action = None;
-        let was_open = native.menu.panel.open || native.menu.randomizer_open();
+        let was_open = native.menu.panel.open || native.menu.modal_open();
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
         view.overlay.custom(&view.window, &view.renderer, |ctx| {
@@ -533,7 +537,7 @@ impl Application {
                 .as_mut()
                 .unwrap()
                 .paint(&native.playback.content, ctx);
-            if !native.menu.panel.open && !native.menu.randomizer_open() {
+            if !native.menu.panel.open && !native.menu.modal_open() {
                 native.playback.action = native
                     .playback
                     .content
@@ -551,7 +555,7 @@ impl Application {
             native
                 .menu
                 .cutscene_controls(ctx, native.playback.content.cutscene());
-            if !native.menu.panel.open && !native.menu.randomizer_open() {
+            if !native.menu.panel.open && !native.menu.modal_open() {
                 native
                     .playback
                     .death_controls(ctx, native.menu.tools.debug.photo_mode);
@@ -641,7 +645,7 @@ impl Application {
                     });
             }
             let mode = if native.menu.panel.open
-                || native.menu.randomizer_open()
+                || native.menu.modal_open()
                 || native.menu.diagnostics
                 || !matches!(native.playback.content, Content::Gameplay(_))
             {
@@ -726,7 +730,7 @@ impl Application {
             timing,
             view.renderer.timings.as_ref().and_then(|t| t.latest),
         );
-        if was_open != (native.menu.panel.open || native.menu.randomizer_open())
+        if was_open != (native.menu.panel.open || native.menu.modal_open())
             || was_paused != self.paused
             || previous_settings.pause_in_menu != self.settings.pause_in_menu
             || previous_settings.pause_on_defocus != self.settings.pause_on_defocus
@@ -786,6 +790,7 @@ impl Application {
         match action {
             crate::touch::Action::Settings => {
                 let native = self.native_tenchu2.as_mut().unwrap();
+                native.menu.benchmarks.ui.open = false;
                 if let Some(editor) = &mut native.menu.randomizer {
                     editor.open = false;
                 }
@@ -801,10 +806,7 @@ impl Application {
             }
             crate::touch::Action::Back => {
                 let native = self.native_tenchu2.as_mut().unwrap();
-                if native.menu.panel.open
-                    || native.menu.diagnostics
-                    || native.menu.randomizer_open()
-                {
+                if native.menu.panel.open || native.menu.diagnostics || native.menu.modal_open() {
                     native.menu.back(&mut self.controls, &mut self.presets);
                 } else if native.menu.tools.debug.click_teleport
                     || native.menu.tools.debug.click_kill
@@ -860,6 +862,17 @@ impl Application {
         events: &ActiveEventLoop,
         event: WindowEvent,
     ) -> Result<()> {
+        if let Some(view) = &self.view
+            && self
+                .native_tenchu2
+                .as_mut()
+                .unwrap()
+                .menu
+                .benchmarks
+                .event(&view.window, &event)
+        {
+            return Ok(());
+        }
         if let WindowEvent::Touch(touch) = &event
             && let Some(view) = &self.view
         {
@@ -883,7 +896,7 @@ impl Application {
                 || native.menu.tools.debug.teleport_armed
                 || native.menu.tools.debug.pick_actor_position)
             && !native.menu.panel.open
-            && !native.menu.randomizer_open()
+            && !native.menu.modal_open()
         {
             native.menu.tools.debug.click_teleport = false;
             native.menu.tools.debug.click_kill = false;
@@ -895,7 +908,7 @@ impl Application {
             &event,
             self.focused
                 && !native.menu.panel.open
-                && !native.menu.randomizer_open()
+                && !native.menu.modal_open()
                 && !native.menu.diagnostics
                 && !self
                     .view
@@ -1011,6 +1024,13 @@ impl Application {
                             self.settings_store.write(&self.settings)?;
                         }
                         KeyCode::F1 => {
+                            self.native_tenchu2
+                                .as_mut()
+                                .unwrap()
+                                .menu
+                                .benchmarks
+                                .ui
+                                .open = false;
                             return self.native_tenchu2_touch(crate::touch::Action::Settings);
                         }
                         KeyCode::F3 => {
@@ -1176,7 +1196,7 @@ mod tests {
             .unwrap();
         let preferences = app.settings.clone();
         app.native_toggle_randomizer().unwrap();
-        assert!(app.native_tenchu2.as_ref().unwrap().menu.randomizer_open());
+        assert!(app.native_tenchu2.as_ref().unwrap().menu.modal_open());
         assert!(app.is_suspended());
         app.native_tenchu2_redraw().unwrap();
         assert!(
