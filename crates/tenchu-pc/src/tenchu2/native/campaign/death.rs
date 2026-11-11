@@ -3,11 +3,11 @@ use crate::settings::Settings;
 use tenchu_assets::{ReadAt, Result};
 use tenchu_core::tenchu2::mission::{Outcome, Phase};
 
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Hold {
     enabled: bool,
     live: bool,
-    pending: Option<(Run, Destination)>,
+    pub(super) pending: Option<(Run, Destination)>,
 }
 
 impl Hold {

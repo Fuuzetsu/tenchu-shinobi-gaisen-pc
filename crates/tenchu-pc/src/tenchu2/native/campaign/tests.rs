@@ -5,6 +5,7 @@ use tenchu_core::tenchu2::input::JUMP;
 mod death;
 mod menus;
 mod progression;
+mod state;
 
 fn start(sequence: usize) -> Playback<crate::source::DiscSource> {
     let disc =

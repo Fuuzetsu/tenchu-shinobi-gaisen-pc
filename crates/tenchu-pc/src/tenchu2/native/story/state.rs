@@ -6,9 +6,9 @@ use tenchu_assets::texture::Vram;
 const SIGNATURE: &str = "native-tenchu2-jp-story-1";
 
 #[derive(Serialize, Deserialize)]
-struct State<P, V> {
+pub(in crate::tenchu2::native) struct State<P, V> {
     signature: String,
-    sequence: usize,
+    pub(in crate::tenchu2::native) sequence: usize,
     event: u16,
     playback: P,
     textures: BTreeMap<i16, V>,
@@ -17,10 +17,11 @@ struct State<P, V> {
     contact: super::super::contact::History,
 }
 
-type Owned = State<Playback, Vram>;
+pub(in crate::tenchu2::native) type Owned = State<Playback, Vram>;
+pub(in crate::tenchu2::native) type Borrowed<'a> = State<&'a Playback, &'a Vram>;
 
 impl Story {
-    fn snapshot(&self) -> State<&Playback, &Vram> {
+    pub(in crate::tenchu2::native) fn snapshot(&self) -> Borrowed<'_> {
         let Self {
             sequence,
             event,
@@ -57,17 +58,28 @@ impl Story {
 
     pub fn restore_state(&mut self, disc: &Disc<impl ReadAt>, bytes: &[u8]) -> Result<()> {
         let saved: Owned = crate::savestate::decode(bytes)?;
-        if saved.signature != SIGNATURE {
+        let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(disc)?;
+        *self = saved.restore(disc, &campaign)?;
+        Ok(())
+    }
+}
+
+impl Owned {
+    pub(in crate::tenchu2::native) fn restore(
+        self,
+        disc: &Disc<impl ReadAt>,
+        campaign: &tenchu_assets::tenchu2::campaign::Campaign,
+    ) -> Result<Story> {
+        if self.signature != SIGNATURE {
             return Err("Not a native T2 cutscene state".into());
         }
-        let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(disc)?;
-        if !campaign.sequences.get(saved.sequence).is_some_and(|row| {
-            row.kind == tenchu_assets::tenchu2::campaign::Kind::Event && row.resource == saved.event
+        if !campaign.sequences.get(self.sequence).is_some_and(|row| {
+            row.kind == tenchu_assets::tenchu2::campaign::Kind::Event && row.resource == self.event
         }) {
             return Err("Invalid native T2 cutscene identity".into());
         }
-        let mut restored = Self::load(disc, saved.sequence, saved.event, 1)?;
-        saved.validate(&restored.resources)?;
+        let mut restored = Story::load(disc, self.sequence, self.event, 1)?;
+        self.validate(&restored.resources)?;
         let State {
             playback,
             textures,
@@ -75,7 +87,7 @@ impl Story {
             models,
             contact,
             ..
-        } = saved;
+        } = self;
         for (id, vram) in textures {
             restored.resources.models.get_mut(&id).unwrap().vram = vram;
         }
@@ -83,8 +95,7 @@ impl Story {
         restored.interpolation = interpolation;
         restored.models = models;
         restored.contact = contact;
-        *self = restored;
-        Ok(())
+        Ok(restored)
     }
 }
 

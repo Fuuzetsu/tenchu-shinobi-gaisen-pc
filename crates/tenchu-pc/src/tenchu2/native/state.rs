@@ -5,9 +5,9 @@ use tenchu_core::tenchu2::world::gaisen::Director;
 const SIGNATURE: &str = "native-tenchu2-jp-session-1";
 
 #[derive(Serialize, Deserialize)]
-struct State<C, D> {
+pub(super) struct State<C, D> {
     signature: String,
-    core: C,
+    pub(super) core: C,
     feedback: tenchu_core::tenchu2::feedback::Feedback,
     contact: contact::History,
     bank: Arc<tenchu_assets::audio::bank::Bank>,
@@ -20,10 +20,11 @@ struct State<C, D> {
     gaisen: Option<gaisen::State<D>>,
 }
 
-type Owned = State<(World, Assets, Frame), Director>;
+pub(super) type Owned = State<(World, Assets, Frame), Director>;
+pub(super) type Borrowed<'a> = State<(&'a World, &'a Assets, &'a Frame), &'a Director>;
 
 impl Session {
-    fn snapshot(&self) -> State<(&World, &Assets, &Frame), &Director> {
+    pub(super) fn snapshot(&self) -> Borrowed<'_> {
         let Self {
             world,
             assets,
@@ -60,8 +61,39 @@ impl Session {
     }
 
     pub fn restore_state(&mut self, bytes: &[u8]) -> Result<()> {
-        let saved: Owned = crate::savestate::decode(bytes)?;
-        saved.validate(self)?;
+        let mut saved: Owned = crate::savestate::decode(bytes)?;
+        saved.validate()?;
+        if let Some(gaisen) = &saved.gaisen {
+            gaisen.validate(self.gaisen.as_ref())?;
+        }
+        let gaisen = saved.gaisen.take().map(|saved| {
+            let mut scene = self.gaisen.take().expect("validated imported stage");
+            saved.restore(&mut scene);
+            scene
+        });
+        *self = saved.build(gaisen);
+        Ok(())
+    }
+}
+
+impl Owned {
+    pub(super) fn restore(mut self, source: Option<&gaisen::Source>) -> Result<Session> {
+        self.validate()?;
+        if self.gaisen.is_some() != source.is_some() {
+            return Err(
+                "Open the matching native campaign or imported T1 stage before loading this state"
+                    .into(),
+            );
+        }
+        let gaisen = self
+            .gaisen
+            .take()
+            .map(|saved| saved.create(source.unwrap()))
+            .transpose()?;
+        Ok(self.build(gaisen))
+    }
+
+    fn build(self, gaisen: Option<gaisen::Scene>) -> Session {
         let State {
             core: (world, assets, frame),
             feedback,
@@ -73,15 +105,9 @@ impl Session {
             navigation,
             circle_action,
             models,
-            gaisen,
             ..
-        } = saved;
-        let gaisen = gaisen.map(|saved| {
-            let mut scene = self.gaisen.take().expect("validated imported stage");
-            saved.restore(&mut scene);
-            scene
-        });
-        *self = Self {
+        } = self;
+        Session {
             world,
             assets,
             frame,
@@ -95,13 +121,12 @@ impl Session {
             circle_action,
             models,
             gaisen,
-        };
-        Ok(())
+        }
     }
 }
 
 impl Owned {
-    fn validate(&self, current: &Session) -> Result<()> {
+    fn validate(&self) -> Result<()> {
         let (world, assets, _) = &self.core;
         if self.signature != SIGNATURE
             || assets.resources.registry.edition != tenchu_assets::tenchu2::Edition::Japan
@@ -173,9 +198,6 @@ impl Owned {
             }
         }
         self.models.validate_state(world, assets)?;
-        if let Some(saved) = &self.gaisen {
-            saved.validate(current.gaisen.as_ref())?;
-        }
         Ok(())
     }
 }

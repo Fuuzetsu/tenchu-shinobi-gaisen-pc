@@ -15,6 +15,8 @@ use tenchu_core::tenchu2::{
 
 mod death;
 #[cfg(test)]
+pub(super) mod state;
+#[cfg(test)]
 mod tests;
 
 pub enum Content {
@@ -33,7 +35,7 @@ pub enum Content {
     Complete,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Action {
     Continue,
     Retry,

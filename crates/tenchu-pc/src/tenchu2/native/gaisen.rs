@@ -104,6 +104,36 @@ impl Scene {
 
 #[cfg(test)]
 impl State<Director> {
+    pub(super) fn create(self, source: &Source) -> Result<Scene> {
+        let game = &self.director.source;
+        if game.mission.stage.id != source.stage
+            || game.mission.layout_index >= 3
+            || source.layout != 0 && Some(game.mission.layout_index) != source.layout.checked_sub(1)
+            || game.mission.scripts.language != source.language
+            || game
+                .roster
+                .actors
+                .get(game.player_id)
+                .is_none_or(Option::is_none)
+            || game.player().kind != source.character
+            || self.started > self.tick
+        {
+            return Err(
+                "Savestate requires the same T1 stage, character, layout and language".into(),
+            );
+        }
+        let mut audio = Audio::new(source, game)?;
+        audio.current = self.current;
+        audio.started = self.started;
+        audio.tick = self.tick;
+        audio.changed = true;
+        audio.loader.request(audio.current.clone());
+        Ok(Scene {
+            director: self.director,
+            audio,
+        })
+    }
+
     pub(super) fn validate(&self, current: Option<&Scene>) -> Result<()> {
         let current = current.ok_or("Open the matching T1 stage before restoring this state")?;
         let game = &self.director.source;

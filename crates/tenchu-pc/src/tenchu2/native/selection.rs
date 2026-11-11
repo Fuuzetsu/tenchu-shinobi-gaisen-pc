@@ -7,7 +7,7 @@ use tenchu_core::{
     tenchu2::{audio::Sound, motion::Motion, progress::Progress, selection::Selection as State},
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Edit {
     Hero(bool),
     Mission(usize),

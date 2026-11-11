@@ -15,7 +15,7 @@ use tenchu_core::{
 };
 
 #[cfg(test)]
-mod state;
+pub(super) mod state;
 
 pub struct Story {
     pub sequence: usize,

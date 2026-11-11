@@ -22,7 +22,7 @@ pub struct Carry {
     pub bleeding: Option<crate::game::bleeding::State>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Destination {
     Sequence(usize),
     Failed,

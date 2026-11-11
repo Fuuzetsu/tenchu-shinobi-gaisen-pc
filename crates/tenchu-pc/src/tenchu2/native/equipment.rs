@@ -9,7 +9,7 @@ use tenchu_assets::{
 };
 use tenchu_core::tenchu2::{audio::Sound, equipment::Equipment, progress::Stock};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Edit {
     Select(usize),
     Add,
