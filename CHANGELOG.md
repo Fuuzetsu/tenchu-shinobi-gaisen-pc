@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix roof slope and grapple checks on imported T1 stages. T2 now receives the
+  surface that produced the queried height, instead of an overlapping roof
+  underside that could incorrectly reject a grapple or change ledge handling.
+
 - Native T2's F1 menu explains why T1 shop-room lighting and the English
   **Crimson Blade → Shuriken** correction do not apply to its equipment screen.
 

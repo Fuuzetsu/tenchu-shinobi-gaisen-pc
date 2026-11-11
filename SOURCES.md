@@ -181,13 +181,22 @@ The experimental T1-stage/T2-runtime adapter (2026-11-11) reuses these readers
 for MAD, CON, ACM and placement layouts, and the port's existing scalar
 `terrain::level` for authored ACM height rows. Native T2 probes, collision
 response, movement, AI and combat still operate on the native `World`.
-The adapter retains inclusive ACM edges, source row priority, hole masks and
-the last-containing-node behavior; flattening the rows into one MCD list
-changes overlapping roofs. The existing T2 readers supply counterpart rigs,
-motions, weapons, statistics and VAB programs from the user's Japanese disc.
+The adapter retains inclusive ACM edges, source row priority and hole masks;
+flattening the rows into one MCD list changes overlapping roofs. The existing T2
+readers supply counterpart rigs, motions, weapons, statistics and VAB programs
+from the user's Japanese disc.
 The counterpart selection and provisional clear-the-guards objective are new
 optional-mode choices. No additional game data or sibling code is copied into
 the repository.
+
+The T1 query's last-containing-node cursor is preserved in the original runtime,
+as checked against `tenchu-decomp/src/main.exe/CONFLICT.C`, the corresponding
+glitch-research translation and the viewer's ACM parser. That cursor can identify
+an underside even when the returned height/material came from the roof above it.
+The optional T2 adapter resolves the matching node in the selected ACM row before
+exposing native surface metadata (2026-11-12). T2's existing slope, ledge and
+grapple routines then read the surface that actually produced the height. Height
+selection, source arithmetic, original T1 behavior and native T2 maps are unchanged.
 
 The door adapter uses the original `DoorData` model slots, closed hinge offsets
 and CON rotations. The existing T2 contact and trigger routines own opening,

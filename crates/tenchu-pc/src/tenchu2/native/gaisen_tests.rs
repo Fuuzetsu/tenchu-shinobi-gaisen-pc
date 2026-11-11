@@ -10,6 +10,7 @@ mod host;
 mod pickups;
 mod pitfalls;
 mod scrolling;
+mod terrain;
 mod water;
 
 #[test]

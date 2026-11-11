@@ -37,6 +37,33 @@ pub(super) fn level(
             let mut selected = source.offsets[cell]
                 .iter()
                 .position(|&at| at == original.area);
+            if height != terrain::NONE {
+                // ACM leaves its cursor on the last containing rectangle, which
+                // can differ from the roof whose height/material it returned.
+                // T2's ledge and slope checks need that returned surface.
+                let row = &source.map.rows[original.row];
+                selected = None;
+                for (index, &at) in source.offsets[cell].iter().enumerate() {
+                    if !(row.list..row.list + row.count * 16).contains(&at) {
+                        continue;
+                    }
+                    let node = source.map.node(at)?;
+                    if node.attributes != original.attribute
+                        || !node.contains(position.x / 10, position.z / 10)
+                    {
+                        continue;
+                    }
+                    let value = if query == Query::Base && node.division == u16::MAX {
+                        i32::from(node.y)
+                    } else {
+                        terrain::node_level(node, position.x / 10, position.z / 10)?
+                    };
+                    if value != terrain::NONE && value * 10 == height {
+                        selected = Some(index);
+                        break;
+                    }
+                }
+            }
             if source.water_depth != 0 {
                 let y = position.y / 10;
                 for (index, bottom) in map.cells[cell].nodes.iter().enumerate() {
@@ -101,6 +128,49 @@ pub(super) fn level(
 mod tests {
     use super::*;
     use tenchu_assets::terrain::{AreaMap, Node};
+
+    #[test]
+    fn imported_roof_metadata_follows_the_returned_height() {
+        let roof = Node {
+            y: -1000,
+            dy: 500,
+            bounds: [0, 0, 99, 99],
+            attributes: 0x4001,
+            division: u16::MAX,
+        };
+        let underside = Node {
+            y: -498,
+            dy: 0,
+            attributes: 2,
+            ..roof
+        };
+        let original = AreaMap::from_nodes(vec![(-496, vec![roof, underside])]).unwrap();
+        let point = Position::new(500, -8000, 500);
+        let mut original_cursor = terrain::Cursor::new(&original);
+        assert_eq!(
+            terrain::level(&original, &mut original_cursor, point, 0).unwrap(),
+            -7500
+        );
+        assert_eq!(original.node(original_cursor.area).unwrap(), underside);
+        let map = Collision::from_gaisen(&original).unwrap();
+        let mut cursor = Cursor::default();
+        for (query, expected) in [
+            (Query::Uncached, -7500),
+            (Query::Surface, -7500),
+            (Query::Relative, 500),
+        ] {
+            assert_eq!(
+                super::super::level(&map, &mut cursor, point, query).unwrap(),
+                Some(expected)
+            );
+            let surface = cursor.current.unwrap();
+            let selected = map.cells[surface.cell].nodes[surface.node];
+            assert_eq!(selected.attributes, cursor.material);
+            assert_eq!(selected.attributes & 0xc000, 0x8000);
+            assert_eq!(selected.dy, roof.dy);
+        }
+        assert_eq!(map.into_terrain().unwrap(), original);
+    }
 
     #[test]
     fn imported_height_rows_and_masked_floors_keep_their_boundaries() {
