@@ -362,8 +362,10 @@ impl ContentDrawing {
     }
 
     pub fn clear_blood(&mut self) {
-        if let Self::Gameplay(d) = self {
-            d.clear_blood();
+        match self {
+            Self::Gameplay(d) => d.clear_blood(),
+            Self::Story(d) => d.clear_blood(),
+            _ => {}
         }
     }
 

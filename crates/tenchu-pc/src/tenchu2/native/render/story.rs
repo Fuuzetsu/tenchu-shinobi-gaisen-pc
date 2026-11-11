@@ -22,6 +22,10 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
+    pub fn clear_blood(&mut self) {
+        self.scene.clear_blood();
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     pub fn light_count(&self, settings: &crate::settings::Lighting) -> usize {
         self.scene.lighting.count(settings)

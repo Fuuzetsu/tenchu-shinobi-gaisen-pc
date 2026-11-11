@@ -1,6 +1,89 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; F1 clears paused story stains through renderer rebuilds"]
+fn cutscene_retained_blood_clears_without_advancing_playback() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut story = Story::load(&disc, 23, 11, 1).unwrap();
+    for _ in 0..=860 {
+        story.step(true).unwrap();
+    }
+    assert!(story.state.effects.particles.entries.is_empty());
+    assert!(story.contact.blood.latest() > 0);
+    let state = postcard::to_allocvec(&story.state).unwrap();
+    let graphics = Graphics {
+        blood: crate::settings::Blood::modern(),
+        asset_pack: false,
+        ..Default::default()
+    };
+    for clear in [false, true] {
+        let path = output.join(format!("story-retained-blood-cleared-{clear}.png"));
+        capture_frame(&story.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&story, &graphics, renderer)?;
+            drawing.update(&story, renderer, None)?;
+            assert!(
+                drawing
+                    .scene
+                    .environment
+                    .as_ref()
+                    .unwrap()
+                    .blood
+                    .pages()
+                    .next()
+                    .is_some()
+            );
+            if clear {
+                let mut presentation =
+                    crate::tenchu2::native::presentation::ContentDrawing::Story(Box::new(drawing));
+                presentation.clear_blood();
+                let crate::tenchu2::native::presentation::ContentDrawing::Story(cleared) =
+                    presentation
+                else {
+                    unreachable!()
+                };
+                drawing = *cleared;
+                for _ in 0..3 {
+                    drawing.update(&story, renderer, None)?;
+                }
+                assert!(
+                    drawing
+                        .scene
+                        .environment
+                        .as_ref()
+                        .unwrap()
+                        .blood
+                        .pages()
+                        .next()
+                        .is_none()
+                );
+                let mut rebuilt = Drawing::new(&story, &graphics, renderer)?;
+                rebuilt.preserve_environment(&mut drawing);
+                rebuilt.update(&story, renderer, None)?;
+                assert!(
+                    rebuilt
+                        .scene
+                        .environment
+                        .as_ref()
+                        .unwrap()
+                        .blood
+                        .pages()
+                        .next()
+                        .is_none(),
+                    "renderer rebuild resurrected cleared stains"
+                );
+                drawing = rebuilt;
+            }
+            Ok((drawing.scene, story.state.view, drawing.texts))
+        })
+        .unwrap();
+        assert!(postcard::to_allocvec(&story.state).unwrap() == state);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; authored blood, modern pools, pause and preset restoration"]
 fn cutscene_blood_renders_with_original_and_modern_settings() {
     use crate::settings::{BloodStyle, presets};

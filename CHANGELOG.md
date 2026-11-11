@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- **F1 → Clear blood** also clears retained native T2 cutscene stains, including
+  while paused, and they stay cleared when graphics settings rebuild the scene.
+
 ## 0.27.0 — 2026-11-11
 
 - Restore scripted blood bursts, droplets and pools in native T2 cutscenes.
