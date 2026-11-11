@@ -111,6 +111,18 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
                 increment: 50,
                 maximum: 200,
             },
+            behavior_profiles: tenchu_core::ai::profiles::Settings {
+                enabled: true,
+                seed: 43,
+                combat: tenchu_core::ai::profiles::Combat::Cautious,
+                ..Default::default()
+            },
+            reinforcement_call: tenchu_core::roster::ReinforcementCall {
+                count: 2,
+                random: true,
+                witnessed_kills: true,
+            },
+            reinforcement_limit: 70,
             ..Default::default()
         };
         playback.configure(&settings).unwrap();
@@ -159,6 +171,9 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             settings.multi_target_attacks = false;
             settings.attack_assist = false;
             settings.damage_escalation = Default::default();
+            settings.behavior_profiles = Default::default();
+            settings.reinforcement_call = Default::default();
+            settings.reinforcement_limit = 0;
             let saved = history.snapshot(index).unwrap();
             let started = std::time::Instant::now();
             restore_rewind(
@@ -176,6 +191,17 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             assert!(settings.attack_assist);
             assert_eq!(settings.damage_escalation.increment, 50);
             assert_eq!(settings.damage_escalation.maximum, 200);
+            assert!(settings.behavior_profiles.enabled);
+            assert_eq!(settings.behavior_profiles.seed, 43);
+            assert_eq!(
+                settings.behavior_profiles.combat,
+                tenchu_core::ai::profiles::Combat::Cautious
+            );
+            assert_eq!(settings.reinforcement_call.count, 2);
+            assert!(
+                settings.reinforcement_call.random && settings.reinforcement_call.witnessed_kills
+            );
+            assert_eq!(settings.reinforcement_limit, 70);
             assert_eq!(geometry(&playback), pointers, "scene geometry was replaced");
             assert!(
                 postcard::to_allocvec(&snapshot(&playback, &drawing, &settings, &tools).unwrap())

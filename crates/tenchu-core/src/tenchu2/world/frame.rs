@@ -85,6 +85,7 @@ impl World {
         let mut effects = self.update_effects(assets)?;
         items.quads.append(&mut effects.quads);
         effects.quads = items.quads;
+        self.update_reinforcements(assets)?;
         Ok(Frame {
             scenery,
             effects,

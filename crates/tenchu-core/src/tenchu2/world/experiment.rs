@@ -30,7 +30,6 @@ impl World {
         let player = &self.actors[self.player].actor;
         if !self.mission.input_allowed()
             || player.health <= 0
-            || self.controls.stealth.is_some()
             || (0x920..=0x92f).contains(&player.motion.action)
         {
             return Err(
@@ -95,7 +94,6 @@ impl World {
             .actor;
         if !self.mission.input_allowed()
             || player.health <= 0
-            || self.controls.stealth.is_some()
             || (0x920..=0x92f).contains(&player.motion.action)
             || index == self.player
             || actor.health < 0

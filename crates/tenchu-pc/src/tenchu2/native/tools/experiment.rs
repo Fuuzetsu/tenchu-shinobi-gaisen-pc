@@ -33,6 +33,7 @@ pub(super) enum Edit {
     Inventory(inventory::Item, u8),
     Bandages(u16),
     Bandage,
+    Behavior(usize, tenchu_core::ai::profiles::Overrides),
 }
 
 pub(super) fn sync(debug: &mut Debug, content: &Content) {
@@ -43,6 +44,8 @@ pub(super) fn sync(debug: &mut Debug, content: &Content) {
     debug.sight_percent = 100;
     debug.stealth = false;
     debug.bandages = None;
+    debug.actor_behavior = None;
+    debug.actor_combat = None;
     if let Content::Gameplay(session) = content
         && !session.cinematic()
     {
@@ -53,6 +56,22 @@ pub(super) fn sync(debug: &mut Debug, content: &Content) {
         debug.sight_percent = world.ai.sight_percent;
         debug.stealth = world.ai.ignore_player;
         debug.bandages = actor.bleeding.as_ref().map(|state| state.bandages);
+        if world.ai.profiles.enabled
+            && world.mission.input_allowed()
+            && world.script == 0
+            && actor.health > 0
+            && world.profile_eligible(debug.selected_actor)
+        {
+            debug.actor_behavior = Some(
+                world.actors[debug.selected_actor]
+                    .behavior
+                    .profile
+                    .overrides,
+            );
+            debug.actor_combat = world
+                .profile_selection(debug.selected_actor)
+                .map(|s| s.combat);
+        }
         debug.inventory.extend(ITEMS.iter().map(|&(id, name)| {
             InventorySlot {
                 id: usize::from(id),
@@ -72,6 +91,37 @@ pub(super) fn change(
     delta: i32,
     reset: bool,
 ) -> Result<bool> {
+    if matches!(item, Item::ActorCombat | Item::ActorIdle) {
+        use crate::settings::edit::cycle;
+        use tenchu_core::ai::profiles::{Combat, Idle};
+        let overrides = debug.actor_behavior.as_mut().ok_or(
+            "Enable behavior profiles and select an ordinary living guard outside a scripted scene",
+        )?;
+        if item == Item::ActorCombat {
+            overrides.combat = if reset {
+                None
+            } else {
+                cycle(
+                    overrides.combat,
+                    &[None]
+                        .into_iter()
+                        .chain(Combat::ALL.map(Some))
+                        .collect::<Vec<_>>(),
+                    delta,
+                )
+            };
+        } else {
+            let choices: Vec<_> = [None].into_iter().chain(Idle::ALL.map(Some)).collect();
+            overrides.idle = if reset {
+                None
+            } else {
+                cycle(overrides.idle, &choices, delta)
+            };
+        }
+        pending.push(Edit::Behavior(debug.selected_actor, *overrides));
+        debug.actors_edited = true;
+        return Ok(true);
+    }
     if !matches!(
         item,
         Item::GodMode
@@ -169,11 +219,15 @@ pub(super) fn change(
 }
 
 pub(super) fn apply(world: &mut World, edits: impl IntoIterator<Item = Edit>) -> Result<()> {
-    let actor = &mut world.actors[world.player].actor;
-    if !world.mission.input_allowed() || actor.health <= 0 {
+    if !world.mission.input_allowed() || world.actors[world.player].actor.health <= 0 {
         return Err("Player edits require a living player outside scripted transitions.".into());
     }
     for edit in edits {
+        if let Edit::Behavior(index, overrides) = edit {
+            world.set_actor_behavior(index, overrides)?;
+            continue;
+        }
+        let actor = &mut world.actors[world.player].actor;
         match edit {
             Edit::GodMode(enabled) => actor.invulnerable = enabled,
             Edit::Armor(enabled) => world.controls.armor = enabled,
@@ -200,6 +254,7 @@ pub(super) fn apply(world: &mut World, edits: impl IntoIterator<Item = Edit>) ->
                 }
                 state.request_bandage();
             }
+            Edit::Behavior(..) => unreachable!(),
         }
     }
     Ok(())

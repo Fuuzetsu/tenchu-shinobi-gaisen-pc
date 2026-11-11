@@ -30,6 +30,8 @@ pub mod gaisen;
 mod items;
 mod mission;
 mod navigation;
+mod profiles;
+mod reinforcements;
 mod ribbons;
 mod update;
 pub use assets::Assets;

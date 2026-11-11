@@ -211,6 +211,9 @@ fn restore_snapshot(
     settings.multi_target_attacks = saved.preferences.multi_target_attacks;
     settings.attack_assist = saved.preferences.attack_assist;
     settings.damage_escalation = saved.preferences.damage_escalation;
+    settings.behavior_profiles = saved.preferences.behavior_profiles;
+    settings.reinforcement_call = saved.preferences.reinforcement_call;
+    settings.reinforcement_limit = saved.preferences.reinforcement_limit;
     if recorded_visuals {
         settings.graphics = saved.preferences.graphics;
         settings.retro = saved.preferences.retro;

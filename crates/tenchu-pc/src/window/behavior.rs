@@ -1,10 +1,6 @@
 use super::*;
+use crate::settings::edit::cycle as choose;
 use tenchu_core::ai::profiles::{Combat, Idle, Settings as Profiles};
-
-fn choose<T: Copy + PartialEq>(current: T, choices: &[T], direction: i32) -> T {
-    let index = choices.iter().position(|&p| p == current).unwrap_or(0);
-    choices[(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
-}
 
 impl Application {
     pub(super) fn set_behavior_profiles(&mut self, settings: Profiles) {

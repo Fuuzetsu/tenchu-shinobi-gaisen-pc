@@ -64,6 +64,9 @@ pub struct System {
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
     pub damage_escalation: crate::ai::escalation::Settings,
+    pub profiles: crate::ai::profiles::Settings,
+    pub profiles_allowed: bool,
+    pub reinforcements: super::profiles::Reinforcements,
 }
 
 fn original_sight() -> u16 {
@@ -93,6 +96,9 @@ impl System {
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
             damage_escalation: Default::default(),
+            profiles: Default::default(),
+            profiles_allowed: false,
+            reinforcements: Default::default(),
         }
     }
 

@@ -10,6 +10,9 @@ use crate::{
     },
 };
 
+mod behavior;
+#[cfg(test)]
+mod behavior_tests;
 #[cfg(test)]
 mod gameplay_tests;
 
@@ -516,7 +519,9 @@ impl Menu {
                 Ok(())
             }
             Edit::Reset(item) => {
-                if item.reset_setting(state.settings) {
+                if item.reset_setting(state.settings)
+                    || behavior::change(state.settings, item, 0, true)
+                {
                     Ok(())
                 } else {
                     match item {
@@ -613,7 +618,9 @@ impl Menu {
                 }
             }
             Edit::Change(item, delta) => {
-                if item.change_setting(state.settings, delta) {
+                if item.change_setting(state.settings, delta)
+                    || behavior::change(state.settings, item, delta, false)
+                {
                     Ok(())
                 } else {
                     match item {
@@ -728,6 +735,9 @@ impl Menu {
                                 state.settings.multi_target_attacks = defaults.multi_target_attacks;
                                 state.settings.attack_assist = defaults.attack_assist;
                                 state.settings.damage_escalation = defaults.damage_escalation;
+                                state.settings.behavior_profiles = defaults.behavior_profiles;
+                                state.settings.reinforcement_call = defaults.reinforcement_call;
+                                state.settings.reinforcement_limit = defaults.reinforcement_limit;
                             }
                             self.tools.restore_defaults(all);
                             state.controls.clear();
@@ -1630,6 +1640,8 @@ mod tests {
                             | Item::FlightSpeed
                             | Item::Fov
                             | Item::Actor
+                            | Item::ActorCombat
+                            | Item::ActorIdle
                             | Item::PhotoMode
                             | Item::MovesetModel
                             | Item::WeaponModel

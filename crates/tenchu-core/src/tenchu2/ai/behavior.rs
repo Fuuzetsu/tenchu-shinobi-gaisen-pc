@@ -125,6 +125,7 @@ impl Active {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Behavior {
+    pub profile: super::profiles::Profile,
     pub bait: Option<super::bait::Bait>,
     pub programs: Programs,
     layout_idle: Program,
@@ -142,6 +143,7 @@ pub struct Behavior {
 impl Behavior {
     pub fn new(home: Position, route: &[Waypoint]) -> Self {
         Self {
+            profile: Default::default(),
             bait: None,
             programs: Programs::default(),
             layout_idle: Program::Disabled,
@@ -184,6 +186,7 @@ impl Behavior {
             self.layout_idle
         };
         *self = Self {
+            profile: self.profile.clone(),
             layout_idle: programs.idle,
             programs,
             has_suspicious_program: self.has_suspicious_program,
@@ -417,6 +420,10 @@ impl Behavior {
             self.accept(c, &decision);
             return Ok(decision);
         }
+        if let Some(decision) = self.profile_idle(c, global, frame)? {
+            self.accept(c, &decision);
+            return Ok(decision);
+        }
         self.decide(self.programs.idle, c, global, frame)
     }
 
@@ -493,12 +500,21 @@ impl<E: Events> perception::Reactions for Reactions<'_, '_, E> {
         c: &mut Context<'_>,
         global: &mut Global,
     ) -> Result<Decision> {
+        if matches!(routine, Routine::Combat | Routine::Search)
+            && self.behavior.profile.recruitment == crate::ai::Recruitment::Requested
+            && matches!(c.actor.state, State::Normal | State::Ready)
+        {
+            return alert::flee(c);
+        }
         let program = match routine {
             Routine::Idle => return self.behavior.idle(c, global, self.frame),
             Routine::Suspicious => self.behavior.programs.suspicious,
             Routine::Combat => {
                 if self.behavior.evade_shuriken(c, self.frame)? {
                     return Ok(Decision::default());
+                }
+                if let Some(decision) = self.behavior.profile_combat(c, self.frame)? {
+                    return Ok(decision);
                 }
                 self.behavior.programs.combat
             }

@@ -373,6 +373,16 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
     assert!(!world.player_can_orbit());
     assert!(!world.player_can_steer());
     let during = postcard::to_allocvec(&world).unwrap();
+    let kind = world.actors[guard].actor.kind;
+    let placement = || tenchu_core::tenchu2::world::Placement {
+        kind,
+        definition: kind,
+        behavior: 0x2125,
+        position: Position::new(2500, 0, 2500),
+        yaw: 0,
+        snap: true,
+    };
+    assert!(world.place_actor(placement(), &assets).is_err());
     assert!(
         world
             .teleport_player(Position::new(1500, 0, 1500), true, &assets)
@@ -440,6 +450,14 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
         history
     );
     assert_eq!(world.random, random);
+    let id = world.place_actor(placement(), &assets).unwrap();
+    world
+        .reposition_actor(id, Position::new(-2500, 0, 2500), 0, true, &assets)
+        .unwrap();
+    assert_eq!(
+        world.actors[id].actor.position,
+        Position::new(-2500, 0, 2500)
+    );
 }
 
 #[test]

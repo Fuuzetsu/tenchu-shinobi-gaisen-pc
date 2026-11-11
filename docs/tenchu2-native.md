@@ -108,9 +108,29 @@ It persists across areas; switching it off restores the original activation chec
 on its normal one-second cadence. It is off by default and graphical presets do
 not change it. Enabling it expands collision storage for larger casts until the
 area reloads, including retained contacts after the option is switched off.
-Rewind, randomizer, broader enemy-behaviour options
-and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
-sandbox still provide those features.
+Randomizer and automated benchmarks are **not connected to native JP yet**.
+Gaisen and its scenery sandbox still provide those features.
+
+**Enemy behavior** enables optional Coward, Reckless, Cautious, Flanker and
+Watchman policies, or a seeded mix. Native sight, navigation, weapon reach,
+combo frames and hit rules remain in use. Profiles can follow the authored idle
+routine, patrol an existing route, keep watch or face toward the player.
+Sleeping, bait investigation, bosses, civilians, animals, story actors and
+mission targets retain their original routines. Per-guard combat and idle
+overrides use the selected actor. Optional progression starts at Mission 6 on
+Easy, 4 on Normal or 2 on Hard; imported T1 stages use their original order.
+Profiles stay off by default and graphical presets do not change them.
+
+Cowards can call aid after reaching terrain cover more than 16,500 units from
+the player. With **Keep all enemies active**, **Witnessed-kill reinforcements**
+also lets the nearest eligible guard who sees an armed guard die seek aid.
+Calls use the configured fixed or random group size and total actor limit;
+normal activation retains a 30-actor limit. Corpses count toward capacity.
+Kill-all missions also retain their native kill-quota limit.
+Each guard can call once per alert; recruits cannot call more recruits.
+Recruits retain the caller's guard appearance and voice. These are optional new
+behaviors: original T2 has no reinforcement caller. Assignments, pending calls
+and settings survive saves and rewind.
 
 **F1 → Simulation → Savestate slot** selects one of five native T2 slots.
 **Save state / F11** saves gameplay or a 3D cutscene; **Load state / F12** restores
@@ -128,7 +148,8 @@ click/editor actions and held physical inputs, returns to the player camera and
 resynchronizes cutscene audio. Loading itself does not write campaign progress;
 later normal mission completion can do so. State files require the same game
 version and contain disc-derived runtime data, so keep them outside source and
-asset releases. Rewind and Ctrl+F12 remain unavailable in native T2.
+asset releases. Native T2 also supports the shared rewind timeline, seeking,
+forward playback, branching, and recording import/export through F1 or Ctrl+F12.
 
 **F1 → Bleeding** also works in native JP, including imported T1 stages. It is
 optional gameplay, separate from cosmetic wound drips: successful enemy melee,

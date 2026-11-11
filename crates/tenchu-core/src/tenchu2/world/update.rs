@@ -115,6 +115,7 @@ impl World {
         assets: &Assets,
         events: &mut impl Events,
     ) -> Result<u16> {
+        self.refresh_profile(index);
         let animated_corpse =
             if self.ai.strict_corpse_sight && self.actors[index].actor.state == State::Dead {
                 Some(

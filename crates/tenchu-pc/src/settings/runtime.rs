@@ -67,6 +67,22 @@ impl Runtime {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BlobShadows {
             "T2's original ground shadow beneath living characters, shaped by their native foot contacts and floor heights. Also works on imported T1 stages and follows the authored rules in cutscenes. Separate from dynamic model shadows; changes drawing only."
+        } else if self == Self::Tenchu2 && item == Item::BehaviorProfiles {
+            "GAMEPLAY EDIT: optional decisions for ordinary native guards, including on imported T1 stages. Bosses, story actors, civilians, animals and mission targets retain their native AI. Original AI is the default; native perception, attack motions, damage and collision remain."
+        } else if self == Self::Tenchu2 && item == Item::BehaviorCombat {
+            "Coward retreats and can call one reinforcement group per alert after reaching cover. Reckless closes in and attacks; Cautious retreats and waits for openings; Flanker uses available native sidesteps; Watchman adapts to health, distance and the target's attacks. Native weapon reach and combo frames apply. Profiles request no combat items; original injury cures remain."
+        } else if self == Self::Tenchu2 && item == Item::BehaviorIdle {
+            "Keep the authored routine, follow an existing T2 patrol route (look out if none), look around from one spot, or turn toward the player. Sleeping, bait investigation and scripted actions retain their native behavior."
+        } else if self == Self::Tenchu2 && item == Item::BehaviorProgression {
+            "Start applying profiles at Mission 6 on Easy, 4 on Normal or 2 on Hard in the current protagonist's campaign. Imported T1 stages use their original mission order. Off applies profiles from the start."
+        } else if self == Self::Tenchu2 && item == Item::ReinforcementsPerCall {
+            "Optional aid for Coward profiles and witnessed kills: one group per placed guard per alert, only beyond 16,500 units and behind terrain cover. Recruits use the caller's native guard type and cannot call more guards. 0 disables aid. Original T2 has no reinforcement caller."
+        } else if self == Self::Tenchu2 && item == Item::RandomReinforcements {
+            "Choose between 1 and Guards per reinforcement call for each successful optional aid request. Off uses the fixed count; 0 still disables aid. Calls respect cover and capacity."
+        } else if self == Self::Tenchu2 && item == Item::WitnessedKillReinforcements {
+            "With Keep all enemies active, the nearest eligible guard who sees an ordinary armed guard die retreats to seek aid. Requires range, facing and terrain sight. Paired kills, protected actors and recruits do not request aid. Off by default."
+        } else if self == Self::Tenchu2 && item == Item::ReinforcementLimit {
+            "With Keep all enemies active, stop optional aid at this total actor count, including the player and corpses. 0 means unlimited. With normal activation, optional Coward calls retain a 30-actor limit. Kill-all missions also retain their native quota limit. Existing actors are kept."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
             "Add a pool beneath the player's finished, grounded corpse when the native death has no pool. Uses the death style, size and retention settings. Existing source pools still follow Death pool / star; this option does not duplicate them."
         } else if self == Self::Tenchu2 && item == Item::DistantDoors {
@@ -148,6 +164,9 @@ impl Runtime {
             IndependentAttacks => Some(
                 "Native T2 already gives each fighter its own attack cooldown. This option removes T1's shared cooldown and is not needed here.",
             ),
+            BehaviorQuickTurns => Some(
+                "This changes T1's rapid turnaround command at a patrol loop boundary. Native T2 follows each authored waypoint turn at the actor's normal turn rate and has no corresponding command.",
+            ),
             StaySheathed => Some(
                 "Native T2 already preserves the current weapon state after injury and knockdown. This option changes T1's automatic draw after recovery; it is not needed here.",
             ),
@@ -195,6 +214,17 @@ impl Runtime {
             | ClearItems | Inventory(_) | Reset | ResetTweaks | GameplayPreset
             | QuickShurikenDodge | StrictCorpseSight | MultiTargetAttacks | AttackAssist
             | DetectionDamage | DetectionDamageLimit => None,
+            BehaviorProfiles
+            | BehaviorCombat
+            | BehaviorIdle
+            | BehaviorProgression
+            | BehaviorSeed
+            | ActorCombat
+            | ActorIdle
+            | ReinforcementsPerCall
+            | RandomReinforcements
+            | WitnessedKillReinforcements
+            | ReinforcementLimit => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight

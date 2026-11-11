@@ -16,6 +16,7 @@ pub mod entry;
 mod evasion;
 pub mod navigation;
 pub mod perception;
+pub mod profiles;
 pub mod runtime;
 pub mod search;
 pub mod sight;

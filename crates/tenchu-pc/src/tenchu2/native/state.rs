@@ -2,7 +2,7 @@ use super::*;
 use serde::{Deserialize, Serialize};
 use tenchu_core::tenchu2::world::gaisen::Director;
 
-const SIGNATURE: &str = "native-tenchu2-jp-session-2";
+const SIGNATURE: &str = "native-tenchu2-jp-session-3";
 
 mod reuse;
 
@@ -196,6 +196,9 @@ impl Owned {
                 .values()
                 .any(|model| model.vram.words.len() != 1024 * 512)
             || self.actor_voices.keys().any(|&id| id >= world.actors.len())
+            || world.ai.reinforcements.alive.len() > world.actors.len()
+            || world.ai.reinforcements.settings.count
+                > tenchu_core::roster::ReinforcementCall::MAX_COUNT
             || self.contact.gunshots.len() > contact::GUNSHOT_LIMIT
             || self.contact.gunshots.iter().any(|(at, _)| {
                 u64::from(world.tick)
@@ -230,8 +233,20 @@ impl Owned {
                 parent = world.scene.models[id].parent;
             }
         }
-        for (agent, instance) in world.actors.iter().zip(&world.instances) {
+        for (index, (agent, instance)) in world.actors.iter().zip(&world.instances).enumerate() {
             let actor = &agent.actor;
+            if agent
+                .behavior
+                .profile
+                .recruited_by
+                .is_some_and(|caller| caller >= index)
+                || agent.behavior.profile.selection.is_some_and(|selection| {
+                    selection.actor != index
+                        || selection.combat == tenchu_core::ai::profiles::Combat::Mixed
+                })
+            {
+                return Err("Invalid native T2 behavior assignment or reinforcement caller".into());
+            }
             if let Some(state) = actor.sheathing {
                 let mut settings = state.settings;
                 settings.validate();
@@ -396,6 +411,18 @@ mod tests {
             },
             |s| {
                 s.actor_voices.insert(usize::MAX, None);
+            },
+            |s| s.core.0.ai.reinforcements.settings.count = u16::MAX,
+            |s| s.core.0.ai.reinforcements.alive = vec![true; s.core.0.actors.len() + 1],
+            |s| s.core.0.actors[0].behavior.profile.recruited_by = Some(0),
+            |s| {
+                s.core.0.actors[0].behavior.profile.selection =
+                    Some(tenchu_core::tenchu2::ai::profiles::Selection {
+                        combat: tenchu_core::ai::profiles::Combat::Mixed,
+                        idle: Default::default(),
+                        actor: 0,
+                        seed: 1,
+                    });
             },
         ] {
             let mut saved: Owned = crate::savestate::decode(&original).unwrap();

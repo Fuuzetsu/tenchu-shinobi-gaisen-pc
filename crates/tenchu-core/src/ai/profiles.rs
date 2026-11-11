@@ -140,11 +140,15 @@ impl Settings {
     }
 
     pub fn combat(self, actor: &Actor) -> Combat {
-        match actor.behavior.combat.unwrap_or(self.combat) {
+        self.assignment(actor.id, actor.kind, actor.behavior.combat)
+    }
+
+    pub fn assignment(self, id: usize, kind: i16, override_: Option<Combat>) -> Combat {
+        match override_.unwrap_or(self.combat) {
             Combat::Mixed => {
                 let seed = u32::from(self.seed)
-                    ^ (actor.id as u32).wrapping_mul(0x9e3779b9)
-                    ^ u32::from(actor.kind as u16).rotate_left(16);
+                    ^ (id as u32).wrapping_mul(0x9e3779b9)
+                    ^ u32::from(kind as u16).rotate_left(16);
                 let mut random = crate::random::Random::new(seed);
                 [
                     Combat::Coward,

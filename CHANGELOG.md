@@ -5,6 +5,18 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 and imported T1 stages support F1's optional **Enemy behavior**
+  profiles, seeded mixing, per-guard combat/idle choices and mission progression.
+  Native perception, weapon reach, motions and collision remain in use; bosses,
+  story actors and mission targets keep their original behavior. Off by default.
+- Optional Coward and witnessed-kill reinforcement calls now work in native T2.
+  Calls require distance and terrain cover, respect group/population limits,
+  preserve the caller's guard appearance and voice, and cannot form recursive
+  waves. Witnessed-kill calls require **Keep all enemies active**. Saves and
+  rewind retain assignments and pending calls.
+- Fix native T2 actor placement and repositioning remaining unavailable after
+  a completed stealth kill.
+
 - Restore T2's original ground shadows in gameplay and 3D cutscenes, including
   T1 stages played with T2 rules. Shadows follow the native feet and terrain,
   and remain visible on coplanar floors. F1's **Original blob shadows** now

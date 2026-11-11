@@ -105,6 +105,15 @@ impl Director {
             .filter_map(|(id, i)| i.map(|i| (id, i)))
         {
             let original = source.roster.get_mut(id);
+            let kind = original.script_kind.unwrap_or(original.kind);
+            world.actors[index].behavior.profile.protected = original.scripted
+                || source.mission.story.iter().any(|actor| actor.kind == kind)
+                || source
+                    .mission
+                    .scripts
+                    .events
+                    .iter()
+                    .any(|event| event.target != 255 && i16::from(event.target) == kind);
             if original.max_health < 0 {
                 population[index].actor.health = -1;
                 world.actors[index].actor.invulnerable = true;

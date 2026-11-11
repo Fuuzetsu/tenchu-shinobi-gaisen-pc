@@ -60,7 +60,7 @@ fn native_gameplay_presets_reject_unavailable_scenes_before_editing() {
     }
 }
 
-fn playback(imported: bool) -> Playback<crate::source::DiscSource> {
+pub(super) fn playback(imported: bool) -> Playback<crate::source::DiscSource> {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let mut loadout = [0; 21];
@@ -91,7 +91,7 @@ fn playback(imported: bool) -> Playback<crate::source::DiscSource> {
     panic!("could not reach playable scene");
 }
 
-fn session(content: &Content) -> &super::super::Session {
+pub(super) fn session(content: &Content) -> &super::super::Session {
     let Content::Gameplay(session) = content else {
         panic!("not gameplay")
     };

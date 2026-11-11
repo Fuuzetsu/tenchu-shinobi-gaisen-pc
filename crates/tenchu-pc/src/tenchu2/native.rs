@@ -26,6 +26,8 @@ use tenchu_core::{
 };
 
 #[cfg(test)]
+mod behavior_tests;
+#[cfg(test)]
 mod bleeding_tests;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod campaign;
@@ -274,6 +276,7 @@ impl Session {
             pending: &mut self.pending,
         };
         let tick = self.world.tick;
+        let actors = self.world.actors.len();
         self.frame = self
             .world
             .step([buttons, 0], &mut self.assets, &mut events)?;
@@ -340,6 +343,14 @@ impl Session {
                     sound,
                     bank: request.source.map(|(bank, _)| bank),
                 });
+            }
+        }
+        for index in actors..self.world.actors.len() {
+            if let Some(caller) = self.world.actors[index].behavior.profile.recruited_by
+                && let Some(voice) = self.actor_voices.get(&caller).cloned()
+            {
+                self.world.instances[index].voice = 4;
+                self.actor_voices.insert(index, voice);
             }
         }
         if !observing_death {

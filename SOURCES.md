@@ -1729,6 +1729,29 @@ The original transition, sight and collision engines remain authoritative.
 Disabled profiles take the original dispatch path without assignment RNG or AI
 state resets. No code, motion tables or assets from another game are imported.
 
+The native T2 adapter in `tenchu2::ai::profiles` and `world::profiles` uses the
+same deterministic assignment and optional combat policies, with JP weapon
+reach, combo timing, dodge clips, patrol/lookout dispatch and fleeing. Native
+flankers attempt one aligned sidestep per 90-tick cycle, outside an existing
+dodge, leaving time to turn and land native attacks. Native perception,
+steering, motion and damage still execute in the existing scalar controllers. The JP registry and AI-enabled flag delimit ordinary guards;
+campaign targets, controller-driven actors and imported T1 story bindings are
+protected. There is no T1 patrol-loop quick-turn command in the native patrol
+controller, so that particular setting is explained as inapplicable.
+
+`tenchu2::world::reinforcements` is an optional extension, not restored T2 AI.
+It reuses this port's bounded T1 aid policy (16,500-unit separation, covered
+feet/middle/head, one call per alert and nonrecursive recruits) and native actor
+placement, terrain probes and weapon drawing. Long sight lines are split into
+native segments before converting their displacement to signed 16-bit values.
+Witnesses use native standing notice range, a facing cone and terrain sight.
+Calls retain the caller's loaded definition and voice; no asset data is embedded.
+The reference audit reread `tenchu-decomp/src/main.exe/THINK.C`, the research
+repository's scalar patrol reference and the viewer's sight envelopes. Those
+T1 references do not establish native T2 behavior; no sibling code was imported
+or changed. Original native behavior/runtime instruction comparisons and the
+existing BizHawk input/draw-skip recording remain the default-path checks.
+
 ## Optional Stealth Assassins dismemberment
 
 The user-supplied USA Rev 1 `MAIN.EXE` (SHA-256

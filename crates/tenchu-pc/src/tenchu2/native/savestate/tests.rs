@@ -56,6 +56,18 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
                 increment: 50,
                 maximum: 200,
             },
+            behavior_profiles: tenchu_core::ai::profiles::Settings {
+                enabled: true,
+                seed: 43,
+                combat: tenchu_core::ai::profiles::Combat::Cautious,
+                ..Default::default()
+            },
+            reinforcement_call: tenchu_core::roster::ReinforcementCall {
+                count: 2,
+                random: true,
+                witnessed_kills: true,
+            },
+            reinforcement_limit: 70,
             ..Default::default()
         };
         settings.bleeding.enabled = true;
@@ -125,6 +137,9 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         assert!(current.multi_target_attacks);
         assert!(current.attack_assist);
         assert_eq!(current.damage_escalation, settings.damage_escalation);
+        assert_eq!(current.behavior_profiles, settings.behavior_profiles);
+        assert_eq!(current.reinforcement_call, settings.reinforcement_call);
+        assert_eq!(current.reinforcement_limit, settings.reinforcement_limit);
         assert!(
             current.keep_enemies_active && current.wait_after_death && current.live_death_scene
         );

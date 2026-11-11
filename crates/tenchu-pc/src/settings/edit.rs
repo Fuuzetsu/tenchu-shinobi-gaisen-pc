@@ -542,7 +542,7 @@ impl Item {
     }
 }
 
-pub(crate) fn cycle(value: u16, choices: &[u16], direction: i32) -> u16 {
+pub(crate) fn cycle<T: Copy + PartialEq>(value: T, choices: &[T], direction: i32) -> T {
     let index = choices.iter().position(|&v| v == value).unwrap_or(0);
     choices[(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
 }

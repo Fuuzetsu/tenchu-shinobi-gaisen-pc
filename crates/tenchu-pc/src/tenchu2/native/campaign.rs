@@ -83,6 +83,13 @@ impl<S: ReadAt> Playback<S> {
             self.run.carry.bleeding = None;
         }
         if let Content::Gameplay(session) = &mut self.content {
+            session
+                .world
+                .configure_profiles(settings.behavior_profiles, &session.assets);
+            session.world.configure_reinforcements(
+                settings.reinforcement_call,
+                settings.reinforcement_limit,
+            );
             session.world.ai.quick_shuriken_dodge = settings.quick_shuriken_dodge;
             session.world.ai.strict_corpse_sight = settings.strict_corpse_sight;
             session

@@ -819,13 +819,13 @@ mod tests {
         let mut edits = Vec::new();
         let paint = |ctx: &egui::Context, rect: &mut egui::Rect, edits: &mut Vec<Edit>| {
             egui::CentralPanel::default().show(ctx, |ui| {
-                available_ui(ui, Runtime::Tenchu2, Item::BehaviorProfiles, |ui| {
-                    *rect = ui.button("Behavior profiles").rect;
+                available_ui(ui, Runtime::Tenchu2, Item::BehaviorQuickTurns, |ui| {
+                    *rect = ui.button("Patrol quick turns").rect;
                 });
                 action_button(
                     ui,
                     "Reset",
-                    Edit::Reset(Item::BehaviorProfiles),
+                    Edit::Reset(Item::BehaviorQuickTurns),
                     Runtime::Tenchu2,
                     edits,
                 );
@@ -850,7 +850,7 @@ mod tests {
             match shape {
                 egui::Shape::Text(text) => text.galley.job.text.contains(
                     Runtime::Tenchu2
-                        .unavailable(Item::BehaviorProfiles)
+                        .unavailable(Item::BehaviorQuickTurns)
                         .unwrap(),
                 ),
                 egui::Shape::Vec(shapes) => shapes.iter().any(has_reason),
