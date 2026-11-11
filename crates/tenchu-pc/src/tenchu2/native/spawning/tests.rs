@@ -349,6 +349,7 @@ fn native_spawn_voice_banks_are_independent_of_stage_slots() {
         requests: Vec::new(),
         wounds: Vec::new(),
         melee_hits: BTreeSet::new(),
+        gunshots: Vec::new(),
         pending: &mut pending,
     };
     let random = session.world.random;

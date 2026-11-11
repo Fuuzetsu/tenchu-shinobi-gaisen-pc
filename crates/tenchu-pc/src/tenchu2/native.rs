@@ -270,6 +270,7 @@ impl Session {
             requests: Vec::new(),
             wounds: Vec::new(),
             melee_hits: BTreeSet::new(),
+            gunshots: Vec::new(),
             pending: &mut self.pending,
         };
         let tick = self.world.tick;
@@ -301,6 +302,8 @@ impl Session {
         self.contact.record_player(&self.world);
         self.contact.wounds = events.wounds;
         self.contact.melee_hits = events.melee_hits;
+        self.contact
+            .record_gunshots(u64::from(self.world.tick), events.gunshots);
         for &position in &self.frame.effects.blood_sounds {
             events.requests.push(SoundRequest {
                 source: None,
@@ -433,6 +436,7 @@ struct Output<'a> {
     requests: Vec<SoundRequest>,
     wounds: Vec<contact::Wound>,
     melee_hits: BTreeSet<usize>,
+    gunshots: Vec<contact::Gunshot>,
     pending: &'a mut BTreeSet<String>,
 }
 
@@ -456,6 +460,19 @@ impl Output<'_> {
 }
 
 impl Events for Output<'_> {
+    fn gunshot(
+        &mut self,
+        position: Position,
+        direction: Position,
+        part: tenchu_core::effects::GunPart,
+    ) {
+        self.gunshots.push(contact::Gunshot {
+            position,
+            direction,
+            part,
+        });
+    }
+
     fn melee_hit(&mut self, attacker: usize) {
         self.melee_hits.insert(attacker);
     }

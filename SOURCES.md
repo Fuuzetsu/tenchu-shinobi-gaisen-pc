@@ -18,6 +18,25 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 Modern gunfire (2026-11-12)
+
+The optional native adapter reuses the existing Gaisen flash/smoke geometry and
+three-tick muzzle-light formula. No-op presentation observers record the exact
+native `item_origin(11)` and normalized `Gunshot::launch` direction, then the
+original `Gunshot::advance` surface-impact or body-contact event. Original item
+insertion, damage, effect/audio events, RNG calls and their ordering are retained.
+Native source particles remain owned by the original effects implementation.
+
+The shared native contact history retains at most 512 events for 16 nominal
+updates, clears on discontinuities and survives saves/rewind. Redrawing neither
+advances nor repeats a shot. This is new presentation glue over source-translated
+T2 items and existing port effects; no sibling code or retail assets were imported.
+Disc-backed fixtures exercise real native shots, body/surface contacts, finite
+lifetimes, serialized continuation and paused GPU toggles. Original ranged
+oracles and existing Gaisen gunfire checks cover the source and shared paths.
+Modern High/Ultra already enable this setting; Original leaves it disabled.
+The shared Gunfire demo remains discoverable; native demo sequencing is pending.
+
 ## Imported-stage actor shading (2026-11-11)
 
 T1 stage import reused T2 map8 for character/effect resources but left that map's

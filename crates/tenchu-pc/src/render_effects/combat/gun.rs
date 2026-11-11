@@ -22,70 +22,16 @@ impl Painter<'_> {
                     let center = Vec3::from(impact.position.map(|v| v as f32).to_array());
                     let direction = Vec3::from(source.direction.map(|v| v as f32).to_array())
                         .normalize_or_zero();
-                    let muzzle = matches!(source.part, GunPart::Muzzle);
-                    let flash = (1.0 - age / if muzzle { 3.0 } else { 1.8 })
-                        .max(0.0)
-                        .powi(2);
-                    let projected =
-                        direction - self.camera.z_axis * direction.dot(self.camera.z_axis);
-                    let along = projected.try_normalize().unwrap_or(self.camera.y_axis);
-                    let across = along.cross(self.camera.z_axis);
-                    if flash > 0.0 {
-                        let size = if muzzle { 150.0 } else { 55.0 };
-                        for i in 0..3 {
-                            let side = i as f32 - 1.0;
-                            let axis = (along + across * side * 0.32).normalize();
-                            self.patch_with_opacity(
-                                center + direction * size * 0.5 + across * side * 18.0,
-                                [
-                                    axis * size * (0.6 + noise(i + 4) * 0.35),
-                                    across * size * 0.12,
-                                ],
-                                [2.7, 1.3, 0.32],
-                                true,
-                                true,
-                                flash * 0.8,
-                            );
-                        }
-                        self.patch_with_opacity(
-                            center + direction * 25.0,
-                            [
-                                self.camera.x_axis * size * 0.18,
-                                self.camera.y_axis * size * 0.18,
-                            ],
-                            [3.5, 2.8, 1.7],
-                            true,
-                            true,
-                            flash,
-                        );
-                    }
-
-                    if !matches!(source.part, GunPart::Body) {
-                        for i in 0..5 {
-                            let seed = i * 17 + 3;
-                            let drift = Vec3::new(
-                                noise(seed) - 0.5,
-                                -0.8 - noise(seed + 1),
-                                noise(seed + 2) - 0.5,
-                            );
-                            let size = 35.0 + age * (6.0 + noise(seed + 3) * 4.0);
-                            let position = center
-                                + drift * age * 12.0
-                                + direction * (age * 14.0 + i as f32 * 25.0);
-                            self.patch_with_opacity(
-                                position,
-                                [self.camera.x_axis * size, self.camera.y_axis * size],
-                                if muzzle {
-                                    [0.32, 0.29, 0.26]
-                                } else {
-                                    [0.24, 0.22, 0.19]
-                                },
-                                false,
-                                true,
-                                (1.0 - age / 16.0).max(0.0) * 0.28,
-                            );
-                        }
-                    }
+                    gun_impact(
+                        self.camera,
+                        center,
+                        direction,
+                        source.part,
+                        age,
+                        |center, axes, color, glow, rounded, opacity| {
+                            self.patch_with_opacity(center, axes, color, glow, rounded, opacity);
+                        },
+                    );
                 }
                 Effect::Bleed(spark) if !matches!(source.part, GunPart::Muzzle) => {
                     let velocity = Vec3::from(spark.velocity.map(f32::from));
@@ -115,6 +61,74 @@ impl Painter<'_> {
                 }
                 _ => {}
             }
+        }
+    }
+}
+
+pub(crate) fn gun_impact(
+    camera: glam::Mat3,
+    center: Vec3,
+    direction: Vec3,
+    part: GunPart,
+    age: f32,
+    mut emit: impl FnMut(Vec3, [Vec3; 2], [f32; 3], bool, bool, f32),
+) {
+    let muzzle = matches!(part, GunPart::Muzzle);
+    let flash = (1.0 - age / if muzzle { 3.0 } else { 1.8 })
+        .max(0.0)
+        .powi(2);
+    let projected = direction - camera.z_axis * direction.dot(camera.z_axis);
+    let along = projected.try_normalize().unwrap_or(camera.y_axis);
+    let across = along.cross(camera.z_axis);
+    if flash > 0.0 {
+        let size = if muzzle { 150.0 } else { 55.0 };
+        for i in 0..3 {
+            let side = i as f32 - 1.0;
+            let axis = (along + across * side * 0.32).normalize();
+            emit(
+                center + direction * size * 0.5 + across * side * 18.0,
+                [
+                    axis * size * (0.6 + noise(i + 4) * 0.35),
+                    across * size * 0.12,
+                ],
+                [2.7, 1.3, 0.32],
+                true,
+                true,
+                flash * 0.8,
+            );
+        }
+        emit(
+            center + direction * 25.0,
+            [camera.x_axis * size * 0.18, camera.y_axis * size * 0.18],
+            [3.5, 2.8, 1.7],
+            true,
+            true,
+            flash,
+        );
+    }
+
+    if !matches!(part, GunPart::Body) {
+        for i in 0..5 {
+            let seed = i * 17 + 3;
+            let drift = Vec3::new(
+                noise(seed) - 0.5,
+                -0.8 - noise(seed + 1),
+                noise(seed + 2) - 0.5,
+            );
+            let size = 35.0 + age * (6.0 + noise(seed + 3) * 4.0);
+            let position = center + drift * age * 12.0 + direction * (age * 14.0 + i as f32 * 25.0);
+            emit(
+                position,
+                [camera.x_axis * size, camera.y_axis * size],
+                if muzzle {
+                    [0.32, 0.29, 0.26]
+                } else {
+                    [0.24, 0.22, 0.19]
+                },
+                false,
+                true,
+                (1.0 - age / 16.0).max(0.0) * 0.28,
+            );
         }
     }
 }

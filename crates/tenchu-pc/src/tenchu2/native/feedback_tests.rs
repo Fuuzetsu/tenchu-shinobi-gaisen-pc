@@ -41,6 +41,7 @@ fn native_feedback_matches_original_motor_instructions() {
             requests: Vec::new(),
             wounds: Vec::new(),
             melee_hits: BTreeSet::new(),
+            gunshots: Vec::new(),
             pending: &mut pending,
         };
         if case.direct {
@@ -100,6 +101,7 @@ fn native_feedback_routes_gameplay_events_and_preserves_rng() {
         requests: Vec::new(),
         wounds: Vec::new(),
         melee_hits: BTreeSet::new(),
+        gunshots: Vec::new(),
         pending: &mut pending,
     };
 

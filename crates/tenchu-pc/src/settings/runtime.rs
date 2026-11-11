@@ -214,7 +214,9 @@ impl Runtime {
             | ClearFootprints | RoofRunoff | RunoffAmount | ClearWeather | StormLightning
             | StormBolts | StormInterval | StormThunder | RainVolume | WindVolume
             | ThunderStyle => None,
-            ContactSparks | SparkDensity | ContactSplashes | GrappleDetail | BloodHit => None,
+            ContactSparks | SparkDensity | ContactSplashes | GrappleDetail | BloodHit | Gunfire => {
+                None
+            }
             FoliageDetail | VegetationVariation | FallingLeaves | LeafDensity | ContactScatter
             | BakedSnowFootprints => None,
             GushStyle | DeathGush | GushSeconds => None,

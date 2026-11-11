@@ -750,7 +750,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::Gunfire,
                 "Modern gunfire",
                 on(s.graphics.effects.gunfire),
-                "Echigoya's gun: a brief muzzle flash and light, drifting smoke and impact sparks. Shot timing and damage stay unchanged.",
+                "Gunshots gain a brief muzzle flash and light, drifting smoke and impact flashes. Shot timing and damage stay unchanged.",
             ),
             (
                 Item::Lightning,

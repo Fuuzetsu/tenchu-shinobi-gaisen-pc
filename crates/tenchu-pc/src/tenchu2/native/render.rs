@@ -32,6 +32,7 @@ mod custom;
 mod environment;
 #[cfg(not(target_arch = "wasm32"))]
 mod gaisen;
+mod gunfire;
 mod hud;
 mod items;
 mod lamps;
@@ -526,6 +527,19 @@ impl SceneDrawing {
             geometry.effects = effects;
         } else {
             renderer.set_decals(std::iter::empty());
+        }
+        if graphics.effects.gunfire
+            && let Some(contact) = frame.contact
+        {
+            geometry.effects.append(gunfire::geometry(
+                contact,
+                frame.tick,
+                frame.camera,
+                frame.alpha,
+            ));
+            self.lighting
+                .transients
+                .extend(gunfire::lights(contact, frame.tick, frame.alpha));
         }
     }
 

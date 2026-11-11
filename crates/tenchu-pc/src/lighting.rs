@@ -3,6 +3,8 @@ mod gaisen;
 pub mod shadows;
 pub mod sparks;
 pub(crate) mod transients;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use gaisen::gun_muzzle;
 pub use gaisen::{fire_sources, gunfire, lightning, sources};
 use glam::Vec3;
 

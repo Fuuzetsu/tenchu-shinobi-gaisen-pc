@@ -45,20 +45,27 @@ pub fn gunfire(game: &Game, alpha: f32) -> Vec<Source> {
                 return None;
             }
             let age = f32::from(impact.count.saturating_sub(1)) + alpha.clamp(0.0, 1.0);
-            let strength = (1.0 - age / 3.0).max(0.0).powi(2);
-            (strength > 0.0).then(|| Source {
-                name: "Gun muzzle".into(),
-                light: Light {
-                    flame: false,
-                    emission_radius: 0.0,
-                    position: Vec3::from(impact.position.map(|v| v as f32).to_array()),
-                    color: [2.0 * strength, 0.9 * strength, 0.25 * strength],
-                    radius: 4000.0,
-                },
-            })
+            gun_muzzle(
+                Vec3::from(impact.position.map(|v| v as f32).to_array()),
+                age,
+            )
         })
         .take(2)
         .collect()
+}
+
+pub(crate) fn gun_muzzle(position: Vec3, age: f32) -> Option<Source> {
+    let strength = (1.0 - age / 3.0).max(0.0).powi(2);
+    (strength > 0.0).then(|| Source {
+        name: "Gun muzzle".into(),
+        light: Light {
+            flame: false,
+            emission_radius: 0.0,
+            position,
+            color: [2.0 * strength, 0.9 * strength, 0.25 * strength],
+            radius: 4000.0,
+        },
+    })
 }
 
 pub fn sources(

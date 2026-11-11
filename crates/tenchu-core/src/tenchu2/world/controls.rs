@@ -185,6 +185,14 @@ pub trait Events: crate::tenchu2::environment::Events {
     fn blood(&mut self, _actor: usize, _joint: usize, _position: Position) {}
 
     fn melee_hit(&mut self, _attacker: usize) {}
+
+    fn gunshot(
+        &mut self,
+        _position: Position,
+        _direction: Position,
+        _part: crate::effects::GunPart,
+    ) {
+    }
 }
 
 impl World {

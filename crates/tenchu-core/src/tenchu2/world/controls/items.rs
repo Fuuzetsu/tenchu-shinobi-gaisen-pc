@@ -453,8 +453,11 @@ impl<E: Events> Context<'_, E> {
                 terrain.cursor,
                 &self.math,
             )?;
+            let direction = shot.direction;
             self.items
                 .insert(State::Gunshot(shot), self.scene, self.collision)?;
+            self.events
+                .gunshot(origin, direction, crate::effects::GunPart::Muzzle);
         } else {
             let flaming = matches!(self.map, 4..=6 | 17 | 21)
                 && actor.kind & 0xf0 == 0x40

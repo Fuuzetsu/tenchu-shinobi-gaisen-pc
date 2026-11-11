@@ -2,7 +2,7 @@ use super::*;
 use serde::{Deserialize, Serialize};
 use tenchu_core::tenchu2::world::gaisen::Director;
 
-const SIGNATURE: &str = "native-tenchu2-jp-session-1";
+const SIGNATURE: &str = "native-tenchu2-jp-session-2";
 
 mod reuse;
 
@@ -196,6 +196,12 @@ impl Owned {
                 .values()
                 .any(|model| model.vram.words.len() != 1024 * 512)
             || self.actor_voices.keys().any(|&id| id >= world.actors.len())
+            || self.contact.gunshots.len() > contact::GUNSHOT_LIMIT
+            || self.contact.gunshots.iter().any(|(at, _)| {
+                u64::from(world.tick)
+                    .checked_sub(*at)
+                    .is_none_or(|age| age >= contact::GUNSHOT_TICKS)
+            })
             || self.navigation.is_some_and(|input| {
                 !input.yaw.is_finite() || input.sticks.iter().any(|v| !v.is_finite())
             })

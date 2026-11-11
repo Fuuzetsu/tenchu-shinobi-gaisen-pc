@@ -50,6 +50,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         water: g.water.clone(),
         effects: crate::settings::Effects {
             sparks: g.effects.sparks,
+            gunfire: g.effects.gunfire,
             splashes: g.effects.splashes,
             spark_density: g.effects.spark_density,
             leaves: g.effects.leaves,

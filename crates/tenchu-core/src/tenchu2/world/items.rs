@@ -270,12 +270,31 @@ impl World {
                     })?,
                     false,
                 ),
-                State::Gunshot(shot) => (
-                    shot.advance(model, &mut context, |event| {
+                State::Gunshot(shot) => {
+                    let direction = shot.direction;
+                    let mut body = false;
+                    let alive = shot.advance(model, &mut context, |event| {
+                        match event {
+                            ItemEvent::Impact {
+                                position,
+                                direction,
+                            } => {
+                                events.gunshot(
+                                    position,
+                                    direction,
+                                    crate::effects::GunPart::Surface,
+                                );
+                            }
+                            ItemEvent::Sound { position, id: 50 } if !body => {
+                                events.gunshot(position, direction, crate::effects::GunPart::Body);
+                                body = true;
+                            }
+                            _ => {}
+                        }
                         sink.emit(event, &mut self.random)
-                    })?,
-                    false,
-                ),
+                    })?;
+                    (alive, false)
+                }
             };
             let blasts = sink.blasts;
             for (position, id) in sink.sounds {

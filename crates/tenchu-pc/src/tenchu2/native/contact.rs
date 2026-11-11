@@ -8,6 +8,8 @@ use tenchu_core::{
     },
 };
 pub(super) mod blood;
+pub const GUNSHOT_TICKS: u64 = 16;
+pub const GUNSHOT_LIMIT: usize = 512;
 
 #[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Corpse {
@@ -23,6 +25,13 @@ pub struct Wound {
     pub position: Position,
 }
 
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct Gunshot {
+    pub position: Position,
+    pub direction: Position,
+    pub part: tenchu_core::effects::GunPart,
+}
+
 // Keep source contacts between rendered frames, including fast-forward updates.
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct History {
@@ -31,6 +40,7 @@ pub struct History {
     pub player_corpse: Option<Corpse>,
     pub wounds: Vec<Wound>,
     pub melee_hits: std::collections::BTreeSet<usize>,
+    pub gunshots: VecDeque<(u64, Gunshot)>,
 }
 
 impl History {
@@ -43,12 +53,24 @@ impl History {
             self.frames.clear();
             self.blood.reset();
             self.player_corpse = None;
+            self.gunshots.clear();
         }
         if self.frames.len() == 30 {
             self.frames.pop_front();
         }
         self.frames.push_back((tick, frame.contacts.clone()));
         self.blood.record(&frame.quads);
+    }
+
+    pub fn record_gunshots(&mut self, tick: u64, shots: Vec<Gunshot>) {
+        self.gunshots
+            .retain(|(at, _)| tick.saturating_sub(*at) < GUNSHOT_TICKS);
+        for shot in shots {
+            if self.gunshots.len() == GUNSHOT_LIMIT {
+                self.gunshots.pop_front();
+            }
+            self.gunshots.push_back((tick, shot));
+        }
     }
 
     pub fn record_player(&mut self, world: &World) {

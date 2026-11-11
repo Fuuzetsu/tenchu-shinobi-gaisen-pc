@@ -1,5 +1,7 @@
 pub(crate) mod blood;
 mod gun;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use gun::gun_impact;
 mod sparks;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use sparks::impact_flash;

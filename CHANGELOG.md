@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports F1's **Modern gunfire**: brief muzzle flashes and lights,
+  drifting smoke and impact flashes follow the original shots. Effects retain
+  finite lifetimes through saves, rewind and fast-forward. Modern High/Ultra
+  enable them; Original remains unchanged.
+- Savestates and recordings use an updated state format. Earlier files require
+  the build that created them.
+
 ## 0.29.1 — 2026-11-11
 
 - Fix roof slope and grapple checks on imported T1 stages. T2 now receives the
