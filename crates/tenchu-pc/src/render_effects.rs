@@ -1,4 +1,4 @@
-mod bandage;
+pub(crate) mod bandage;
 mod combat;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use combat::{blood, impact_flash, soft_patch};

@@ -136,6 +136,8 @@ impl Runtime {
             | WaterSpray | WaterDetail => None,
             PlayerModel | ModelMoveset | MovesetModel | WeaponModel | VoiceModel
             | ModelPlayerMovement | ModelNoIdleTaunts => None,
+            Bleeding | BleedChance | BleedSeconds | BleedDamage | BandageLoadout | Bandages
+            | UseBandage | MedicineBleeding => None,
             ReloadModels | ReloadAssets | SmoothModels | ModelDetail | CharacterRefinement
             | WeaponReflections => None,
             HairMotion | ClothMotion | EquipmentMotion | MotionStrength | MotionResponse

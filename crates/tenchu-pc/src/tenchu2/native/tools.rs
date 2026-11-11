@@ -147,6 +147,9 @@ impl Tools {
         let enabled = active && self.debug.camera.is_none();
         if let Content::Gameplay(session) = content {
             session.navigation = None;
+            if let Some(state) = &mut session.world.actors[session.world.player].actor.bleeding {
+                state.input(enabled && controls.bandage());
+            }
             if enabled && settings.camera_relative && !session.cinematic() {
                 let target = self.debug.followed_inspection(&self.scene).or_else(|| {
                     super::inspection::actors(session).find(|a| a.id == session.world.player)

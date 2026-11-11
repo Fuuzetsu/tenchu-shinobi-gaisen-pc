@@ -41,7 +41,7 @@ fn native_ranged_weapons_match_original_flight_embedding_and_damage_windows() {
         let distance = row["distance"].as_i64().unwrap() as i32;
         let mut random = Random::new(row["seed"].as_u64().unwrap() as u32);
         let mut cursor = Cursor::default();
-        let launched = if kind == "Gun" {
+        let mut launched = if kind == "Gun" {
             let target = (!row["target"].is_null())
                 .then(|| horizontal_distance(origin, position("target"), &math));
             json!(Gunshot::launch(0, origin, direction, target, map, &mut cursor, &math).unwrap())
@@ -74,6 +74,7 @@ fn native_ranged_weapons_match_original_flight_embedding_and_damage_windows() {
                 &mut random
             ))
         };
+        launched.as_object_mut().unwrap().remove("launched_by");
         assert_eq!(launched, row["launch"], "launch {case} {kind}");
         assert_eq!(
             json!(random.seed),
@@ -195,11 +196,12 @@ fn native_ranged_weapons_match_original_flight_embedding_and_damage_windows() {
         }
         assert_eq!(json!(alive), row["alive"], "alive {case} {kind}");
         assert_eq!(json!(cues), row["cues"], "events {case} {kind}");
-        let after = if let Some(arrow) = &arrow {
+        let mut after = if let Some(arrow) = &arrow {
             json!(arrow)
         } else {
             json!(gun.as_ref().unwrap())
         };
+        after.as_object_mut().unwrap().remove("launched_by");
         assert_eq!(after, row["after"], "state {case} {kind}");
         let slot = collision.slot(1).unwrap();
         assert_eq!(json!(slot.flags), row["flags"], "flags {case} {kind}");

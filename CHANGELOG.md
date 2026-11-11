@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **F1 → Bleeding** in both launchers, including imported
+  T1 stages. Optional wounds from enemy melee and piercing shots drain health
+  on game ticks, pause during scripted scenes and leave at least 1 HP. Separate
+  bandages work with the item carousel, rebindable quick-use and F1; the HUD shows
+  status and stock with original or HD text. Healing potions cure on their actual
+  effect when enabled; resurrection always cures. Wounds and supply carry through
+  areas/cutscenes, reset on retry, and never use campaign shop stock. The mechanic
+  stays off by default and does not consume the original RNG.
+
 ## 0.26.0 — 2026-11-11
 
 - F1 Character adds independent **Weapon equipment** and **Player voice**

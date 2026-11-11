@@ -47,6 +47,20 @@ pub struct State {
 }
 
 impl State {
+    pub(crate) fn configure(state: &mut Option<Self>, mut settings: Settings, seed: u32) {
+        settings.validate();
+        if !settings.enabled {
+            *state = None;
+        } else if let Some(state) = state {
+            if settings.seconds != state.settings.seconds && state.active {
+                state.remaining = u32::from(settings.seconds) * 30;
+            }
+            state.settings = settings;
+        } else {
+            *state = Some(Self::new(settings, seed));
+        }
+    }
+
     fn new(settings: Settings, seed: u32) -> Self {
         Self {
             settings,
@@ -84,7 +98,7 @@ impl State {
         self.requested
     }
 
-    fn use_bandage(&mut self) -> bool {
+    pub(crate) fn use_bandage(&mut self) -> bool {
         if !self.active || self.bandages == 0 {
             return false;
         }
@@ -111,6 +125,42 @@ impl State {
         self.active = true;
         self.remaining = u32::from(self.settings.seconds) * 30;
     }
+
+    pub(crate) fn tick(
+        &mut self,
+        health: &mut i16,
+        can_treat: bool,
+        paused: bool,
+        invulnerable: bool,
+    ) {
+        let requested = std::mem::take(&mut self.requested);
+        if *health <= 0 {
+            self.clear();
+            return;
+        }
+        if paused {
+            return;
+        }
+        if requested && can_treat {
+            self.use_bandage();
+        }
+        if !self.active {
+            return;
+        }
+        self.phase += 1;
+        if self.phase == 30 {
+            self.phase = 0;
+            if !invulnerable {
+                *health = (*health - self.settings.damage as i16).max(1);
+            }
+        }
+        if self.settings.seconds != 0 {
+            self.remaining = self.remaining.saturating_sub(1);
+            if self.remaining == 0 {
+                self.clear();
+            }
+        }
+    }
 }
 
 impl Actor {
@@ -131,49 +181,21 @@ impl Actor {
         let Some(state) = &mut self.bleeding else {
             return;
         };
-        let requested = std::mem::take(&mut state.requested);
-        if self.health <= 0 {
-            state.clear();
-            return;
-        }
-        if paused || self.scripted {
-            return;
-        }
-        if requested && can_treat {
-            state.use_bandage();
-        }
-        if !state.active {
-            return;
-        }
-        state.phase += 1;
-        if state.phase == 30 {
-            state.phase = 0;
-            if !self.invulnerable {
-                self.health = (self.health - state.settings.damage as i16).max(1);
-            }
-        }
-        if state.settings.seconds != 0 {
-            state.remaining = state.remaining.saturating_sub(1);
-            if state.remaining == 0 {
-                state.clear();
-            }
-        }
+        state.tick(
+            &mut self.health,
+            can_treat,
+            paused || self.scripted,
+            self.invulnerable,
+        );
     }
 }
 
 impl super::Game {
-    pub fn set_bleeding(&mut self, mut settings: Settings) {
-        settings.validate();
-        let state = &mut self.roster.get_mut(self.player_id).bleeding;
-        if !settings.enabled {
-            *state = None;
-        } else if let Some(state) = state {
-            if settings.seconds != state.settings.seconds && state.active {
-                state.remaining = u32::from(settings.seconds) * 30;
-            }
-            state.settings = settings;
-        } else {
-            *state = Some(State::new(settings, self.random.seed));
-        }
+    pub fn set_bleeding(&mut self, settings: Settings) {
+        State::configure(
+            &mut self.roster.get_mut(self.player_id).bleeding,
+            settings,
+            self.random.seed,
+        );
     }
 }

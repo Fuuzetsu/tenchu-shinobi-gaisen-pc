@@ -74,7 +74,15 @@ impl<E: Events> Driver<'_, E> {
                         c.use_item(actor, item, direction, &mut self.terrain, random)
                     }
                 }
-                ItemCue::Medicine(effect) => c.emit(actor, Event::Medicine(effect), random),
+                ItemCue::Medicine(effect) => {
+                    if u8::from(actor.inventory.active) == 1
+                        && let Some(state) = &mut actor.bleeding
+                        && state.settings.medicine
+                    {
+                        state.clear();
+                    }
+                    c.emit(actor, Event::Medicine(effect), random)
+                }
                 ItemCue::ShowHealth => c.emit(actor, Event::ShowHealth, random),
             },
         )?;
@@ -95,7 +103,11 @@ impl<E: Events> Driver<'_, E> {
     ) -> Result<()> {
         let c = &mut self.context;
         let mut swimming = SwimInput {
-            held: input.held,
+            held: if input.player && c.controls.hud.bandage_selected() {
+                input.held & !crate::tenchu2::input::ITEM
+            } else {
+                input.held
+            },
             tick: input.tick,
             camera_actor: input.camera_actor,
             camera: input.camera,
@@ -458,13 +470,14 @@ impl<E: Events> Context<'_, E> {
             }
             self.emit(actor, Event::Voice(2), random)?;
             let origin = self.item_origin(5)?;
-            let arrow = Arrow::launch(
+            let mut arrow = Arrow::launch(
                 origin,
                 direction,
                 distance.unwrap_or_default(),
                 &self.math,
                 random,
             );
+            arrow.launched_by = Some(self.index);
             self.items
                 .insert(State::Arrow(arrow), self.scene, self.collision)?;
         }

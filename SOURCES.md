@@ -18,6 +18,26 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 optional bleeding and bandages (2026-11-11)
+
+This adapter reuses the port's optional `game/bleeding.rs` scalar state and its
+separate RNG, not an original retail mechanic. Native injury, healing and
+resurrection hooks use the existing `tenchu2/control` and `world/controls`
+source translations. Ground eligibility follows T2's head-relative terrain
+probe and actor height. Ordinary NPC arrows retain their original unowned
+colliders; separate shooter metadata identifies optional wounds without changing
+collision filtering, damage attribution or source RNG. Native campaign Carry
+retains the optional state across areas; the original 21 inventory slots and
+campaign stock stay intact. The extra carousel slot and bandage icon reuse the
+existing authored Gaisen feature, with native coordinates and fade/HUD handling.
+
+Read-only checks of `tenchu-decomp/src/main.exe/ITEM.C::ProcItemKusuri`,
+`tenchu-decomp-glitch-research/tools/tenchu-sim/src/items/medicine.rs` and
+`tenchu-viewer/src/items.rs` confirm the existing effect-time/pickup boundaries.
+No sibling code, TAS state machinery, new art or retail assets are imported.
+The JP HUD, ranged-projectile and campaign instruction fixtures compare all
+original fields; optional inventory/shooter metadata is checked separately.
+
 ## Optional walking, sheathing and unarmed controls (2026-11-06)
 
 These are new gameplay options, not claims about retail player controls. Runtime

@@ -25,6 +25,8 @@ use tenchu_core::{
     },
 };
 
+#[cfg(test)]
+mod bleeding_tests;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod campaign;
 mod contact;

@@ -68,6 +68,17 @@ impl<E: Events> Driver<'_, E> {
             .slot(hit_index)
             .ok_or("Invalid Tenchu 2 hit slot")?;
         let owner = slot.owner.filter(|&id| id != c.index);
+        let wound_source = owner.or_else(|| {
+            c.items.entries.iter().find_map(|entry| {
+                if entry.model == slot.model
+                    && let crate::tenchu2::items::State::Arrow(arrow) = &entry.state
+                {
+                    arrow.launched_by.filter(|&id| id != c.index)
+                } else {
+                    None
+                }
+            })
+        });
         let attacker = owner.and_then(|id| {
             c.others.get(id, actor).map(|a| DamageAttacker {
                 actor: id,
@@ -219,7 +230,20 @@ impl<E: Events> Driver<'_, E> {
         {
             c.events.melee_hit(owner);
         }
+        if !resurrect
+            && input.player
+            && actor.health > 0
+            && actor.health < health
+            && wound_source.is_some()
+            && matches!(damage.hit, Hit::Weapon | Hit::Object(4 | 8 | 22 | 29))
+            && let Some(state) = &mut actor.bleeding
+        {
+            state.hit();
+        }
         if resurrect {
+            if let Some(state) = &mut actor.bleeding {
+                state.clear();
+            }
             use crate::tenchu2::items::{self, resurrection};
             let markers = c
                 .items

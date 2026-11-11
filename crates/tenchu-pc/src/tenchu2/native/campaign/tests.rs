@@ -73,6 +73,95 @@ fn gameplay_preferences_survive_native_area_reload() {
 }
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; native bleeding carries through story and resets on retry without using campaign stock"]
+fn native_bleeding_carries_through_story_and_resets_on_retry() {
+    use tenchu_core::tenchu2::mission::{Outcome, Phase};
+    let mut playback = start(9);
+    let mut settings = crate::settings::Settings::default();
+    settings.bleeding.enabled = true;
+    settings.bleeding.bandages = 7;
+    playback.configure(&settings);
+    let stock = serde_json::to_value(&playback.run.progress.stock).unwrap();
+    let Content::Gameplay(session) = &mut playback.content else {
+        unreachable!()
+    };
+    let state = session.world.actors[0].actor.bleeding.as_mut().unwrap();
+    assert_eq!(state.bandages, 7);
+    state.active = true;
+    state.remaining = 113;
+    state.bandages = 2;
+    let saved = postcard::to_allocvec(state).unwrap();
+    session.world.mission.phase = Phase::Finished {
+        outcome: Outcome::Arrived,
+        finished_at: 300,
+    };
+    playback.step(0).unwrap();
+    assert_eq!(playback.run.sequence, 10);
+    assert!(matches!(playback.content, Content::Story { .. }));
+    for _ in 0..60 {
+        playback.step(0).unwrap();
+    }
+    assert_eq!(
+        postcard::to_allocvec(playback.run.carry.bleeding.as_ref().unwrap()).unwrap(),
+        saved
+    );
+    playback.action = Some(Action::Continue);
+    playback.step(0).unwrap();
+    if playback.run.sequence == 10 {
+        next(&mut playback);
+    }
+    assert_eq!(playback.run.sequence, 11);
+    let Content::Gameplay(session) = &playback.content else {
+        unreachable!()
+    };
+    assert_eq!(
+        postcard::to_allocvec(session.world.actors[0].actor.bleeding.as_ref().unwrap()).unwrap(),
+        saved
+    );
+    settings.bleeding.bandages = 9;
+    playback.configure(&settings);
+    let Content::Gameplay(session) = &mut playback.content else {
+        unreachable!()
+    };
+    assert_eq!(
+        session.world.actors[0]
+            .actor
+            .bleeding
+            .as_ref()
+            .unwrap()
+            .bandages,
+        2
+    );
+    session.world.mission.phase = Phase::Finished {
+        outcome: Outcome::Dead,
+        finished_at: 30,
+    };
+    playback.step(0).unwrap();
+    if matches!(playback.content, Content::Story { .. }) {
+        next(&mut playback);
+    }
+    playback.action = Some(Action::Retry);
+    playback.step(0).unwrap();
+    let Content::Gameplay(session) = &playback.content else {
+        panic!("retry did not return to gameplay")
+    };
+    let state = session.world.actors[0].actor.bleeding.as_ref().unwrap();
+    assert!(!state.active);
+    assert_eq!(state.bandages, 9);
+    assert_eq!(
+        serde_json::to_value(&playback.run.progress.stock).unwrap(),
+        stock
+    );
+    settings.bleeding.enabled = false;
+    playback.configure(&settings);
+    assert!(playback.run.carry.bleeding.is_none());
+    let Content::Gameplay(session) = &playback.content else {
+        unreachable!()
+    };
+    assert!(session.world.actors[0].actor.bleeding.is_none());
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; disc mission menu, all three campaigns, music, saved supplies and equipment cancellation"]
 fn native_mission_menu_enters_each_campaign_from_its_opening_scene() {
     use super::super::selection::Edit;

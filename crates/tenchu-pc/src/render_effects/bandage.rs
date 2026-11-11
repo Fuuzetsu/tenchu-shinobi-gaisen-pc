@@ -6,12 +6,21 @@ pub(super) fn draw(surfaces: &mut Vec<Surface>, game: &Game) {
     let Some(position) = game.hud.bandage_position(game.player()) else {
         return;
     };
-    let center = Vec2::from_array(position.map(f32::from));
     let scale = if game.hud.bandage_selected() {
         1.0
     } else {
         2.0 / 3.0
     };
+    draw_at(surfaces, position.map(f32::from), scale, [1.0; 3]);
+}
+
+pub(crate) fn draw_at(
+    surfaces: &mut Vec<Surface>,
+    position: [f32; 2],
+    scale: f32,
+    shade: [f32; 3],
+) {
+    let center = Vec2::from_array(position);
     let rotation = Vec2::from_angle(-0.6);
     let mut rectangle = |min: [f32; 2], max: [f32; 2], color: [f32; 3]| {
         let points = [
@@ -32,7 +41,12 @@ pub(super) fn draw(surfaces: &mut Vec<Surface>, game: &Game) {
         surfaces.push(Surface {
             depth: 0.0,
             blend: 0,
-            vertices: quad(points, [color; 4], None, 0),
+            vertices: quad(
+                points,
+                [std::array::from_fn(|i| color[i] * shade[i]); 4],
+                None,
+                0,
+            ),
         });
     };
     rectangle([-12.0, -6.0], [12.0, 6.0], [0.25, 0.20, 0.14]);

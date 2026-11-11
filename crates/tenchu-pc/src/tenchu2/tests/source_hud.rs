@@ -96,6 +96,12 @@ fn native_hud_matches_original_draws_and_timing() {
             );
             let mut actual = serde_json::to_value(&hud).unwrap();
             let mut state = expected.state;
+            state["bandages"] = 0.into();
+            state["bandage_selected"] = false.into();
+            state["item_colors"]
+                .as_array_mut()
+                .unwrap()
+                .push(128.into());
             let frame = actual.as_object_mut().unwrap().remove("frame").unwrap();
             let expected_frame = state.as_object_mut().unwrap().remove("frame").unwrap();
             assert_eq!(

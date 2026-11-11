@@ -22,6 +22,9 @@ pub enum Phase {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Arrow {
     pub owner: Option<usize>,
+    /// Shooter for optional wounds; retail ordinary arrows have no collision owner.
+    #[serde(default)]
+    pub launched_by: Option<usize>,
     pub flight: Flight,
     pub transform: Matrix,
     pub rotation: [i16; 3],
@@ -49,6 +52,7 @@ impl Arrow {
         let backward = math.normalize_vector(velocity.map(i32::wrapping_neg));
         Self {
             owner: None,
+            launched_by: None,
             flight: Flight {
                 position: origin,
                 velocity,
@@ -82,6 +86,7 @@ impl Arrow {
     ) -> Self {
         let mut arrow = Self {
             owner: Some(owner),
+            launched_by: Some(owner),
             flight: Flight {
                 position: origin,
                 gravity: 4,

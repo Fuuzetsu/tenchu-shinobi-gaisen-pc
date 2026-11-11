@@ -19,6 +19,7 @@ use tenchu_assets::tenchu2::layout::Layout;
 
 mod activation;
 mod assets;
+mod bleeding;
 mod camera;
 pub mod controls;
 mod effects;

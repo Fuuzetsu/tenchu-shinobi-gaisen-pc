@@ -9,6 +9,61 @@ fn digit(sprite: &Sprite) -> Option<u8> {
     }
 }
 
+pub(super) fn bleeding_text(session: &super::super::Session) -> Vec<crate::fonts::Text> {
+    let world = &session.world;
+    let actor = &world.actors[world.player].actor;
+    let Some(state) = &actor.bleeding else {
+        return Vec::new();
+    };
+    if actor.health <= 0
+        || !world.mission.input_allowed()
+        || session.frame.transition_fade == Some(255)
+    {
+        return Vec::new();
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    if session.cinematic() {
+        return Vec::new();
+    }
+    let status = if !state.active {
+        "No bleeding".into()
+    } else if state.settings.seconds == 0 {
+        "Bleeding until treated".into()
+    } else {
+        format!("Bleeding · {} s", state.remaining.div_ceil(30))
+    };
+    let fade = f32::from(session.frame.transition_fade.unwrap_or(0)) / 255.0;
+    let color = if state.active {
+        [1.0, 0.4, 0.35]
+    } else {
+        [0.8; 3]
+    };
+    let mut texts = vec![crate::fonts::Text {
+        position: egui::pos2(-145.0, -65.0),
+        text: format!("{status} · {} bandages", state.bandages),
+        color: crate::fonts::color(color.map(|c| c - fade)),
+        size: 8.0,
+        width: 290.0,
+        centered: false,
+    }];
+    if world.controls.hud.bandage_selected()
+        && let Some(sprite) = world.controls.hud.frame.iter().find_map(|p| match p {
+            Primitive::Sprite(s) if s.image == Image::Bandage => Some(s),
+            _ => None,
+        })
+    {
+        texts.push(crate::fonts::Text {
+            position: egui::pos2(f32::from(sprite.position[0]).min(120.0), 62.0),
+            text: "Bandage".into(),
+            color: crate::fonts::color([1.0 - fade; 3]),
+            size: 8.0,
+            width: 70.0,
+            centered: true,
+        });
+    }
+    texts
+}
+
 pub(super) fn text(frame: &[Primitive], fade: Option<u8>) -> Vec<crate::fonts::Text> {
     frame
         .iter()
@@ -48,6 +103,24 @@ pub(super) fn append(
     sharp_text: bool,
 ) {
     for primitive in frame.iter().rev() {
+        if let Primitive::Sprite(sprite) = primitive
+            && sprite.image == Image::Bandage
+        {
+            let start = output.surfaces.len();
+            crate::render_effects::bandage::draw_at(
+                &mut output.surfaces,
+                sprite.position.map(f32::from),
+                f32::from(sprite.scale) / 4096.0 * 0.75,
+                sprite.color.map(|c| f32::from(c) / 128.0),
+            );
+            for surface in &mut output.surfaces[start..] {
+                surface.depth = 16.0;
+                for vertex in &mut surface.vertices {
+                    vertex.flags |= render_mesh::UI;
+                }
+            }
+            continue;
+        }
         match primitive {
             Primitive::Sprite(sprite) => {
                 if sharp_text && digit(sprite).is_some() {
@@ -63,6 +136,7 @@ pub(super) fn append(
                     Image::Ki(id) => sprites.items[36 + id],
                     Image::Digit(_) => sprites.effects[27],
                     Image::Aim => sprites.effects[30],
+                    Image::Bandage => unreachable!("handled above"),
                 };
                 let mut center = sprite.position.map(f32::from);
                 let scale = f32::from(sprite.scale) / 4096.0;
@@ -117,6 +191,62 @@ pub(super) fn append(
 mod tests {
     use crate::settings::{Graphics, Settings};
     use tenchu_core::tenchu2::{ai::status::Ki, inventory::Inventory};
+
+    #[test]
+    #[ignore = "requires TENCHU2_DISC, TENCHU2_HUD_REVIEW and GPU; optional bandages render with original/HD text, hide and fade without advancing gameplay"]
+    fn native_bleeding_hud_respects_visibility_and_does_not_advance_time() {
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let output = std::path::PathBuf::from(std::env::var_os("TENCHU2_HUD_REVIEW").unwrap());
+        std::fs::create_dir_all(&output).unwrap();
+        let mut session = super::super::super::Session::load(&disc, 9, 17).unwrap();
+        for _ in 0..30 {
+            session.step(0).unwrap();
+        }
+        let mut settings = Settings::default();
+        settings.graphics.asset_pack = false;
+        session
+            .world
+            .set_bleeding(tenchu_core::game::bleeding::Settings {
+                enabled: true,
+                ..Default::default()
+            });
+        let actor = &mut session.world.actors[0].actor;
+        actor.inventory = Inventory::from_amounts([0; 21]);
+        let bleeding = actor.bleeding.as_mut().unwrap();
+        bleeding.active = true;
+        bleeding.remaining = 300;
+        session.step(0).unwrap();
+        assert!(session.world.controls.hud.bandage_selected());
+        let before = postcard::to_allocvec(&session.world).unwrap();
+        for hd in [false, true] {
+            settings.sharp_text = hd;
+            assert!(
+                super::bleeding_text(&session)
+                    .iter()
+                    .any(|t| t.text == "Bandage")
+            );
+            let path = output.join(format!("bleeding-hd-{hd}.png"));
+            super::super::capture(&session, &settings, &path).unwrap();
+            session.frame.transition_fade = Some(255);
+            assert!(super::bleeding_text(&session).is_empty());
+            let path = output.join(format!("bleeding-faded-hd-{hd}.png"));
+            super::super::capture(&session, &settings, &path).unwrap();
+            let image = crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap();
+            assert!(image.rgba.chunks_exact(4).all(|p| p[..3] == [0; 3]));
+            session.frame.transition_fade = None;
+        }
+        settings.show_hud = false;
+        super::super::capture(&session, &settings, &output.join("bleeding-hidden.png")).unwrap();
+        assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+        let expected = {
+            session.step(0).unwrap();
+            postcard::to_allocvec(&session.world).unwrap()
+        };
+        session.world = postcard::from_bytes(&before).unwrap();
+        session.step(0).unwrap();
+        assert!(postcard::to_allocvec(&session.world).unwrap() == expected);
+    }
 
     #[test]
     #[ignore = "requires TENCHU2_DISC, TENCHU2_HUD_REVIEW and a GPU; native HUD composition and full-screen fade, with/without post-processing"]

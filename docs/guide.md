@@ -1437,6 +1437,11 @@ and Reset simulation tweaks turn it off. Saved states and rewind retain the
 status and supply; input-only recordings and TRIAL records are disabled while
 it is enabled. Try `demo --clips bleeding-bandages` for a staged demonstration.
 
+The mechanic also works in native T2 JP and imported T1 stages. Native wounds
+and supply carry through areas and cutscenes and reset on retry; its HUD shows
+status and stock. The save/rewind and demo statements above apply to Gaisen;
+those native T2 adapters remain pending. See [native T2 support](tenchu2-native.md).
+
 **F1 → Enemy behavior** offers optional decisions for ordinary living guards.
 The master switch defaults to off, preserving authored AI and its RNG. It does
 not affect bosses, story/objective actors, civilians or animals, including

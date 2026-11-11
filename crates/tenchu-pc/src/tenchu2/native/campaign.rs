@@ -67,6 +67,7 @@ pub struct Playback<S> {
     pub death: death::Hold,
     keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
+    bleeding: tenchu_core::game::bleeding::Settings,
     gaisen: Option<super::gaisen::Source>,
     gaisen_water_depth: i16,
 }
@@ -76,6 +77,13 @@ impl<S: ReadAt> Playback<S> {
         self.death.configure(settings);
         self.keep_all_active = settings.keep_enemies_active;
         self.circle_action = settings.circle_action;
+        self.bleeding = settings.bleeding;
+        if !self.bleeding.enabled {
+            self.run.carry.bleeding = None;
+        }
+        if let Content::Gameplay(session) = &mut self.content {
+            session.world.set_bleeding(self.bleeding);
+        }
     }
 
     pub fn load(
@@ -187,6 +195,7 @@ impl<S: ReadAt> Playback<S> {
             death: Default::default(),
             keep_all_active: false,
             circle_action: Default::default(),
+            bleeding: Default::default(),
             gaisen: None,
             gaisen_water_depth: tenchu_assets::tenchu2::collision::Gaisen::DEFAULT_WATER_DEPTH,
         }
@@ -241,7 +250,7 @@ impl<S: ReadAt> Playback<S> {
                             return Ok(());
                         }
                     }
-                    let session = if let Some(source) = &self.gaisen {
+                    let mut session = if let Some(source) = &self.gaisen {
                         let mut session = source.session(
                             &self.disc,
                             tenchu_core::tenchu2::world::Options {
@@ -261,6 +270,7 @@ impl<S: ReadAt> Playback<S> {
                     } else {
                         Session::for_run(&self.disc, &self.run)?
                     };
+                    session.world.set_bleeding(self.bleeding);
                     Content::Gameplay(Box::new(session))
                 }
                 Kind::Event => {
@@ -448,6 +458,7 @@ impl<S: ReadAt> Playback<S> {
             Content::Gameplay(session) => {
                 session.world.keep_all_active = self.keep_all_active;
                 session.circle_action = self.circle_action;
+                session.world.set_bleeding(self.bleeding);
                 self.death.begin(session, &self.run, &self.campaign)?;
                 if self.death.waiting() {
                     if !self.death.enabled() || matches!(action, Some(Action::Continue)) {

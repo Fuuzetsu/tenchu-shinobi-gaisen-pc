@@ -31,6 +31,8 @@ pub(super) enum Edit {
     Sight(u16),
     Stealth(bool),
     Inventory(inventory::Item, u8),
+    Bandages(u16),
+    Bandage,
 }
 
 pub(super) fn sync(debug: &mut Debug, content: &Content) {
@@ -40,6 +42,7 @@ pub(super) fn sync(debug: &mut Debug, content: &Content) {
     debug.armor = false;
     debug.sight_percent = 100;
     debug.stealth = false;
+    debug.bandages = None;
     if let Content::Gameplay(session) = content
         && !session.cinematic()
     {
@@ -49,6 +52,7 @@ pub(super) fn sync(debug: &mut Debug, content: &Content) {
         debug.armor = world.controls.armor;
         debug.sight_percent = world.ai.sight_percent;
         debug.stealth = world.ai.ignore_player;
+        debug.bandages = actor.bleeding.as_ref().map(|state| state.bandages);
         debug.inventory.extend(ITEMS.iter().map(|&(id, name)| {
             InventorySlot {
                 id: usize::from(id),
@@ -77,6 +81,8 @@ pub(super) fn change(
             | Item::Inventory(_)
             | Item::GiveItems
             | Item::ClearItems
+            | Item::Bandages
+            | Item::UseBandage
     ) {
         return Ok(false);
     }
@@ -84,6 +90,25 @@ pub(super) fn change(
         return Err("Start a mission before editing the player or equipment.".into());
     }
     match item {
+        Item::Bandages => {
+            let count = debug
+                .bandages
+                .as_mut()
+                .ok_or("Enable Player bleeding first")?;
+            *count = if reset {
+                0
+            } else {
+                i32::from(*count).saturating_add(delta).clamp(0, 99) as u16
+            };
+            pending.push(Edit::Bandages(*count));
+        }
+        Item::UseBandage if !reset => {
+            let count = debug.bandages.ok_or("Enable Player bleeding first")?;
+            if count == 0 {
+                return Err("No bandages left".into());
+            }
+            pending.push(Edit::Bandage);
+        }
         Item::GodMode => {
             debug.god_mode = !reset && !debug.god_mode;
             pending.push(Edit::GodMode(debug.god_mode));
@@ -155,6 +180,26 @@ pub(super) fn apply(world: &mut World, edits: impl IntoIterator<Item = Edit>) ->
             Edit::Sight(percent) => world.ai.sight_percent = percent,
             Edit::Stealth(enabled) => world.ai.ignore_player = enabled,
             Edit::Inventory(item, count) => actor.inventory.set_amount(item, count),
+            Edit::Bandages(count) => {
+                actor
+                    .bleeding
+                    .as_mut()
+                    .ok_or("Enable Player bleeding first")?
+                    .bandages = count
+            }
+            Edit::Bandage => {
+                let state = actor
+                    .bleeding
+                    .as_mut()
+                    .ok_or("Enable Player bleeding first")?;
+                if !state.active {
+                    return Err("No bleeding to treat".into());
+                }
+                if state.bandages == 0 {
+                    return Err("No bandages left".into());
+                }
+                state.request_bandage();
+            }
         }
     }
     Ok(())

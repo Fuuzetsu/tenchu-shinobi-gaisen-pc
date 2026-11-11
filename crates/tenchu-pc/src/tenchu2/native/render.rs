@@ -284,6 +284,9 @@ impl Drawing {
         } else {
             Vec::new()
         };
+        if self.show_hud {
+            self.texts.extend(hud::bleeding_text(session));
+        }
         self.scene.lighting.update_emitters(
             &session.frame.effects.emitters,
             &renderer.graphics().lighting,

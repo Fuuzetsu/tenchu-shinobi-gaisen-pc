@@ -432,6 +432,16 @@ impl<E: Events> Context<'_, E> {
         resources: &Resources,
         random: &mut Random,
     ) -> Result<()> {
+        if self.index == self.player && self.controls.hud.bandage_selected() {
+            if held & !actor.pad.previous & crate::tenchu2::input::ITEM != 0 {
+                if !scripted && !matches!(self.camera.mode, 6 | 20) && actor.use_bandage() {
+                    self.emit(actor, Event::Sound(5), random)?;
+                } else {
+                    self.emit(actor, Event::ItemSound(ItemSound::Unavailable), random)?;
+                }
+            }
+            return Ok(());
+        }
         let mut sound = None;
         actor.item_input(
             request,

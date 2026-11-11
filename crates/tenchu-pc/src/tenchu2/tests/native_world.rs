@@ -1064,14 +1064,34 @@ fn native_archers_and_gunners_land_their_attacks() {
         let mut flame = false;
         let mut embedded = false;
         let mut snapshot = None;
+        let mut original = world.clone();
+        world.set_bleeding(tenchu_core::game::bleeding::Settings {
+            enabled: true,
+            chance: 100,
+            seconds: 0,
+            damage: 0,
+            ..Default::default()
+        });
         for _ in 0..2400 {
             world
                 .step([0; 2], &mut assets, &mut events)
                 .unwrap_or_else(|e| panic!("{mode} tick {}: {e}", world.tick));
+            original
+                .step([0; 2], &mut assets, &mut Recorded::default())
+                .unwrap();
+            assert_eq!(
+                world.random, original.random,
+                "{mode}: bleeding altered source RNG"
+            );
+            assert_eq!(
+                world.actors[0].actor.health,
+                original.actors[0].actor.health
+            );
             nocked |= world.instances[1].rig.weapons[2].is_some();
             for entry in &world.items.entries {
                 match &entry.state {
                     ItemState::Arrow(arrow) => {
+                        assert_eq!(arrow.launched_by, Some(1));
                         shot = true;
                         flame |= arrow.fire_model;
                         embedded |= matches!(
@@ -1102,6 +1122,12 @@ fn native_archers_and_gunners_land_their_attacks() {
             events.0
         );
         assert!(mode == "gun" || nocked, "{mode}: never nocked an arrow");
+        if mode != "fire" {
+            assert!(
+                world.actors[0].actor.bleeding.as_ref().unwrap().active,
+                "{mode}: damaging shot did not start bleeding"
+            );
+        }
         assert!(
             mode != "fire" || flame,
             "fire-arrow chance was never exercised"

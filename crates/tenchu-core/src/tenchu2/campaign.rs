@@ -18,6 +18,8 @@ pub struct Carry {
     pub poisoned: bool,
     pub alternate: bool,
     pub inventory: [u8; 21],
+    #[serde(default)]
+    pub bleeding: Option<crate::game::bleeding::State>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -128,6 +130,7 @@ impl Run {
         let actor = &mut world.actors[player].actor;
         actor.inventory = Inventory::from_amounts(self.carry.inventory);
         actor.breath = self.carry.breath;
+        actor.bleeding.clone_from(&self.carry.bleeding);
         if self.carry.health != 0 {
             actor.health = i16::from(self.carry.health);
             if self.carry.poisoned {
@@ -171,6 +174,7 @@ impl Run {
         self.carry.drawn = actor.weapon_drawn();
         self.carry.poisoned = actor.flags & 0x100 != 0;
         self.carry.inventory = actor.inventory.amounts();
+        self.carry.bleeding.clone_from(&actor.bleeding);
         let ticks = finished_at as i32;
         self.played_seconds = self.played_seconds.wrapping_add(ticks / 30);
         self.summary = Summary {
@@ -200,6 +204,7 @@ impl Run {
         if self.results.is_none() {
             self.carry.drawn = false;
             self.carry.poisoned = false;
+            self.carry.bleeding = None;
             self.carry.alternate = false;
             let results = self.progress.complete(
                 Completion {
@@ -248,6 +253,7 @@ impl Run {
             .first_gameplay(self.hero, self.mission)
             .ok_or("Missing Tenchu 2 retry area")?;
         self.previous_area = None;
+        self.carry.bleeding = None;
         self.go(campaign, Some(first), Destination::Failed)
     }
 
@@ -269,6 +275,9 @@ impl Run {
             .iter()
             .position(|&s| s == Some(next))
         {
+            if self.mission != mission {
+                self.carry.bleeding = None;
+            }
             self.mission = mission;
         }
         Ok(Destination::Sequence(next))

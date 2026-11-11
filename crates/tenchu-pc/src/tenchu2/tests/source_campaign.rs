@@ -35,6 +35,7 @@ fn carry(bytes: &[u8]) -> Carry {
         health: bytes[1],
         breath: bytes[32],
         inventory: bytes[2..23].try_into().unwrap(),
+        bleeding: None,
     }
 }
 

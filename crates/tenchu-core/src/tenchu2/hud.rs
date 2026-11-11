@@ -13,6 +13,7 @@ pub enum Image {
     Ki(usize),
     Digit(u8),
     Aim,
+    Bandage,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,7 +92,9 @@ pub struct Hud {
     offset: usize,
     rotation: i32,
     reticle_rotation: i32,
-    item_colors: [u8; 21],
+    item_colors: [u8; 22],
+    bandages: u16,
+    bandage_selected: bool,
 }
 
 impl Default for Hud {
@@ -104,12 +107,46 @@ impl Default for Hud {
             offset: 0,
             rotation: 0,
             reticle_rotation: 0,
-            item_colors: [128; 21],
+            item_colors: [128; 22],
+            bandages: 0,
+            bandage_selected: false,
         }
     }
 }
 
 impl Hud {
+    pub fn bandage_selected(&self) -> bool {
+        self.bandage_selected
+    }
+
+    pub fn set_bandages(&mut self, count: u16, inventory: &Inventory) {
+        self.bandages = count.min(99);
+        if count == 0 {
+            self.bandage_selected = false;
+        } else if inventory.amounts().iter().all(|&count| count == 0) {
+            self.bandage_selected = true;
+        }
+    }
+
+    fn counts(&self, inventory: &Inventory) -> [u8; 22] {
+        let amounts = inventory.amounts();
+        std::array::from_fn(|index| {
+            if index == 21 {
+                self.bandages as u8
+            } else {
+                amounts[index]
+            }
+        })
+    }
+
+    fn selected(&self, inventory: &Inventory) -> Option<usize> {
+        if self.bandage_selected {
+            Some(21)
+        } else {
+            inventory.selected.map(|i| i.index())
+        }
+    }
+
     pub(crate) fn hide_health(&mut self, actor: usize) {
         for slot in &mut self.enemies {
             if slot.as_ref().is_some_and(|enemy| enemy.actor == actor) {
@@ -148,7 +185,7 @@ impl Hud {
     }
 
     pub fn pickup(&mut self, item: usize) {
-        if item >= self.item_colors.len() {
+        if item >= 21 {
             return;
         }
         let index = self
@@ -166,19 +203,30 @@ impl Hud {
     }
 
     pub fn select(&mut self, inventory: &mut Inventory, previous: bool) {
-        let old = inventory.selected;
-        inventory.select(previous);
-        let (Some(old), Some(selected)) = (old, inventory.selected) else {
+        let Some(old) = self.selected(inventory) else {
             return;
         };
-        let last = inventory.amounts().iter().filter(|&&n| n != 0).count() - 1;
+        let counts = self.counts(inventory);
+        let selected = (1..=22).find_map(|step| {
+            let index = (old + if previous { 22 - step } else { step }) % 22;
+            (counts[index] != 0).then_some(index)
+        });
+        self.bandage_selected = selected == Some(21);
+        if !self.bandage_selected {
+            inventory.selected =
+                selected.map(|i| super::inventory::Item::try_from(i as u8).unwrap());
+        }
+        let Some(selected) = selected else {
+            return;
+        };
+        let last = counts.iter().filter(|&&n| n != 0).count() - 1;
         if previous {
             self.offset = if self.offset == 0 && last < 5 {
                 last
             } else {
                 self.offset.saturating_sub(1)
             };
-        } else if inventory.count(old) != 0 {
+        } else if counts[old] != 0 {
             if last < 5 {
                 self.offset = if self.offset < last {
                     self.offset + 1
@@ -190,8 +238,8 @@ impl Hud {
             }
         }
         self.offset = self.offset.min(last);
-        self.item_colors[old.index()] = 96;
-        self.item_colors[selected.index()] = 128;
+        self.item_colors[old] = 96;
+        self.item_colors[selected] = 128;
     }
 
     pub fn step(
@@ -308,15 +356,15 @@ impl Hud {
     }
 
     fn inventory(&mut self, inventory: &Inventory) {
-        let Some(selected) = inventory.selected else {
+        let Some(selected) = self.selected(inventory) else {
             return;
         };
-        let counts = inventory.amounts();
-        let mut start = selected.index();
+        let counts = self.counts(inventory);
+        let mut start = selected;
         if self.offset != 0 {
-            let Some(found) = (0..21)
+            let Some(found) = (0..22)
                 .rev()
-                .map(|i| (start + i) % 21)
+                .map(|i| (start + i) % 22)
                 .filter(|&i| counts[i] != 0)
                 .nth(self.offset - 1)
             else {
@@ -324,8 +372,8 @@ impl Hud {
             };
             start = found;
         }
-        for (slot, item) in (0..21)
-            .map(|i| (start + i) % 21)
+        for (slot, item) in (0..22)
+            .map(|i| (start + i) % 22)
             .filter(|&i| counts[i] != 0)
             .take(5)
             .enumerate()
@@ -334,10 +382,17 @@ impl Hud {
             if item != 0 {
                 self.number(i32::from(counts[item]), [x + 8, 94]);
             }
-            let mut sprite = Sprite::new(Image::Item(item), [x, 86]);
+            let mut sprite = Sprite::new(
+                if item == 21 {
+                    Image::Bandage
+                } else {
+                    Image::Item(item)
+                },
+                [x, 86],
+            );
             sprite.color = [self.item_colors[item]; 3];
             self.frame.push(Primitive::Sprite(sprite));
-            if item == selected.index() {
+            if item == selected {
                 self.offset = slot;
                 self.rotation = self.rotation.wrapping_sub(0x4000);
                 let mut sprite = Sprite::new(Image::Selection, [x, 86]);

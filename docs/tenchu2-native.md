@@ -103,6 +103,24 @@ Rewind, randomizer, broader enemy-behaviour options
 and automated benchmarks are **not connected to native JP yet**. Gaisen and its scenery
 sandbox still provide those features.
 
+**F1 → Bleeding** also works in native JP, including imported T1 stages. It is
+optional gameplay, separate from cosmetic wound drips: successful enemy melee,
+shuriken/kunai, darts, ordinary arrows and gunshots can start nonfatal blood loss.
+Chance, duration, damage and bandage supply use the shared settings. Select
+Bandage with L2/R2 and use Triangle, or use the rebindable B shortcut; F1 can edit
+the current supply or request treatment on the next game tick. Treatment requires
+grounded, free movement and cannot interrupt attacks, rolls, injury, aiming,
+swimming or scripted scenes. A potion cures only when its healing effect occurs
+if enabled; resurrection always cures. HUD status and the bandage icon/count
+respect Hide HUD, Photo mode and scene fades, with either original or HD text.
+
+Wounds and bandages carry through areas and cutscenes in the same mission; retry
+or a new mission starts a fresh supply. Changing the configured loadout does not
+refill current stock, and bandages never consume the campaign's item stock.
+Original stays unchanged, and Modern High/Ultra retain the separate gameplay
+choice. The existing `bleeding-bandages` demo exercises Gaisen; native demo and
+save/rewind adapters remain pending.
+
 **F1 → Persistent effects → Stain wounded models** attaches soft stains to the
 body at native blood-emission positions after damage. It uses Gaisen's projector
 and the same bounded blood store

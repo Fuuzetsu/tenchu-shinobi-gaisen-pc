@@ -805,6 +805,7 @@ mod tests {
                             | Item::ClickTeleport
                             | Item::ClickKill
                             | Item::GodMode
+                            | Item::Bandages
                             | Item::Armor
                             | Item::SightDistance
                             | Item::Stealth

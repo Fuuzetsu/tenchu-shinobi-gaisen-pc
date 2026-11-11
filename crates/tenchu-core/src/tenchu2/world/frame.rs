@@ -46,6 +46,7 @@ impl World {
         assets: &mut Assets,
         events: &mut impl controls::Events,
     ) -> Result<Frame> {
+        self.bleeding_tick();
         let ambience = self.audio.ambient(
             self.map,
             assets.ambient_interval,
@@ -68,6 +69,7 @@ impl World {
             Default::default()
         };
         if self.mission.items_running() {
+            self.sync_bandages();
             let player = &self.actors[self.player].actor;
             self.controls.hud.step(
                 player.into(),
@@ -122,8 +124,9 @@ impl World {
                 look: self.camera.look,
                 root,
                 camera: self.camera.mode,
-                grapple: self.actors[self.player].actor.inventory.selected
-                    == Some(crate::tenchu2::inventory::Item::GRAPPLE),
+                grapple: !self.controls.hud.bandage_selected()
+                    && self.actors[self.player].actor.inventory.selected
+                        == Some(crate::tenchu2::inventory::Item::GRAPPLE),
             },
             &self.terrain,
             &mut self.cursor,
