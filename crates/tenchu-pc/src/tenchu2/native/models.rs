@@ -58,6 +58,40 @@ pub struct Custom {
 }
 
 impl Custom {
+    #[cfg(test)]
+    fn validate_state(&self) -> Result<()> {
+        let body = self
+            .pack
+            .player_models
+            .get(&self.id)
+            .ok_or("Missing saved custom player model")?;
+        body.validate()?;
+        for (index, part) in body.parts.iter().enumerate() {
+            let key = format!("player/{}/{index}", self.id);
+            if !self.pack.models.contains_key(&key)
+                || part.skin.is_some() && !self.pack.skins.contains_key(&key)
+            {
+                return Err("Missing saved custom player geometry".into());
+            }
+        }
+        for image in self.pack.textures.values().chain(self.pack.images.values()) {
+            let [width, height] = image.size;
+            if width == 0
+                || height == 0
+                || (width as usize)
+                    .checked_mul(height as usize)
+                    .and_then(|n| n.checked_mul(4))
+                    != Some(image.rgba.len())
+            {
+                return Err("Invalid saved custom player texture".into());
+            }
+        }
+        for patch in self.pack.model_patches.values().flatten() {
+            patch.validate()?;
+        }
+        Ok(())
+    }
+
     fn selected(selection: &str, pack: &Arc<Pack>) -> Result<Option<Self>> {
         let Some(id) = selection.strip_prefix("pack:") else {
             return Ok(None);
@@ -112,40 +146,7 @@ impl Override {
             return Err("Invalid saved original rig or weapon attachment".into());
         }
         if let Some(custom) = &self.custom {
-            let body = custom
-                .pack
-                .player_models
-                .get(&custom.id)
-                .ok_or("Missing saved custom player model")?;
-            body.validate()?;
-            for (index, part) in body.parts.iter().enumerate() {
-                let key = format!("player/{}/{index}", custom.id);
-                if !custom.pack.models.contains_key(&key)
-                    || part.skin.is_some() && !custom.pack.skins.contains_key(&key)
-                {
-                    return Err("Missing saved custom player geometry".into());
-                }
-            }
-            for image in custom
-                .pack
-                .textures
-                .values()
-                .chain(custom.pack.images.values())
-            {
-                let [width, height] = image.size;
-                if width == 0
-                    || height == 0
-                    || (width as usize)
-                        .checked_mul(height as usize)
-                        .and_then(|n| n.checked_mul(4))
-                        != Some(image.rgba.len())
-                {
-                    return Err("Invalid saved custom player texture".into());
-                }
-            }
-            for patch in custom.pack.model_patches.values().flatten() {
-                patch.validate()?;
-            }
+            custom.validate_state()?;
         }
         Ok(())
     }

@@ -2,7 +2,7 @@ use super::{Custom, Library, Pack};
 use std::{collections::BTreeSet, sync::Arc};
 use tenchu_assets::{Result, model::Part, tenchu2::story::Resources, texture::Vram};
 
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Override {
     selected: String,
     hero: usize,
@@ -11,6 +11,7 @@ pub struct Override {
     pub custom: Option<Custom>,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Skin {
     pub parts: Vec<Part>,
     pub vram: Arc<Vram>,
@@ -18,6 +19,27 @@ pub struct Skin {
 }
 
 impl Override {
+    #[cfg(test)]
+    pub(crate) fn validate_state(&self, resources: &Resources) -> Result<()> {
+        if self.hero >= 3
+            || self
+                .actors
+                .iter()
+                .any(|id| !resources.models.contains_key(id))
+            || self.skin.as_ref().is_some_and(|skin| {
+                skin.parts.len() != tenchu_assets::tenchu2::BONES.len()
+                    || skin.vram.words.len() != 1024 * 512
+            })
+            || self.skin.is_some() && self.custom.is_some()
+        {
+            return Err("Invalid saved cutscene player override".into());
+        }
+        if let Some(custom) = &self.custom {
+            custom.validate_state()?;
+        }
+        Ok(())
+    }
+
     pub fn sync(
         &mut self,
         resources: &Resources,

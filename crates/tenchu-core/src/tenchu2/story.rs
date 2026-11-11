@@ -21,6 +21,21 @@ pub struct Motion {
 }
 
 impl Motion {
+    pub fn validate(&self, animation: &Animation) -> Result<()> {
+        if self.root >= animation.root.len().saturating_sub(1)
+            || self.rotation.len() != animation.joints.len()
+            || self.joints.len() != animation.joints.len()
+            || self
+                .joints
+                .iter()
+                .zip(&animation.joints)
+                .any(|(&index, keys)| index >= keys.len().saturating_sub(1))
+        {
+            return Err("Invalid saved Tenchu 2 story motion".into());
+        }
+        Ok(())
+    }
+
     pub fn camera_view(&self, roll: i32, math: &crate::math::Math) -> Result<crate::math::Matrix> {
         crate::camera::view_matrix(
             self.position,

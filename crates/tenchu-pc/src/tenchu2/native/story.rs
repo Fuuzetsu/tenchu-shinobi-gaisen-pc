@@ -14,6 +14,9 @@ use tenchu_core::{
     tenchu2::story::{Playback, TextureChange},
 };
 
+#[cfg(test)]
+mod state;
+
 pub struct Story {
     pub sequence: usize,
     pub event: u16,
