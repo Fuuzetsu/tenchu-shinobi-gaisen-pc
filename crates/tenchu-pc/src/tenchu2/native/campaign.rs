@@ -74,7 +74,7 @@ pub struct Playback<S> {
 }
 
 impl<S: ReadAt> Playback<S> {
-    pub fn configure(&mut self, settings: &crate::settings::Settings) {
+    pub fn configure(&mut self, settings: &crate::settings::Settings) -> Result<()> {
         self.death.configure(settings);
         self.keep_all_active = settings.keep_enemies_active;
         self.circle_action = settings.circle_action;
@@ -84,7 +84,9 @@ impl<S: ReadAt> Playback<S> {
         }
         if let Content::Gameplay(session) = &mut self.content {
             session.world.set_bleeding(self.bleeding);
+            session.configure_walking(&self.disc, settings.walking.enabled)?;
         }
+        Ok(())
     }
 
     pub fn load(

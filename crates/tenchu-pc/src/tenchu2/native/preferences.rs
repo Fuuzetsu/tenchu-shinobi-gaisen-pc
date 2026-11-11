@@ -498,6 +498,10 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::AnalogWalking => {
+                            state.settings.walking.enabled = Settings::default().walking.enabled;
+                            Ok(())
+                        }
                         Item::StateSlot => {
                             self.tools.debug.state_slot = 0;
                             Ok(())
@@ -524,6 +528,10 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::AnalogWalking => {
+                            state.settings.walking.enabled = !state.settings.walking.enabled;
+                            Ok(())
+                        }
                         Item::KeepEnemiesActive => {
                             state.settings.keep_enemies_active =
                                 !state.settings.keep_enemies_active;
@@ -539,6 +547,7 @@ impl Menu {
                             } else {
                                 state.settings.keep_enemies_active = defaults.keep_enemies_active;
                                 state.settings.circle_action = defaults.circle_action;
+                                state.settings.walking = defaults.walking;
                                 state.settings.bleeding = defaults.bleeding;
                                 state.settings.sight_percent = defaults.sight_percent;
                             }
@@ -922,6 +931,8 @@ mod tests {
                     ..Default::default()
                 };
                 settings.bleeding.enabled = true;
+                settings.walking.enabled = true;
+                settings.walking.threshold = 45;
                 session.world.set_bleeding(settings.bleeding);
                 settings.set_visual_preset(settings::presets::MODERN_ULTRA);
                 let mut expected_settings = settings.clone();
@@ -931,6 +942,7 @@ mod tests {
                     expected_settings.keep_enemies_active = false;
                     expected_settings.sight_percent = 100;
                     expected_settings.bleeding = Default::default();
+                    expected_settings.walking = Default::default();
                 }
                 let mut content = Content::Gameplay(Box::new(session));
                 let mut menu = Menu::new(&settings);

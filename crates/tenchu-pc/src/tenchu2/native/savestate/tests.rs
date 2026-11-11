@@ -52,9 +52,15 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         };
         settings.bleeding.enabled = true;
         settings.bleeding.bandages = 3;
-        original.configure(&settings);
+        settings.walking.enabled = true;
+        settings.walking.threshold = 45;
+        original.configure(&settings).unwrap();
         for _ in 0..30 {
             original.step(0).unwrap();
+        }
+        if let Content::Gameplay(session) = &mut original.content {
+            session.world.controls.walking.as_mut().unwrap().held = true;
+            session.step(tenchu_core::tenchu2::input::UP).unwrap();
         }
         let mut tools = Tools::default();
         tools.sync(&original.content, original.generation);
@@ -89,12 +95,13 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         assert_eq!(current.volume, 17);
         assert_eq!(current.circle_action, settings.circle_action);
         assert_eq!(current.bleeding, settings.bleeding);
+        assert_eq!(current.walking, settings.walking);
         assert!(
             current.keep_enemies_active && current.wait_after_death && current.live_death_scene
         );
         assert!(restored_tools.debug.actors_edited && !restored_tools.debug.click_kill);
         assert_eq!(restored_tools.debug.state_slot, 4);
-        restored.configure(&current);
+        restored.configure(&current).unwrap();
         assert!(restored.capture_state().unwrap() == source);
         restored_drawing
             .update(

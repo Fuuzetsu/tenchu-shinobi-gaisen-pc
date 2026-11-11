@@ -307,14 +307,26 @@ bindings still apply: Circle guards and R1 crouches. Attacks keep their committe
 facing; directional attack inputs are mapped into the character's local space.
 Wall, ledge, underwater and item controls retain T2's original behavior.
 **Shift / Circle action** offers Follow moveset, Crouch and Guard / dash.
-Follow moveset uses the selected controller's stance: T2 guards and directional
-steps, T1 crouching. The override is independent of the displayed body and also
-works with T2 movesets in T1 stages under Gaisen rules.
+Native T2 defaults to Circle guard/dodge and R1 crouch for every body and moveset.
+Crouch explicitly swaps those buttons. In T1 under Gaisen rules, Follow moveset
+uses T2 guard/dodge with a T2 moveset and T1 crouching with a T1 moveset. The extra
+T1 R1 guard controller and its automatic weapon drawing do not apply to native
+T2; its source guard stance keeps the current weapon state.
 **Start aiming toward camera** turns the player and seeds the vertical angle when
 starting grapple, shuriken/blowgun aim or look. Subsequent aiming adjustments use
 the source controls; both sticks can adjust aim. Disable camera-relative controls
 to return to the original camera and tank movement. Free camera and menus suppress
 movement input, and Follow Actor remains independent.
+
+**Analog / modifier walking** uses T2's original ninja/kunoichi walk cycles and
+speeds (38/31 units per tick) with light stick input or the rebindable Walk action.
+New bindings use Left Alt or left-stick click; existing bindings can be assigned
+under General → Controls. The threshold includes hysteresis to avoid jitter.
+Classic controls walk forward; camera-relative movement can walk in any direction.
+Full stick travel or disabling walking restores the selected moveset's run.
+Attacks, guarding, crouching, swimming and collision retain their source behavior.
+This optional gameplay edit stays off by default and is separate from graphical
+presets. Save/rewind retains its motion state and recordings retain its input.
 
 **F1 → Player model** uses the shared searchable gallery of Gaisen and connected
 T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**

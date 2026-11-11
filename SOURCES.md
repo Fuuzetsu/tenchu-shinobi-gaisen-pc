@@ -1302,6 +1302,22 @@ Actual disc roof/wood textures are used only in private validation captures.
 Their identifiers in the diagnostic test select views and do not select runtime
 material behavior.
 
+## Native T2 optional walking (2026-11-11)
+
+Optional walking reuses the shared PC Walk binding,
+stick deadzone/threshold hysteresis and input suppression. The JP registry's
+ninja/kunoichi action `3` selects clips `638`/`683` at original speeds `38`/`31`.
+Clips are loaded from the user's T2 disc with the existing motion collector;
+no Gaisen animation or game data is bundled. The scalar native motion driver
+selects the walk clip only for the player's forward actions `3`/`0x103` and
+restores the active moveset's registration when walking is released or disabled.
+Native turning, movement/collision, footsteps and committed actions retain their
+existing controllers (`800238a4` normal, `80023f98` ready). Default mode bypasses
+the adapter. This is an optional gameplay edit, separate from graphical presets.
+The sibling research, decompilation and viewer repositories were searched and
+left unchanged; no new code was imported from them. Private resource surveys,
+source comparisons and integration checks are under `private/two-releases-20261110`.
+
 ## Optional effects and geometry refinement (2026-10-24)
 
 Persistent stains, surface queries, weather particles/coatings, the sky clock,

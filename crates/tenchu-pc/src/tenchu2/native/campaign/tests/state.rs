@@ -210,7 +210,7 @@ fn native_campaign_checkpoints_preserve_transitions_and_retry() {
         };
         settings.bleeding.enabled = true;
         settings.bleeding.bandages = 3;
-        original.configure(&settings);
+        original.configure(&settings).unwrap();
         for _ in 0..30 {
             original.step(0).unwrap();
         }
@@ -263,11 +263,13 @@ fn native_campaign_checkpoints_preserve_transitions_and_retry() {
 fn native_campaign_checkpoints_preserve_death_holds() {
     for live in [false, true] {
         let mut original = start(9);
-        original.configure(&crate::settings::Settings {
-            wait_after_death: true,
-            live_death_scene: live,
-            ..Default::default()
-        });
+        original
+            .configure(&crate::settings::Settings {
+                wait_after_death: true,
+                live_death_scene: live,
+                ..Default::default()
+            })
+            .unwrap();
         death::start_death(&mut original);
         for _ in 0..300 {
             original.step(0).unwrap();

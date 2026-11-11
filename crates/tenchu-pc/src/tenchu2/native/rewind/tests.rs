@@ -29,7 +29,7 @@ impl Host {
             rewind_speed: 100,
             ..Default::default()
         };
-        playback.configure(&settings);
+        playback.configure(&settings).unwrap();
         let instance = wgpu::Instance::new(&Default::default());
         let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
         let mut renderer = pollster::block_on(Renderer::new(
@@ -86,7 +86,7 @@ impl Host {
 
     fn step(&mut self) {
         self.rewind.resume().unwrap();
-        self.playback.configure(&self.settings);
+        self.playback.configure(&self.settings).unwrap();
         let graphics = self.settings.rendering().graphics.clone();
         let update = self
             .transport
@@ -225,6 +225,8 @@ fn native_timeline_preserves_transitions_and_branch_continuation() {
 #[ignore = "requires TENCHU2_DISC and GPU; native recordings round-trip controller metadata, selected frames, graphics and camera; invalid imports leave the current source and history intact"]
 fn native_timeline_recordings_restore_metadata_and_graphics_atomically() {
     let mut host = Host::new(119);
+    host.settings.walking.enabled = true;
+    host.playback.configure(&host.settings).unwrap();
     let camera = crate::debug::camera::Camera {
         position: glam::Vec3::new(500.0, -2000.0, 1200.0),
         yaw: 0.3,
@@ -233,6 +235,7 @@ fn native_timeline_recordings_restore_metadata_and_graphics_atomically() {
     };
     host.tools.debug.camera = Some(camera);
     if let Content::Gameplay(session) = &mut host.playback.content {
+        session.world.controls.walking.as_mut().unwrap().held = true;
         session.navigation = Some(super::super::NavigationInput {
             yaw: 0.3,
             pitch: 200,
@@ -274,6 +277,17 @@ fn native_timeline_recordings_restore_metadata_and_graphics_atomically() {
             .unwrap()
             .navigation
             .is_some()
+    );
+    assert!(
+        history.entries[0]
+            .input
+            .as_ref()
+            .unwrap()
+            .native
+            .as_ref()
+            .unwrap()
+            .walking
+            .is_some_and(|walking| walking.held)
     );
     let graphics = host.settings.graphics.clone();
     host.settings.graphics.fog = !graphics.fog;

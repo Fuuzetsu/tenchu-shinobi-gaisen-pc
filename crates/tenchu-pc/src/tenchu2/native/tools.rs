@@ -208,10 +208,11 @@ impl Tools {
         let enabled = active && self.debug.camera.is_none();
         if let Content::Gameplay(session) = content {
             session.navigation = None;
+            let playing = enabled && !session.cinematic();
             if let Some(state) = &mut session.world.actors[session.world.player].actor.bleeding {
                 state.input(enabled && controls.bandage());
             }
-            if enabled && navigation.camera_relative && !session.cinematic() {
+            if playing && navigation.camera_relative {
                 let target = self.debug.followed_inspection(&self.scene).or_else(|| {
                     super::inspection::actors(session).find(|a| a.id == session.world.player)
                 });
@@ -225,9 +226,37 @@ impl Tools {
                     deadzone: navigation.deadzone,
                     align_aim: navigation.align_aim,
                 });
-                return (controls.relative_buttons()
-                    & !(crate::controls::WALK | crate::controls::SHEATHE))
+            }
+            if playing {
+                let (buttons, magnitude) = if session.navigation.is_some() {
+                    let buttons = controls.relative_buttons();
+                    let directions = tenchu_core::input::UP
+                        | tenchu_core::input::DOWN
+                        | tenchu_core::input::LEFT
+                        | tenchu_core::input::RIGHT;
+                    let magnitude = if buttons & directions != 0 {
+                        1.0
+                    } else {
+                        crate::navigation::stick(controls.sticks()[0], navigation.deadzone).length()
+                    };
+                    (buttons, magnitude)
+                } else if settings.walking.enabled {
+                    controls.walking_buttons(navigation.deadzone)
+                } else {
+                    (controls.buttons(), 1.0)
+                };
+                if let Some(walking) = &mut session.world.controls.walking {
+                    walking.held = crate::walking::requested(
+                        buttons,
+                        magnitude,
+                        settings.walking.threshold,
+                        walking.held,
+                    );
+                }
+                return (buttons & !(crate::controls::WALK | crate::controls::SHEATHE))
                     .swap_bytes();
+            } else if let Some(walking) = &mut session.world.controls.walking {
+                walking.held = false;
             }
         }
         if enabled {

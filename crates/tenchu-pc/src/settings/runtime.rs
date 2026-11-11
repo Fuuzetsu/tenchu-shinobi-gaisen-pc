@@ -24,6 +24,10 @@ impl Runtime {
             "Circle / East confirms in F1, mission selection, results and retry/death prompts; Cross / South goes back. Off reverses them. Equipment uses confirm to add and back to remove; Start/Enter begins. Physical menu buttons ignore gameplay remapping. Enter/Esc keep their keyboard actions; gameplay and cutscene skip buttons retain their source controls."
         } else if self == Self::Tenchu2 && item == Item::CircleAction {
             "Default keeps native T2 controls for every model and moveset: Circle holds the guard stance, directions dodge, and R1 crouches. Blocking needs a drawn weapon and a frontal attack. Crouch explicitly swaps Circle and R1. Rebind physical buttons under General > Controls."
+        } else if self == Self::Tenchu2 && item == Item::AnalogWalking {
+            "GAMEPLAY EDIT: lightly tilt the movement stick or hold the rebindable Walk modifier to use T2's original ninja/kunoichi walking cycle. Full tilt runs. Classic controls walk forward; camera-relative controls walk in any direction. Weapons, attacks, crouching, swimming and collision keep their native rules. Off restores the selected moveset's running clips."
+        } else if self == Self::Tenchu2 && item == Item::WalkThreshold {
+            "Stick travel after the circular deadzone. Below this walks, above it runs, with a small margin to prevent jitter. The Walk modifier always walks. Original T2 ninja/kunoichi speeds are 38/31 units per tick. No extra sight or damage bonus."
         } else if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
@@ -47,7 +51,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && matches!(item, Item::Rewind | Item::RewindHistory) {
             "Record up to 30 seconds of native T2 gameplay and 3D cutscenes, including imported T1 stages. Ctrl+F12 plays backward; the timeline seeks or plays forward, and F3 resumes from the selected state. Menus and movie playback are omitted. Export selected frames or import a T2 recording under General. History uses at most 96 MiB and may be shorter for large scenes."
         } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
-            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
+            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
         } else if self == Self::Tenchu2 && item == Item::Reset {
             "Reset all saved preferences and debug tools, including character overrides and simulation tweaks. Keeps the current mission, armour and inventory; does not undo actor edits, kills or campaign progress."
         } else {
@@ -80,6 +84,12 @@ impl Runtime {
             return None;
         }
         match item {
+            GuardControls => Some(
+                "Native T2 already has its original guard/dodge stance. Use Shift / Circle action to choose Circle or R1; this extra T1 R1 controller does not apply.",
+            ),
+            GuardDraw => Some(
+                "This automatic draw option belongs to T1's extra R1 guard controller. Native T2 keeps its original weapon state when guarding; draw with an attack before blocking.",
+            ),
             VibrationAction(
                 RumbleAction::WeaponClash
                 | RumbleAction::JumpCollision
@@ -108,7 +118,7 @@ impl Runtime {
             | RemoveActor | SpawnActor => None,
             CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
-            | StickDeadzone | InvertCameraY => None,
+            | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) | Reset | ResetTweaks => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient

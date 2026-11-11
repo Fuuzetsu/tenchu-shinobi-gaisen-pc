@@ -51,7 +51,7 @@ fn gameplay_preferences_survive_native_area_reload() {
         circle_action: tenchu_core::input::CircleAction::Crouch,
         ..Default::default()
     };
-    playback.configure(&settings);
+    playback.configure(&settings).unwrap();
     for _ in 0..2 {
         playback.step(0).unwrap();
         let Content::Gameplay(session) = &playback.content else {
@@ -64,7 +64,7 @@ fn gameplay_preferences_survive_native_area_reload() {
     }
     settings.keep_enemies_active = false;
     settings.circle_action = Default::default();
-    playback.configure(&settings);
+    playback.configure(&settings).unwrap();
     playback.step(0).unwrap();
     let Content::Gameplay(session) = &playback.content else {
         unreachable!()
@@ -82,7 +82,7 @@ fn native_bleeding_carries_through_story_and_resets_on_retry() {
     let mut settings = crate::settings::Settings::default();
     settings.bleeding.enabled = true;
     settings.bleeding.bandages = 7;
-    playback.configure(&settings);
+    playback.configure(&settings).unwrap();
     let stock = serde_json::to_value(&playback.run.progress.stock).unwrap();
     let Content::Gameplay(session) = &mut playback.content else {
         unreachable!()
@@ -121,7 +121,7 @@ fn native_bleeding_carries_through_story_and_resets_on_retry() {
         saved
     );
     settings.bleeding.bandages = 9;
-    playback.configure(&settings);
+    playback.configure(&settings).unwrap();
     let Content::Gameplay(session) = &mut playback.content else {
         unreachable!()
     };
@@ -155,7 +155,7 @@ fn native_bleeding_carries_through_story_and_resets_on_retry() {
         stock
     );
     settings.bleeding.enabled = false;
-    playback.configure(&settings);
+    playback.configure(&settings).unwrap();
     assert!(playback.run.carry.bleeding.is_none());
     let Content::Gameplay(session) = &playback.content else {
         unreachable!()

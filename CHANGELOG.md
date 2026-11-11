@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **F1 → Movement → Analog / modifier walking** and its
+  walk/run threshold in both launchers. Light stick input or the rebindable Walk
+  modifier uses T2's original ninja/kunoichi walk cycles; full tilt restores the
+  selected moveset's run. Classic controls walk forward, and camera-relative
+  controls support every direction. Saves, rewind, recordings and simulation
+  resets retain the option. The Controls editor also exposes the native Bandage
+  binding.
+- Savestates and recordings use an updated state format. Earlier files require
+  the build that created them.
+
 - Native T2 supports F1 foliage detail, per-tree variation, falling leaves and
   petals, leaf density, and movement scatter. Original T2 vegetation textures
   now drive the shared geometry and wind effects; its autumn trees shed leaves.
@@ -22,7 +32,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   Export selected intervals and import T2 `.treplay` recordings with their
   controller settings, graphics and camera. The updated recording format
   distinguishes T1 and T2; older recordings require the version that exported
-  them. Savestate compatibility is unchanged.
+  them.
 
 - Native T2 supports five separate savestate slots through **F1 → Simulation**,
   **F11** and **F12** in both launchers. Save gameplay or 3D cutscenes, including

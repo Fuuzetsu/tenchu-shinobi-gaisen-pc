@@ -199,6 +199,15 @@ impl Owned {
             || self.navigation.is_some_and(|input| {
                 !input.yaw.is_finite() || input.sticks.iter().any(|v| !v.is_finite())
             })
+            || world.controls.walking.is_some_and(|walking| {
+                !assets
+                    .resources
+                    .clips
+                    .get(&walking.clip)
+                    .is_some_and(|clip| {
+                        clip.duration > 0 && clip.forward_speed > 0 && !clip.bones.is_empty()
+                    })
+            })
         {
             return Err("Invalid native T2 session identity or player".into());
         }

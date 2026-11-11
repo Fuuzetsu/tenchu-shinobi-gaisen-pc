@@ -22,6 +22,8 @@ mod injury;
 mod items;
 pub(super) use injury::credit;
 mod locomotion;
+mod walking;
+pub use walking::Walking;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Controls {
@@ -41,6 +43,7 @@ pub struct Controls {
     pub transition_ready: bool,
     #[serde(default)]
     pub hud: crate::tenchu2::hud::Hud,
+    pub walking: Option<Walking>,
 }
 
 impl Default for Controls {
@@ -61,6 +64,7 @@ impl Default for Controls {
             death_music: true,
             transition_ready: true,
             hud: Default::default(),
+            walking: None,
         }
     }
 }
@@ -471,6 +475,12 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
         resources: &Resources,
     ) -> Result<()> {
         actor.change_motion(request.action, request.velocity, resources)?;
+        if self.context.index == self.context.player
+            && let Some(mut walking) = self.context.controls.walking
+        {
+            walking.held &= self.context.enabled && *self.context.script != 3;
+            walking.motion(actor, resources)?;
+        }
         self.context.sync_contacts(actor);
         Ok(())
     }

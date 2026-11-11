@@ -107,6 +107,7 @@ impl Rewind {
             observing_death: input.observing_death,
             native: Some(recording::NativeInput {
                 navigation: input.navigation,
+                walking: input.walking,
                 initial: false,
             }),
             ..camera_context(tools)
@@ -148,6 +149,10 @@ impl Rewind {
                 Some(self.pending.take().unwrap_or_else(|| recording::Input {
                     native: Some(recording::NativeInput {
                         initial: true,
+                        walking: match &playback.content {
+                            Content::Gameplay(session) => session.world.controls.walking,
+                            _ => None,
+                        },
                         navigation: match &playback.content {
                             Content::Gameplay(session) => session.navigation,
                             _ => None,

@@ -22,6 +22,7 @@ pub struct Input {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NativeInput {
     pub navigation: Option<crate::navigation::NativeInput>,
+    pub walking: Option<tenchu_core::tenchu2::world::controls::Walking>,
     pub initial: bool,
 }
 
@@ -429,6 +430,7 @@ mod tests {
             r.frames[0].input = Some(Box::new(Input {
                 native: Some(NativeInput {
                     initial: false,
+                    walking: None,
                     navigation: Some(crate::navigation::NativeInput {
                         yaw: f32::NAN,
                         pitch: 0,

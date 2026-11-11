@@ -54,6 +54,7 @@ pub struct Observation {
     pub replaced: bool,
     pub buttons: u16,
     pub navigation: Option<super::NavigationInput>,
+    pub walking: Option<tenchu_core::tenchu2::world::controls::Walking>,
     pub bandage: bool,
     pub observing_death: bool,
 }
@@ -121,11 +122,13 @@ impl Transport {
             replaced: false,
             buttons,
             navigation: None,
+            walking: None,
             bandage: false,
             observing_death: playback.death.waiting(),
         };
         if let Content::Gameplay(session) = &playback.content {
             observation.navigation = session.navigation;
+            observation.walking = session.world.controls.walking;
             observation.bandage = session.world.actors[session.world.player]
                 .actor
                 .bleeding

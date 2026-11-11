@@ -42,6 +42,16 @@ tracks sample the terrain actually being drawn. Before/after captures and logs
 remain in `private/two-releases-20261110/native-vegetation`. These controlled
 fixtures do not add ordinary-play or campaign coverage.
 
+Optional native T2 walking has controlled fixtures for all three heroes, selected
+Gaisen/T2 moveset overrides and an imported T1 stage after its cinematic. They
+check actual walk speeds, restoration of each moveset's run, committed actions,
+stick hysteresis, modifier input and suppression when controls are inactive.
+Checkpoint continuation compares complete session bytes; the save/rewind tests
+also retain the option and recorded walking input. Default-mode validation reuses
+the existing BizHawk training capture and original standing-controller oracle.
+These are optional-mode fixtures and regression checks of existing coverage,
+not a new recorded ordinary-play route.
+
 ## Emulator comparisons
 
 The combat/item searches under `~/tenchu-searches/ayame-mission-*` provide

@@ -266,7 +266,7 @@ impl Application {
     fn step(&mut self) -> Result<()> {
         self.rewind.resume()?;
         self.controls.stop_rumble();
-        self.session.configure(&self.settings);
+        self.session.configure(&self.settings)?;
         let buttons = self.menu.tools.input(
             &mut self.session.content,
             &mut self.controls,
@@ -338,7 +338,7 @@ impl Application {
             || self.controls.editor.open
             || self.presets.open;
         if !self.rewind.preview {
-            self.session.configure(&self.settings);
+            self.session.configure(&self.settings)?;
         }
         let input = PlaybackInput {
             buttons: if self.rewind.preview {

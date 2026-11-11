@@ -203,6 +203,7 @@ fn restore_snapshot(
             drawing_changed,
         })?;
     settings.restore_playback_preferences(&saved.preferences);
+    settings.walking = saved.preferences.walking;
     if recorded_visuals {
         settings.graphics = saved.preferences.graphics;
         settings.retro = saved.preferences.retro;
