@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.26.0 — 2026-11-11
+
 - F1 Character adds independent **Weapon equipment** and **Player voice**
   selectors for T1 and native T2. Choose Kagami's sword, Jubei's dual katana,
   Tatsumaru/Suzaku's Izayoi or other available disc equipment without changing
