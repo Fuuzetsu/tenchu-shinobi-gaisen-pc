@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **Circle confirms in menus** throughout F1, mission
+  selection, equipment, results and retry screens in both launchers. Controller
+  menu buttons use physical positions independently of gameplay remapping;
+  touch buttons and the disc/PC prompts follow the chosen convention. Menu taps
+  survive redraws between logic ticks, and holding confirm into a cutscene no
+  longer skips it. Gameplay and cutscene controls keep their source mappings.
+
 - Native T2 supports **F1 → Bleeding** in both launchers, including imported
   T1 stages. Optional wounds from enemy melee and piercing shots drain health
   on game ticks, pause during scripted scenes and leave at least 1 HP. Separate

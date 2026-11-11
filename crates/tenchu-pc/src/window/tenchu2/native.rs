@@ -160,7 +160,7 @@ impl Application {
         let buttons = native.menu.tools.input(
             &mut native.playback.content,
             &mut self.controls,
-            &self.settings.navigation,
+            &self.settings,
             self.focused && !native.menu.panel.open,
         );
         let ready = native.generation == Some(native.playback.generation)
@@ -197,7 +197,7 @@ impl Application {
             .as_mut()
             .unwrap()
             .menu
-            .controller(update.menu_pressed);
+            .controller(update.menu_pressed, self.settings.circle_confirm);
         if !self.native_tenchu2.as_ref().unwrap().menu.panel.open
             && self
                 .native_tenchu2
@@ -218,7 +218,7 @@ impl Application {
         let buttons = native.menu.tools.input(
             &mut native.playback.content,
             &mut self.controls,
-            &self.settings.navigation,
+            &self.settings,
             self.focused && !native.menu.panel.open,
         );
         let input = PlaybackInput {
@@ -424,15 +424,16 @@ impl Application {
                 native.playback.action = native
                     .playback
                     .content
-                    .inspect(
-                        ctx,
-                        &native.playback.run,
-                        &mut native.menu.diagnostics,
-                        &mut self.paused,
-                        native.error.as_deref(),
-                        native.menu.tools.debug.photo_mode,
-                    )
+                    .controls(ctx, self.settings.circle_confirm)
                     .or(native.playback.action);
+                native.playback.content.inspect(
+                    ctx,
+                    &native.playback.run,
+                    &mut native.menu.diagnostics,
+                    &mut self.paused,
+                    native.error.as_deref(),
+                    native.menu.tools.debug.photo_mode,
+                );
             }
             native
                 .menu

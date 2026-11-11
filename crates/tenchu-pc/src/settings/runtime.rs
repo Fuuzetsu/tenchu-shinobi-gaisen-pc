@@ -20,6 +20,8 @@ impl Runtime {
             && item == Item::VibrationAction(tenchu_core::effects::RumbleAction::TargetHit)
         {
             "Native T2's pulses when hitting animals or breakable scenery."
+        } else if self == Self::Tenchu2 && item == Item::CircleConfirm {
+            "Circle / East confirms in F1, mission selection, results and retry/death prompts; Cross / South goes back. Off reverses them. Equipment uses confirm to add and back to remove; Start/Enter begins. Physical menu buttons ignore gameplay remapping. Enter/Esc keep their keyboard actions; gameplay and cutscene skip buttons retain their source controls."
         } else if self == Self::Tenchu2 && item == Item::CircleAction {
             "Default keeps native T2 controls for every model and moveset: Circle holds the guard stance, directions dodge, and R1 crouches. Blocking needs a drawn weapon and a frontal attack. Crouch explicitly swaps Circle and R1. Rebind physical buttons under General > Controls."
         } else if self == Self::Tenchu2 && item == Item::CameraRelative {
@@ -92,9 +94,9 @@ impl Runtime {
             | CameraPosition | SnapFloor | Teleport | PickTeleport | ClickTeleport | KillActor
             | ClickKill | Screenshot | ActorPosition | PickActorPosition | MoveActor
             | RemoveActor | SpawnActor => None,
-            CircleAction | CameraRelative | AlignAim | FollowActor | FollowDistance
-            | RecenterOrbit | MouseSensitivity | StickSensitivity | StickDeadzone
-            | InvertCameraY => None,
+            CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
+            | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
+            | StickDeadzone | InvertCameraY => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient

@@ -246,6 +246,17 @@ fn menu_convention_and_gameplay_rebinding_are_independent() {
                 (action, confirm),
                 (Action::Confirm, true) | (Action::Back, false)
             ));
+            controls.pad.sample(0, remapped, true);
+            controls.pad.sample_menu(0, menu, true);
+            assert_eq!(controls.buttons(), gameplay);
+            let expected = if confirm { input::CIRCLE } else { input::CROSS };
+            assert_eq!(controls.japanese_menu_buttons(circle_confirm), expected);
+            controls.pad.sample_menu(0, 0, true);
+            controls.pad.sample_menu(0, menu, true);
+            controls.pad.sample_menu(0, 0, true);
+            assert_eq!(controls.japanese_menu_buttons(circle_confirm), expected);
+            assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+            controls.pad.sample(0, 0, true);
             assert!(matches!(
                 gamepad_command(input::START, false, false, circle_confirm),
                 Some(Command::Menu(Action::Start))
@@ -255,6 +266,55 @@ fn menu_convention_and_gameplay_rebinding_are_independent() {
                 Some(Command::Menu(Action::Confirm))
             ));
         }
+    }
+}
+
+#[test]
+fn japanese_menu_input_preserves_taps_and_requires_release_after_focus_changes() {
+    for circle_confirm in [false, true] {
+        let mut controls = Controls::default();
+        let confirm = if circle_confirm {
+            input::CIRCLE
+        } else {
+            input::CROSS
+        };
+        controls.touch(crate::touch::Sample {
+            buttons: u32::from(confirm | input::UP),
+            ..Default::default()
+        });
+        controls.touch(Default::default());
+        assert_eq!(
+            controls.japanese_menu_buttons(circle_confirm),
+            input::CIRCLE | input::UP
+        );
+        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+        controls.key(KeyCode::Space, true);
+        controls.key(KeyCode::Space, false);
+        assert_eq!(
+            controls.japanese_menu_buttons(circle_confirm),
+            if circle_confirm {
+                input::CROSS
+            } else {
+                input::CIRCLE
+            }
+        );
+        controls.pad.sample_menu(0, confirm, true);
+        controls.clear();
+        controls.pad.sample_menu(0, confirm, true);
+        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+        controls.pad.sample_menu(0, 0, true);
+        controls.pad.sample_menu(0, confirm, true);
+        controls.pad.sample_menu(0, 0, false);
+        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+        controls
+            .pad
+            .sample_menu(0, input::CROSS | input::CIRCLE | input::START, true);
+        assert_eq!(
+            controls.japanese_menu_buttons(circle_confirm),
+            input::CROSS | input::CIRCLE | input::START
+        );
+        controls.pad.disconnect(0);
+        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
     }
 }
 

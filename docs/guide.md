@@ -31,6 +31,10 @@ stage/item blacklists and shareable seeds. Runs keep separate progress.
 (South / Cross confirms, East / Circle goes back). These are physical controller
 positions, independent of gameplay remapping. Enter/Esc keep their keyboard roles,
 and START still retries the mission from results. Prompts follow the chosen convention.
+This also applies to native T2's F1, mission selection, equipment, results and
+retry/death screens in both launchers. Native equipment uses confirm to add and
+back to remove, with Start/Enter to begin. Touch buttons follow the preference;
+gameplay and cutscene skip controls retain their source meanings.
 
 See [AGENTS.md](../AGENTS.md) for development conventions.
 
@@ -987,7 +991,8 @@ menu; a force-feedback-capable controller and host driver are required.
 **F1** opens a compact settings overlay from any screen. Click categories,
 checkboxes and dropdowns; drag sliders or double-click numbers to type.
 Drag the title bar to move the panel, resize its width, and scroll long pages.
-Arrows/D-pad and Enter/South also work; F1/Escape/East closes it. The overlay
+Arrows/D-pad and Enter/the configured confirm button also work;
+F1/Escape/the configured back button closes it. The overlay
 pauses the game by default. **General → Pause while settings are open** can keep
 the simulation running while you tune settings; menu input stays out of gameplay,
 and F3/focus-loss pauses still apply. It provides FPS

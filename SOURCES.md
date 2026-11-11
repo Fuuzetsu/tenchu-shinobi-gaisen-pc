@@ -3372,3 +3372,22 @@ This is a presentation override, not a change to the event script or original
 playback/RNG. Custom-folder bodies share the native gameplay skinning adapter.
 The read-only sibling research/viewer repositories were consulted for the prior
 weapon/appearance work; no additional sibling implementation was imported here.
+
+### Native menu confirmation preference (2026-11-11)
+
+The PC input boundary maps the existing physical controller menu sample into
+T2 JP's Circle-confirm convention. It reuses the shared Circle-confirm preference
+and focus/release handling; the original MENU.EXE selection and datamng.bin
+equipment algorithms above are unchanged. Keyboard face-button bindings and
+touch inputs use the same preference, while Enter/Esc retain host actions.
+Gameplay and movie/story skip input bypass this menu mapping. The existing
+native transport retains menu taps until a logic update and discards them on
+pause/scene changes. It does not infer retail draw skips from PC redraw cadence.
+
+Mission selection swaps rows1/2 of its original button sheet. Equipment's first
+items.arc image and result.tim embed their legends: the presentation adapter
+exchanges only the two 16-pixel-wide icon regions (equipment x7/55,y197,h16;
+results x84/195,y204,h20). Originals remain intact and Japanese confirmation
+restores them exactly, including while paused. The PC action labels follow the
+same preference. This is optional host UI behavior, not a new source-game rule;
+no sibling implementation or copyrighted assets were imported.

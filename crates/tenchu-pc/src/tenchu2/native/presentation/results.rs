@@ -89,25 +89,38 @@ pub(crate) struct Drawing {
     pub backdrop: Option<Arc<Image>>,
     pub text: Vec<crate::fonts::Text>,
     sharp_text: bool,
+    circle_confirm: bool,
 }
 
 impl Drawing {
     pub fn new(results: &super::super::results::Results, backdrop: Option<Arc<Image>>) -> Self {
-        let (frame, text) = build(results, backdrop.as_deref(), false);
+        let (frame, text) = build(results, backdrop.as_deref(), false, true);
         Self {
             frame,
             backdrop,
             text,
             sharp_text: false,
+            circle_confirm: true,
         }
     }
 
-    pub fn update(&mut self, results: &super::super::results::Results, sharp_text: bool) {
-        if self.sharp_text == sharp_text {
+    pub fn update(
+        &mut self,
+        results: &super::super::results::Results,
+        sharp_text: bool,
+        circle_confirm: bool,
+    ) {
+        if self.sharp_text == sharp_text && self.circle_confirm == circle_confirm {
             return;
         }
-        (self.frame, self.text) = build(results, self.backdrop.as_deref(), sharp_text);
+        (self.frame, self.text) = build(
+            results,
+            self.backdrop.as_deref(),
+            sharp_text,
+            circle_confirm,
+        );
         self.sharp_text = sharp_text;
+        self.circle_confirm = circle_confirm;
     }
 }
 
@@ -115,6 +128,7 @@ fn build(
     results: &super::super::results::Results,
     backdrop: Option<&Image>,
     sharp_text: bool,
+    circle_confirm: bool,
 ) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
     let mut canvas = Canvas::new(320);
     canvas.frame = Some(Frame::new([320, 240], Arc::default()));
@@ -122,18 +136,22 @@ fn build(
     if let Some(image) = backdrop {
         canvas.sprite(Sprite::new(image, 0.0, 0.0));
     }
-    append(&mut canvas, results);
+    let panel;
+    let panel = if circle_confirm {
+        &results.resources.panel
+    } else {
+        // The two face-button icons are baked into result.tim's bottom legend.
+        panel = super::swap_menu_icons(&results.resources.panel, [84, 195], 204, [16, 20]);
+        &panel
+    };
+    append(&mut canvas, results, panel);
     (Arc::new(canvas.frame.unwrap()), canvas.text)
 }
 
-fn append(canvas: &mut Canvas, results: &super::super::results::Results) {
+fn append(canvas: &mut Canvas, results: &super::super::results::Results, panel: &Image) {
     let images = &results.resources;
     let values = &results.values;
-    canvas.sprite(
-        Sprite::new(&images.panel, 0.0, 0.0)
-            .light(64)
-            .blend(Blend::Add),
-    );
+    canvas.sprite(Sprite::new(panel, 0.0, 0.0).light(64).blend(Blend::Add));
     let time = values.record.time_tenths;
     for (text, x) in [
         (format!("{:2}", time / 600), -11),

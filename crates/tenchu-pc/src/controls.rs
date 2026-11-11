@@ -96,6 +96,7 @@ struct Pad {
     pending: u32,
     menu_raw: u16,
     menu_blocked: u16,
+    menu_pending: u16,
     stick: [i8; 4],
     axes: [f32; 4],
     axes_blocked: [bool; 2],
@@ -124,6 +125,7 @@ impl Pad {
         self.blocked = self.raw;
         self.pending = 0;
         self.menu_blocked = self.menu_raw;
+        self.menu_pending = 0;
         self.direct_blocked = self.direct;
         self.direct_pending = 0;
         self.recenter = false;
@@ -167,10 +169,13 @@ impl Pad {
         self.menu_blocked &= buttons;
         if !focused {
             self.menu_blocked = buttons;
+            self.menu_pending = 0;
         } else if buttons != 0 {
             self.active = Some(id);
         }
-        (buttons & !self.menu_blocked) & !before
+        let pressed = (buttons & !self.menu_blocked) & !before;
+        self.menu_pending |= pressed;
+        pressed
     }
 }
 
@@ -394,6 +399,7 @@ impl Controls {
     }
 
     pub fn buttons(&mut self) -> u16 {
+        self.pad.menu_pending = 0;
         let buttons = self.touch.buttons
             | mem::take(&mut self.touch.pending)
             | self.pad.buttons()
@@ -404,7 +410,39 @@ impl Controls {
             .fold(buttons, |buttons, key| buttons | self.bindings.key(*key)) as u16
     }
 
+    /// Physical menu buttons, mapped to the Japanese screen's Circle-confirm convention.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn japanese_menu_buttons(&mut self, circle_confirm: bool) -> u16 {
+        let physical =
+            (self.pad.menu_raw & !self.pad.menu_blocked) | mem::take(&mut self.pad.menu_pending);
+        self.pad.pending = 0;
+        self.pad.direct_pending = 0;
+        let keyboard_touch = self.touch.buttons
+            | mem::take(&mut self.touch.pending)
+            | mem::take(&mut self.pending_keys);
+        let buttons = physical
+            | self.keys.iter().fold(keyboard_touch, |buttons, key| {
+                buttons | self.bindings.key(*key)
+            }) as u16;
+        if circle_confirm {
+            buttons
+        } else {
+            (buttons & !(input::CIRCLE | input::CROSS))
+                | if buttons & input::CIRCLE != 0 {
+                    input::CROSS
+                } else {
+                    0
+                }
+                | if buttons & input::CROSS != 0 {
+                    input::CIRCLE
+                } else {
+                    0
+                }
+        }
+    }
+
     pub fn relative_buttons(&mut self) -> u16 {
+        self.pad.menu_pending = 0;
         self.pad.pending = 0;
         let directions = u32::from(input::UP | input::DOWN | input::LEFT | input::RIGHT);
         let buttons = (self.touch.sample.buttons & !self.touch.blocked)

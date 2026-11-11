@@ -359,15 +359,18 @@ fn relative_controls_share_orbit_tools_and_do_not_leak_input_through_menus() {
     tools.sync(&content, 0);
     let mut controls = Controls::default();
     controls.key(KeyCode::KeyD, true);
-    let settings = crate::settings::Navigation {
-        camera_relative: true,
+    let settings = crate::settings::Settings {
+        navigation: crate::settings::Navigation {
+            camera_relative: true,
+            ..Default::default()
+        },
         ..Default::default()
     };
     let buttons = tools.input(&mut content, &mut controls, &settings, true);
     assert_eq!(buttons, tenchu_core::tenchu2::input::RIGHT);
     assert_eq!(tools.orbit_actor().unwrap().id, tools.scene.player);
     tools.change(Item::RecenterOrbit, 1).unwrap();
-    tools.orbit.mouse(200.0, 60.0, &settings);
+    tools.orbit.mouse(200.0, 60.0, &settings.navigation);
     let yaw = tools.orbit.yaw;
     tools.input(&mut content, &mut controls, &settings, true);
     if let Content::Gameplay(session) = &mut content {

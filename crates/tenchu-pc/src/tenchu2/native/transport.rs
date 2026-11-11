@@ -10,6 +10,7 @@ pub struct Transport {
     clock: GameClock,
     generation: Option<u64>,
     accelerated: bool,
+    menu_pending: u16,
 }
 
 #[derive(Clone, Copy)]
@@ -107,6 +108,7 @@ impl Transport {
         }
         if changed {
             self.clock.discard_host_backlog();
+            self.menu_pending = 0;
         }
         Ok(Update {
             changed,
@@ -122,6 +124,7 @@ impl Transport {
         mut observed: impl FnMut(&Content) -> Result<()>,
     ) -> Result<Update> {
         self.audio(playback, false, output);
+        self.menu_pending = 0;
         let update = self.step(playback, buttons, output, &mut observed)?;
         playback.content.clear_feedback();
         self.audio(playback, false, output);
@@ -143,8 +146,14 @@ impl Transport {
             || playback.death.frozen() && playback.death.enabled() && playback.action.is_none()
         {
             self.clock.discard_host_backlog();
+            self.menu_pending = 0;
             playback.content.clear_feedback();
             return Ok(Update::default());
+        }
+        if playback.content.menu_controls() {
+            self.menu_pending |= input.buttons;
+        } else {
+            self.menu_pending = 0;
         }
         if speed == 0.0 {
             self.clock.discard_host_backlog();
@@ -157,7 +166,8 @@ impl Transport {
             if speed != 0.0 && self.clock.step().is_none() {
                 break;
             }
-            let update = self.step(playback, input.buttons, output, &mut observed)?;
+            let buttons = input.buttons | std::mem::take(&mut self.menu_pending);
+            let update = self.step(playback, buttons, output, &mut observed)?;
             if update.changed || update.quit {
                 // Discard accumulated time at scene boundaries; the next scene chooses its own rate.
                 let (_, accelerated) = input.pacing(&playback.content);

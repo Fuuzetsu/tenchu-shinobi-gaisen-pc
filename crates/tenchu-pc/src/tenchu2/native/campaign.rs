@@ -349,7 +349,6 @@ impl<S: ReadAt> Playback<S> {
                 ..Default::default()
             });
         }
-        let retry_on_confirm = matches!(self.content, Content::Failed | Content::Complete);
         let mut update = Update::default();
         let mut choose_mission = false;
         let destination = match &mut self.content {
@@ -568,8 +567,14 @@ impl<S: ReadAt> Playback<S> {
                 }
             }
             Content::Failed | Content::Complete
-                if matches!(action, Some(Action::Retry))
-                    || (retry_on_confirm && pressed & 0x6000 != 0) =>
+                if matches!(action, Some(Action::Quit)) || pressed & 0x4000 != 0 =>
+            {
+                choose_mission = self.from_menu;
+                update.quit = !choose_mission;
+                None
+            }
+            Content::Failed | Content::Complete
+                if matches!(action, Some(Action::Retry)) || pressed & (0x2000 | 8) != 0 =>
             {
                 Some(self.run.retry(&self.campaign)?)
             }

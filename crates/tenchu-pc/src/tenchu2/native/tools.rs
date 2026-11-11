@@ -32,6 +32,7 @@ pub struct Tools {
     focus_light: bool,
     relative: bool,
     player_orbit: bool,
+    menu_input: Option<bool>,
 }
 
 impl Tools {
@@ -140,17 +141,26 @@ impl Tools {
         &mut self,
         content: &mut Content,
         controls: &mut Controls,
-        settings: &crate::settings::Navigation,
+        settings: &crate::settings::Settings,
         active: bool,
     ) -> u16 {
-        self.relative = settings.camera_relative;
+        let menu = content.menu_controls();
+        if self
+            .menu_input
+            .replace(menu)
+            .is_some_and(|previous| previous != menu)
+        {
+            controls.clear();
+        }
+        let navigation = &settings.navigation;
+        self.relative = navigation.camera_relative;
         let enabled = active && self.debug.camera.is_none();
         if let Content::Gameplay(session) = content {
             session.navigation = None;
             if let Some(state) = &mut session.world.actors[session.world.player].actor.bleeding {
                 state.input(enabled && controls.bandage());
             }
-            if enabled && settings.camera_relative && !session.cinematic() {
+            if enabled && navigation.camera_relative && !session.cinematic() {
                 let target = self.debug.followed_inspection(&self.scene).or_else(|| {
                     super::inspection::actors(session).find(|a| a.id == session.world.player)
                 });
@@ -161,8 +171,8 @@ impl Tools {
                     yaw: self.orbit.yaw,
                     pitch: self.orbit.aim_pitch(),
                     sticks: controls.sticks(),
-                    deadzone: settings.deadzone,
-                    align_aim: settings.align_aim,
+                    deadzone: navigation.deadzone,
+                    align_aim: navigation.align_aim,
                 });
                 return (controls.relative_buttons()
                     & !(crate::controls::WALK | crate::controls::SHEATHE))
@@ -170,7 +180,13 @@ impl Tools {
             }
         }
         if enabled {
-            controls.buttons().swap_bytes()
+            if menu {
+                controls
+                    .japanese_menu_buttons(settings.circle_confirm)
+                    .swap_bytes()
+            } else {
+                controls.buttons().swap_bytes()
+            }
         } else {
             0
         }

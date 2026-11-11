@@ -343,8 +343,11 @@ fn native_bleeding_bandages_use_shared_controls_and_keep_retail_items() {
         let buttons = tools.input(
             &mut content,
             &mut controls,
-            &settings::Navigation {
-                camera_relative: relative,
+            &settings::Settings {
+                navigation: settings::Navigation {
+                    camera_relative: relative,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
             true,

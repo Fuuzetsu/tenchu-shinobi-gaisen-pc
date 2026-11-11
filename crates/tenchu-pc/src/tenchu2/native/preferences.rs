@@ -219,7 +219,7 @@ impl Menu {
         controls.clear();
     }
 
-    pub fn controller(&mut self, pressed: u16) {
+    pub fn controller(&mut self, pressed: u16, circle_confirm: bool) {
         if !self.panel.open {
             return;
         }
@@ -229,7 +229,7 @@ impl Menu {
         } else if pressed & input::R1 != 0 {
             Some(Navigation::Page(1))
         } else {
-            match controls::gamepad_command(pressed, false, false, false) {
+            match controls::gamepad_command(pressed, false, false, circle_confirm) {
                 Some(controls::Command::Menu(MenuAction::Replay)) => Some(Navigation::Reset),
                 Some(controls::Command::Menu(action)) => Some(Navigation::Action(action)),
                 _ => None,
@@ -919,18 +919,62 @@ mod tests {
             },
         );
         assert_eq!(menu.panel.page, settings::menu::PAGES.len() - 1);
-        menu.controller(tenchu_core::input::R1);
+        menu.controller(tenchu_core::input::R1, false);
         let _ = ctx.run(input(Vec::new()), |ctx| {
             menu.show(ctx, &mut state);
         });
         assert_eq!(menu.panel.page, 0);
         menu.panel.page = 10;
-        menu.controller(tenchu_core::input::CROSS);
+        menu.controller(tenchu_core::input::CROSS, false);
         let _ = ctx.run(input(Vec::new()), |ctx| {
             menu.show(ctx, &mut state);
         });
         assert!(!menu.panel.model_picker && menu.panel.open);
         assert_eq!(*state.settings, Settings::default());
         assert!(!menu.panel.notice.is_empty());
+        for circle_confirm in [false, true] {
+            state.settings.circle_confirm = circle_confirm;
+            menu.panel.page = 0;
+            menu.panel.touch_controls = true;
+            let back = if circle_confirm {
+                tenchu_core::input::CROSS
+            } else {
+                tenchu_core::input::CIRCLE
+            };
+            menu.controller(back, circle_confirm);
+            let _ = ctx.run(input(Vec::new()), |ctx| {
+                menu.show(ctx, &mut state);
+            });
+            assert!(!menu.panel.touch_controls && menu.panel.open);
+            menu.controller(back, circle_confirm);
+            let _ = ctx.run(input(Vec::new()), |ctx| {
+                menu.show(ctx, &mut state);
+            });
+            assert!(!menu.panel.open);
+            menu.panel.open = true;
+            menu.panel.row = settings::menu::rows(0, state.settings, &menu.tools.debug, false)
+                .iter()
+                .position(|row| row.item == Item::CircleConfirm)
+                .unwrap();
+            menu.controller(
+                if circle_confirm {
+                    tenchu_core::input::CIRCLE
+                } else {
+                    tenchu_core::input::CROSS
+                },
+                circle_confirm,
+            );
+            let _ = ctx.run(input(Vec::new()), |ctx| {
+                menu.show(ctx, &mut state);
+            });
+            assert_eq!(state.settings.circle_confirm, !circle_confirm);
+            let encoded = serde_json::to_vec(state.settings).unwrap();
+            assert_eq!(
+                serde_json::from_slice::<Settings>(&encoded)
+                    .unwrap()
+                    .circle_confirm,
+                !circle_confirm
+            );
+        }
     }
 }

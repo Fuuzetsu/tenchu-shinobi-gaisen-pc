@@ -13,35 +13,55 @@ pub(crate) struct Drawing {
     pub text: Vec<crate::fonts::Text>,
     tick: u32,
     sharp_text: bool,
+    circle_confirm: bool,
+    western_background: tenchu_assets::frontend::Image,
 }
 
 impl Drawing {
     pub fn new(selection: &Selection) -> Self {
-        let (frame, text) = build(selection, false);
+        let (frame, text) = build(selection, false, &selection.images.background);
+        // The equipment background embeds its face-button legend below the grid.
+        let western_background =
+            super::swap_menu_icons(&selection.images.background, [7, 55], 197, [16, 16]);
         Self {
             frame,
             text,
             tick: selection.state.tick,
             sharp_text: false,
+            circle_confirm: true,
+            western_background,
         }
     }
 
-    pub fn update(&mut self, selection: &Selection, sharp_text: bool) {
-        if self.tick != selection.state.tick || self.sharp_text != sharp_text {
-            (self.frame, self.text) = build(selection, sharp_text);
+    pub fn update(&mut self, selection: &Selection, sharp_text: bool, circle_confirm: bool) {
+        if self.tick != selection.state.tick
+            || self.sharp_text != sharp_text
+            || self.circle_confirm != circle_confirm
+        {
+            let background = if circle_confirm {
+                &selection.images.background
+            } else {
+                &self.western_background
+            };
+            (self.frame, self.text) = build(selection, sharp_text, background);
             self.tick = selection.state.tick;
             self.sharp_text = sharp_text;
+            self.circle_confirm = circle_confirm;
         }
     }
 }
 
-fn build(selection: &Selection, sharp_text: bool) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
+fn build(
+    selection: &Selection,
+    sharp_text: bool,
+    background: &tenchu_assets::frontend::Image,
+) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
     let state = &selection.state;
     let images = &selection.images;
     let mut canvas = Canvas::new(320);
     canvas.sharp_text = sharp_text;
     canvas.frame = Some(Frame::new([320, 240], Arc::default()));
-    canvas.sprite(Sprite::new(&images.background, 0.0, 0.0));
+    canvas.sprite(Sprite::new(background, 0.0, 0.0));
     for (i, image) in images.rings.iter().enumerate() {
         let [x, y] = selection.rules.cells[state.cursors[i]]
             .position
@@ -137,7 +157,12 @@ fn quantity(
     }
 }
 
-pub(super) fn controls(selection: &Selection, ctx: &egui::Context) -> Option<Action> {
+pub(super) fn controls(
+    selection: &Selection,
+    ctx: &egui::Context,
+    confirm: &str,
+    back: &str,
+) -> Option<Action> {
     let mut action = None;
     if selection.state.fade != 0 || selection.state.finished {
         return None;
@@ -166,10 +191,10 @@ pub(super) fn controls(selection: &Selection, ctx: &egui::Context) -> Option<Act
             ui.spacing_mut().interact_size.y = 36.0;
             egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    if ui.button("− Remove · Cross").clicked() {
+                    if ui.button(format!("− Remove · {back}")).clicked() {
                         action = Some(Action::Equipment(Edit::Remove));
                     }
-                    if ui.button("+ Add · Circle").clicked() {
+                    if ui.button(format!("+ Add · {confirm}")).clicked() {
                         action = Some(Action::Equipment(Edit::Add));
                     }
                     if ui.button("Ready · Start / Enter").clicked() {

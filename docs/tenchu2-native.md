@@ -25,7 +25,8 @@ The standalone equivalent is:
 
 Choose **Original JP mission selection…** in F6 for the original mission screen,
 with all 29 missions available across Rikimaru, Ayame and Tatsumaru. Left/right
-changes hero; up/down chooses a mission; Circle or Enter starts and Cross returns.
+changes hero; up/down chooses a mission; Enter or the configured menu-confirm
+button starts, and the other face button returns.
 The portraits, mission rows and arrows also accept mouse/touch input. Selection
 starts at the mission's opening scene. F1 can return to this screen during JP
 play; leaving equipment or results returns here when the mission began here.
@@ -49,6 +50,14 @@ JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
 desktop. A damaged or newer-format file reports an error instead of being reset.
 The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
+**General → Circle confirms in menus** applies to F1, mission selection,
+equipment, results and retry/death prompts in both launchers. Off uses
+South/Cross to confirm and East/Circle to go back; on reverses them. In equipment,
+confirm adds an item and back removes it; Start/Enter begins the mission.
+Controller menu positions ignore gameplay remapping, and touch controls follow
+the same convention. The source button legends and PC prompts update immediately.
+Enter/Esc retain their keyboard actions. Gameplay and cutscene skip buttons keep
+their original meanings, including Circle guard/dodge and R1 crouch in gameplay.
 **Visual assets → High-definition text** sharpens native health/Ki/item digits,
 equipment counts, results numbers and the disc's prologue/briefing calligraphy.
 Story dialogue already uses outline text. Modern High/Ultra enable this option;

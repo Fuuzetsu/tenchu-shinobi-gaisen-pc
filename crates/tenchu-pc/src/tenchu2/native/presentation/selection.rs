@@ -23,6 +23,7 @@ pub(crate) struct Drawing {
     pub text: Vec<crate::fonts::Text>,
     artwork: Arc<Artwork>,
     tick: u32,
+    circle_confirm: bool,
 }
 
 impl Drawing {
@@ -48,19 +49,21 @@ impl Drawing {
             }
         }
         let artwork = Arc::new(artwork);
-        let (frame, text) = build(selection, artwork.clone())?;
+        let (frame, text) = build(selection, artwork.clone(), true)?;
         Ok(Self {
             frame,
             text,
             artwork,
             tick: selection.state.tick,
+            circle_confirm: true,
         })
     }
 
-    pub fn update(&mut self, selection: &Selection) -> Result<()> {
-        if self.tick != selection.state.tick {
-            (self.frame, self.text) = build(selection, self.artwork.clone())?;
+    pub fn update(&mut self, selection: &Selection, circle_confirm: bool) -> Result<()> {
+        if self.tick != selection.state.tick || self.circle_confirm != circle_confirm {
+            (self.frame, self.text) = build(selection, self.artwork.clone(), circle_confirm)?;
             self.tick = selection.state.tick;
+            self.circle_confirm = circle_confirm;
         }
         Ok(())
     }
@@ -69,6 +72,7 @@ impl Drawing {
 fn build(
     selection: &Selection,
     artwork: Arc<Artwork>,
+    circle_confirm: bool,
 ) -> Result<(Arc<Frame>, Vec<crate::fonts::Text>)> {
     let state = &selection.state;
     let resources = &selection.resources;
@@ -145,6 +149,7 @@ fn build(
     let width = resources.buttons.size[0] + resources.labels.size[0] + 8;
     let mut x = -(width as f32);
     for (button, label) in [(1, 0), (2, 2)] {
+        let button = if circle_confirm { button } else { 3 - button };
         let w = resources.buttons.size[0] as f32;
         canvas.sprite(
             Sprite::new(
@@ -309,7 +314,12 @@ fn characters(selection: &Selection, canvas: &mut Canvas) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn controls(selection: &Selection, ctx: &egui::Context) -> Option<Action> {
+pub(super) fn controls(
+    selection: &Selection,
+    ctx: &egui::Context,
+    confirm: &str,
+    back: &str,
+) -> Option<Action> {
     if selection.state.fade != 0 || selection.state.finished {
         return None;
     }
@@ -381,10 +391,10 @@ pub(super) fn controls(selection: &Selection, ctx: &egui::Context) -> Option<Act
             ui.spacing_mut().interact_size.y = 36.0;
             egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    if ui.button("Start · Enter / Circle").clicked() {
+                    if ui.button(format!("Start · Enter / {confirm}")).clicked() {
                         action = Some(Action::Continue);
                     }
-                    if ui.button("Back · Cross").clicked() {
+                    if ui.button(format!("Back · {back}")).clicked() {
                         action = Some(Action::Quit);
                     }
                 });

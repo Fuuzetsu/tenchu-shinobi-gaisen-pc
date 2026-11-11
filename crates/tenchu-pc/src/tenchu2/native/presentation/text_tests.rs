@@ -4,6 +4,7 @@ use tenchu_core::tenchu2::{introduction::Frame, progress};
 
 fn state(content: &Content) -> Vec<u8> {
     match content {
+        Content::MissionSelection(value) => postcard::to_allocvec(&value.state),
         Content::Equipment(value) => postcard::to_allocvec(&value.state),
         Content::Results(value) => postcard::to_allocvec(&value.values),
         Content::Introduction(value) => postcard::to_allocvec(&value.state),
@@ -11,6 +12,136 @@ fn state(content: &Content) -> Vec<u8> {
         _ => unreachable!(),
     }
     .unwrap()
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC, TENCHU2_HUD_REVIEW and GPU; menu preference updates disc legends and PC prompts while paused without changing state"]
+fn native_menu_convention_updates_legends_and_restores_original_artwork() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU2_HUD_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut selection = native::selection::Selection::load(&disc, Default::default()).unwrap();
+    selection.state.fade = 0;
+    let mut equipment = native::equipment::Selection::load(
+        &disc,
+        0,
+        2,
+        progress::Stock {
+            items: [Some(5); 21],
+        },
+    )
+    .unwrap();
+    equipment.state.fade = 0;
+    let results = native::results::Results::load(
+        &disc,
+        progress::Results {
+            record: Default::default(),
+            summary: Default::default(),
+            best: Default::default(),
+            new_best: false,
+            unlocked_item: None,
+        },
+    )
+    .unwrap();
+    let cases = [
+        ("selection", Content::MissionSelection(Box::new(selection))),
+        ("equipment", Content::Equipment(Box::new(equipment))),
+        ("results", Content::Results(Box::new(results))),
+    ];
+    let instance = wgpu::Instance::new(&Default::default());
+    let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+    let size = [1280, 720];
+    let format = wgpu::TextureFormat::Rgba8Unorm;
+    let mut renderer =
+        pollster::block_on(Renderer::new(&adapter, format, size, &Default::default())).unwrap();
+    let mut settings = Settings::default();
+    settings.graphics.asset_pack = false;
+    renderer.configure(&settings.graphics);
+    for (name, content) in cases {
+        let before = state(&content);
+        let mut drawing = ContentDrawing::new(&content, &settings.graphics, &mut renderer).unwrap();
+        let mut captures = Vec::new();
+        for (step, circle_confirm) in [true, false, true].into_iter().enumerate() {
+            settings.circle_confirm = circle_confirm;
+            drawing
+                .update(&content, &mut renderer, &Default::default(), &settings)
+                .unwrap();
+            let ctx = egui::Context::default();
+            crate::fonts::install(&ctx);
+            let mut overlay = egui_wgpu::Renderer::new(&renderer.device, format, None, 1, false);
+            crate::frontend::gpu::register(&mut overlay, format);
+            for _ in 0..2 {
+                let frame = ctx.run(
+                    egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(size[0] as f32, size[1] as f32),
+                        )),
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        content.controls(ctx, circle_confirm);
+                    },
+                );
+                renderer.update_overlay_textures(
+                    &mut overlay,
+                    &mut Vec::new(),
+                    frame.textures_delta,
+                );
+            }
+            let path = output.join(format!("{name}-{step}-circle-{circle_confirm}.png"));
+            crate::capture::render_to_png(
+                &mut renderer,
+                size,
+                format,
+                &path,
+                |renderer, target| {
+                    drawing.draw(&content, target, renderer)?;
+                    let frame = ctx.run(
+                        egui::RawInput {
+                            screen_rect: Some(egui::Rect::from_min_size(
+                                egui::Pos2::ZERO,
+                                egui::vec2(size[0] as f32, size[1] as f32),
+                            )),
+                            ..Default::default()
+                        },
+                        |ctx| {
+                            drawing.paint(&content, ctx);
+                            content.controls(ctx, circle_confirm);
+                        },
+                    );
+                    let jobs = ctx.tessellate(frame.shapes, frame.pixels_per_point);
+                    renderer.update_overlay_textures(
+                        &mut overlay,
+                        &mut Vec::new(),
+                        frame.textures_delta,
+                    );
+                    renderer.draw_overlay(
+                        target,
+                        &mut overlay,
+                        &jobs,
+                        &egui_wgpu::ScreenDescriptor {
+                            size_in_pixels: size,
+                            pixels_per_point: 1.0,
+                        },
+                    );
+                    Ok(())
+                },
+            )
+            .unwrap();
+            captures.push(std::fs::read(path).unwrap());
+            assert!(
+                state(&content) == before,
+                "{name}: preference changed original menu state"
+            );
+        }
+        assert!(captures[0] != captures[1], "{name}: prompt did not change");
+        assert!(
+            captures[0] == captures[2],
+            "{name}: original prompts did not restore"
+        );
+    }
 }
 
 #[test]

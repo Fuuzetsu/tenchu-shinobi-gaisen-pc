@@ -18,6 +18,24 @@ mod selection;
 #[cfg(test)]
 mod text_tests;
 
+fn swap_menu_icons(
+    image: &tenchu_assets::frontend::Image,
+    x: [usize; 2],
+    y: usize,
+    size: [usize; 2],
+) -> tenchu_assets::frontend::Image {
+    let mut image = tenchu_assets::frontend::Image::from_pixels(image.size, image.pixels.clone());
+    for row in y..y + size[1] {
+        for column in 0..size[0] {
+            image.pixels.swap(
+                row * image.size[0] + x[0] + column,
+                row * image.size[0] + x[1] + column,
+            );
+        }
+    }
+    image
+}
+
 impl Update {
     pub fn play_audio(&self, output: &Output) {
         if self.stop_music {
@@ -63,6 +81,17 @@ impl Content {
                 self,
                 Self::Prologue(_) | Self::Introduction(_) | Self::Movie(_) | Self::Story { .. }
             )
+    }
+
+    pub fn menu_controls(&self) -> bool {
+        matches!(
+            self,
+            Self::MissionSelection(_)
+                | Self::Equipment(_)
+                | Self::Results(_)
+                | Self::Failed
+                | Self::Complete
+        )
     }
 
     pub fn resume_audio(&self, output: &Output) {
@@ -115,18 +144,15 @@ impl Content {
         }
     }
 
-    pub fn inspect(
-        &self,
-        ctx: &egui::Context,
-        run: &Run,
-        open: &mut bool,
-        paused: &mut bool,
-        error: Option<&str>,
-        photo_mode: bool,
-    ) -> Option<Action> {
+    pub fn controls(&self, ctx: &egui::Context, circle_confirm: bool) -> Option<Action> {
         let mut action = None;
+        let (confirm, back) = if circle_confirm {
+            ("Circle", "Cross")
+        } else {
+            ("Cross", "Circle")
+        };
         if let Self::MissionSelection(selection) = self {
-            action = selection::controls(selection, ctx);
+            action = selection::controls(selection, ctx, confirm, back);
         } else if let Self::Prologue(_) = self {
             egui::Area::new("jp-prologue-actions".into())
                 .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -8.0])
@@ -137,7 +163,7 @@ impl Content {
                     }
                 });
         } else if let Self::Equipment(selection) = self {
-            action = equipment::controls(selection, ctx);
+            action = equipment::controls(selection, ctx, confirm, back);
         } else if let Self::Results(results) = self {
             egui::Area::new("jp-results-actions".into())
                 .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -8.0])
@@ -151,13 +177,13 @@ impl Content {
                         }
                         ui.add_enabled_ui(results.exit.is_none(), |ui| {
                             ui.horizontal(|ui| {
-                                if ui.button("Continue · Enter").clicked() {
+                                if ui.button(format!("Continue · Enter / {confirm}")).clicked() {
                                     action = Some(Action::Continue);
                                 }
-                                if ui.button("Retry mission").clicked() {
+                                if ui.button("Retry mission · Start").clicked() {
                                     action = Some(Action::Retry);
                                 }
-                                if ui.button("Leave mission").clicked() {
+                                if ui.button(format!("Leave mission · {back}")).clicked() {
                                     action = Some(Action::Quit);
                                 }
                             });
@@ -174,15 +200,33 @@ impl Content {
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
-                if ui.button("Retry mission").clicked() {
+                if ui
+                    .button(format!("Retry mission · Enter / {confirm}"))
+                    .clicked()
+                {
                     action = Some(Action::Retry);
                 }
                 if ui.button("Mission selection").clicked() {
                     action = Some(Action::SelectMission);
                 }
+                if ui.button(format!("Back · {back}")).clicked() {
+                    action = Some(Action::Quit);
+                }
                 ui.label("Esc: leave preview");
             });
         }
+        action
+    }
+
+    pub fn inspect(
+        &self,
+        ctx: &egui::Context,
+        run: &Run,
+        open: &mut bool,
+        paused: &mut bool,
+        error: Option<&str>,
+        photo_mode: bool,
+    ) {
         if (!photo_mode && (*open || *paused)) || error.is_some() {
             egui::Area::new("native-status".into())
                 .anchor(egui::Align2::RIGHT_TOP, [-12.0, 36.0])
@@ -270,7 +314,6 @@ impl Content {
                 _ => { ui.label(format!("Mission {} · sequence {}", run.mission, run.sequence)); }
             }
         });
-        action
     }
 }
 
@@ -434,14 +477,14 @@ impl ContentDrawing {
     ) -> Result<()> {
         match (self, content) {
             (Self::MissionSelection(drawing), Content::MissionSelection(selection)) => {
-                drawing.update(selection)
+                drawing.update(selection, settings.circle_confirm)
             }
             (Self::Prologue(drawing), Content::Prologue(intro)) => {
                 drawing.update_prologue(intro, settings.sharp_text);
                 Ok(())
             }
             (Self::Equipment(drawing), Content::Equipment(selection)) => {
-                drawing.update(selection, settings.sharp_text);
+                drawing.update(selection, settings.sharp_text, settings.circle_confirm);
                 Ok(())
             }
             (Self::Gameplay(drawing), Content::Gameplay(session)) => {
@@ -460,7 +503,7 @@ impl ContentDrawing {
             }
             (Self::Movie { .. }, Content::Movie(_)) => Ok(()),
             (Self::Results(drawing), Content::Results(results)) => {
-                drawing.update(results, settings.sharp_text);
+                drawing.update(results, settings.sharp_text, settings.circle_confirm);
                 Ok(())
             }
             (Self::Empty, Content::Failed | Content::Complete) => Ok(()),

@@ -144,15 +144,16 @@ impl View {
                 if !menu.panel.open {
                     session.action = session
                         .content
-                        .inspect(
-                            ctx,
-                            &session.run,
-                            &mut menu.diagnostics,
-                            state.paused,
-                            error,
-                            menu.tools.debug.photo_mode,
-                        )
+                        .controls(ctx, state.settings.circle_confirm)
                         .or(session.action);
+                    session.content.inspect(
+                        ctx,
+                        &session.run,
+                        &mut menu.diagnostics,
+                        state.paused,
+                        error,
+                        menu.tools.debug.photo_mode,
+                    );
                 }
                 menu.cutscene_controls(ctx, session.content.cutscene());
                 if !menu.panel.open {
@@ -264,7 +265,7 @@ impl Application {
         let buttons = self.menu.tools.input(
             &mut self.session.content,
             &mut self.controls,
-            &self.settings.navigation,
+            &self.settings,
             self.focused && !self.menu.panel.open,
         );
         let mut view = self
@@ -301,7 +302,8 @@ impl Application {
         if polled.disconnected {
             self.paused = true;
         }
-        self.menu.controller(polled.menu_pressed);
+        self.menu
+            .controller(polled.menu_pressed, self.settings.circle_confirm);
         if !self.menu.panel.open
             && self
                 .session
@@ -320,7 +322,7 @@ impl Application {
             buttons: self.menu.tools.input(
                 &mut self.session.content,
                 &mut self.controls,
-                &self.settings.navigation,
+                &self.settings,
                 self.focused && !self.menu.panel.open,
             ),
             cutscene_speed: self.settings.cutscene_speed,
