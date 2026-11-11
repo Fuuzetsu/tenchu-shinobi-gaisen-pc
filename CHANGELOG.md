@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- **HD artwork v4** fixes the corrupt yellow/red strips on the original volume
+  menu's slider knobs. Update the separate artwork pack; existing compatible game
+  builds can use the correction.
+
 - Fix optional severed-wound bleeding in Kataoka's SA execution scene. The
   detached head and stump now bleed for the configured duration and leave ground
   stains in both English and Japanese endings. Original scene timing is retained.

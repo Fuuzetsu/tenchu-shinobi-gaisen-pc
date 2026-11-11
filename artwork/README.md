@@ -4,7 +4,7 @@ For installation and updates, start with the [player setup guide](../docs/instal
 
 The experimental Tenchu 2 sandbox has a [separate artwork download](tenchu2/README.md).
 
-The artwork is a separate download in this repository's **artwork-v3** GitHub
+The artwork is a separate download in this repository's **artwork-v4** GitHub
 Release: `tenchu-hd.tar.zst` plus `SHA256SUMS`. Keep the archive beside the game
 executable (beside the Linux launcher), or in your working directory. The game
 finds it automatically. Enable **F1 → Visual assets → Replacement artwork**;
@@ -62,6 +62,10 @@ Version 3 adds 275 terrain and ornament identities covering all 12 TRIAL themes
 and all 16 built-in missions. Related wall, roof and slope tiles were painted
 together and split into individual files. This is terrain coverage; unrelated
 TRIAL actor and effect variants can still use original artwork.
+
+Version 4 fixes the malformed original volume-menu slider markers. The knob
+keeps its disc bevel and cutout and uses clean wood from the existing pack.
+This artwork-only correction works with existing compatible game builds.
 
 582 identities use Rust recipes at menu/mission load. Mixed original colour,
 source cutouts, snow coverage and interface blend masks come from the user's

@@ -15920,10 +15920,28 @@
       ]
     },
     "063f1156aaa0233d2c679f82bcaf750c": {
-      "base": {
-        "file": "layers/f93ad934fbf3c403e62b905472674c48.png"
-      },
       "steps": [
+        {
+          "op": "resize",
+          "size": [
+            512,
+            512
+          ],
+          "filter": "lanczos"
+        },
+        {
+          "op": "blend",
+          "image": "textures/237a5cad019a2fe51b455b9efd1e53aa.png",
+          "weight": 0.4
+        },
+        {
+          "op": "resize",
+          "size": [
+            77,
+            128
+          ],
+          "filter": "lanczos"
+        },
         {
           "op": "alpha",
           "mask": {}

@@ -6314,8 +6314,9 @@
       "authoring_source": "menu-typeset/wood-slider-19.png"
     },
     "063f1156aaa0233d2c679f82bcaf750c": {
-      "method": "generated artwork with disc cutout",
-      "authoring_source": "menu-typeset/wood-slider-20.png"
+      "method": "disc knob relief blended with generated wood and disc cutout",
+      "authoring_source": "../m1-hd-source/wood.png",
+      "review": "Issue #106: replace the malformed border crop with clean existing wood; retain the original knob bevel and coverage."
     },
     "be9689b5c054309c503d45c2df04d9a1": {
       "method": "generated artwork with disc cutout",
@@ -13038,7 +13039,6 @@
     "layers/f6a8ebe230ee230653c27cfecb4e7e11.png": "63b45a0e0c8b2fcb78738eda2e0680fc6386d0aaaad4f9af9e56cde3379bbae5",
     "layers/f83577147eb7cd0a2800e8c923c372ba.png": "bd3632822169ee7f4743d10a49546df9ee67d8f25965717a4b9eaedaeb784812",
     "layers/f86404b552f1b45305de9f62673fe624.png": "c1ed624402e3bb69f05e1750ae45b4ea246f0cce0c833e12c0aa02ff36408905",
-    "layers/f93ad934fbf3c403e62b905472674c48.png": "e412aa907fff3c79c7d8f0a957ab5a0f51f94d62c7bcdf24f2f772557eecab3c",
     "layers/fa4016c9ecf0e6c0e90583ef0331b3a5.png": "febfbbbc6de9e70f193c5a502c36823c55920a7adfba11663dfa8927d4476337",
     "layers/fa589ac0a3fa26b3fda30494397d3105.png": "a6cb6f828f1bd650644f3196d0d336b3af847c12e2d1c7b4fbe9630c6c0a74b1",
     "layers/fb073433d6642724e0061230df023fa9.png": "c6df2dc54f937c7dfc5fec7eced0857a42bafbbaa4120a48f38dd100b43ab1e9",
@@ -14617,7 +14617,7 @@
     "layers/trial-e22b38b3586cebd77bb4ac0760079eb5.png": "47101b9117d5ceb4fe2ab064ff4718a0e2a3440d48dc0e9e66d80acf0d460fac",
     "layers/trial-fd7c7eeeee70b73f237a14fed9ffb4d9.png": "2b2f99c9fca058952fdbccc95be59096f9dede10978aaca7edd26c8209bc49f1"
   },
-  "manifest_sha256": "6fca59f01610fb0d2c9eb00329bd339be42181c16e78f34b705046c4f2c369e8",
+  "manifest_sha256": "4df1117e835c2d8af8ff3d38b24d81e6e5a1894a9df406d1614b3dd3c941f17f",
   "mission_ui": {
     "release": "artwork-v2",
     "font": "Tenchu UI Sans (Noto Sans JP subset), SIL OFL-1.1; see game third-party notices",

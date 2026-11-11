@@ -32,7 +32,7 @@ The game download and HD pack are separate. A graphics preset cannot supply a
 missing pack.
 
 1. Download **`tenchu-hd.tar.zst`** from
-   [artwork-v3](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3).
+   [artwork-v4](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v4).
    Keep this filename. **Do not extract it** for a normal installation.
 2. Put it next to the executable or Linux launcher, then start the game:
 

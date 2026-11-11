@@ -359,7 +359,7 @@ usable material. The completed local Mission 1 texture pack lives in
 These local assets are not included in Git.
 
 The campaign pack is a separate **`tenchu-hd.tar.zst`** download in the
-**artwork-v3** release. Place it beside the executable/launcher or in your working
+**artwork-v4** release. Place it beside the executable/launcher or in your working
 directory. For editing, unpack it into `assets/hd/` or set `TENCHU_ASSET_PACK`
 to another directory. The game caches archive extraction by content hash.
 It covers 2,112 texture identities across Missions 1–10, character/outfit families,
