@@ -53,6 +53,12 @@ impl Runtime {
                     "With Draw / sheathe enabled and the weapon stowed, any damaging melee or item/projectile hit is fatal. Replaces the damage multiplier; God mode and resurrection items retain their original rules."
                 }
             }
+        } else if self == Self::Tenchu2 && item == Item::Dismemberment {
+            "GAMEPLAY EDIT: adapts the optional Stealth Assassins head/forearm rules to T2's skeleton and terrain. Rear stealth kills roll at their first authored blood event; combat deaths roll during recovery. Excludes bosses and animals. Changes gameplay RNG; off by default."
+        } else if self == Self::Tenchu2 && item == Item::SeverStealth {
+            "Chance at the first source blood event in a rear stealth kill. Default 4%; other stealth-kill directions do not sever limbs."
+        } else if self == Self::Tenchu2 && item == Item::SaExecutionScene {
+            "Only applies to Rikimaru's Kataoka execution in imported T1 Mission 5. Uses the existing SA camera/head sequence with Gaisen dialogue and audio. Enable before the scene starts; native T2 campaign scenes are unchanged."
         } else if self == Self::Tenchu2 && item == Item::UnarmedAttacks {
             "GAMEPLAY EDIT: with Draw / sheathe enabled and weapons stowed, use the selected grounded punches/kicks and combos. Draw explicitly to use your armed moveset. Existing weapons, voices and source stealth kills are retained. Disabling lets the active attack finish. Off by default."
         } else if self == Self::Tenchu2 && item == Item::UnarmedStyle {
@@ -80,7 +86,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && matches!(item, Item::Rewind | Item::RewindHistory) {
             "Record up to 30 seconds of native T2 gameplay and 3D cutscenes, including imported T1 stages. Ctrl+F12 plays backward; the timeline seeks or plays forward, and F3 resumes from the selected state. Menus and movie playback are omitted. Export selected frames or import a T2 recording under General. History uses at most 96 MiB and may be shorter for large scenes."
         } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
-            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking/sheathing, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
+            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking/sheathing, dismemberment, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
         } else if self == Self::Tenchu2 && item == Item::Reset {
             "Reset all saved preferences and debug tools, including character overrides and simulation tweaks. Keeps the current mission, armour and inventory; does not undo actor edits, kills or campaign progress."
         } else {
@@ -153,6 +159,9 @@ impl Runtime {
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,
             Sheathing | UnarmedAttacks | UnarmedStyle | SheathedSpeed | SheathedVisibility
             | SheathedDamage | SheathedOneHit => None,
+            Dismemberment | HeadRest | SaExecutionScene | SeverStealth | SeverDive | SeverArms
+            | SeverSide | PlayerDismemberment | PlayerSeverHead | PlayerSeverArms
+            | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) | Reset | ResetTweaks => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient

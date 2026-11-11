@@ -72,6 +72,19 @@ both styles and require stowed blades to stay clean, then verify drawn attacks
 still coat blades. These fixtures do not establish a new ordinary-play route;
 source-default validation reuses the existing recordings.
 
+Native dismemberment fixtures cover heads and both forearms on all three heroes
+and a native guard, flat-floor support in three resting orientations, and exact
+midair checkpoint continuation. Actual front/rear paired kills check the native
+blood timing and direction exclusion. Disabled decisions preserve the rest of
+the world byte-for-byte; removed/revived corpses restore their hierarchy, and
+invalid detached checkpoints are rejected without mutation. The imported
+Rikimaru Mission5 execution is exercised on/off with all three native heroes.
+GPU fixtures use native weapon damage to cause death, then check native/imported/
+custom bodies, finite blood, redraw independence, Clear blood and presentation
+restore. Review captures use a plain receiver floor and live under
+`private/two-releases-20261110/native-dismemberment`. These are controlled optional
+feature tests, not additional ordinary-play or campaign coverage.
+
 ## Emulator comparisons
 
 The combat/item searches under `~/tenchu-searches/ayame-mission-*` provide

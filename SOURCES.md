@@ -1510,6 +1510,19 @@ data is included. Disc-backed validation compares the complete on/off caption
 and music schedules in English, French, Italian and Japanese, and resumes a
 serialized state during the execution.
 
+The optional native T2 adapter in `tenchu2/dismemberment.rs` reuses these settings,
+RNG rolls, part state, initial velocities, integer gravity/bounce order and
+resting poses. This is a port extension, not a native T2 mechanic. It maps head
+and forearms through the existing T2 bone mapping, uses the first authored rear
+kill blood event and frame5 of eligible fatal hit/recovery motions, and queries
+T2 terrain without changing the actor's terrain cursor. Mesh support retains
+SA's STEP_DOWN offset, height rejection and two-unit floor margin; wall deflection
+uses T2's native escape table. T2's original blood/audio cues remain in place;
+extra bleeding uses the shared presentation emitter. Imported T1 execution uses
+the existing Gaisen director and SA command adapter above. The three sibling
+research/decomp/viewer repositories were searched read-only; no additional code
+or asset data was imported.
+
 ## Optional Tatsumaru moves (2026-11-07)
 
 Local analysis of Tenchu 2 Europe SLES-02452, GAME.EXE SHA-256

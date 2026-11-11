@@ -166,8 +166,7 @@ T2's spatial blood-impact sound. Pause freezes them and fast-forward advances
 them without playing a backlog of sounds. Disabling drips or using Clear blood
 removes active wound bleeding; a model rebuild clears body-local emitters while
 already falling drops and ground stains remain. Modern High/Ultra enable wound
-drips; Original remains unchanged. Severed-part emitters remain unavailable in
-native JP.
+drips; Original remains unchanged.
 
 **Death gush style**, **Death gush strength** and **Death gush duration** use the
 shared optional upward bursts. A new death waits for its authored blood event,
@@ -351,6 +350,24 @@ voice remain selected. Airborne, wall and stealth attacks keep T2's rules. Style
 changes wait until the current attack finishes; disabling the option also lets
 that attack finish. Saves and rewind retain the active attack. Portable `.t2moves`
 import/export is still unavailable in native T2.
+
+**Stealth Assassins dismemberment** adapts the shared optional head/forearm rules
+to native T2 guards and civilians. Rear stealth kills roll at their first authored
+blood event; dive kills can remove heads, and ordinary combat deaths can remove
+forearms. Bosses and animals are excluded. **Player dismemberment** has separate
+chances. The controls change gameplay RNG and stay off by default; graphical
+presets do not enable them. Parts bounce against T2's terrain and retain their
+detached position through animation, saves and rewind. **Severed head resting
+pose** changes the next landing without consuming RNG.
+
+**Severed blood style**, strength and duration use the shared finite droplets
+and body-wound jets, including imported/custom player bodies. They advance on
+logic ticks and respect Clear blood. Modern High/Ultra already enable this
+presentation effect when a part exists; Original remains unchanged. The shared
+dismemberment demo covers Gaisen; native demo playback is still pending.
+**SA Kataoka execution scene** applies to Rikimaru's imported T1 Mission 5 story,
+with any native hero, and retains Gaisen's localized dialogue and audio. Enable
+it before the scene begins. Native T2 campaign scenes keep their source behavior.
 
 **F1 → Player model** uses the shared searchable gallery of Gaisen and connected
 T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**

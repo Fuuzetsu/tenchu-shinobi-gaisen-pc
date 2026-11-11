@@ -512,6 +512,67 @@ fn imported_director_runs_all_original_success_routes() {
 }
 
 #[test]
+#[ignore = "requires both discs; shared execution preference reaches imported Rikimaru Mission 5 and detaches Kataoka's head only when enabled, with every native hero"]
+fn native_dismemberment_imported_execution() {
+    use crate::tenchu2::native::{
+        campaign::{Content, Playback},
+        gaisen::Source,
+    };
+    for hero in 0..3 {
+        for enabled in [false, true] {
+            let source = Source::open(
+                std::env::var_os("TENCHU_DISC").unwrap().as_ref(),
+                10,
+                0,
+                1,
+                tenchu_assets::script::Language::English,
+            )
+            .unwrap();
+            let disc = crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref())
+                .unwrap();
+            let mut playback =
+                Playback::gaisen(disc, source, hero, 2, 17, Some([0; 21]), 6000).unwrap();
+            let mut settings = crate::settings::Settings::default();
+            settings.dismemberment.execution_scene = enabled;
+            playback.configure(&settings).unwrap();
+            let Content::Gameplay(session) = &mut playback.content else {
+                unreachable!()
+            };
+            assert_eq!(session.world.controls.dismemberment, settings.dismemberment);
+            let director = &mut session.gaisen.as_mut().unwrap().director;
+            let mut execution = false;
+            let mut severed = false;
+            for _ in 0..60 {
+                if director
+                    .update(&mut session.world, &session.assets, 0)
+                    .unwrap()
+                {
+                    execution |= director.source.cinematic.sequence == 100;
+                    let mut ticks = 0;
+                    while director.source.cinematic.active {
+                        if let Some(id) = director.source.roster.find(0x8f) {
+                            severed |= director.source.roster.get(id).severed.is_some();
+                        }
+                        director
+                            .update(&mut session.world, &session.assets, 0)
+                            .unwrap();
+                        ticks += 1;
+                        assert!(ticks < 6000);
+                    }
+                } else if director.source.events.outcome != SourceOutcome::Running {
+                    break;
+                } else {
+                    force_next(director, &mut session.world, &session.assets);
+                }
+            }
+            assert!(execution);
+            assert_eq!(severed, enabled, "hero {hero}");
+            assert_eq!(director.source.events.outcome, SourceOutcome::Complete);
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires both discs; verifies native gameplay isolation, death-state/attack gates, and mid-scene snapshot continuation"]
 fn imported_director_preserves_native_ticks_and_scene_continuations() {
     let game = GameAssets::open(

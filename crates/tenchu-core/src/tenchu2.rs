@@ -5,6 +5,7 @@ pub mod camera;
 pub mod campaign;
 pub mod collision;
 pub mod control;
+pub mod dismemberment;
 pub mod effects;
 pub mod environment;
 pub mod equipment;

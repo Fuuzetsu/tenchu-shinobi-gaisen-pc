@@ -28,6 +28,8 @@ mod gush;
 mod retail;
 mod runoff;
 mod severed;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use severed::Source as SeveredSource;
 mod storage;
 mod weapons;
 mod wounds;

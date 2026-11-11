@@ -1,4 +1,5 @@
 use super::*;
+mod dismemberment;
 use crate::{
     settings::{Blood, Motion, WeatherMode},
     tenchu2::native::{Session, story::Story},

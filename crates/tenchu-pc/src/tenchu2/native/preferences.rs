@@ -29,19 +29,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
             variation: g.models.variation,
             ..Default::default()
         },
-        blood: crate::settings::Blood {
-            hit: g.blood.hit,
-            ground: g.blood.ground,
-            death: g.blood.death,
-            player_death: g.blood.player_death,
-            death_size: g.blood.death_size,
-            retain_original: g.blood.retain_original,
-            conform_retained: g.blood.conform_retained,
-            amount: g.blood.amount,
-            marks: g.blood.marks,
-            runoff: g.blood.runoff,
-            ..Default::default()
-        },
+        blood: g.blood,
         weapon_reflections: g.weapon_reflections,
         motion: g.motion.clone(),
         interpolation: g.interpolation,
@@ -498,6 +486,11 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::HeadRest => {
+                            state.settings.dismemberment.head_rest =
+                                Settings::default().dismemberment.head_rest;
+                            Ok(())
+                        }
                         Item::Sheathing => {
                             state.settings.sheathing.enabled =
                                 Settings::default().sheathing.enabled;
@@ -561,6 +554,16 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::HeadRest => {
+                            let choices = tenchu_core::game::dismemberment::HeadRest::ALL;
+                            let at = choices
+                                .iter()
+                                .position(|&p| p == state.settings.dismemberment.head_rest)
+                                .unwrap();
+                            state.settings.dismemberment.head_rest = choices
+                                [(at as i32 + delta).rem_euclid(choices.len() as i32) as usize];
+                            Ok(())
+                        }
                         Item::Sheathing => {
                             state.settings.sheathing.enabled = !state.settings.sheathing.enabled;
                             Ok(())
@@ -617,6 +620,7 @@ impl Menu {
                                 state.settings.circle_action = defaults.circle_action;
                                 state.settings.walking = defaults.walking;
                                 state.settings.sheathing = defaults.sheathing;
+                                state.settings.dismemberment = defaults.dismemberment;
                                 state.settings.bleeding = defaults.bleeding;
                                 state.settings.sight_percent = defaults.sight_percent;
                             }
@@ -895,6 +899,81 @@ mod tests {
         assert!(
             postcard::to_allocvec(&session.world).unwrap()
                 == postcard::to_allocvec(&expected).unwrap()
+        );
+    }
+
+    #[test]
+    fn native_dismemberment_menu_preserves_renderer_preferences() {
+        let mut menu = Menu::default();
+        let mut settings = Settings::default();
+        let mut paused = true;
+        let mut controls = Controls::default();
+        let mut presets = presets();
+        let mut state = State {
+            settings: &mut settings,
+            paused: &mut paused,
+            controls: &mut controls,
+            presets: &mut presets,
+            lights: 0,
+            samples: &[1],
+            models: None,
+        };
+        let items = [
+            Item::Dismemberment,
+            Item::PlayerDismemberment,
+            Item::HeadRest,
+            Item::SaExecutionScene,
+            Item::SeverStealth,
+            Item::SeverDive,
+            Item::SeverArms,
+            Item::SeverSide,
+            Item::PlayerSeverHead,
+            Item::PlayerSeverArms,
+            Item::PlayerSeverSide,
+            Item::SeveredBlood,
+            Item::SeveredStyle,
+            Item::SeveredSeconds,
+        ];
+        let mut action = Action::default();
+        for item in items {
+            assert!(Runtime::Tenchu2.unavailable(item).is_none());
+            let before = serde_json::to_value(&*state.settings).unwrap();
+            menu.apply(Edit::Change(item, 1), &mut state, &mut action);
+            assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+            assert_ne!(
+                before,
+                serde_json::to_value(&*state.settings).unwrap(),
+                "menu edit had no effect"
+            );
+        }
+        assert_eq!(
+            graphics(state.settings).blood,
+            state.settings.rendering().graphics.blood
+        );
+        state.settings.graphics.blood.model_stains = true;
+        state.settings.graphics.blood.drips = crate::settings::BloodStyle::OriginalHd;
+        state.settings.graphics.blood.weapons = true;
+        state.settings.graphics.blood.death_gush = 175;
+        assert_eq!(
+            graphics(state.settings).blood,
+            state.settings.rendering().graphics.blood
+        );
+        for item in items {
+            menu.apply(Edit::Reset(item), &mut state, &mut action);
+            assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+        }
+        assert_eq!(state.settings.dismemberment, Default::default());
+        assert_eq!(
+            state.settings.graphics.blood.severed,
+            Settings::default().graphics.blood.severed
+        );
+        assert_eq!(
+            state.settings.graphics.blood.severed_style,
+            Settings::default().graphics.blood.severed_style
+        );
+        assert_eq!(
+            state.settings.graphics.blood.severed_seconds,
+            Settings::default().graphics.blood.severed_seconds
         );
     }
 

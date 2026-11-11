@@ -83,6 +83,10 @@ impl<S: ReadAt> Playback<S> {
             self.run.carry.bleeding = None;
         }
         if let Content::Gameplay(session) = &mut self.content {
+            session.world.controls.dismemberment = settings.dismemberment;
+            if let Some(scene) = &mut session.gaisen {
+                scene.director.source.combat.dismemberment = settings.dismemberment;
+            }
             session.world.set_bleeding(self.bleeding);
             session.configure_walking(&self.disc, settings.walking.enabled)?;
             session.configure_tatsumaru(&self.disc, settings.sheathing)?;

@@ -189,6 +189,7 @@ impl World {
                 State::Special | State::Attack | State::Hurt | State::Dead
             );
         let playing = actor.motion.loops >= 0;
+        actor.motion.mask &= actor.attached_mask();
         actor
             .motion
             .advance(&assets.resources.clips, &assets.spline, update_pose)?;

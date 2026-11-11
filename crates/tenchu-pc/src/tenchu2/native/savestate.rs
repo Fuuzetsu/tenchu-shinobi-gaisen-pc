@@ -205,6 +205,7 @@ fn restore_snapshot(
     settings.restore_playback_preferences(&saved.preferences);
     settings.walking = saved.preferences.walking;
     settings.sheathing = saved.preferences.sheathing;
+    settings.dismemberment = saved.preferences.dismemberment;
     if recorded_visuals {
         settings.graphics = saved.preferences.graphics;
         settings.retro = saved.preferences.retro;

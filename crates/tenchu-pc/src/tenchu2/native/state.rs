@@ -292,6 +292,35 @@ impl Owned {
             {
                 return Err("Invalid native T2 actor rig or motion".into());
             }
+            if let Some(death) = &actor.dismemberment {
+                if death.pending.is_some() && death.part.is_some() {
+                    return Err("Invalid native T2 severing decision".into());
+                }
+                if let Some(part) = &death.part {
+                    let parent = crate::visuals::appearance::parents(&model.parts)
+                        .get(part.index)
+                        .copied()
+                        .flatten()
+                        .and_then(|p| instance.rig.joints.get(p).copied());
+                    if !matches!(part.index, 2 | 4 | 10)
+                        || actor.health != 0
+                        || parent.is_none()
+                        || part.parent != parent
+                        || instance
+                            .rig
+                            .joints
+                            .get(part.index)
+                            .is_none_or(|&joint| world.scene.models[joint].parent != Some(0))
+                    {
+                        return Err("Invalid native T2 detached part".into());
+                    }
+                }
+            }
+        }
+        let mut dismemberment = world.controls.dismemberment;
+        dismemberment.validate();
+        if dismemberment != world.controls.dismemberment {
+            return Err("Invalid native T2 dismemberment settings".into());
         }
         self.models.validate_state(world, assets)?;
         Ok(())

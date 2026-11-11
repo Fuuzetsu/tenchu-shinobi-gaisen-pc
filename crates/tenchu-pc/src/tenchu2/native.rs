@@ -32,6 +32,8 @@ pub(crate) mod campaign;
 mod contact;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod diagnostics;
+#[cfg(test)]
+mod dismemberment_tests;
 #[cfg(not(target_arch = "wasm32"))]
 mod equipment;
 #[cfg(test)]

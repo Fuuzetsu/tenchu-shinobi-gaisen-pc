@@ -18,6 +18,70 @@ impl Drawing {
 }
 
 impl Models {
+    pub(super) fn severed_sources(
+        &self,
+        session: &super::super::Session,
+    ) -> Result<Vec<crate::visuals::blood::SeveredSource>> {
+        let world = &session.world;
+        let assets = &session.assets;
+        let mut sources = Vec::new();
+        for (owner, (agent, instance)) in world.actors.iter().zip(&world.instances).enumerate() {
+            let actor = &agent.actor;
+            let Some(severed) = actor.severed().filter(|_| actor.health == 0) else {
+                continue;
+            };
+            let definition = assets
+                .resources
+                .registry
+                .actor(actor.definition_kind())
+                .ok_or("Missing severed body")?;
+            let original = &assets.models[&definition.model].parts[severed.index];
+            let displayed =
+                if let Some(custom) = self.player.as_ref().filter(|_| owner == world.player) {
+                    let index = tenchu_assets::tenchu2::BONES
+                        .iter()
+                        .position(|&b| b == severed.index)
+                        .ok_or("Unknown severed native bone")?;
+                    &custom.appearance.parts[index]
+                } else {
+                    original
+                };
+            let mut center = glam::Vec3::ZERO;
+            let mut count = 0;
+            for vertex in displayed.geometry.iter().flat_map(|g| &g.vertices) {
+                center += glam::Vec3::from(vertex.map(f32::from));
+                count += 1;
+            }
+            if count != 0 {
+                center /= count as f32;
+            }
+            let key =
+                |joint| interpolation::part(instance.rig.root, joint, actor.definition_kind());
+            sources.push(crate::visuals::blood::SeveredSource {
+                root: instance.rig.root,
+                part: key(instance.rig.joints[severed.index]),
+                direction: center.try_normalize().unwrap_or(-glam::Vec3::Y),
+                parent: severed.parent.map(|parent| {
+                    (
+                        key(parent),
+                        Matrix {
+                            rotation: assets
+                                .resources
+                                .math
+                                .rotate_yxz(actor.motion.pose.rotation[severed.index]),
+                            translation: Position::from_fn(|axis| {
+                                actor.motion.pose.translation[severed.index][axis]
+                                    + i32::from(displayed.position[axis])
+                                    - i32::from(original.position[axis])
+                            }),
+                        },
+                    )
+                }),
+            });
+        }
+        Ok(sources)
+    }
+
     pub(super) fn motion_inputs(
         &self,
         session: &super::super::Session,
@@ -96,11 +160,35 @@ impl Models {
                 })
                 .collect::<Result<Vec<_>>>()?;
             let custom = self.player.as_ref().filter(|_| owner == world.player);
-            let custom_pose = custom
-                .map(|player| player.pose(&matrices, scene.models[instance.rig.joints[0]].local));
+            let detached = actor.severed().map(|p| p.index);
+            let custom_pose = custom.map(|player| {
+                player.pose_detached(
+                    &matrices,
+                    scene.models[instance.rig.joints[0]].local,
+                    detached,
+                )
+            });
             if let (Some(player), Some(target)) = (custom, &custom_pose) {
                 let appearance = &player.appearance;
-                appearance.meshes.pose_skin(target, None);
+                let attached = actor.severed().and_then(|severed| {
+                    let bone = tenchu_assets::tenchu2::BONES
+                        .iter()
+                        .position(|&b| b == severed.index)?;
+                    let parent = crate::visuals::appearance::parents(&appearance.parts)[bone]?;
+                    let local = Matrix {
+                        rotation: assets
+                            .resources
+                            .math
+                            .rotate_yxz(actor.motion.pose.rotation[severed.index]),
+                        translation: Position::from_fn(|axis| {
+                            actor.motion.pose.translation[severed.index][axis]
+                                + i32::from(appearance.parts[bone].position[axis])
+                                - i32::from(body.parts[severed.index].position[axis])
+                        }),
+                    };
+                    Some((bone, target[parent].compose(&local)))
+                });
+                appearance.meshes.pose_skin(target, attached);
                 for (index, (part, &matrix)) in appearance.parts.iter().zip(target).enumerate() {
                     visit(
                         interpolation::part(
@@ -118,7 +206,22 @@ impl Models {
                 }
                 player_hand = Some(custom::Player::attach(matrices[11], 11, &matrices, target));
             } else {
-                meshes.pose_skin(&matrices, None);
+                let attached = actor.severed().and_then(|severed| {
+                    let parent = instance
+                        .rig
+                        .joints
+                        .iter()
+                        .position(|&joint| Some(joint) == severed.parent)?;
+                    let local = Matrix {
+                        rotation: assets
+                            .resources
+                            .math
+                            .rotate_yxz(actor.motion.pose.rotation[severed.index]),
+                        translation: actor.motion.pose.translation[severed.index],
+                    };
+                    Some((severed.index, matrices[parent].compose(&local)))
+                });
+                meshes.pose_skin(&matrices, attached);
                 for (index, (part, &matrix)) in body.parts.iter().zip(&matrices).enumerate() {
                     visit(
                         interpolation::part(

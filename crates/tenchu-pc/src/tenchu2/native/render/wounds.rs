@@ -41,6 +41,7 @@ impl Wounds {
         if !settings.wounds()
             && !settings.gush(false)
             && !(settings.weapons && settings.amount != 0)
+            && !settings.severed_bleeding()
         {
             self.clear();
             self.health.clear();
@@ -140,11 +141,17 @@ impl Wounds {
         } else {
             Default::default()
         };
+        let severed = models.severed_sources(session)?;
         let needed: BTreeSet<_> = blood
             .wound_parts()
             .chain(blood.gush_parts())
             .chain(blood.weapon_parts())
             .chain(weapons.hits.iter().copied())
+            .chain(
+                severed
+                    .iter()
+                    .flat_map(crate::visuals::blood::SeveredSource::parts),
+            )
             .collect();
         let mut transforms = BTreeMap::new();
         let mut bodies: BTreeMap<usize, Vec<BodyPart>> = BTreeMap::new();
@@ -221,6 +228,7 @@ impl Wounds {
             blood.wound_body(parts, position, approach, settings);
         }
         blood.advance_weapons(u64::from(world.tick), &weapons.live, &transforms);
+        blood.emit_severed_sources(&severed, &transforms, settings);
         self.advance(session, environment, &transforms);
         Ok(())
     }

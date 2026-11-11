@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports optional enemy/player head and forearm severing through
+  F1's dismemberment controls, including chances, side preference and resting
+  pose. Rear kills use T2's authored blood timing; detached parts retain their
+  state through saves and rewind. Native, imported and custom player bodies
+  use the shared finite severed-wound bleeding. The SA Kataoka execution option
+  also works in imported T1 Mission 5. Gameplay changes stay off by default.
+- Fix native T2 rendering discarding the selected body-stain, wound-drip,
+  weapon-blood and extra death-gush settings.
+
 - Native T2 supports **Unarmed attacks while sheathed** and **Unarmed style**.
   Tatsumaru uses the running JP disc's punches, kicks, hit frames and striking
   limbs; Onikage uses the connected Gaisen disc. Grounded attacks and combos

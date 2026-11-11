@@ -229,6 +229,8 @@ fn native_timeline_recordings_restore_metadata_and_graphics_atomically() {
     host.settings.sheathing.enabled = true;
     host.settings.sheathing.unarmed = true;
     host.settings.sheathing.unarmed_style = tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru;
+    host.settings.dismemberment.enabled = true;
+    host.settings.dismemberment.player = true;
     host.playback.configure(&host.settings).unwrap();
     let camera = crate::debug::camera::Camera {
         position: glam::Vec3::new(500.0, -2000.0, 1200.0),

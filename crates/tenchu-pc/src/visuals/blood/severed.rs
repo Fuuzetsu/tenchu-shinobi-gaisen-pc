@@ -1,5 +1,18 @@
 use super::*;
 
+pub(crate) struct Source {
+    pub root: usize,
+    pub part: Part,
+    pub direction: Vec3,
+    pub parent: Option<(Part, Matrix)>,
+}
+
+impl Source {
+    pub fn parts(&self) -> impl Iterator<Item = Part> + '_ {
+        std::iter::once(self.part).chain(self.parent.map(|(part, _)| part))
+    }
+}
+
 impl Blood {
     pub(super) fn emit_severed(
         &mut self,
@@ -11,23 +24,17 @@ impl Blood {
         if !settings.severed_bleeding() {
             return;
         }
-        self.severed.retain(|root, _| {
-            game.roster.actors.iter().flatten().any(|actor| {
-                actor.root_model == *root && actor.health == 0 && actor.severed.is_some()
-            })
-        });
-        let duration = settings.severed_seconds * 30;
-        let strength = f32::from(settings.severed) / 100.0;
-        let amount = f32::from(settings.amount) / 100.0;
-        let mut emitters = Vec::new();
-        for actor in game.roster.actors.iter().flatten() {
+        let mut sources = Vec::new();
+        for actor in game
+            .roster
+            .actors
+            .iter()
+            .flatten()
+            .filter(|a| a.health == 0)
+        {
             let Some(severed) = &actor.severed else {
                 continue;
             };
-            let age = self.severed.entry(actor.root_model).or_default();
-            if *age >= duration || actor.health != 0 {
-                continue;
-            }
             let key = |model| Part::Actor {
                 root: actor.root_model,
                 model,
@@ -44,38 +51,65 @@ impl Blood {
             if count != 0 {
                 center /= count as f32;
             }
-            let direction = center.try_normalize().unwrap_or(-Vec3::Y);
+            sources.push(Source {
+                root: actor.root_model,
+                part: key(actor.parts[severed.index]),
+                direction: center.try_normalize().unwrap_or(-Vec3::Y),
+                parent: severed.parent.map(|parent| {
+                    (
+                        key(parent),
+                        Matrix {
+                            translation: actor.motion.pose.translation[severed.index],
+                            rotation: game
+                                .math
+                                .rotate_yxz(actor.motion.pose.rotation[severed.index]),
+                        },
+                    )
+                }),
+            });
+        }
+        let needed = sources.iter().flat_map(Source::parts).collect();
+        let matrices = transforms(game, models, frame, true, &needed);
+        self.emit_severed_sources(&sources, &matrices, settings);
+    }
+
+    pub(crate) fn emit_severed_sources(
+        &mut self,
+        sources: &[Source],
+        matrices: &BTreeMap<Part, Matrix>,
+        settings: &settings::Blood,
+    ) {
+        if !settings.severed_bleeding() {
+            return;
+        }
+        self.severed
+            .retain(|root, _| sources.iter().any(|s| s.root == *root));
+        let duration = settings.severed_seconds * 30;
+        let strength = f32::from(settings.severed) / 100.0;
+        let amount = f32::from(settings.amount) / 100.0;
+        let mut emitters = Vec::new();
+        for source in sources {
+            let age = self.severed.entry(source.root).or_default();
+            if *age >= duration {
+                continue;
+            }
             let pressure = (1.0 - f32::from(*age) / f32::from(duration)).sqrt();
             if age.is_multiple_of(5) {
-                emitters.push((
-                    key(actor.parts[severed.index]),
-                    Vec3::ZERO,
-                    -direction,
-                    pressure,
-                    false,
-                ));
+                emitters.push((source.part, Vec3::ZERO, -source.direction, pressure, false));
             }
             if *age % 12 < 3
-                && let Some(parent) = severed.parent
+                && let Some((parent, local)) = source.parent
             {
-                let local = Matrix {
-                    translation: actor.motion.pose.translation[severed.index],
-                    rotation: game
-                        .math
-                        .rotate_yxz(actor.motion.pose.rotation[severed.index]),
-                };
                 emitters.push((
-                    key(parent),
+                    parent,
                     translation(local),
-                    rotation(local) * direction,
+                    rotation(local) * source.direction,
                     pressure,
                     true,
                 ));
             }
             *age += 1;
         }
-        let needed = emitters.iter().map(|&(part, ..)| part).collect();
-        let matrices = transforms(game, models, frame, true, &needed);
         let mut remaining = emitters.len();
         for (part, local, normal, pressure, body) in emitters {
             let budget = DROP_LIMIT

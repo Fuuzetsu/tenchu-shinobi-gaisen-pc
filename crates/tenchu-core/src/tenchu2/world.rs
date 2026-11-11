@@ -371,7 +371,7 @@ impl World {
             &mut self.scene,
             &rig.joints,
             &assets.resources.math,
-            u32::MAX,
+            actor.attached_mask(),
             rig.joints.len(),
         );
     }

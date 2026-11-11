@@ -44,6 +44,7 @@ pub struct Controls {
     #[serde(default)]
     pub hud: crate::tenchu2::hud::Hud,
     pub walking: Option<Walking>,
+    pub dismemberment: crate::game::dismemberment::Settings,
 }
 
 impl Default for Controls {
@@ -65,6 +66,7 @@ impl Default for Controls {
             transition_ready: true,
             hud: Default::default(),
             walking: None,
+            dismemberment: Default::default(),
         }
     }
 }
@@ -187,6 +189,7 @@ impl World {
         assets: &mut Assets,
         events: &mut impl Events,
     ) -> Result<()> {
+        let severing = self.severing_frame(index, &assets.resources);
         let (before, tail) = self.actors.split_at_mut(index);
         let (agent, after) = tail.split_first_mut().ok_or("Missing Tenchu 2 actor")?;
         let sheathing_requested = agent.actor.take_sheathing_request()
@@ -260,7 +263,7 @@ impl World {
         self.terrain_options = driver.terrain.options;
         driver.context.camera.mode = input.camera;
         driver.context.sync_contacts(&agent.actor);
-        Ok(())
+        self.update_dismemberment(index, assets, severing)
     }
 }
 

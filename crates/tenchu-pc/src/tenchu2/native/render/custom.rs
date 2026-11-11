@@ -51,9 +51,22 @@ impl Player {
     }
 
     pub fn pose(&self, native: &[Matrix], root_local: Matrix) -> Vec<Matrix> {
+        self.pose_detached(native, root_local, None)
+    }
+
+    pub fn pose_detached(
+        &self,
+        native: &[Matrix],
+        root_local: Matrix,
+        detached: Option<usize>,
+    ) -> Vec<Matrix> {
         let matrices = BONES.map(|b| native[b]);
-        self.appearance
-            .retarget(&self.source, &matrices, root_local, None)
+        self.appearance.retarget(
+            &self.source,
+            &matrices,
+            root_local,
+            detached.and_then(|b| BONES.iter().position(|&n| n == b)),
+        )
     }
 
     pub fn attach(matrix: Matrix, bone: usize, native: &[Matrix], target: &[Matrix]) -> Matrix {

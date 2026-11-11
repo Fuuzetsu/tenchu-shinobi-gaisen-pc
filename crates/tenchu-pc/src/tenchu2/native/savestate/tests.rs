@@ -60,6 +60,9 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         settings.sheathing.speed = 125;
         settings.sheathing.visibility = 50;
         settings.sheathing.damage = 200;
+        settings.dismemberment.enabled = true;
+        settings.dismemberment.player = true;
+        settings.dismemberment.stealth_head = 75;
         original.configure(&settings).unwrap();
         for _ in 0..30 {
             original.step(0).unwrap();
@@ -109,6 +112,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         assert_eq!(current.bleeding, settings.bleeding);
         assert_eq!(current.walking, settings.walking);
         assert_eq!(current.sheathing, settings.sheathing);
+        assert_eq!(current.dismemberment, settings.dismemberment);
         assert!(
             current.keep_enemies_active && current.wait_after_death && current.live_death_scene
         );

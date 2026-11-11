@@ -191,6 +191,7 @@ impl World {
             );
         }
         self.set_script_visible(index, false, assets)?;
+        self.restore_dismemberment(index);
         let actor = &mut self.actors[index].actor;
         actor.health = -1;
         actor.hit = None;

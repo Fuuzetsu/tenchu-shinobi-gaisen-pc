@@ -429,6 +429,7 @@ impl SceneDrawing {
             || graphics.blood.custom_death(true)
             || graphics.blood.wounds()
             || graphics.blood.gush(false)
+            || graphics.blood.severed_bleeding()
             || graphics.blood.weapons && graphics.blood.amount != 0
             || ((graphics.lighting.enabled || sky_light) && graphics.lighting.shadows)
     }

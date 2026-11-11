@@ -400,6 +400,9 @@ impl Director {
                 .and_then(Option::as_ref)
                 .ok_or("Gaisen cinematic removed a bound actor")?;
             let visible = source.health >= 0 && source.attribute & ATTR_SUSPEND == 0;
+            if source.health != 0 {
+                world.restore_dismemberment(index);
+            }
             let actor = &mut world.actors[index].actor;
             if source.health == 0 && actor.health > 0 {
                 super::controls::credit(

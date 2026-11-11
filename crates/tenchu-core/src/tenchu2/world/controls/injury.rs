@@ -230,6 +230,12 @@ impl<E: Events> Driver<'_, E> {
         {
             c.events.melee_hit(owner);
         }
+        if health > 0 && actor.health == 0 && !resurrect && *c.script == 0 {
+            let dive = owner
+                .and_then(|id| c.others.get(id, actor))
+                .is_some_and(|a| matches!(a.motion.action, 0x911 | 0x912));
+            actor.note_combat_death(c.controls.dismemberment, input.player, dive);
+        }
         if !resurrect
             && input.player
             && actor.health > 0
