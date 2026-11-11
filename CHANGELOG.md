@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix limbs disappearing behind the wooden backdrop in T2's mission selector.
+  Character previews now use the original model position and camera projection.
+
 - **HD artwork v4** fixes the corrupt yellow/red strips on the original volume
   menu's slider knobs. Update the separate artwork pack; existing compatible game
   builds can use the correction.

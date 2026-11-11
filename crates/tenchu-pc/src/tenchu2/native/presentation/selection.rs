@@ -208,6 +208,9 @@ fn panel(selection: &Selection, canvas: &mut Canvas) {
 
 type Triangle = (f32, usize, [Vertex; 3], Option<Texture>, Blend);
 
+#[cfg(test)]
+mod tests;
+
 fn characters(selection: &Selection, canvas: &mut Canvas) -> Result<()> {
     let mut triangles: Vec<Triangle> = Vec::new();
     let state = &selection.state;
@@ -220,7 +223,8 @@ fn characters(selection: &Selection, canvas: &mut Canvas) -> Result<()> {
         let pose = selection.motions[hero].pose.matrices(
             &selection.math,
             Matrix {
-                translation: Position::new(0, 1200, 5500),
+                // MENU.EXE's +0x1c/+0x20 stores are root X/Y; the camera is at Z=-5000.
+                translation: Position::new(1200, 500, 5000),
                 rotation: selection.math.rotate_yxz([50, state.yaw[hero], 0]),
             },
         );
@@ -249,8 +253,8 @@ fn characters(selection: &Selection, canvas: &mut Canvas) -> Result<()> {
                         depth += z;
                         corners.push(Vertex {
                             position: Vec2::new(
-                                242.0 + point.x as f32 * 300.0 / z,
-                                80.0 + point.y as f32 * 300.0 / z,
+                                160.0 + point.x as f32 * 300.0 / z,
+                                120.0 + point.y as f32 * 300.0 / z,
                             ),
                             uv: Vec2::from_array(corner.uv.map(f32::from)),
                             color: Vec3::from_array(corner.color.map(f32::from)),
