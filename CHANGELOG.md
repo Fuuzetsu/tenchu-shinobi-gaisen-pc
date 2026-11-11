@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports controller vibration in both launchers, including imported
+  T1 stages. Original motor strengths and durations follow game updates, with
+  global and per-action intensity controls in F1. Added native actions cover
+  carrying bodies, drowning, scenery contacts and enemy detection. Pausing,
+  losing focus, leaving play and manual frame stepping stop the motors. Actions
+  for which T2 has no original vibration request explain that in the menu.
+
 - Native T2's **Place new actor** offers its source actor catalog without needing
   a Gaisen disc or model gallery. Guards, bosses, civilians, animals and scene
   variants retain their native rigs, weapons, animations, AI and voices, including

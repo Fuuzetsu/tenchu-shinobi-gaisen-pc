@@ -216,6 +216,7 @@ pub struct Controls {
     gilrs: Option<Gilrs>,
     pad: Pad,
     rumble: Option<gilrs::ff::Effect>,
+    native_rumble: Option<(Option<usize>, [u16; 2])>,
     pub(super) vibration_error: Option<String>,
 }
 
@@ -478,6 +479,7 @@ impl Controls {
                 if self.pad.disconnect(id) {
                     update.disconnected = true;
                     self.rumble = None;
+                    self.native_rumble = None;
                 }
                 continue;
             }

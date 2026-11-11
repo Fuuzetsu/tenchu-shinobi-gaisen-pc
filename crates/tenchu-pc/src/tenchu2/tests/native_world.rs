@@ -48,7 +48,7 @@ impl Events for Recorded {
     }
 }
 
-pub(super) fn fixture() -> (World, Assets, usize) {
+pub(in crate::tenchu2) fn fixture() -> (World, Assets, usize) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let layout = Layout::available(&disc)

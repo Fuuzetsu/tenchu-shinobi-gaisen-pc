@@ -101,9 +101,11 @@ pub enum Event {
     Dust,
     DustTrail,
     Rumble {
+        action: crate::effects::RumbleAction,
         kind: u8,
         strength: i16,
     },
+    DrowningRumble(i16),
     Landing,
     WallJump,
     ShowHealth,
@@ -477,7 +479,7 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
             ControlCue::Voice(id) => c.emit(actor, Event::Voice(id), self.random),
             ControlCue::Splash(id) => c.emit(actor, Event::Splash(id), self.random),
             ControlCue::DrowningRumble(strength) => {
-                c.emit(actor, Event::Rumble { kind: 1, strength }, self.random)
+                c.emit(actor, Event::DrowningRumble(strength), self.random)
             }
             ControlCue::SelectItem { previous } => {
                 c.controls

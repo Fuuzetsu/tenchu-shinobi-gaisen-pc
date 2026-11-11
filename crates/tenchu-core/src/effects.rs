@@ -244,10 +244,14 @@ pub enum RumbleAction {
     FlipLanding,
     LedgeGrab,
     WaterEntry,
+    Carry,
+    Drowning,
+    Scenery,
+    Detection,
 }
 
 impl RumbleAction {
-    pub const ALL: [Self; 17] = [
+    pub const ALL: [Self; 21] = [
         Self::Attack,
         Self::WeaponClash,
         Self::Hit,
@@ -265,6 +269,10 @@ impl RumbleAction {
         Self::FlipLanding,
         Self::LedgeGrab,
         Self::WaterEntry,
+        Self::Carry,
+        Self::Drowning,
+        Self::Scenery,
+        Self::Detection,
     ];
 }
 

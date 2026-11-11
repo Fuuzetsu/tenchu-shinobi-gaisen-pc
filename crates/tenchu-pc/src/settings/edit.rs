@@ -444,6 +444,10 @@ impl Item {
     }
 
     pub fn reset_setting(self, settings: &mut Settings) -> bool {
+        if let Self::VibrationAction(action) = self {
+            settings.vibration.actions.remove(&action);
+            return true;
+        }
         let mut defaults = Settings::default();
         if let Some(value) = self.blood_style(settings) {
             *value = *self.blood_style(&mut defaults).unwrap();

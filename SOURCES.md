@@ -3257,3 +3257,45 @@ An earlier read-only decompilation comment calling them fish was insufficient
 evidence; private review captures retain the rejected mapping. ARROW likewise
 has no actor controller. These exclusions do not change authored T1 story scenes.
 Source references remain read-only; no sibling architecture or assets are copied.
+
+### Native T2 controller vibration (2026-11-11)
+
+JP GAME.EXE `8001fcbc` filters requests to the player and converts signed shorts
+to `power = level * 63`, a weak-motor flag for power above 127, the low power byte
+for the strong motor, and `duration * 5` input polls. Both multiplications retain
+signed-short wrapping. `80016634` replaces both motor bytes and the signed
+countdown; `80015d38` decrements positive countdowns once per input poll and clears
+the bytes on reaching zero. Initially nonpositive values remain unchanged.
+The main loop `80064a34` polls at `800652fc` before game updates, clears the motors
+on pause, and requests the detection pulse every 30 updates with radar zero.
+The SDK binding at `80015bbc` transfers the two motor bytes to PadSetAct.
+
+`tenchu-core/src/tenchu2/feedback.rs` implements this small scalar state. Native
+Session applies actor, attack and scenery cues in source order, then detection.
+JP `8001ee58` requests drowning directly through `80016634`, using twice the
+missing health before damage and five polls; it does not use the level helper.
+JP `8002c394` requests paired-kill and interrupted-kill pulses for the global
+player even while updating the victim. These two call paths are corrected at the
+native output boundary. Added action labels only select host intensity gains;
+they do not change the original events, RNG or simulation. The five shared actions
+without original T2 requests stay explicitly unavailable instead of adding pulses.
+
+Both desktop hosts reuse Controls/gilrs and the shared vibration preferences.
+Constant weak/strong effects are replaced or stopped from logic observers;
+redraws do not decrement their duration. Pause, focus loss, errors, scene exits,
+shutdown and frame stepping stop output. Hardware amplitude and latency remain
+driver-dependent. The Gaisen envelope stays unchanged: read-only comparison with
+`tenchu-decomp/src/main.exe/PADCMD.C::PadProc` confirms that its twice-per-60-Hz
+envelope is a different algorithm. The TAS `hang.rs` reference confirms fixed
+grip feedback consumes no gameplay RNG; no batched state or sibling code is
+imported. The viewer supplies no separate vibration implementation.
+
+A private Unicorn comparison executes the original JP helper/setter/input poll
+with only hardware pad discovery stubbed: 1,713 conversion/filter/direct-drowning
+cases and 42,825 countdown polls match. Disc-backed fixtures exercise attacks,
+paired and interrupted kills, drowning and scenery routing. Transport comparisons
+cover different redraw cadences and simulation speeds with identical World/RNG,
+pause, manual stepping and scene replacement. Driver scaling and shared F1
+editing/reset/navigation are checked independently; these checks do not claim a
+physical controller feel comparison. Vibration stays outside graphical presets
+and retro/demo comparisons; Modern High/Ultra preserve its separate preferences.

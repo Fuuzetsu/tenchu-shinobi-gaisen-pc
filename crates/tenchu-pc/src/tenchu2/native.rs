@@ -32,6 +32,8 @@ mod contact;
 pub(crate) mod diagnostics;
 #[cfg(not(target_arch = "wasm32"))]
 mod equipment;
+#[cfg(test)]
+mod feedback_tests;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
 #[cfg(not(target_arch = "wasm32"))]
@@ -70,6 +72,7 @@ pub struct Session {
     pub world: World,
     pub assets: Assets,
     pub frame: Frame,
+    pub feedback: tenchu_core::tenchu2::feedback::Feedback,
     contact: contact::History,
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
     actor_voices: BTreeMap<usize, Option<Arc<VoiceSet>>>,
@@ -178,6 +181,7 @@ impl Session {
             world,
             assets,
             frame: Frame::default(),
+            feedback: Default::default(),
             contact: Default::default(),
             bank,
             actor_voices: BTreeMap::new(),
@@ -197,12 +201,14 @@ impl Session {
             self.world.mission.phase,
             tenchu_core::tenchu2::mission::Phase::Finished { .. }
         ) {
+            self.feedback.clear();
             return Ok(Vec::new());
         }
         self.step_world(buttons, false)
     }
 
     fn step_world(&mut self, buttons: u16, observing_death: bool) -> Result<Vec<Sourced<Sound>>> {
+        self.feedback.poll();
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(scene) = &mut self.gaisen {
             let was_presenting = scene.director.presenting;
@@ -210,6 +216,7 @@ impl Session {
                 .director
                 .update(&mut self.world, &self.assets, buttons)?;
             if presenting {
+                self.feedback.clear();
                 scene.audio.step(&scene.director.source, None)?;
                 self.navigation = None;
                 return Ok(Vec::new());
@@ -231,6 +238,7 @@ impl Session {
         let buttons = navigation::apply(self, buttons)?;
         let mut events = Output {
             player: self.world.player,
+            feedback: &mut self.feedback,
             #[cfg(not(target_arch = "wasm32"))]
             voice: self.models.voice.as_ref(),
             #[cfg(target_arch = "wasm32")]
@@ -246,6 +254,13 @@ impl Session {
         self.frame = self
             .world
             .step([buttons, 0], &mut self.assets, &mut events)?;
+        if tick.is_multiple_of(30)
+            && self.world.ai.global.radar == tenchu_core::tenchu2::ai::status::Ki::Spotted
+        {
+            events
+                .feedback
+                .pulse(tenchu_core::effects::RumbleAction::Detection, 3, 1);
+        }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(scene) = &mut self.gaisen {
             scene.director.advance_ambient(&mut self.world)?;
@@ -388,6 +403,7 @@ fn gaisen_bank(
 
 struct Output<'a> {
     player: usize,
+    feedback: &'a mut tenchu_core::tenchu2::feedback::Feedback,
     voice: Option<&'a Arc<VoiceSet>>,
     actor_voices: &'a BTreeMap<usize, Option<Arc<VoiceSet>>>,
     listener: Listener,
@@ -436,6 +452,32 @@ impl Events for Output<'_> {
         let mut bank = None;
         let mut extra_voice = None;
         let (id, position) = match event {
+            Event::Rumble {
+                action,
+                kind,
+                strength,
+            } => {
+                if source.index == self.player {
+                    self.feedback.pulse(action, i16::from(kind), strength);
+                }
+                return Ok(());
+            }
+            Event::Combat(CombatCue::Rumble { kind, strength }) => {
+                if source.index == self.player {
+                    self.feedback.pulse(
+                        tenchu_core::effects::RumbleAction::Attack,
+                        i16::from(kind),
+                        i16::from(strength),
+                    );
+                }
+                return Ok(());
+            }
+            Event::DrowningRumble(power) => {
+                if source.index == self.player {
+                    self.feedback.drowning(power);
+                }
+                return Ok(());
+            }
             Event::Voice(id) | Event::Combat(CombatCue::Voice(id)) => {
                 let voice = if id < 16 {
                     if let Some(voice) = self.actor_voices.get(&source.index) {
@@ -472,8 +514,6 @@ impl Events for Output<'_> {
             Event::ShowHealth
             | Event::Pickup(_)
             | Event::StealthTint
-            | Event::Rumble { .. }
-            | Event::Combat(CombatCue::Rumble { .. })
             | Event::Landing
             | Event::WallJump => return Ok(()),
             _ => {
@@ -504,7 +544,17 @@ impl environment::Events for Output<'_> {
                 position: Some(position),
                 volume: None,
             });
-        } else if !matches!(event, environment::Event::Rumble { .. }) {
+        } else if let environment::Event::Rumble {
+            actor,
+            action,
+            kind,
+            frames,
+        } = event
+        {
+            if actor == self.player {
+                self.feedback.pulse(action, kind, frames);
+            }
+        } else {
             self.pending(event);
         }
         Ok(())

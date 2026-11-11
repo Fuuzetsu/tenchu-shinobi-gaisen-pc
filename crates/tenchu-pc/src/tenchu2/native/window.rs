@@ -259,6 +259,7 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
+        self.controls.stop_rumble();
         self.session.configure(&self.settings);
         let buttons = self.menu.tools.input(
             &mut self.session.content,
@@ -335,18 +336,32 @@ impl Application {
             .as_mut()
             .filter(|v| v.generation == self.session.generation && !self.menu.actor_assets_changed);
         let graphics = &self.settings.rendering().graphics;
+        let feedback_enabled = self.focused
+            && !input.paused
+            && !input.pacing(&self.session.content).1
+            && self.settings.frontend.rumble;
         let update = self.transport.advance(
             &mut self.session,
             elapsed,
             input,
             self.audio.as_ref(),
             |content| {
+                self.controls.native_feedback(
+                    content.feedback(),
+                    feedback_enabled,
+                    &self.settings.vibration,
+                );
                 if let Some(view) = &mut view {
                     view.drawing.tick(content, graphics)?;
                 }
                 Ok(())
             },
         )?;
+        self.controls.native_feedback(
+            self.session.content.feedback(),
+            feedback_enabled && !self.session.death.frozen(),
+            &self.settings.vibration,
+        );
         self.menu
             .tools
             .sync(&self.session.content, self.session.generation);
@@ -624,6 +639,8 @@ impl Application {
     }
 
     fn fail(&mut self, error: String) {
+        self.controls.stop_rumble();
+        self.session.content.clear_feedback();
         eprintln!(
             "Native JP sequence {}, tick {}: {error}",
             self.session.run.sequence,
@@ -683,7 +700,10 @@ impl ApplicationHandler for Application {
             &self.settings.navigation,
         );
         match event {
-            WindowEvent::CloseRequested => events.exit(),
+            WindowEvent::CloseRequested => {
+                self.controls.stop_rumble();
+                events.exit();
+            }
             WindowEvent::Resized(size) if size.width > 0 && size.height > 0 => {
                 view.config.width = size.width;
                 view.config.height = size.height;
@@ -780,6 +800,10 @@ impl ApplicationHandler for Application {
             }
             _ => {}
         }
+    }
+
+    fn exiting(&mut self, _: &ActiveEventLoop) {
+        self.controls.stop_rumble();
     }
 
     fn about_to_wait(&mut self, _: &ActiveEventLoop) {

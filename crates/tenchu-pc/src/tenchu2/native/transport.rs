@@ -123,6 +123,7 @@ impl Transport {
     ) -> Result<Update> {
         self.audio(playback, false, output);
         let update = self.step(playback, buttons, output, &mut observed)?;
+        playback.content.clear_feedback();
         self.audio(playback, false, output);
         self.clock.discard_host_backlog();
         Ok(update)
@@ -142,6 +143,7 @@ impl Transport {
             || playback.death.frozen() && playback.death.enabled() && playback.action.is_none()
         {
             self.clock.discard_host_backlog();
+            playback.content.clear_feedback();
             return Ok(Update::default());
         }
         if speed == 0.0 {

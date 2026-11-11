@@ -36,6 +36,19 @@ impl Update {
 }
 
 impl Content {
+    pub fn feedback(&self) -> Option<&tenchu_core::tenchu2::feedback::Feedback> {
+        match self {
+            Self::Gameplay(session) if !session.cinematic() => Some(&session.feedback),
+            _ => None,
+        }
+    }
+
+    pub fn clear_feedback(&mut self) {
+        if let Self::Gameplay(session) = self {
+            session.feedback.clear();
+        }
+    }
+
     pub fn interpolate(&mut self, enabled: bool) -> Result<()> {
         match self {
             Self::Gameplay(session) => session.interpolate(enabled),

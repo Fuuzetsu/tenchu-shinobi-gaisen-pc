@@ -8,6 +8,7 @@ pub mod control;
 pub mod effects;
 pub mod environment;
 pub mod equipment;
+pub mod feedback;
 pub mod hud;
 pub mod input;
 pub mod introduction;

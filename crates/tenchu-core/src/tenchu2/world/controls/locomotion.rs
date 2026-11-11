@@ -406,6 +406,7 @@ impl<E: Events> Context<'_, E> {
             LedgeCue::Grabbed => self.emit(
                 actor,
                 Event::Rumble {
+                    action: crate::effects::RumbleAction::LedgeGrab,
                     kind: 2,
                     strength: 1,
                 },
@@ -437,6 +438,7 @@ impl<E: Events> Context<'_, E> {
             self.emit(
                 actor,
                 Event::Rumble {
+                    action: crate::effects::RumbleAction::Carry,
                     kind: 2,
                     strength: 1,
                 },

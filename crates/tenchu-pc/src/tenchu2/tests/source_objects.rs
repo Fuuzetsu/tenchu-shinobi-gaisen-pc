@@ -34,6 +34,7 @@ impl environment::Events for Events {
                 actor,
                 kind,
                 frames,
+                ..
             } => json!(["pause", actor == 0, kind, frames]),
             Event::Shoot {
                 kind,

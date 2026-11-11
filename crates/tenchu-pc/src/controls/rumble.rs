@@ -5,6 +5,7 @@ use tenchu_core::{effects::Rumble, game::Game};
 
 impl Controls {
     pub fn stop_rumble(&mut self) {
+        self.native_rumble = None;
         if let Some(effect) = self.rumble.take() {
             let _ = effect.stop();
         }
@@ -29,6 +30,57 @@ impl Controls {
         if gain == 0.0 {
             return;
         }
+        self.play_feedback(effect(request, gain));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn native_feedback(
+        &mut self,
+        feedback: Option<&tenchu_core::tenchu2::feedback::Feedback>,
+        enabled: bool,
+        vibration: &Vibration,
+    ) {
+        let motors = if enabled {
+            native_motors(feedback, vibration)
+        } else {
+            [0; 2]
+        };
+        if motors == [0; 2] {
+            self.stop_rumble();
+            return;
+        }
+        let selection = (self.pad.active, motors);
+        if self.native_rumble == Some(selection) && self.rumble.is_some() {
+            return;
+        }
+        self.stop_rumble();
+        let mut effect = EffectBuilder::new();
+        for kind in [
+            BaseEffectType::Weak {
+                magnitude: motors[0],
+            },
+            BaseEffectType::Strong {
+                magnitude: motors[1],
+            },
+        ] {
+            effect.add_effect(BaseEffect {
+                kind,
+                scheduling: Replay {
+                    play_for: Ticks::from_ms(1000),
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
+        }
+        // The source input poll expires this constant signal in logic ticks.
+        effect.repeat(Repeat::Infinitely);
+        self.play_feedback(effect);
+        if self.rumble.is_some() {
+            self.native_rumble = Some(selection);
+        }
+    }
+
+    fn play_feedback(&mut self, mut builder: EffectBuilder) {
         let Some(gilrs) = &mut self.gilrs else {
             return;
         };
@@ -38,7 +90,6 @@ impl Controls {
         else {
             return;
         };
-        let mut builder = effect(request, gain);
         match builder.gamepads(&[id]).finish(gilrs).and_then(|effect| {
             effect.play()?;
             Ok(effect)
@@ -53,6 +104,29 @@ impl Controls {
             }
         }
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn native_motors(
+    feedback: Option<&tenchu_core::tenchu2::feedback::Feedback>,
+    vibration: &Vibration,
+) -> [u16; 2] {
+    let Some(feedback) = feedback else {
+        return [0; 2];
+    };
+    let Some(action) = feedback.action else {
+        return [0; 2];
+    };
+    let gain = vibration.gain(action);
+    [
+        u16::from(feedback.motors[0] != 0) * u16::MAX,
+        u16::from(feedback.motors[1]) * 257,
+    ]
+    .map(|value| {
+        (f32::from(value) * gain)
+            .round()
+            .clamp(0.0, f32::from(u16::MAX)) as u16
+    })
 }
 
 fn effect(request: &Rumble, gain: f32) -> EffectBuilder {
@@ -93,4 +167,44 @@ fn effect(request: &Rumble, gain: f32) -> EffectBuilder {
     }
     effect.repeat(Repeat::For(total));
     effect
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+    use tenchu_core::{effects::RumbleAction, tenchu2::feedback::Feedback};
+
+    #[test]
+    fn native_motor_gains_mute_independently_and_clamp_to_driver_range() {
+        let mut feedback = Feedback::default();
+        feedback.pulse(RumbleAction::Damage, 4, 1);
+        let mut vibration = Vibration::default();
+        assert_eq!(native_motors(Some(&feedback), &vibration), [65535, 64764]);
+        vibration.intensity = 50;
+        vibration.actions.insert(RumbleAction::Damage, 50);
+        assert_eq!(native_motors(Some(&feedback), &vibration), [16384, 16191]);
+        vibration.actions.insert(RumbleAction::Damage, 0);
+        assert_eq!(native_motors(Some(&feedback), &vibration), [0; 2]);
+        feedback.pulse(RumbleAction::Attack, 1, 2);
+        assert_eq!(native_motors(Some(&feedback), &vibration), [0, 8096]);
+        vibration.intensity = 200;
+        vibration.actions.insert(RumbleAction::Attack, 200);
+        assert_eq!(native_motors(Some(&feedback), &vibration), [0, 64764]);
+        feedback.drowning(255);
+        assert_eq!(native_motors(Some(&feedback), &vibration), [65535; 2]);
+        for _ in 0..5 {
+            feedback.poll();
+        }
+        assert_eq!(native_motors(Some(&feedback), &vibration), [0; 2]);
+        assert_eq!(native_motors(None, &vibration), [0; 2]);
+        feedback.pulse(RumbleAction::Attack, 4, 2);
+        vibration.intensity = 0;
+        assert_eq!(native_motors(Some(&feedback), &vibration), [0; 2]);
+
+        let mut controls = Controls::default();
+        controls.native_feedback(Some(&feedback), true, &Vibration::default());
+        assert!(controls.rumble.is_none() && controls.native_rumble.is_none());
+        controls.native_feedback(None, false, &vibration);
+        assert!(controls.rumble.is_none() && controls.native_rumble.is_none());
+    }
 }

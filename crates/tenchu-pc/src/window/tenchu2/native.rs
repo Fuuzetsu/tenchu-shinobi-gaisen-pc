@@ -138,6 +138,7 @@ impl Application {
     }
 
     fn leave_native_tenchu2(&mut self) -> Result<()> {
+        self.controls.stop_rumble();
         self.native_tenchu2 = None;
         self.performance = Default::default();
         self.controls.close_editor();
@@ -153,6 +154,7 @@ impl Application {
     }
 
     pub(in crate::window) fn step_native_tenchu2(&mut self) -> Result<bool> {
+        self.controls.stop_rumble();
         let native = self.native_tenchu2.as_mut().unwrap();
         native.playback.configure(&self.settings);
         let buttons = native.menu.tools.input(
@@ -183,6 +185,7 @@ impl Application {
 
     fn native_tenchu2_redraw(&mut self) -> Result<()> {
         if self.view.as_ref().is_some_and(View::preparing) {
+            self.controls.stop_rumble();
             return Ok(());
         }
         let update = self.controls.poll(self.focused);
@@ -234,18 +237,32 @@ impl Application {
         let ready = native.generation == Some(native.playback.generation)
             && !native.menu.actor_assets_changed;
         let graphics = &self.settings.rendering().graphics;
+        let feedback_enabled = self.focused
+            && !input.paused
+            && !input.pacing(&native.playback.content).1
+            && self.settings.frontend.rumble;
         let update = native.transport.advance(
             &mut native.playback,
             elapsed,
             input,
             self.audio.as_ref().map(|audio| audio.output()),
             |content| {
+                self.controls.native_feedback(
+                    content.feedback(),
+                    feedback_enabled,
+                    &self.settings.vibration,
+                );
                 if let Some(drawing) = native.drawing.as_mut().filter(|_| ready) {
                     drawing.tick(content, graphics)?;
                 }
                 Ok(())
             },
         )?;
+        self.controls.native_feedback(
+            native.playback.content.feedback(),
+            feedback_enabled && !native.playback.death.frozen(),
+            &self.settings.vibration,
+        );
         native
             .menu
             .tools
@@ -649,9 +666,11 @@ impl Application {
     ) {
         let result = self.handle_native_tenchu2_event(events, event);
         if let Err(error) = result {
+            self.controls.stop_rumble();
             if let Some(native) = &mut self.native_tenchu2 {
                 eprintln!("JP sequence {}: {error}", native.playback.run.sequence);
                 native.error = Some(error);
+                native.playback.content.clear_feedback();
                 self.paused = true;
                 self.sync_pause();
             } else {
@@ -710,7 +729,10 @@ impl Application {
             view.overlay.event(&view.window, &event);
         }
         match event {
-            WindowEvent::CloseRequested => events.exit(),
+            WindowEvent::CloseRequested => {
+                self.controls.stop_rumble();
+                events.exit();
+            }
             WindowEvent::Resized(size) => {
                 if let Some(view) = &mut self.view {
                     view.resize(size.width, size.height)?;

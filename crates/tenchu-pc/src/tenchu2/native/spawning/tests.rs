@@ -341,6 +341,7 @@ fn native_spawn_voice_banks_are_independent_of_stage_slots() {
     let mut pending = BTreeSet::new();
     let mut output = Output {
         player: session.world.player,
+        feedback: &mut session.feedback,
         voice: None,
         actor_voices: &session.actor_voices,
         listener: session.world.listener(),

@@ -124,7 +124,7 @@ impl Environment {
                                 .ok_or("Missing Tenchu 2 hazard trigger")?;
                             if trigger.clock & 0x8000 == 0 {
                                 trigger.clock = 0x8000;
-                                c.rumble(owner, 1, 3)?;
+                                c.rumble(owner, crate::effects::RumbleAction::Scenery, 1, 3)?;
                                 c.sound(player.1, 0x3e)?;
                                 c.emit(Event::Alert {
                                     position: player.1,
@@ -165,7 +165,7 @@ impl Environment {
                             continue;
                         }
                         if sword {
-                            c.rumble(owner, 2, 1)?;
+                            c.rumble(owner, crate::effects::RumbleAction::TargetHit, 2, 1)?;
                         }
                         c.collision.remove(object.coordinate);
                         let model = object.model.ok_or("Missing Tenchu 2 breakable model")?;
@@ -219,7 +219,7 @@ impl Environment {
                         }
                     }
                     14 if object.link == 0 && flags & WEAPON != 0 && flags & 63 == 0 => {
-                        c.rumble(owner, 2, 1)?;
+                        c.rumble(owner, crate::effects::RumbleAction::TargetHit, 2, 1)?;
                         c.sound(object.position, 0x38)?;
                         c.collision.remove(object.coordinate);
                         object.actor = owner;

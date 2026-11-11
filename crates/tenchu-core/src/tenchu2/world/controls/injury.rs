@@ -35,6 +35,7 @@ impl<E: Events> Driver<'_, E> {
                 HurtCue::LandingRumble => c.emit(
                     actor,
                     Event::Rumble {
+                        action: crate::effects::RumbleAction::Knockdown,
                         kind: 2,
                         strength: 1,
                     },
@@ -172,6 +173,17 @@ impl<E: Events> Driver<'_, E> {
                     damage,
                     target,
                     Event::Rumble {
+                        action: match (damage.hit, target, kind, strength) {
+                            (_, _, 3, 4) => crate::effects::RumbleAction::Knockdown,
+                            (_, _, 2, 2) if damage.player => crate::effects::RumbleAction::Block,
+                            (_, _, 2, 2) => crate::effects::RumbleAction::HitBlocked,
+                            (Hit::Object(_), _, _, _) => crate::effects::RumbleAction::ItemDamage,
+                            (_, DamageTarget::Victim, _, _) => crate::effects::RumbleAction::Damage,
+                            _ if matches!(actor.kind, 0x70..=0x7f | 0xe5) => {
+                                crate::effects::RumbleAction::TargetHit
+                            }
+                            _ => crate::effects::RumbleAction::Hit,
+                        },
                         kind,
                         strength: i16::from(strength),
                     },
@@ -420,9 +432,15 @@ impl<E: Events> Context<'_, E> {
                     }
                 }
                 DeathCue::Sound(id) => self.emit(actor, Event::Sound(id), random),
-                DeathCue::Rumble { kind, strength } => self.emit(
+                DeathCue::Rumble { kind, strength } => self.emit_other(
                     actor,
+                    self.player,
                     Event::Rumble {
+                        action: if (kind, strength) == (4, 2) {
+                            crate::effects::RumbleAction::StealthInterrupted
+                        } else {
+                            crate::effects::RumbleAction::StealthKill
+                        },
                         kind,
                         strength: i16::from(strength),
                     },
@@ -563,6 +581,7 @@ impl<E: Events> Context<'_, E> {
             self.emit(
                 actor,
                 Event::Rumble {
+                    action: crate::effects::RumbleAction::Knockdown,
                     kind: 4,
                     strength: 1,
                 },

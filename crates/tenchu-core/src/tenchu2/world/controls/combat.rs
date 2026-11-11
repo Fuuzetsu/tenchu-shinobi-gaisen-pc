@@ -180,6 +180,7 @@ impl<E: Events> Driver<'_, E> {
                         c.emit(
                             actor,
                             Event::Rumble {
+                                action: crate::effects::RumbleAction::HeavyLanding,
                                 kind: 2,
                                 strength: 1,
                             },

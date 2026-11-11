@@ -23,6 +23,108 @@ fn input(speed: u16) -> Input {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; motor expiry follows logic ticks, with pause, stepping and scene replacement clearing it"]
+fn native_feedback_follows_ticks_and_clears_on_pause_and_scene_change() {
+    use tenchu_core::{effects::RumbleAction, tenchu2::feedback::Feedback};
+    fn pulse(content: &mut Content) {
+        let Content::Gameplay(session) = content else {
+            panic!("not gameplay")
+        };
+        session.feedback.pulse(RumbleAction::Attack, 1, 3);
+    }
+    let mut reference = start(9, false);
+    for _ in 0..18 {
+        reference.step(0).unwrap();
+    }
+    let Content::Gameplay(reference) = reference.content else {
+        unreachable!()
+    };
+    let reference = postcard::to_allocvec(&reference.world).unwrap();
+    for (speed, millis, draws) in [(100, 10, 60), (100, 100, 6), (200, 50, 6), (50, 200, 6)] {
+        let mut playback = start(9, false);
+        pulse(&mut playback.content);
+        let mut transport = Transport::default();
+        let input = Input {
+            simulation_speed: speed,
+            ..input(1)
+        };
+        let mut observed = Vec::new();
+        for _ in 0..draws {
+            transport
+                .advance(
+                    &mut playback,
+                    Duration::from_millis(millis),
+                    input,
+                    None,
+                    |content| {
+                        observed.push(*content.feedback().unwrap());
+                        Ok(())
+                    },
+                )
+                .unwrap();
+            while transport.clock.interpolation() >= 1.0 {
+                transport
+                    .advance(&mut playback, Duration::ZERO, input, None, |content| {
+                        observed.push(*content.feedback().unwrap());
+                        Ok(())
+                    })
+                    .unwrap();
+            }
+            let before = *playback.content.feedback().unwrap();
+            transport
+                .advance(&mut playback, Duration::ZERO, input, None, |_| {
+                    panic!("redraw advanced logic")
+                })
+                .unwrap();
+            assert_eq!(*playback.content.feedback().unwrap(), before);
+        }
+        assert_eq!(observed.len(), 18);
+        for (index, feedback) in observed.iter().enumerate() {
+            assert_eq!(feedback.remaining, (14 - index as i16).max(0));
+            assert_eq!(feedback.motors, if index < 14 { [0, 63] } else { [0, 0] });
+        }
+        let Content::Gameplay(session) = &playback.content else {
+            unreachable!()
+        };
+        assert!(postcard::to_allocvec(&session.world).unwrap() == reference);
+
+        pulse(&mut playback.content);
+        transport
+            .advance(
+                &mut playback,
+                Duration::from_secs(1),
+                Input {
+                    paused: true,
+                    ..input
+                },
+                None,
+                |_| panic!("pause advanced logic"),
+            )
+            .unwrap();
+        assert_eq!(*playback.content.feedback().unwrap(), Feedback::default());
+        pulse(&mut playback.content);
+        transport
+            .frame_step(&mut playback, 0, None, |_| Ok(()))
+            .unwrap();
+        assert_eq!(*playback.content.feedback().unwrap(), Feedback::default());
+
+        pulse(&mut playback.content);
+        playback.action = Some(super::super::campaign::Action::SelectMission);
+        let update = transport
+            .advance(
+                &mut playback,
+                Duration::from_millis(200),
+                input,
+                None,
+                |_| panic!("old scene reached the observer"),
+            )
+            .unwrap();
+        assert!(update.changed);
+        assert!(playback.content.feedback().is_none());
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; compare all cinematic paths at normal and accelerated speed, including source RNG and the next scene's initial state"]
 fn cutscene_acceleration_preserves_ticks_rng_and_content_boundaries() {
     for (sequence, prologue, speed) in [

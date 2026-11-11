@@ -75,6 +75,22 @@ pub fn description(action: RumbleAction) -> (&'static str, &'static str) {
         RumbleAction::FlipLanding => ("Flip landing", "Landing from a flip."),
         RumbleAction::LedgeGrab => ("Ledge grab", "Catching a ledge."),
         RumbleAction::WaterEntry => ("Entering water", "Entering swimming or drowning depth."),
+        RumbleAction::Carry => (
+            "Carrying a body",
+            "Native T2's pulse when picking up a corpse.",
+        ),
+        RumbleAction::Drowning => (
+            "Drowning",
+            "Native T2's motor pulses as health falls after running out of breath.",
+        ),
+        RumbleAction::Scenery => (
+            "Scenery contact",
+            "Native T2's floor traps and collapsing platforms.",
+        ),
+        RumbleAction::Detection => (
+            "Enemy detection",
+            "Native T2's repeated warning while guards detect the player.",
+        ),
     }
 }
 

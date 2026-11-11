@@ -91,6 +91,7 @@ pub enum Event {
     },
     Rumble {
         actor: usize,
+        action: crate::effects::RumbleAction,
         kind: i16,
         frames: i16,
     },
@@ -268,10 +269,17 @@ impl<E: Events> Context<'_, E> {
     fn sound(&mut self, position: Position, id: u8) -> Result<()> {
         self.emit(Event::Sound { position, id })
     }
-    fn rumble(&mut self, actor: Option<usize>, kind: i16, frames: i16) -> Result<()> {
+    fn rumble(
+        &mut self,
+        actor: Option<usize>,
+        action: crate::effects::RumbleAction,
+        kind: i16,
+        frames: i16,
+    ) -> Result<()> {
         if let Some(actor) = actor {
             self.emit(Event::Rumble {
                 actor,
+                action,
                 kind,
                 frames,
             })?;

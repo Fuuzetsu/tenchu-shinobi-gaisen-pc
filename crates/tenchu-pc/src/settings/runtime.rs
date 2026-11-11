@@ -8,7 +8,19 @@ pub enum Runtime {
 
 impl Runtime {
     pub fn help(self, item: Item, fallback: &'static str) -> &'static str {
-        if self == Self::Tenchu2 && item == Item::CameraRelative {
+        if self == Self::Tenchu2
+            && item == Item::VibrationAction(tenchu_core::effects::RumbleAction::HeavyLanding)
+        {
+            "Native T2's landing pulse after an aerial attack. Ordinary jumps and flips do not request vibration."
+        } else if self == Self::Tenchu2
+            && item == Item::VibrationAction(tenchu_core::effects::RumbleAction::Knockdown)
+        {
+            "Native T2's knockback, ground impact and damaging-fall pulses."
+        } else if self == Self::Tenchu2
+            && item == Item::VibrationAction(tenchu_core::effects::RumbleAction::TargetHit)
+        {
+            "Native T2's pulses when hitting animals or breakable scenery."
+        } else if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
             "Add a pool beneath the player's finished, grounded corpse when the native death has no pool. Uses the death style, size and retention settings. Existing source pools still follow Death pool / star; this option does not duplicate them."
@@ -29,6 +41,20 @@ impl Runtime {
 
     pub fn unavailable(self, item: Item) -> Option<&'static str> {
         use Item::*;
+        use tenchu_core::effects::RumbleAction;
+        if self == Self::Gaisen
+            && matches!(
+                item,
+                VibrationAction(
+                    RumbleAction::Carry
+                        | RumbleAction::Drowning
+                        | RumbleAction::Scenery
+                        | RumbleAction::Detection
+                )
+            )
+        {
+            return Some("This source vibration event is specific to native Tenchu 2.");
+        }
         if matches!(item, Tenchu2Missions | Tenchu2Diagnostics | Tenchu2Launcher) {
             return (self != Self::Tenchu2).then_some(
                 "Available during native Tenchu 2 Japan play. Use F6 to select an imported JP mission first.",
@@ -38,6 +64,16 @@ impl Runtime {
             return None;
         }
         match item {
+            VibrationAction(
+                RumbleAction::WeaponClash
+                | RumbleAction::JumpCollision
+                | RumbleAction::Landing
+                | RumbleAction::FlipLanding
+                | RumbleAction::WaterEntry,
+            ) => Some(
+                "Native T2 does not emit a vibration request for this action. Its original motor events are controlled by the other rows.",
+            ),
+            Vibration | VibrationIntensity | VibrationAction(_) => None,
             Fullscreen if cfg!(target_os = "android") => {
                 Some("Android manages the game window; fullscreen is a desktop setting.")
             }

@@ -1,7 +1,7 @@
 use super::*;
 
 mod experiments;
-mod native_world;
+pub(super) mod native_world;
 mod source_actor;
 mod source_ai;
 mod source_ai_entry;

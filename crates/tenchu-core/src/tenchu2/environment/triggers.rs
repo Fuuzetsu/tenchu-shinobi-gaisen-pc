@@ -195,7 +195,7 @@ impl Environment {
                         .objects
                         .get_mut(usize::from(trigger.target))
                         .ok_or("Missing Tenchu 2 collapsing platform")?;
-                    c.rumble(object.actor, 2, 1)?;
+                    c.rumble(object.actor, crate::effects::RumbleAction::Scenery, 2, 1)?;
                     if trigger.kind == 7 {
                         terrain::level(
                             c.map,
