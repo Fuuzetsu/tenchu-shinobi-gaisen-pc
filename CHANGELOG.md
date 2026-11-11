@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.28.0 — 2026-11-11
+
 - Selecting T1 Rikimaru or Ayame no longer replaces the sheathed idle with
   their rigid neutral pose. T1 keeps its optional sheathing fallback, and T2
   keeps its native sheathed idle. Draw, sheathe and attack animations still
