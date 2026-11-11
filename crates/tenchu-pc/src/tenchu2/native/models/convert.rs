@@ -4,32 +4,55 @@ pub(super) fn native_parts(body: &Body, original: &[Part]) -> Result<Vec<Part>> 
     if body.parts.len() != BONES.len() {
         return Err("This model has no compatible humanoid rig".into());
     }
-    let parents = crate::visuals::appearance::parents(&body.parts);
-    let mut parts = original.to_vec();
-    if parts.len() < 15 {
+    if original.len() < 15 {
         return Err("Host player has no compatible humanoid rig".into());
     }
-    for (i, &bone) in BONES.iter().enumerate() {
+    placement_parts(body, original)
+}
+
+pub(in crate::tenchu2::native) fn placement_parts(
+    body: &Body,
+    original: &[Part],
+) -> Result<Vec<Part>> {
+    if body.parts.is_empty() || body.parts.len() > 64 {
+        return Err("This model exceeds the native actor skeleton limit".into());
+    }
+    let parents = crate::visuals::appearance::parents(&body.parts);
+    let mut parts = original.to_vec();
+    for part in &mut parts {
+        part.geometry.clear();
+    }
+    for i in parts.len()..body.parts.len().max(BONES.len()) {
+        parts.push(Part {
+            parent: 0,
+            child: i as i16,
+            position: [0; 3],
+            geometry: Vec::new(),
+        });
+    }
+    for (i, parent) in parents.iter().enumerate() {
+        let bone = native_bone(i);
         let mut part = body.parts[i].clone();
         part.child = bone as i16;
-        part.parent = parents[i].map_or(-1, |p| BONES[p] as i16);
+        part.parent = parent.map_or(-1, |p| native_bone(p) as i16);
         for geometry in &mut part.geometry {
             for joint in &mut geometry.joints {
-                *joint = BONES[usize::from(*joint)] as u8;
+                *joint = native_bone(usize::from(*joint)) as u8;
             }
         }
         parts[bone] = part;
     }
-    for part in parts.iter_mut().skip(15) {
-        part.geometry.clear();
-    }
     Ok(parts)
 }
 
-pub(super) fn native_sources(body: &Body, count: usize) -> Vec<String> {
+fn native_bone(index: usize) -> usize {
+    BONES.get(index).copied().unwrap_or(index)
+}
+
+pub(in crate::tenchu2::native) fn native_sources(body: &Body, count: usize) -> Vec<String> {
     let mut out = vec![String::new(); count];
-    for (&bone, source) in BONES.iter().zip(body.sources()) {
-        out[bone] = source.id;
+    for (index, source) in body.sources().into_iter().enumerate() {
+        out[native_bone(index)] = source.id;
     }
     out
 }

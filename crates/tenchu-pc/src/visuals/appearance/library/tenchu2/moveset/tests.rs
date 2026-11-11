@@ -2,6 +2,12 @@ use super::*;
 use tenchu_assets::game::GameAssets;
 use tenchu_core::input::*;
 
+fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
+    let registry = Registry::load(disc)?;
+    let voices = tenchu2::audio::voices(disc, &registry)?;
+    super::load(disc, &registry, &voices)
+}
+
 #[test]
 #[ignore = "requires TENCHU_DISC and TENCHU2_DISC; all imported hero stances and steps use their source clips, with crouch override and save continuation"]
 fn imported_circle_stance_follows_moveset_and_source_steps() {

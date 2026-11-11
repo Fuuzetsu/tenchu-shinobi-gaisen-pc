@@ -3238,3 +3238,22 @@ and `tenchu-viewer/src/actors.rs` model/motion loading. Their architectures were
 not imported. Direct placement/AI/death, audio, campaign-binding and GPU evidence
 is under `private/two-releases-20261110/spawn-*`; ordinary-play regression uses
 the existing recorded T2 input/draw-skip comparison described above.
+
+Cross-game NPC placement keeps that native controller and separates the source
+actor kind from a private body definition. T1 bodies reuse the imported-stage
+counterpart table and the established Gaisen/T2 joint permutation. Additional
+story choices map Roujyu/Hime/Tono to Sekiya/Lady Kei/Matsunoshin. T2 gallery
+bodies retain the original MDL skeleton and ARC palettes, including costume and
+animal joints omitted by the Gaisen projection. Source VAB banks are shared with
+the moveset importer and retained independently of player overrides. Native
+registrations, positive clip IDs and weapon resources remain unchanged.
+
+The Gaisen spawn helper's nearest-animal fallback is not used for T2 source
+bodies. The resource-only crow selects the native crow, which currently lacks
+JP flight clips. S1/S2 are excluded from native actor placement: visual inspection
+of their disc meshes shows stone scenery, and their source `APPEAR.C` floating
+flag and `CHRANIM.C` cinematic death cue do not justify assigning an animal AI.
+An earlier read-only decompilation comment calling them fish was insufficient
+evidence; private review captures retain the rejected mapping. ARROW likewise
+has no actor controller. These exclusions do not change authored T1 story scenes.
+Source references remain read-only; no sibling architecture or assets are copied.

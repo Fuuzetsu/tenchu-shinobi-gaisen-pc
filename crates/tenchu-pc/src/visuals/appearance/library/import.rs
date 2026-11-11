@@ -18,25 +18,7 @@ pub fn import_actor(
     if let Some(&source) = imported.get(&body.id) {
         return Ok(source);
     }
-    let behavior = if body.character.is_some() {
-        body
-    } else {
-        library
-            .bodies
-            .iter()
-            .filter(|b| {
-                b.character
-                    .as_ref()
-                    .is_some_and(|c| c.kind & 0xf0 == 0xa0 && c.health > 0)
-            })
-            .min_by_key(|b| {
-                (
-                    b.parts.len().abs_diff(body.parts.len()),
-                    b.character.as_ref().unwrap().health,
-                )
-            })
-            .ok_or("No animal behavior is available for this resource-only model")?
-    };
+    let behavior = actor_behavior(library, body)?;
     let mut character = behavior.character.clone().unwrap();
     if !character.motions.iter().any(|r| r.action == MOT_NORMAL)
         && let Some(idle) = behavior.idle
@@ -73,4 +55,26 @@ pub fn import_actor(
     };
     imported.insert(body.id.clone(), source);
     Ok(source)
+}
+
+pub fn actor_behavior<'a>(library: &'a Library, body: &'a Body) -> Result<&'a Body> {
+    Ok(if body.character.is_some() {
+        body
+    } else {
+        library
+            .bodies
+            .iter()
+            .filter(|b| {
+                b.character
+                    .as_ref()
+                    .is_some_and(|c| c.kind & 0xf0 == 0xa0 && c.health > 0)
+            })
+            .min_by_key(|b| {
+                (
+                    b.parts.len().abs_diff(body.parts.len()),
+                    b.character.as_ref().unwrap().health,
+                )
+            })
+            .ok_or("No animal behavior is available for this resource-only model")?
+    })
 }

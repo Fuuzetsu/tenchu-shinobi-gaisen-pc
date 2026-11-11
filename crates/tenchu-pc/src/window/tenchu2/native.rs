@@ -281,7 +281,7 @@ impl Application {
         view.presentation_settings(&self.settings);
         view.renderer.profiling = self.settings.show_performance;
         let native = self.native_tenchu2.as_mut().unwrap();
-        let wants_models = (native.menu.panel.open && native.menu.panel.page == 10)
+        let wants_models = (native.menu.panel.open && matches!(native.menu.panel.page, 4 | 10))
             || !self.settings.player_model.is_empty()
             || self.settings.moveset_id().is_some();
         if wants_models && view.model_library.is_none() {
@@ -453,7 +453,9 @@ impl Application {
                 view.model_picker.clear();
             }
             if let Some(request) = actions.spawn {
-                native.menu.apply_spawn(&mut native.playback, request);
+                native
+                    .menu
+                    .apply_spawn(&mut native.playback, request, view.model_library.as_ref());
             }
             reload_artwork |= actions.reload_artwork;
             save_diagnostics |= actions.save_diagnostics;

@@ -16,7 +16,10 @@ pub(super) fn show(
         });
         available_ui(ui, runtime, Item::SpawnActor, |ui| {
             let choices: Vec<_> = if runtime == Runtime::Tenchu2 {
-                menu.actor_models.iter().map(|(id, name)| (id.as_str(), name.as_str())).collect()
+                menu.actor_models.iter().map(|(id, name)| (id.as_str(), name.as_str()))
+                    .chain(models.and_then(|models| models.library).into_iter()
+                        .flat_map(|library| &library.bodies).map(|body| (body.id.as_str(), body.name.as_str())))
+                    .collect()
             } else {
                 models.and_then(|models| models.library).into_iter()
                     .flat_map(|library| &library.bodies)
@@ -46,7 +49,7 @@ pub(super) fn show(
                 edits.push(Edit::Change(Item::SpawnActor, 1));
             }
             if runtime == Runtime::Tenchu2 {
-                ui.weak("Uses native T2 AI, weapons, animations and voices. Missing disc resources are reported when placing. Cross-game bodies are not connected to placement yet.");
+                ui.weak("Uses native T2 AI, weapons and animations with the selected body and voice. Missing disc resources are reported when placing.");
             }
         });
         ui.horizontal(|ui| {

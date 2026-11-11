@@ -46,6 +46,10 @@ pub struct Assets {
 }
 
 impl Assets {
+    pub fn gaisen_actor_kind(kind: i16) -> Option<i16> {
+        gaisen::actor_kind(kind)
+    }
+
     pub fn load_actor(&mut self, disc: &Disc<impl ReadAt>, kind: i16) -> Result<()> {
         let actor = self
             .resources

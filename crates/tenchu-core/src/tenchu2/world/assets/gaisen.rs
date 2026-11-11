@@ -326,7 +326,7 @@ fn grid(source: &MissionAssets) -> Result<Grid> {
     })
 }
 
-fn actor_kind(kind: i16) -> Option<i16> {
+pub(super) fn actor_kind(kind: i16) -> Option<i16> {
     Some(match kind {
         0 | 2 => 0,
         1 | 3 => 1,

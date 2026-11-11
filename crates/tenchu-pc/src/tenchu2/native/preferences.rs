@@ -113,8 +113,9 @@ impl Menu {
         &mut self,
         playback: &mut super::campaign::Playback<impl tenchu_assets::ReadAt>,
         request: super::spawning::Request,
+        library: Option<&crate::visuals::appearance::library::Library>,
     ) {
-        self.panel.notice = match playback.spawn_actor(request) {
+        self.panel.notice = match playback.spawn_actor(request, library) {
             Ok(id) => {
                 self.actor_assets_changed = true;
                 self.tools.sync(&playback.content, playback.generation);
@@ -524,20 +525,17 @@ impl Menu {
                             self.request_screenshot();
                             Ok(())
                         }
-                        Item::SpawnActor => self
-                            .panel
-                            .spawn_model
-                            .strip_prefix("native:")
-                            .and_then(|kind| kind.parse::<i16>().ok())
-                            .ok_or_else(|| "Choose a native T2 actor first".into())
-                            .map(|kind| {
-                                action.spawn = Some(super::spawning::Request {
-                                    kind,
-                                    position: self.tools.debug.target,
-                                    yaw: (i32::from(self.panel.spawn_yaw) * 4096 / 360) as i16,
-                                    snap: self.tools.debug.snap_to_floor,
-                                })
-                            }),
+                        Item::SpawnActor => super::spawning::Source::selected(
+                            &self.panel.spawn_model,
+                        )
+                        .map(|source| {
+                            action.spawn = Some(super::spawning::Request {
+                                source,
+                                position: self.tools.debug.target,
+                                yaw: (i32::from(self.panel.spawn_yaw) * 4096 / 360) as i16,
+                                snap: self.tools.debug.snap_to_floor,
+                            })
+                        }),
                         Item::ActorPosition
                         | Item::PickActorPosition
                         | Item::MoveActor

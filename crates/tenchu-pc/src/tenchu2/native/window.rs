@@ -379,7 +379,7 @@ impl Application {
             self.focused && !self.menu.panel.open,
             &self.settings.navigation,
         );
-        let wants_models = (self.menu.panel.open && self.menu.panel.page == 10)
+        let wants_models = (self.menu.panel.open && matches!(self.menu.panel.page, 4 | 10))
             || !self.settings.player_model.is_empty()
             || self.settings.moveset_id().is_some();
         if wants_models && self.gallery.is_none() && self.gallery_error.is_none() {
@@ -513,7 +513,11 @@ impl Application {
                 gallery.picker.clear();
             }
             if let Some(request) = action.spawn {
-                self.menu.apply_spawn(&mut self.session, request);
+                self.menu.apply_spawn(
+                    &mut self.session,
+                    request,
+                    self.gallery.as_ref().map(|g| &g.library),
+                );
             }
             if action.reload_artwork {
                 match view.drawing.replace(

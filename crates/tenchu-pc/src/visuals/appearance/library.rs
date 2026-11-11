@@ -2,6 +2,8 @@ mod import;
 #[cfg(not(target_arch = "wasm32"))]
 mod tenchu2;
 mod voices;
+#[cfg(not(target_arch = "wasm32"))]
+pub use import::actor_behavior;
 pub use import::{Imported, import_actor};
 
 use crate::visuals::catalog;
@@ -31,6 +33,14 @@ pub struct Body {
     pub think: i16,
     pub voice: Option<tenchu_assets::stage::imports::Voice>,
     pub voice_set: Option<Arc<tenchu_assets::audio::voice::VoiceSet>>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub native: Option<Native>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub struct Native {
+    pub kind: i16,
+    pub rig: tenchu_assets::tenchu2::characters::Rig,
 }
 
 #[derive(Default)]
@@ -190,6 +200,8 @@ impl Library {
                 think,
                 voice,
                 voice_set: None,
+                #[cfg(not(target_arch = "wasm32"))]
+                native: None,
             });
         }
         let mut extra_clips = BTreeMap::new();

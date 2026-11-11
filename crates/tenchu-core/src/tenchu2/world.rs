@@ -31,6 +31,7 @@ mod navigation;
 mod ribbons;
 mod update;
 pub use assets::Assets;
+pub use experiment::Placement;
 pub use frame::Frame;
 pub use update::Movement;
 
@@ -216,7 +217,7 @@ impl World {
             .motion
             .select(
                 0x700,
-                actor.kind,
+                actor.definition_kind(),
                 &assets.resources.registry,
                 &assets.resources.clips,
             )?
@@ -224,14 +225,14 @@ impl World {
         {
             actor.motion.select(
                 0,
-                actor.kind,
+                actor.definition_kind(),
                 &assets.resources.registry,
                 &assets.resources.clips,
             )?;
         } else {
             actor.motion.select(
                 0x100,
-                actor.kind,
+                actor.definition_kind(),
                 &assets.resources.registry,
                 &assets.resources.clips,
             )?;
@@ -269,6 +270,17 @@ impl World {
     fn create_actor(
         &mut self,
         kind: i16,
+        position: Position,
+        facing: i16,
+        assets: &Assets,
+    ) -> Result<usize> {
+        self.create_defined_actor(kind, kind, position, facing, assets)
+    }
+
+    fn create_defined_actor(
+        &mut self,
+        kind: i16,
+        source: i16,
         mut position: Position,
         facing: i16,
         assets: &Assets,
@@ -276,13 +288,13 @@ impl World {
         let resources = &assets.resources;
         let definition = resources
             .registry
-            .actor(kind)
+            .actor(source)
             .ok_or("Missing Tenchu 2 actor")?;
         let model = assets
             .models
             .get(&definition.model)
             .ok_or("Missing Tenchu 2 actor model")?;
-        let mut actor = Actor::new(kind, &model.parts, resources)?;
+        let mut actor = Actor::with_definition(kind, source, &model.parts, resources)?;
         position.y = position.y.wrapping_sub(10);
         actor.position = position;
         actor.previous = position;
@@ -308,7 +320,7 @@ impl World {
         if kind == 2 || (kind == 0 && self.sequence > 93) {
             actor
                 .motion
-                .select(0x100, kind, &resources.registry, &resources.clips)?;
+                .select(0x100, source, &resources.registry, &resources.clips)?;
             actor.state = State::Ready;
             actor.flags |= 2;
             actor.set_weapon(

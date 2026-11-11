@@ -21,13 +21,14 @@ pub fn hero(name: &str) -> Option<i16> {
     }
 }
 
-pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
-    let registry = Registry::load(disc)?;
+pub fn load(
+    disc: &Disc<impl ReadAt>,
+    registry: &Registry,
+    voices: &BTreeMap<i16, Arc<tenchu_assets::audio::voice::VoiceSet>>,
+) -> Result<BTreeMap<i16, Arc<Imported>>> {
     // Both discs store authored 30 Hz tracks. PAL's 25 Hz load-time patch is
     // inappropriate for Gaisen's 30 Hz controller (as in the Tatsumaru importer).
     let weapons = Weapons::load(disc)?;
-    let voices = tenchu2::audio::voices(disc, &registry)?;
-    let registry_ref = &registry;
     let clips = motions::collect(
         disc,
         registry
@@ -37,7 +38,7 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
             .flat_map(|kind| {
                 ACTIONS
                     .iter()
-                    .filter_map(move |&(_, action)| registry_ref.clip(kind, action))
+                    .filter_map(move |&(_, action)| registry.clip(kind, action))
             })
             .collect(),
     )?;
@@ -170,9 +171,8 @@ pub fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
                     ));
                 }
                 let mut contacts = contacts.into_iter();
-                let combo = combo(original).map(|next| {
-                    next.filter(|&next| character_action_exists(&registry, kind, next))
-                });
+                let combo = combo(original)
+                    .map(|next| next.filter(|&next| character_action_exists(registry, kind, next)));
                 let trail = source_attack.trail_start > 0 && kind != 2;
                 attacks.push((
                     Attack {

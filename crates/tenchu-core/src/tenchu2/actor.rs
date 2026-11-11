@@ -133,16 +133,25 @@ impl Actor {
     }
 
     pub fn new(kind: i16, parts: &[Part], resources: &Resources) -> Result<Self> {
+        Self::with_definition(kind, kind, parts, resources)
+    }
+
+    pub fn with_definition(
+        kind: i16,
+        source: i16,
+        parts: &[Part],
+        resources: &Resources,
+    ) -> Result<Self> {
         if resources.registry.edition != Edition::Japan {
             return Err("Native Tenchu 2 gameplay requires Japanese actor definitions".into());
         }
         let definition = resources
             .registry
-            .actor(kind)
+            .actor(source)
             .ok_or("Unknown Tenchu 2 actor")?;
         let mut motion = Motion::new(parts)?;
         motion
-            .select(0, kind, &resources.registry, &resources.clips)?
+            .select(0, source, &resources.registry, &resources.clips)?
             .ok_or("Missing Tenchu 2 idle motion")?;
         let (width, height) = dimensions(kind, parts)?;
         let health = if kind == 0x68 {
@@ -152,7 +161,14 @@ impl Actor {
         };
         Ok(Self {
             kind,
-            moveset: None,
+            moveset: (source != kind).then(|| {
+                Box::new(Override {
+                    definition: source,
+                    attacks: BTreeMap::new(),
+                    no_idle_taunts: false,
+                    retain_combo_pose: false,
+                })
+            }),
             state: State::Normal,
             flags: 0,
             health,

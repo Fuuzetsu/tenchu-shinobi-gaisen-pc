@@ -10,8 +10,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   variants retain their native rigs, weapons, animations, AI and voices, including
   actors from other stages. Placement works in imported T1 stages, preserves
   authored story targets, and resets on retry. Horse, hawk and crow definitions
-  report the animation files missing from the Japanese disc. Cross-game body
-  selection for placement remains pending.
+  report the animation files missing from the Japanese disc.
+- Native T2 placement also offers the shared T1/T2 body gallery, including animals
+  and alternate costumes. Selected bodies and voices use the corresponding native
+  T2 actor's AI, weapons and animations. T2 bodies retain their full source rigs;
+  NPCs keep their resources when changing the player's model or moveset. The T1
+  arrow and S1/S2 scripted scenery have no native actor controller; imported
+  crow/hawk/horse choices report missing JP animations. Added scene characters
+  can be moved without giving them health or changing authored story actors.
 
 - Native T2's F1 actor editor can copy positions, pick a floor point, move a guard
   with a new facing, and remove actors. Edits reset on retry or area change and

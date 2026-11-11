@@ -8,16 +8,25 @@ use crate::{
     },
 };
 
+pub struct Placement {
+    pub kind: i16,
+    pub definition: i16,
+    pub behavior: u16,
+    pub position: Position,
+    pub yaw: i16,
+    pub snap: bool,
+}
+
 impl World {
-    pub fn place_actor(
-        &mut self,
-        kind: i16,
-        behavior: u16,
-        position: Position,
-        yaw: i16,
-        snap: bool,
-        assets: &Assets,
-    ) -> Result<usize> {
+    pub fn place_actor(&mut self, placement: Placement, assets: &Assets) -> Result<usize> {
+        let Placement {
+            kind,
+            definition,
+            behavior,
+            position,
+            yaw,
+            snap,
+        } = placement;
         let player = &self.actors[self.player].actor;
         if !self.mission.input_allowed()
             || player.health <= 0
@@ -30,7 +39,7 @@ impl World {
         }
         let mut next = self.clone();
         next.collision.allow_expansion();
-        let index = next.create_actor(kind, Position::default(), 0, assets)?;
+        let index = next.create_defined_actor(kind, definition, Position::default(), 0, assets)?;
         let actor = &next.actors[index].actor;
         let (position, probe) =
             next.edit_destination(position, actor.width, actor.height, snap, assets)?;
@@ -108,7 +117,7 @@ impl World {
     ) -> Result<()> {
         self.editable_actor(index)?;
         let mut actor = self.actors[index].actor.clone();
-        if actor.health == 0 {
+        if actor.health == 0 && actor.max_health != 0 {
             return Err("Only living actors can be moved".into());
         }
         let (position, probe) =

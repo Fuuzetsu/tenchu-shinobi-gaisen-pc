@@ -2,6 +2,7 @@ use super::{
     Session,
     campaign::{Content, Playback},
 };
+use crate::visuals::appearance::library::{Library, actor_behavior};
 use tenchu_assets::{
     ReadAt, Result,
     disc::Disc,
@@ -9,33 +10,81 @@ use tenchu_assets::{
 };
 use tenchu_core::math::Position;
 
+mod body;
+
+pub enum Source {
+    Native(i16),
+    Model(String),
+}
+
+impl Source {
+    pub fn selected(id: &str) -> Result<Self> {
+        if let Some(kind) = id.strip_prefix("native:") {
+            return kind
+                .parse()
+                .map(Self::Native)
+                .map_err(|_| "Unknown native actor".into());
+        }
+        if id.is_empty() {
+            return Err("Choose an actor first".into());
+        }
+        Ok(Self::Model(id.to_owned()))
+    }
+}
+
 pub struct Request {
-    pub kind: i16,
+    pub source: Source,
     pub position: Position,
     pub yaw: i16,
     pub snap: bool,
 }
 
 impl<S: ReadAt> Playback<S> {
-    pub fn spawn_actor(&mut self, request: Request) -> Result<usize> {
+    pub fn spawn_actor(&mut self, request: Request, library: Option<&Library>) -> Result<usize> {
         let Content::Gameplay(session) = &mut self.content else {
             return Err("Start a mission before placing actors".into());
         };
-        session.spawn_actor(&self.disc, request)
+        session.spawn_actor(&self.disc, request, library)
     }
 }
 
 impl Session {
-    fn spawn_actor(&mut self, disc: &Disc<impl ReadAt>, request: Request) -> Result<usize> {
+    fn spawn_actor(
+        &mut self,
+        disc: &Disc<impl ReadAt>,
+        request: Request,
+        library: Option<&Library>,
+    ) -> Result<usize> {
         if self.cinematic() {
             return Err("Wait for the cinematic before placing actors".into());
         }
-        let kind = request.kind;
+        let (kind, body) = match &request.source {
+            Source::Native(kind) => (*kind, None),
+            Source::Model(id) => {
+                let library = library.ok_or("Wait for the cross-game model gallery to load")?;
+                let body = library.get(id).ok_or("This actor model is unavailable")?;
+                (body::kind(library, body)?, Some(body))
+            }
+        };
         if kind < 0 {
             return Err("Choose a native T2 actor definition".into());
         }
         self.assets.load_actor(disc, kind)?;
-        let voice = if self.assets.cast.contains(&kind) {
+        let definition =
+            body.map_or(Ok(kind), |body| body::install(&mut self.assets, body, kind))?;
+        let voice = if let Some(body) = body {
+            let behavior = if body.native.is_some() {
+                body
+            } else {
+                actor_behavior(library.unwrap(), body)?
+            };
+            Some(
+                body.voice_set
+                    .as_ref()
+                    .or(behavior.voice_set.as_ref())
+                    .cloned(),
+            )
+        } else if self.assets.cast.contains(&kind) {
             None
         } else {
             Some(voices_for(disc, &self.assets.resources.registry, &[kind])?.remove(&kind))
@@ -58,14 +107,18 @@ impl Session {
             behavior
         };
         let id = self.world.place_actor(
-            kind,
-            behavior,
-            request.position,
-            request.yaw,
-            request.snap,
+            tenchu_core::tenchu2::world::Placement {
+                kind,
+                definition,
+                behavior,
+                position: request.position,
+                yaw: request.yaw,
+                snap: request.snap,
+            },
             &self.assets,
         )?;
         if let Some(voice) = voice {
+            self.world.instances[id].voice = 4;
             self.actor_voices.insert(id, voice);
         }
         self.reset_interpolation()?;
@@ -74,489 +127,4 @@ impl Session {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; F1 placement refreshes rendering and retry restores authored actors"]
-    fn native_spawn_menu_render_and_retry() {
-        use super::super::{campaign::Action, preferences::Menu, presentation::ContentDrawing};
-        use crate::{renderer::Renderer, settings::Settings};
-        let disc =
-            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-        let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
-        std::fs::create_dir_all(&output).unwrap();
-        let mut playback = Playback::load(disc, 9, 2, 1, Some([0; 21]), None).unwrap();
-        for _ in 0..60 {
-            playback.step(0).unwrap();
-        }
-        let mut menu = Menu::default();
-        menu.tools.sync(&playback.content, playback.generation);
-        let Content::Gameplay(session) = &playback.content else {
-            unreachable!()
-        };
-        let count = session.world.actors.len();
-        let tick = session.world.tick;
-        let position = session.world.actors[0].actor.position;
-        let generation = playback.generation;
-        menu.tools.debug.camera = Some(crate::debug::camera::Camera {
-            position: glam::Vec3::from(position.to_array().map(|v| v as f32))
-                - glam::Vec3::Y * 5000.0,
-            yaw: 0.0,
-            pitch: -1.5,
-            fov: 50.0,
-        });
-        assert_eq!(menu.tools.actor_models.len(), 130);
-        let instance = wgpu::Instance::new(&Default::default());
-        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
-        let size = [960, 540];
-        let format = wgpu::TextureFormat::Rgba8Unorm;
-        let mut renderer =
-            pollster::block_on(Renderer::new(&adapter, format, size, playback.vram())).unwrap();
-        let mut settings = Settings::default();
-        settings.graphics.asset_pack = false;
-        let graphics = super::super::preferences::graphics(&settings);
-        renderer.configure(&graphics);
-        let mut drawing = ContentDrawing::new(&playback.content, &graphics, &mut renderer).unwrap();
-        let mut images = Vec::new();
-        for mode in ["before", "placed", "removed"] {
-            if mode == "placed" {
-                menu.apply_spawn(
-                    &mut playback,
-                    Request {
-                        kind: 0xe0,
-                        position: position.wrapping_add(Position::new(1200, 0, 0)),
-                        yaw: 1024,
-                        snap: true,
-                    },
-                );
-                assert!(menu.actor_assets_changed, "{}", menu.panel.notice);
-                assert!(menu.tools.debug.actors_edited);
-                assert_eq!(menu.tools.debug.selected_actor, count);
-                assert_eq!(playback.generation, generation);
-                drawing
-                    .replace(
-                        &playback.content,
-                        playback.vram(),
-                        &graphics,
-                        &mut renderer,
-                        true,
-                    )
-                    .unwrap();
-            } else if mode == "removed" {
-                let Content::Gameplay(session) = &mut playback.content else {
-                    unreachable!()
-                };
-                session.world.remove_actor(count, &session.assets).unwrap();
-                session.reset_interpolation().unwrap();
-            }
-            let Content::Gameplay(session) = &playback.content else {
-                unreachable!()
-            };
-            assert_eq!(session.world.tick, tick);
-            let before = postcard::to_allocvec(&session.world).unwrap();
-            drawing
-                .update(
-                    &playback.content,
-                    &mut renderer,
-                    &menu.tools.debug,
-                    &settings,
-                )
-                .unwrap();
-            let path = output.join(format!("spawn-{mode}.png"));
-            crate::capture::render_to_png(
-                &mut renderer,
-                size,
-                format,
-                &path,
-                |renderer, target| drawing.draw(&playback.content, target, renderer),
-            )
-            .unwrap();
-            assert!(postcard::to_allocvec(&session.world).unwrap() == before);
-            images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
-        }
-        assert!(
-            images[0].rgba != images[1].rgba,
-            "placed actor did not render"
-        );
-        assert!(
-            images[0].rgba == images[2].rgba,
-            "removing the new actor did not restore the scene"
-        );
-        playback.content = Content::Failed;
-        playback.action = Some(Action::Retry);
-        playback.step(0).unwrap();
-        let Content::Gameplay(session) = &playback.content else {
-            unreachable!()
-        };
-        assert_eq!(session.world.actors.len(), count);
-        assert!(session.actor_voices.is_empty());
-        menu.tools.sync(&playback.content, playback.generation);
-        assert!(!menu.tools.debug.actors_edited);
-    }
-
-    #[test]
-    #[ignore = "requires both discs; spawned bosses leave imported T1 story bindings and objectives intact for all heroes"]
-    fn native_spawn_in_imported_stages_keeps_story_bindings() {
-        use super::super::gaisen;
-        use tenchu_assets::script::Language;
-        use tenchu_core::tenchu2::world::Options;
-        let disc =
-            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-        let path = std::env::var_os("TENCHU_DISC").unwrap();
-        for hero in 0..3 {
-            let source =
-                gaisen::Source::open(path.as_ref(), 0, i16::from(hero == 1), 1, Language::English)
-                    .unwrap();
-            let mut session = source
-                .session(
-                    &disc,
-                    Options {
-                        hero,
-                        difficulty: 2,
-                        seed: 1,
-                        inventory: Default::default(),
-                    },
-                    false,
-                    4000,
-                )
-                .unwrap();
-            session.step(0).unwrap();
-            for _ in 0..6000 {
-                if !session.cinematic() {
-                    break;
-                }
-                session.step(0).unwrap();
-            }
-            assert!(!session.cinematic());
-            let director = &session.gaisen.as_ref().unwrap().director;
-            let bindings: Vec<_> = director
-                .source
-                .roster
-                .order
-                .iter()
-                .map(|&id| (id, director.native_actor(id)))
-                .collect();
-            let boss = bindings
-                .iter()
-                .filter_map(|&(source, native)| native.map(|native| (source, native)))
-                .find(|&(source, _)| director.source.roster.get(source).kind & 0xf0 == 0x80)
-                .unwrap();
-            let before = session.world.actors[boss.1].actor.health;
-            let source_health = director.source.roster.get(boss.0).health;
-            let position = session.world.actors[0].actor.position;
-            let kind = session.world.actors[boss.1].actor.kind;
-            let id = session
-                .spawn_actor(
-                    &disc,
-                    Request {
-                        kind,
-                        position,
-                        yaw: 0,
-                        snap: true,
-                    },
-                )
-                .unwrap();
-            session.world.kill_actor(id, &session.assets).unwrap();
-            let gaisen = session.gaisen.as_mut().unwrap();
-            gaisen
-                .director
-                .update(&mut session.world, &session.assets, 0)
-                .unwrap();
-            for (source, native) in bindings {
-                assert_eq!(gaisen.director.native_actor(source), native);
-            }
-            assert_eq!(session.world.actors[boss.1].actor.health, before);
-            assert_eq!(
-                gaisen.director.source.roster.get(boss.0).health,
-                source_health
-            );
-            assert!(session.world.actors[id].slot < 0);
-        }
-    }
-
-    #[test]
-    #[ignore = "requires Japanese TENCHU2_DISC; extra voices retain source banks and independent NPC bark timing"]
-    fn native_spawn_voice_banks_are_independent_of_stage_slots() {
-        use super::super::{Arc, BTreeSet, Event, EventSource, Events, Output};
-        let disc =
-            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-        let mut session = Session::load(&disc, 9, 1).unwrap();
-        let kinds: Vec<_> = session
-            .assets
-            .resources
-            .registry
-            .actors
-            .iter()
-            .filter(|a| (0x20..0x60).contains(&a.kind) && !session.assets.cast.contains(&a.kind))
-            .map(|a| a.kind)
-            .take(2)
-            .collect();
-        let voices = voices_for(&disc, &session.assets.resources.registry, &kinds).unwrap();
-        let position = session.world.actors[0].actor.position;
-        let mut ids = Vec::new();
-        for &kind in &kinds {
-            ids.push(
-                session
-                    .spawn_actor(
-                        &disc,
-                        Request {
-                            kind,
-                            position,
-                            yaw: 0,
-                            snap: true,
-                        },
-                    )
-                    .unwrap(),
-            );
-        }
-        let mut pending = BTreeSet::new();
-        let mut output = Output {
-            player: session.world.player,
-            voice: None,
-            actor_voices: &session.actor_voices,
-            listener: session.world.listener(),
-            requests: Vec::new(),
-            wounds: Vec::new(),
-            melee_hits: BTreeSet::new(),
-            pending: &mut pending,
-        };
-        let random = session.world.random;
-        for (&kind, &id) in kinds.iter().zip(&ids) {
-            for cue in [6, 10, 13, 15, 29] {
-                output
-                    .emit(
-                        EventSource {
-                            listener: session.world.listener(),
-                            voice: session.world.instances[id].voice,
-                            index: id,
-                            actor: &session.world.actors[id].actor,
-                            rig: &session.world.instances[id].rig,
-                            scene: &mut session.world.scene,
-                        },
-                        Event::Voice(cue),
-                        &mut session.world.random,
-                    )
-                    .unwrap();
-                let request = output.requests.pop().unwrap();
-                if cue < 16 {
-                    assert_eq!(request.extra_voice, Some(kind));
-                    let (bank, actual) = request.source.unwrap();
-                    assert_eq!(actual, cue);
-                    assert!(Arc::ptr_eq(
-                        &bank,
-                        session.actor_voices[&id].as_ref().map(|v| &v.bank).unwrap()
-                    ));
-                    assert_eq!(bank.samples.len(), voices[&kind].bank.samples.len());
-                    assert!(!Arc::ptr_eq(&bank, &session.bank));
-                } else {
-                    assert!(request.source.is_none() && request.extra_voice.is_none());
-                    assert_eq!(request.id, cue);
-                }
-            }
-        }
-        assert_eq!(random, session.world.random);
-        let audio = &mut session.world.audio;
-        assert!(audio.extra_voice_ready(kinds[0], 6, 60));
-        assert!(audio.extra_voice_ready(kinds[1], 6, 60));
-        assert!(!audio.extra_voice_ready(kinds[0], 7, 89));
-        assert!(audio.extra_voice_ready(kinds[0], 7, 90));
-        assert!(audio.extra_voice_ready(kinds[0], 13, 91));
-        // A fresh original allocator receives exactly the same sound IDs/slots.
-        let mut original = tenchu_core::tenchu2::audio::Audio::default();
-        for tick in 100..160 {
-            let id = if tick & 1 == 0 { 0x56 } else { 0x4d };
-            assert_eq!(
-                audio.play(id, 0, 127, tick, &session.assets.resources.math),
-                original.play(id, 0, 127, tick, &session.assets.resources.math)
-            );
-        }
-    }
-
-    #[test]
-    #[ignore = "requires Japanese TENCHU2_DISC; invalid placements roll back, extra guards update quotas and bosses retain authored IDs"]
-    fn native_spawn_preserves_objectives_and_rejects_invalid_positions() {
-        use tenchu_assets::tenchu2::campaign::{Campaign, Kind, Objective};
-        let disc =
-            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-        let mut session = Session::load(&disc, 9, 1).unwrap();
-        let position = session.world.actors[0].actor.position;
-        let baseline = postcard::to_allocvec(&session.world).unwrap();
-        for (kind, position) in [
-            (0x30, Position::new(i32::MAX, 0, 0)),
-            (0x73, position),
-            (-1, position),
-        ] {
-            assert!(
-                session
-                    .spawn_actor(
-                        &disc,
-                        Request {
-                            kind,
-                            position,
-                            yaw: 0,
-                            snap: true
-                        }
-                    )
-                    .is_err()
-            );
-            assert!(postcard::to_allocvec(&session.world).unwrap() == baseline);
-        }
-        session.world.mission.objective = Objective::EliminateAll;
-        let guards = session.world.mission.population.guards;
-        let id = session
-            .spawn_actor(
-                &disc,
-                Request {
-                    kind: 0x30,
-                    position,
-                    yaw: 0,
-                    snap: true,
-                },
-            )
-            .unwrap();
-        assert_eq!(session.world.mission.population.guards, guards + 1);
-        assert!(session.world.remove_actor(id, &session.assets).is_err());
-        session.world.kill_actor(id, &session.assets).unwrap();
-        assert_eq!(session.world.statistics.killed, 1);
-        let campaign = Campaign::load(&disc).unwrap();
-        let mut count = 0;
-        for (sequence, entry) in campaign.sequences.iter().enumerate() {
-            if !matches!(
-                entry.kind,
-                Kind::Gameplay(Objective::Defeat { .. } | Objective::Weaken { .. })
-            ) {
-                continue;
-            }
-            let mut session = Session::load(&disc, sequence, 1).unwrap();
-            let targets = session.world.mission.targets;
-            for target in targets
-                .into_iter()
-                .flatten()
-                .filter(|&id| id != session.world.player)
-                .collect::<Vec<_>>()
-            {
-                let position = session.world.actors[target].actor.position;
-                let kind = session.world.actors[target].actor.kind;
-                let extra = session
-                    .spawn_actor(
-                        &disc,
-                        Request {
-                            kind,
-                            position,
-                            yaw: 0,
-                            snap: false,
-                        },
-                    )
-                    .unwrap();
-                session.world.kill_actor(extra, &session.assets).unwrap();
-                assert_eq!(session.world.mission.targets, targets);
-                assert!(session.world.actors[target].actor.health > 0);
-                assert!(session.world.mission.input_allowed());
-                count += 1;
-            }
-        }
-        assert_eq!(count, 26);
-    }
-
-    #[test]
-    #[ignore = "requires Japanese TENCHU2_DISC; places the native catalog with original resources and exercises AI/death"]
-    fn native_spawn_catalog_uses_source_resources() {
-        let disc =
-            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-        let mut session = Session::load(&disc, 9, 1).unwrap();
-        session.world.actors[0].actor.invulnerable = true;
-        session.world.keep_all_active = true;
-        for _ in 0..60 {
-            session.step(0).unwrap();
-        }
-        let baseline = session.world.clone();
-        let position = baseline.actors[0].actor.position;
-        let catalog = session.assets.resources.registry.actors.clone();
-        let mut placed = 0;
-        let mut unavailable = Vec::new();
-        for definition in catalog {
-            session.world = baseline.clone();
-            session.actor_voices.clear();
-            let kind = definition.kind;
-            let id = match session.spawn_actor(
-                &disc,
-                Request {
-                    kind,
-                    position,
-                    yaw: 2048,
-                    snap: true,
-                },
-            ) {
-                Ok(id) => id,
-                Err(error) if error.contains("disc omits animation clips") => {
-                    eprintln!("unavailable {kind:#x}: {error}");
-                    unavailable.push(kind);
-                    assert!(
-                        serde_json::to_vec(&session.world).unwrap()
-                            == serde_json::to_vec(&baseline).unwrap()
-                    );
-                    continue;
-                }
-                Err(error) => panic!("spawn {kind:#x} {}: {error}", definition.model),
-            };
-            placed += 1;
-            assert_eq!(id, baseline.actors.len());
-            assert_eq!(session.world.tick, baseline.tick);
-            assert_eq!(session.world.mission.targets, baseline.mission.targets);
-            assert!(
-                session
-                    .world
-                    .actors
-                    .iter()
-                    .take(id)
-                    .zip(&baseline.actors)
-                    .all(|(a, b)| a.slot == b.slot && a.actor.position == b.actor.position)
-            );
-            assert!(session.world.actors[id].slot < 0);
-            assert_eq!(session.world.actors[id].actor.kind, kind);
-            assert!(
-                definition.motions.iter().all(|m| session
-                    .assets
-                    .resources
-                    .clips
-                    .contains_key(&m.clip))
-            );
-            let mut sounds = 0;
-            for tick in 0..180 {
-                sounds += session
-                    .step(0)
-                    .unwrap_or_else(|e| panic!("kind {kind:#x} tick {tick}: {e}"))
-                    .len();
-            }
-            let motion = session.world.actors[id].actor.motion.action;
-            let killed = match session.world.kill_actor(id, &session.assets) {
-                Ok(()) => {
-                    for tick in 0..150 {
-                        session
-                            .step(0)
-                            .unwrap_or_else(|e| panic!("death {kind:#x} tick {tick}: {e}"));
-                    }
-                    assert!(session.world.actors[id].actor.health <= 0);
-                    true
-                }
-                Err(error) => {
-                    assert!(
-                        error.contains("no death animation")
-                            || session.world.actors[id].actor.health <= 0,
-                        "{kind:#x}: {error}"
-                    );
-                    false
-                }
-            };
-            eprintln!(
-                "placed {kind:#04x} {}: action {motion:#x}, {sounds} sounds, death {killed}",
-                definition.model
-            );
-        }
-        eprintln!("native catalog: {placed} placed, unavailable {unavailable:x?}");
-        assert_eq!(placed, 127);
-        unavailable.sort_unstable();
-        assert_eq!(unavailable, [0x73, 0x74, 0x78]);
-    }
-}
+mod tests;

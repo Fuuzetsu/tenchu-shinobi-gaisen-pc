@@ -29,7 +29,8 @@ use tenchu_core::{
 };
 
 mod convert;
-use convert::{convert_moves, convert_weapons, native_parts, native_sources};
+use convert::{convert_moves, convert_weapons, native_parts};
+pub(super) use convert::{native_sources, placement_parts};
 
 #[derive(Clone, Default, PartialEq, Eq)]
 struct Selection {

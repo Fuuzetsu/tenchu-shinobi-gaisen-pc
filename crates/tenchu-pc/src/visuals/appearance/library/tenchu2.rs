@@ -5,7 +5,9 @@ impl Library {
     pub fn load_tenchu2(&mut self, disc: &tenchu_assets::disc::Disc<impl ReadAt>) -> Result<()> {
         let edition = tenchu_assets::tenchu2::Edition::detect(disc)?;
         let models = tenchu_assets::tenchu2::characters::load(disc, None)?;
-        let movesets = moveset::load(disc)?;
+        let registry = tenchu_assets::tenchu2::registry::Registry::load(disc)?;
+        let voices = tenchu_assets::tenchu2::audio::voices(disc, &registry)?;
+        let movesets = moveset::load(disc, &registry, &voices)?;
         let suzaku = models
             .iter()
             .find(|m| m.name == "tatu2")
@@ -59,6 +61,14 @@ impl Library {
                 "toda" => "Lord Toda",
                 name => name,
             };
+            let kind = moveset::hero(&model.name)
+                .or_else(|| model.kinds.first().copied())
+                .or_else(|| (model.name == "tatu2_m").then_some(suzaku).flatten())
+                .ok_or("Tenchu 2 model has no source actor definition")?;
+            let native = Native {
+                kind,
+                rig: tenchu_assets::tenchu2::characters::rig(disc, &model.name)?,
+            };
             let body = Body {
                 id: id.clone(),
                 name: format!("{label} · {}", edition.name()),
@@ -80,7 +90,8 @@ impl Library {
                 clips: Arc::new(clips),
                 idle,
                 think: behavior.think,
-                voice_set: None,
+                voice_set: voices.get(&kind).cloned(),
+                native: Some(native),
                 voice: crate::tenchu2::voices::donor_kind(&model.name)
                     .and_then(|kind| self.get(&format!("disc:{kind}")))
                     .and_then(|body| body.voice)
