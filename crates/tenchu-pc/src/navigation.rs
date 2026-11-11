@@ -5,6 +5,15 @@ use tenchu_core::input;
 mod gaisen;
 pub use gaisen::viewpoint;
 
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct NativeInput {
+    pub yaw: f32,
+    pub pitch: i16,
+    pub sticks: [Vec2; 2],
+    pub deadzone: u16,
+    pub align_aim: bool,
+}
+
 #[derive(Clone, Copy)]
 pub struct Target {
     pub id: usize,

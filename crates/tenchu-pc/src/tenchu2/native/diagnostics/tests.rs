@@ -26,7 +26,7 @@ fn native_reports_preserve_source_state_and_reset_inputs_at_scene_boundaries() {
             0
         };
         transport
-            .frame_step(&mut playback, buttons, None, |_| Ok(()))
+            .frame_step(&mut playback, buttons, None, |_, _| Ok(()))
             .unwrap();
         reference.step(buttons).unwrap();
     }
@@ -71,7 +71,7 @@ fn native_reports_preserve_source_state_and_reset_inputs_at_scene_boundaries() {
 
     playback.action = Some(super::super::campaign::Action::SelectMission);
     transport
-        .frame_step(&mut playback, 0, None, |_| Ok(()))
+        .frame_step(&mut playback, 0, None, |_, _| Ok(()))
         .unwrap();
     assert!(transport.recent.inputs.is_empty());
     assert_eq!(
@@ -82,7 +82,7 @@ fn native_reports_preserve_source_state_and_reset_inputs_at_scene_boundaries() {
     let mut story = self::playback(10);
     for _ in 0..10 {
         transport
-            .frame_step(&mut story, 0, None, |_| Ok(()))
+            .frame_step(&mut story, 0, None, |_, _| Ok(()))
             .unwrap();
     }
     let Content::Story { story: content, .. } = &story.content else {

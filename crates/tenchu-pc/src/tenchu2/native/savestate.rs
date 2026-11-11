@@ -74,8 +74,7 @@ fn snapshot<'a>(
     })
 }
 
-#[cfg(test)]
-fn capture_rewind(
+pub(super) fn capture_rewind(
     playback: &Playback<impl ReadAt>,
     drawing: &ContentDrawing,
     settings: &Settings,
@@ -115,6 +114,7 @@ pub fn restore(
         tools,
         renderer,
         None,
+        false,
     )
     .map(|drawing| drawing.expect("new drawing for a disk state"))
 }
@@ -128,6 +128,20 @@ fn restore_rewind(
     renderer: &mut Renderer,
     drawing: &mut ContentDrawing,
 ) -> std::result::Result<(), RestoreError> {
+    restore_recorded(
+        playback, snapshot, settings, tools, renderer, drawing, false,
+    )
+}
+
+pub(super) fn restore_recorded(
+    playback: &mut Playback<impl ReadAt>,
+    snapshot: &crate::rewind::Snapshot,
+    settings: &mut Settings,
+    tools: &mut Tools,
+    renderer: &mut Renderer,
+    drawing: &mut ContentDrawing,
+    recorded_visuals: bool,
+) -> std::result::Result<(), RestoreError> {
     if let Some(replacement) = restore_snapshot(
         playback,
         snapshot.decode()?,
@@ -135,6 +149,7 @@ fn restore_rewind(
         tools,
         renderer,
         Some(drawing),
+        recorded_visuals,
     )? {
         *drawing = replacement;
     }
@@ -148,12 +163,17 @@ fn restore_snapshot(
     tools: &mut Tools,
     renderer: &mut Renderer,
     drawing: Option<&mut ContentDrawing>,
+    recorded_visuals: bool,
 ) -> std::result::Result<Option<ContentDrawing>, RestoreError> {
     if saved.signature != SIGNATURE {
         return Err("This is not a native T2 JP savestate".to_string().into());
     }
     saved.preferences.validate();
-    let graphics = super::preferences::graphics(settings);
+    let graphics = super::preferences::graphics(if recorded_visuals {
+        &saved.preferences
+    } else {
+        settings
+    });
     let mut drawing_changed = false;
     let replacement = playback
         .restore_snapshot_with(saved.campaign, |content, reused| {
@@ -183,6 +203,10 @@ fn restore_snapshot(
             drawing_changed,
         })?;
     settings.restore_playback_preferences(&saved.preferences);
+    if recorded_visuals {
+        settings.graphics = saved.preferences.graphics;
+        settings.retro = saved.preferences.retro;
+    }
     playback.restore_preferences(settings);
     tools.restore_checkpoint(
         &playback.content,

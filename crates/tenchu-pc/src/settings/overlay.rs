@@ -819,13 +819,13 @@ mod tests {
         let mut edits = Vec::new();
         let paint = |ctx: &egui::Context, rect: &mut egui::Rect, edits: &mut Vec<Edit>| {
             egui::CentralPanel::default().show(ctx, |ui| {
-                available_ui(ui, Runtime::Tenchu2, Item::Rewind, |ui| {
-                    *rect = ui.button("Rewind").rect;
+                available_ui(ui, Runtime::Tenchu2, Item::GameplayPreset, |ui| {
+                    *rect = ui.button("Gameplay preset").rect;
                 });
                 action_button(
                     ui,
                     "Reset",
-                    Edit::Reset(Item::Rewind),
+                    Edit::Reset(Item::GameplayPreset),
                     Runtime::Tenchu2,
                     edits,
                 );
@@ -852,7 +852,7 @@ mod tests {
                     .galley
                     .job
                     .text
-                    .contains(Runtime::Tenchu2.unavailable(Item::Rewind).unwrap()),
+                    .contains(Runtime::Tenchu2.unavailable(Item::GameplayPreset).unwrap()),
                 egui::Shape::Vec(shapes) => shapes.iter().any(has_reason),
                 _ => false,
             }

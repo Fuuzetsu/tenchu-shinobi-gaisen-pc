@@ -15,6 +15,7 @@ use crate::{
 use std::{sync::Arc, time::Instant};
 use tenchu_assets::Result;
 
+mod rewind;
 mod state;
 
 use winit::{
@@ -246,6 +247,7 @@ struct Application {
     controls: Controls,
     audio: Option<Output>,
     transport: Transport,
+    rewind: super::rewind::Rewind,
     last: Instant,
     paused: bool,
     focused: bool,
@@ -262,6 +264,7 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
+        self.rewind.resume()?;
         self.controls.stop_rumble();
         self.session.configure(&self.settings);
         let buttons = self.menu.tools.input(
@@ -274,14 +277,25 @@ impl Application {
             .view
             .as_mut()
             .filter(|v| v.generation == self.session.generation && !self.menu.actor_assets_changed);
-        let graphics = &self.settings.rendering().graphics;
+        let graphics = self.settings.rendering().graphics.clone();
         let update = self.transport.frame_step(
             &mut self.session,
             buttons,
             self.audio.as_ref(),
-            |content| {
-                if let Some(view) = &mut view {
-                    view.drawing.tick(content, graphics)?;
+            |playback, observed| {
+                self.rewind.observed(playback, observed, &self.menu.tools);
+                if !observed.replaced
+                    && let Some(view) = &mut view
+                {
+                    view.drawing.tick(&playback.content, &graphics)?;
+                    if let Some(error) = self.rewind.record(
+                        playback,
+                        &view.drawing,
+                        &mut self.settings,
+                        &self.menu.tools,
+                    ) {
+                        self.menu.notice(error);
+                    }
                 }
                 Ok(())
             },
@@ -313,20 +327,30 @@ impl Application {
         {
             self.paused = !self.paused;
         }
+        if !self.paused && self.rewind.preview {
+            self.rewind.resume()?;
+        }
+        self.advance_rewind(elapsed);
         let paused = self.paused
             || !self.focused && self.settings.pause_on_defocus
             || self.error.is_some()
             || self.menu.panel.open && self.settings.pause_in_menu
             || self.controls.editor.open
             || self.presets.open;
-        self.session.configure(&self.settings);
+        if !self.rewind.preview {
+            self.session.configure(&self.settings);
+        }
         let input = PlaybackInput {
-            buttons: self.menu.tools.input(
-                &mut self.session.content,
-                &mut self.controls,
-                &self.settings,
-                self.focused && !self.menu.panel.open,
-            ),
+            buttons: if self.rewind.preview {
+                0
+            } else {
+                self.menu.tools.input(
+                    &mut self.session.content,
+                    &mut self.controls,
+                    &self.settings,
+                    self.focused && !self.menu.panel.open,
+                )
+            },
             cutscene_speed: self.settings.cutscene_speed,
             simulation_speed: self.menu.tools.debug.speed,
             fast_forward: self.controls.held(KeyCode::Backspace) || self.menu.fast_forward,
@@ -339,28 +363,46 @@ impl Application {
             .view
             .as_mut()
             .filter(|v| v.generation == self.session.generation && !self.menu.actor_assets_changed);
-        let graphics = &self.settings.rendering().graphics;
+        let graphics = self.settings.rendering().graphics.clone();
         let feedback_enabled = self.focused
             && !input.paused
             && !input.pacing(&self.session.content).1
             && self.settings.frontend.rumble;
-        let update = self.transport.advance(
-            &mut self.session,
-            elapsed,
-            input,
-            self.audio.as_ref(),
-            |content| {
-                self.controls.native_feedback(
-                    content.feedback(),
-                    feedback_enabled,
-                    &self.settings.vibration,
-                );
-                if let Some(view) = &mut view {
-                    view.drawing.tick(content, graphics)?;
-                }
-                Ok(())
-            },
-        )?;
+        let update = if self.rewind.preview {
+            self.transport
+                .preview(&mut self.session, self.audio.as_ref());
+            super::transport::Update::default()
+        } else {
+            self.transport.advance(
+                &mut self.session,
+                elapsed,
+                input,
+                self.audio.as_ref(),
+                |playback, observed| {
+                    let content = &playback.content;
+                    self.rewind.observed(playback, observed, &self.menu.tools);
+                    self.controls.native_feedback(
+                        content.feedback(),
+                        feedback_enabled,
+                        &self.settings.vibration,
+                    );
+                    if !observed.replaced
+                        && let Some(view) = &mut view
+                    {
+                        view.drawing.tick(content, &graphics)?;
+                        if let Some(error) = self.rewind.record(
+                            playback,
+                            &view.drawing,
+                            &mut self.settings,
+                            &self.menu.tools,
+                        ) {
+                            self.menu.notice(error);
+                        }
+                    }
+                    Ok(())
+                },
+            )?
+        };
         self.controls.native_feedback(
             self.session.content.feedback(),
             feedback_enabled && !self.session.death.frozen(),
@@ -377,6 +419,7 @@ impl Application {
             audio.send(Command::Pause {
                 paused: paused || self.session.death.frozen(),
                 music_while_paused: self.settings.music_while_paused
+                    && !self.rewind.preview
                     && !self.session.content.cutscene(),
             });
         }
@@ -387,8 +430,10 @@ impl Application {
             self.fps_frames = 0;
             self.fps_time = 0.0;
         }
+        let rewind_cpu = std::mem::take(&mut self.rewind.cpu).as_secs_f32() * 1000.0;
         let mut timing = CpuFrame {
-            simulation: now.elapsed().as_secs_f32() * 1000.0,
+            simulation: (now.elapsed().as_secs_f32() * 1000.0 - rewind_cpu).max(0.0),
+            rewind: rewind_cpu,
             ..Default::default()
         };
         let prepare = Instant::now();
@@ -459,6 +504,7 @@ impl Application {
         }
         let mut save_diagnostics = false;
         let mut state_action = None;
+        let mut rewind_action = None;
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
@@ -519,6 +565,15 @@ impl Application {
                 &self.menu.tools.debug,
                 &self.settings,
             )?;
+            if let Some(error) = self.rewind.record(
+                &self.session,
+                &view.drawing,
+                &mut self.settings,
+                &self.menu.tools,
+            ) {
+                self.menu.notice(error);
+            }
+            self.rewind.sync(&mut self.menu.tools);
             let original_model = if let Content::Gameplay(session) = &self.session.content {
                 session
                     .assets
@@ -530,7 +585,9 @@ impl Application {
                 None
             };
             let lights = view.drawing.light_count(&view.renderer.graphics().lighting);
-            timing.prepare = prepare.elapsed().as_secs_f32() * 1000.0;
+            let rewind_cpu = std::mem::take(&mut self.rewind.cpu).as_secs_f32() * 1000.0;
+            timing.rewind += rewind_cpu;
+            timing.prepare = (prepare.elapsed().as_secs_f32() * 1000.0 - rewind_cpu).max(0.0);
             let action = view.draw(
                 &mut self.session,
                 &mut self.menu,
@@ -553,6 +610,7 @@ impl Application {
             let prepare = Instant::now();
             save_diagnostics = action.save_diagnostics;
             state_action = action.state;
+            rewind_action = action.rewind;
             if let Some(bodies) = action.models
                 && let Some(gallery) = &mut self.gallery
             {
@@ -592,7 +650,7 @@ impl Application {
             view.drawing.presentation_audio(
                 &self.session.content,
                 &graphics.weather,
-                accelerated,
+                accelerated || self.rewind.preview,
                 self.audio.as_ref(),
             )?;
             self.quit |= action.leave;
@@ -600,7 +658,9 @@ impl Application {
             if action.step && self.error.is_none() {
                 let phase = Instant::now();
                 self.step()?;
-                timing.simulation += phase.elapsed().as_secs_f32() * 1000.0;
+                let rewind_cpu = std::mem::take(&mut self.rewind.cpu).as_secs_f32() * 1000.0;
+                timing.rewind += rewind_cpu;
+                timing.simulation += (phase.elapsed().as_secs_f32() * 1000.0 - rewind_cpu).max(0.0);
             }
             if action.select_mission {
                 self.session.action = Some(Action::SelectMission);
@@ -624,9 +684,13 @@ impl Application {
             }
             self.store.write(&self.settings)?;
         }
+        if let Some(action) = rewind_action {
+            self.rewind_action(action);
+        }
         if let Some(save) = state_action {
             self.state_action(save);
         }
+        timing.rewind += std::mem::take(&mut self.rewind.cpu).as_secs_f32() * 1000.0;
         if let Some(view) = &mut self.view {
             view.performance.record_at(
                 now,
@@ -637,7 +701,7 @@ impl Application {
         Ok(())
     }
 
-    fn save_diagnostics(&mut self, suspended: bool) -> Result<()> {
+    fn diagnostic_report(&self, suspended: bool) -> Result<Vec<u8>> {
         let mut report = super::diagnostics::report(
             &self.session,
             &self.transport,
@@ -664,7 +728,11 @@ impl Application {
             report["renderer"] = renderer;
             report["effective_graphics"] = serde_json::json!(view.renderer.graphics());
         }
-        let bytes = crate::diagnostics::finish(report, &self.settings, self.store.path.parent())?;
+        crate::diagnostics::finish(report, &self.settings, self.store.path.parent())
+    }
+
+    fn save_diagnostics(&mut self, suspended: bool) -> Result<()> {
+        let bytes = self.diagnostic_report(suspended)?;
         if let Some(notice) =
             crate::diagnostics::save(&super::diagnostics::filename(&self.session), &bytes)?
         {
@@ -812,16 +880,16 @@ impl ApplicationHandler for Application {
                                 if self.controls.held(KeyCode::ControlLeft)
                                     || self.controls.held(KeyCode::ControlRight) =>
                             {
-                                self.menu.state_result(
-                                    false,
-                                    Err(crate::settings::runtime::Runtime::Tenchu2
-                                        .unavailable(crate::settings::menu::Item::Rewind)
-                                        .unwrap()
-                                        .into()),
-                                );
+                                self.rewind_action(super::rewind::Action::Toggle);
                             }
                             KeyCode::F11 | KeyCode::F12 => self.state_action(code == KeyCode::F11),
-                            KeyCode::F3 => self.paused = !self.paused,
+                            KeyCode::F3 => {
+                                if self.rewind.preview {
+                                    self.rewind_action(super::rewind::Action::Resume);
+                                } else {
+                                    self.paused = !self.paused;
+                                }
+                            }
                             KeyCode::F4 if self.paused && self.error.is_none() => {
                                 if let Err(error) = self.step() {
                                     self.fail(error);
@@ -877,6 +945,7 @@ pub fn run(session: Playback<DiscSource>, settings: Settings) -> Result<()> {
         controls: Controls::new(),
         audio,
         transport: Transport::default(),
+        rewind: Default::default(),
         last: Instant::now(),
         paused: false,
         focused: true,

@@ -36,6 +36,7 @@ impl Application {
                 camera_actor: self.debug.camera_actor,
                 light: self.debug.light,
                 light_follow: self.debug.light_follow,
+                native: None,
             });
         let result = if observing {
             if !self.simulating() {

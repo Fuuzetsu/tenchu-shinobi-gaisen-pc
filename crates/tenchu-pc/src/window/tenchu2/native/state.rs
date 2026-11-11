@@ -61,6 +61,7 @@ impl Application {
                     &mut native.playback,
                     self.audio.as_ref().map(|audio| audio.output()),
                 );
+                native.rewind.clear();
                 native.error = None;
                 self.paused = true;
                 self.touch.clear();

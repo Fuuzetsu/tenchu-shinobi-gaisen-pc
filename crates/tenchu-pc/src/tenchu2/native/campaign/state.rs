@@ -31,7 +31,6 @@ pub(in crate::tenchu2::native) type Owned =
 pub(in crate::tenchu2::native) type Borrowed<'a> =
     State<Scene<super::super::state::Borrowed<'a>, super::super::story::state::Borrowed<'a>>>;
 
-#[cfg(test)]
 impl Borrowed<'_> {
     pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,

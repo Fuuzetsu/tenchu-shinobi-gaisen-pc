@@ -68,6 +68,10 @@ impl Edition {
         }
     }
 
+    pub fn game_hash(self) -> &'static str {
+        self.addresses().game_hash
+    }
+
     pub(super) fn addresses(self) -> Addresses {
         match self {
             Self::Europe => Addresses {

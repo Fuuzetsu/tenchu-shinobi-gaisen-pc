@@ -56,7 +56,9 @@ fn native_feedback_follows_ticks_and_clears_on_pause_and_scene_change() {
                     Duration::from_millis(millis),
                     input,
                     None,
-                    |content| {
+                    |playback, observation| {
+                        assert!(!observation.replaced);
+                        let content = &playback.content;
                         observed.push(*content.feedback().unwrap());
                         Ok(())
                     },
@@ -64,15 +66,23 @@ fn native_feedback_follows_ticks_and_clears_on_pause_and_scene_change() {
                 .unwrap();
             while transport.clock.interpolation() >= 1.0 {
                 transport
-                    .advance(&mut playback, Duration::ZERO, input, None, |content| {
-                        observed.push(*content.feedback().unwrap());
-                        Ok(())
-                    })
+                    .advance(
+                        &mut playback,
+                        Duration::ZERO,
+                        input,
+                        None,
+                        |playback, observation| {
+                            assert!(!observation.replaced);
+                            let content = &playback.content;
+                            observed.push(*content.feedback().unwrap());
+                            Ok(())
+                        },
+                    )
                     .unwrap();
             }
             let before = *playback.content.feedback().unwrap();
             transport
-                .advance(&mut playback, Duration::ZERO, input, None, |_| {
+                .advance(&mut playback, Duration::ZERO, input, None, |_, _| {
                     panic!("redraw advanced logic")
                 })
                 .unwrap();
@@ -98,13 +108,13 @@ fn native_feedback_follows_ticks_and_clears_on_pause_and_scene_change() {
                     ..input
                 },
                 None,
-                |_| panic!("pause advanced logic"),
+                |_, _| panic!("pause advanced logic"),
             )
             .unwrap();
         assert_eq!(*playback.content.feedback().unwrap(), Feedback::default());
         pulse(&mut playback.content);
         transport
-            .frame_step(&mut playback, 0, None, |_| Ok(()))
+            .frame_step(&mut playback, 0, None, |_, _| Ok(()))
             .unwrap();
         assert_eq!(*playback.content.feedback().unwrap(), Feedback::default());
 
@@ -116,7 +126,11 @@ fn native_feedback_follows_ticks_and_clears_on_pause_and_scene_change() {
                 Duration::from_millis(200),
                 input,
                 None,
-                |_| panic!("old scene reached the observer"),
+                |playback, observation| {
+                    assert!(observation.replaced);
+                    assert!(matches!(playback.content, Content::MissionSelection(_)));
+                    Ok(())
+                },
             )
             .unwrap();
         assert!(update.changed);
@@ -153,7 +167,7 @@ fn cutscene_acceleration_preserves_ticks_rng_and_content_boundaries() {
                     Duration::from_millis(34),
                     input(speed),
                     None,
-                    |_| Ok(()),
+                    |_, _| Ok(()),
                 )
                 .unwrap();
             if update.changed {
@@ -193,7 +207,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
             Duration::from_secs(1),
             input(4),
             Some(&output),
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     assert!(
@@ -212,7 +226,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(4)
             },
             Some(&output),
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     assert_eq!(playback.content.tick(), tick);
@@ -230,7 +244,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(1)
             },
             Some(&output),
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     assert!(
@@ -244,7 +258,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
             Duration::ZERO,
             input(1),
             Some(&output),
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     assert!(
@@ -265,7 +279,7 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(16)
             },
             None,
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     assert_eq!(gameplay.content.tick(), tick + 1);
@@ -278,12 +292,12 @@ fn fast_forward_resumes_audio_at_the_current_scene_time_and_never_speeds_gamepla
                 ..input(0)
             },
             None,
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     assert_eq!(gameplay.content.tick(), tick + 1);
     transport
-        .advance(&mut gameplay, Duration::ZERO, input(1), None, |_| Ok(()))
+        .advance(&mut gameplay, Duration::ZERO, input(1), None, |_, _| Ok(()))
         .unwrap();
     assert_eq!(gameplay.content.tick(), tick + 1);
 }
@@ -318,7 +332,7 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
         };
         if speed == 0 {
             transport
-                .advance(&mut playback, Duration::ZERO, input, None, |_| Ok(()))
+                .advance(&mut playback, Duration::ZERO, input, None, |_, _| Ok(()))
                 .unwrap();
             assert!(playback.content.tick() > 0);
         } else {
@@ -329,12 +343,12 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
                         Duration::from_millis(100),
                         input,
                         None,
-                        |_| Ok(()),
+                        |_, _| Ok(()),
                     )
                     .unwrap();
                 while transport.clock.interpolation() >= 1.0 {
                     transport
-                        .advance(&mut playback, Duration::ZERO, input, None, |_| Ok(()))
+                        .advance(&mut playback, Duration::ZERO, input, None, |_, _| Ok(()))
                         .unwrap();
                 }
             }
@@ -350,12 +364,12 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
                     ..input
                 },
                 None,
-                |_| Ok(()),
+                |_, _| Ok(()),
             )
             .unwrap();
         assert_eq!(playback.content.tick(), tick);
         transport
-            .frame_step(&mut playback, 0, None, |_| Ok(()))
+            .frame_step(&mut playback, 0, None, |_, _| Ok(()))
             .unwrap();
         assert_eq!(playback.content.tick(), tick + 1);
         assert!(transport.clock.step().is_none());
@@ -389,12 +403,12 @@ fn simulation_speed_preserves_native_updates_pause_and_single_step() {
                 Duration::from_nanos(33_333_334),
                 input,
                 None,
-                |_| Ok(()),
+                |_, _| Ok(()),
             )
             .unwrap();
         while transport.clock.interpolation() >= 1.0 {
             transport
-                .advance(&mut menu, Duration::ZERO, input, None, |_| Ok(()))
+                .advance(&mut menu, Duration::ZERO, input, None, |_, _| Ok(()))
                 .unwrap();
         }
         reference.step(0).unwrap();
@@ -424,7 +438,9 @@ fn presentation_observer_follows_logic_ticks_instead_of_redraws() {
                 Duration::from_millis(100),
                 input(1),
                 None,
-                |content| {
+                |playback, observation| {
+                    assert!(!observation.replaced);
+                    let content = &playback.content;
                     observed.push(content.tick());
                     Ok(())
                 },
@@ -432,10 +448,18 @@ fn presentation_observer_follows_logic_ticks_instead_of_redraws() {
             .unwrap();
         while transport.clock.interpolation() >= 1.0 {
             transport
-                .advance(&mut playback, Duration::ZERO, input(1), None, |content| {
-                    observed.push(content.tick());
-                    Ok(())
-                })
+                .advance(
+                    &mut playback,
+                    Duration::ZERO,
+                    input(1),
+                    None,
+                    |playback, observation| {
+                        assert!(!observation.replaced);
+                        let content = &playback.content;
+                        observed.push(content.tick());
+                        Ok(())
+                    },
+                )
                 .unwrap();
         }
     }
@@ -449,11 +473,13 @@ fn presentation_observer_follows_logic_ticks_instead_of_redraws() {
                 ..input(1)
             },
             None,
-            |_| panic!("pause advanced presentation"),
+            |_, _| panic!("pause advanced presentation"),
         )
         .unwrap();
     transport
-        .frame_step(&mut playback, 0, None, |content| {
+        .frame_step(&mut playback, 0, None, |playback, observation| {
+            assert!(!observation.replaced);
+            let content = &playback.content;
             observed.push(content.tick());
             Ok(())
         })
@@ -481,7 +507,12 @@ fn presentation_observer_follows_logic_ticks_instead_of_redraws() {
                 Duration::from_millis(34),
                 input(0),
                 None,
-                |content| {
+                |playback, observation| {
+                    if observation.replaced {
+                        assert!(!matches!(playback.content, Content::Prologue(_)));
+                        return Ok(());
+                    }
+                    let content = &playback.content;
                     assert!(
                         matches!(content, Content::Prologue(_)),
                         "new scene reached old drawing"

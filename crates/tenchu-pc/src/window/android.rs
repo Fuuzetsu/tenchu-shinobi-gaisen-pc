@@ -18,7 +18,14 @@ impl Application {
                     self.tenchu2_action(crate::tenchu2::menu::Event::Connect);
                     Ok(())
                 }
-                "recording" => self.load_recording(&crate::savestate::read(&path)?),
+                "recording" => {
+                    let bytes = crate::savestate::read(&path)?;
+                    if self.native_tenchu2.is_some() {
+                        self.load_native_recording(&bytes)
+                    } else {
+                        self.load_recording(&bytes)
+                    }
+                }
                 "unarmed" => self.install_unarmed(crate::sheathing::imports::from_path(&path)?),
                 "trial" => {
                     if path.metadata().map_err(|e| e.to_string())?.len() > 8192 {
@@ -56,6 +63,9 @@ impl Application {
             }
         });
         if let Err(error) = result {
+            if let Some(native) = &mut self.native_tenchu2 {
+                native.menu.notice(error.clone());
+            }
             self.menu.notice = error.clone();
             self.randomizer.notice = error.clone();
             self.trial.notice = error;

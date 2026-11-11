@@ -16,7 +16,6 @@ pub(super) struct SceneState {
 }
 
 impl State {
-    #[cfg(test)]
     pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,
         out: &mut C,

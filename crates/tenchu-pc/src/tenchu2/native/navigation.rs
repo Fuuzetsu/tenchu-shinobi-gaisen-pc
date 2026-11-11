@@ -3,14 +3,7 @@ use crate::navigation::{directions, heading, movement_vector, relative_movement}
 use glam::Vec2;
 use tenchu_core::input;
 
-#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct Input {
-    pub yaw: f32,
-    pub pitch: i16,
-    pub sticks: [Vec2; 2],
-    pub deadzone: u16,
-    pub align_aim: bool,
-}
+pub use crate::navigation::NativeInput as Input;
 
 pub fn apply(session: &mut Session, buttons: u16) -> tenchu_assets::Result<u16> {
     let world = &mut session.world;

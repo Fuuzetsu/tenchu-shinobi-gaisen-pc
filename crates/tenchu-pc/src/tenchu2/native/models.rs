@@ -28,7 +28,6 @@ use tenchu_core::{
     },
 };
 
-#[cfg(test)]
 mod checkpoint;
 mod convert;
 pub mod story;

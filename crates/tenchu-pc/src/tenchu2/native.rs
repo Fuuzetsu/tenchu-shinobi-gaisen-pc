@@ -47,6 +47,7 @@ mod interpolation;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod models;
 mod navigation;
+pub(crate) use navigation::Input as NavigationInput;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod preferences;
 #[cfg(not(target_arch = "wasm32"))]
@@ -54,6 +55,8 @@ pub(crate) mod presentation;
 mod render;
 #[cfg(not(target_arch = "wasm32"))]
 mod results;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod rewind;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod save;
 #[cfg(not(target_arch = "wasm32"))]

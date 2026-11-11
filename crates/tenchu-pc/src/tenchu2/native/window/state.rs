@@ -51,6 +51,7 @@ impl Application {
                     .loaded_state(&mut self.controls, &mut self.presets);
                 self.transport
                     .restored(&mut self.session, self.audio.as_ref());
+                self.rewind.clear();
                 self.paused = true;
                 self.error = None;
                 self.quit = false;

@@ -14,7 +14,6 @@ pub(in crate::tenchu2::native::render) struct State {
     player_pool_age: Option<u64>,
 }
 
-#[cfg(test)]
 impl State {
     pub(in crate::tenchu2::native::render) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,

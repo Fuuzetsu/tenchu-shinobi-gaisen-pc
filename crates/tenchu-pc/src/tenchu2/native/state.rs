@@ -25,7 +25,6 @@ pub(super) struct State<C, D> {
 pub(super) type Owned = State<(World, Assets, Frame), Director>;
 pub(super) type Borrowed<'a> = State<(&'a World, &'a Assets, &'a Frame), &'a Director>;
 
-#[cfg(test)]
 impl Borrowed<'_> {
     pub(super) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,

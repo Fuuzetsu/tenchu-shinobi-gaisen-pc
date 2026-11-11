@@ -89,7 +89,6 @@ pub(super) struct State<D> {
     tick: u64,
 }
 
-#[cfg(test)]
 impl State<&Director> {
     pub(super) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,

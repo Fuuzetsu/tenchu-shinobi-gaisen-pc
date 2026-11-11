@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports **F1 → Simulation → Rewind history** and **Ctrl+F12** in
+  both launchers. Seek, play recorded states backward or forward, and resume
+  from a selected frame across gameplay and 3D cutscene transitions, including
+  imported T1 stages. Menus and movies are omitted; playback audio stays muted.
+  Export selected intervals and import T2 `.treplay` recordings with their
+  controller settings, graphics and camera. The updated recording format
+  distinguishes T1 and T2; older recordings require the version that exported
+  them. Savestate compatibility is unchanged.
+
 - Native T2 supports five separate savestate slots through **F1 → Simulation**,
   **F11** and **F12** in both launchers. Save gameplay or 3D cutscenes, including
   T1 stages running under T2; loading restores the campaign/retry state, character

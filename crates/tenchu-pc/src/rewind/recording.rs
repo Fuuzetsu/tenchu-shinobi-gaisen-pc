@@ -1,10 +1,10 @@
 use super::*;
 use serde::{Deserialize, Serialize};
 
-const MAGIC: &[u8; 8] = b"TENCHURP";
+const MAGIC: &[u8; 8] = b"TENCHUR2";
 const EXPANDED_LIMIT: usize = 512 * 1024 * 1024;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Input {
     pub buttons: u16,
     pub bandage: bool,
@@ -16,6 +16,13 @@ pub struct Input {
     pub camera_actor: Option<crate::debug::camera::Subject>,
     pub light: Option<glam::Vec3>,
     pub light_follow: bool,
+    pub native: Option<NativeInput>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NativeInput {
+    pub navigation: Option<crate::navigation::NativeInput>,
+    pub initial: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,6 +58,15 @@ struct Recording {
 
 impl History {
     pub fn export(&mut self, range: [u64; 2], report: String) -> Result<Vec<u8>> {
+        self.export_for(range, report, tenchu_assets::game::EXE_SHA256)
+    }
+
+    pub fn export_for(
+        &mut self,
+        range: [u64; 2],
+        report: String,
+        executable: &str,
+    ) -> Result<Vec<u8>> {
         let first = self.entries.iter().position(|e| e.tick == range[0]);
         let last = self.entries.iter().position(|e| e.tick == range[1]);
         let (first, last) = first
@@ -95,8 +111,8 @@ impl History {
             })
             .collect();
         let recording = Recording {
-            format: 1,
-            executable: tenchu_assets::game::EXE_SHA256.into(),
+            format: 2,
+            executable: executable.into(),
             report,
             resources,
             frames,
@@ -113,17 +129,24 @@ impl History {
     }
 
     pub fn import(bytes: &[u8]) -> Result<(Self, String)> {
+        Self::import_for(bytes, tenchu_assets::game::EXE_SHA256)
+    }
+
+    pub fn import_for(bytes: &[u8], executable: &str) -> Result<(Self, String)> {
+        if bytes.get(..8) == Some(b"TENCHURP") {
+            return Err("This recording uses the previous format; open it with the game version that exported it".into());
+        }
         if bytes.len() > crate::savestate::FILE_LIMIT || bytes.get(..MAGIC.len()) != Some(MAGIC) {
             return Err("Not a Tenchu rewind recording".into());
         }
         let recording: Recording = crate::savestate::decode(&bytes[MAGIC.len()..])?;
-        recording.restore()
+        recording.restore(executable)
     }
 }
 
 impl Recording {
-    fn restore(self) -> Result<(History, String)> {
-        if self.format != 1 || self.executable != tenchu_assets::game::EXE_SHA256 {
+    fn restore(self, executable: &str) -> Result<(History, String)> {
+        if self.format != 2 || self.executable != executable {
             return Err("Recording requires a different format or game disc".into());
         }
         if !(2..=901).contains(&self.frames.len())
@@ -155,6 +178,19 @@ impl Recording {
         }
         let mut history = History::default();
         for frame in self.frames {
+            if frame
+                .input
+                .as_ref()
+                .and_then(|i| i.native.as_ref())
+                .and_then(|i| i.navigation)
+                .is_some_and(|n| {
+                    !n.yaw.is_finite()
+                        || n.sticks.iter().any(|s| !s.is_finite())
+                        || !(5..=40).contains(&n.deadzone)
+                })
+            {
+                return Err("Invalid recording native navigation".into());
+            }
             stored = stored.saturating_add(
                 frame
                     .parts
@@ -369,7 +405,7 @@ mod tests {
         let mutate = |change: fn(&mut Recording)| {
             let mut recording: Recording = crate::savestate::decode(&bytes[8..]).unwrap();
             change(&mut recording);
-            assert!(recording.restore().is_err());
+            assert!(recording.restore(tenchu_assets::game::EXE_SHA256).is_err());
         };
         mutate(|r| r.frames[1].tick = r.frames[0].tick);
         mutate(|r| r.frames[1].before = None);
@@ -389,5 +425,26 @@ mod tests {
         mutate(|r| r.frames[0].length = EXPANDED_LIMIT + 1);
         mutate(|r| r.tail.pop().map(|_| ()).unwrap());
         mutate(|r| r.executable = "wrong disc".into());
+        mutate(|r| {
+            r.frames[0].input = Some(Box::new(Input {
+                native: Some(NativeInput {
+                    initial: false,
+                    navigation: Some(crate::navigation::NativeInput {
+                        yaw: f32::NAN,
+                        pitch: 0,
+                        sticks: [glam::Vec2::ZERO; 2],
+                        deadzone: 18,
+                        align_aim: true,
+                    }),
+                }),
+                ..Default::default()
+            }))
+        });
+        assert!(
+            History::import(b"TENCHURP")
+                .err()
+                .unwrap()
+                .contains("previous format")
+        );
     }
 }

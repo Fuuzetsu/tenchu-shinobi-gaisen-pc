@@ -234,7 +234,7 @@ fn imported_host_acceleration_stops_at_native_gameplay() {
                     paused: false,
                 },
                 None,
-                |_| Ok(()),
+                |_, _| Ok(()),
             )
             .unwrap();
         if update.changed {

@@ -107,9 +107,15 @@ pub struct Action {
     pub reload_artwork: bool,
     pub save_diagnostics: bool,
     pub state: Option<bool>,
+    pub rewind: Option<super::rewind::Action>,
 }
 
 impl Menu {
+    pub fn notice(&mut self, message: String) {
+        self.panel.notice = message;
+        self.tools.debug.notice = Some((self.panel.notice.clone(), web_time::Instant::now()));
+    }
+
     pub fn state_result(&mut self, save: bool, result: Result<(), String>) {
         self.panel.notice = match result {
             Ok(()) => format!(
@@ -305,6 +311,22 @@ impl Menu {
         let mut action = Action::default();
         self.tools.hint(ctx, self.panel.open);
         if !self.panel.open {
+            for edit in overlay::show(
+                ctx,
+                &mut self.panel,
+                overlay::State {
+                    runtime: Runtime::Tenchu2,
+                    settings: state.settings,
+                    debug: &self.tools.debug,
+                    paused: *state.paused,
+                    lights: state.lights,
+                    samples: state.samples,
+                },
+                None,
+                None,
+            ) {
+                self.apply(edit, state, &mut action);
+            }
             return action;
         }
         self.panel.actor_models.clone_from(&self.tools.actor_models);
@@ -395,6 +417,34 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::SeekRewind(tick) => {
+                action.rewind = Some(super::rewind::Action::Seek(tick));
+                Ok(())
+            }
+            Edit::ResumeRewind => {
+                action.rewind = Some(super::rewind::Action::Resume);
+                Ok(())
+            }
+            Edit::PlayRewindForward => {
+                action.rewind = Some(super::rewind::Action::Forward);
+                Ok(())
+            }
+            Edit::SelectRewind(range) => {
+                action.rewind = Some(super::rewind::Action::Select(range));
+                Ok(())
+            }
+            Edit::ExportRewind => {
+                action.rewind = Some(super::rewind::Action::Export);
+                Ok(())
+            }
+            Edit::ImportRewind => {
+                action.rewind = Some(super::rewind::Action::Import);
+                Ok(())
+            }
+            Edit::RecordedVisuals(value) => {
+                action.rewind = Some(super::rewind::Action::RecordedVisuals(value));
+                Ok(())
+            }
             Edit::Diagnostics => {
                 action.save_diagnostics = true;
                 Ok(())
@@ -609,6 +659,10 @@ impl Menu {
                                     .rem_euclid(5) as u8;
                             Ok(())
                         }
+                        Item::Rewind => {
+                            action.rewind = Some(super::rewind::Action::Toggle);
+                            Ok(())
+                        }
                         Item::SaveState | Item::LoadState => {
                             action.state = Some(item == Item::SaveState);
                             Ok(())
@@ -674,6 +728,85 @@ mod tests {
             "tenchu-native-menu-presets-{}.json",
             std::process::id()
         )))
+    }
+
+    #[test]
+    fn native_rewind_controls_and_closed_menu_timeline_are_connected() {
+        let mut menu = Menu::default();
+        let mut settings = Settings::default();
+        let mut paused = true;
+        let mut controls = Controls::default();
+        let mut presets = presets();
+        let mut state = State {
+            settings: &mut settings,
+            paused: &mut paused,
+            controls: &mut controls,
+            presets: &mut presets,
+            lights: 0,
+            samples: &[1],
+            models: None,
+        };
+        let mut action = Action::default();
+        menu.apply(
+            Edit::Change(Item::RewindHistory, 1),
+            &mut state,
+            &mut action,
+        );
+        assert!(state.settings.rewind_seconds > 0);
+        menu.apply(Edit::Change(Item::RewindSpeed, 1), &mut state, &mut action);
+        assert_ne!(
+            state.settings.rewind_speed,
+            Settings::default().rewind_speed
+        );
+        for edit in [
+            Edit::Change(Item::Rewind, 1),
+            Edit::SeekRewind(3),
+            Edit::ResumeRewind,
+            Edit::PlayRewindForward,
+            Edit::SelectRewind([2, 5]),
+            Edit::ExportRewind,
+            Edit::ImportRewind,
+            Edit::RecordedVisuals(false),
+        ] {
+            action.rewind = None;
+            menu.apply(edit, &mut state, &mut action);
+            assert!(action.rewind.is_some());
+            assert!(menu.panel.notice.is_empty());
+        }
+        menu.tools.debug.rewind = Some(crate::rewind::Timeline {
+            start: 0,
+            end: 5,
+            tick: 2,
+            playing: false,
+            preview: true,
+            selection: [0, 5],
+            forward: false,
+            recorded_visuals: Some(true),
+        });
+        let ctx = egui::Context::default();
+        let input = |time| egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(1280.0, 720.0),
+            )),
+            time: Some(time),
+            ..Default::default()
+        };
+        let _ = ctx.run(input(0.0), |ctx| {
+            menu.show(ctx, &mut state);
+        });
+        let output = ctx.run(input(0.1), |ctx| {
+            menu.show(ctx, &mut state);
+        });
+        assert!(!menu.panel.open);
+        fn has_timeline(shape: &egui::Shape) -> bool {
+            match shape {
+                egui::Shape::Text(text) => text.galley.job.text.contains("Rewind timeline"),
+                egui::Shape::Vec(shapes) => shapes.iter().any(has_timeline),
+                _ => false,
+            }
+        }
+        assert!(output.shapes.iter().any(|shape| has_timeline(&shape.shape)));
     }
 
     #[test]
@@ -953,7 +1086,6 @@ mod tests {
             Edit::GameplayPreset(0),
             Edit::Randomizer,
             Edit::Benchmark,
-            Edit::ImportRewind,
             Edit::ImportUnarmed,
         ] {
             menu.apply(edit, &mut state, &mut action);

@@ -20,7 +20,6 @@ pub(in crate::tenchu2::native) struct State<P, V> {
 pub(in crate::tenchu2::native) type Owned = State<Playback, Vram>;
 pub(in crate::tenchu2::native) type Borrowed<'a> = State<&'a Playback, &'a Vram>;
 
-#[cfg(test)]
 impl Borrowed<'_> {
     pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,

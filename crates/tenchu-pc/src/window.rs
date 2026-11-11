@@ -324,7 +324,7 @@ impl Application {
             && !self
                 .native_tenchu2
                 .as_ref()
-                .is_some_and(|native| native.playback.content.cutscene());
+                .is_some_and(|native| native.playback.content.cutscene() || native.rewind.preview);
         if let Some(audio) = &mut self.audio {
             audio.pause(
                 paused,

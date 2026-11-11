@@ -44,6 +44,8 @@ impl Runtime {
             "F12 loads the selected T2 state and pauses until F3. Open native T2 first; imported T1 states require the same stage, source character, layout and language. Current graphics remain in use. Loading does not write campaign progress."
         } else if self == Self::Tenchu2 && item == Item::StateSlot {
             "Select one of five native T2 save slots. These are separate from Gaisen slots and require the same game version."
+        } else if self == Self::Tenchu2 && matches!(item, Item::Rewind | Item::RewindHistory) {
+            "Record up to 30 seconds of native T2 gameplay and 3D cutscenes, including imported T1 stages. Ctrl+F12 plays backward; the timeline seeks or plays forward, and F3 resumes from the selected state. Menus and movie playback are omitted. Export selected frames or import a T2 recording under General. History uses at most 96 MiB and may be shorter for large scenes."
         } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
             "Restore normal simulation speed, original sight and activation, native stance buttons, and disable God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
         } else if self == Self::Tenchu2 && item == Item::Reset {
@@ -155,9 +157,7 @@ impl Runtime {
             HairMotion | ClothMotion | EquipmentMotion | MotionStrength | MotionResponse
             | MotionWind => None,
             SaveState | LoadState | StateSlot => None,
-            Rewind | RewindHistory | RewindSpeed => Some(
-                "Native Tenchu 2 JP does not yet support rewind. Savestates and campaign progress are available.",
-            ),
+            Rewind | RewindHistory | RewindSpeed => None,
             _ => Some(
                 "Not implemented in native Tenchu 2 JP yet. Available in Gaisen; saved preferences are preserved.",
             ),

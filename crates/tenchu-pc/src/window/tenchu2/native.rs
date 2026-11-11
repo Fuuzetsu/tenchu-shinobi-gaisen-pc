@@ -6,6 +6,7 @@ use crate::tenchu2::native::{
     transport::{Input as PlaybackInput, Transport},
 };
 
+mod rewind;
 mod state;
 
 pub(in crate::window) struct Native {
@@ -15,6 +16,7 @@ pub(in crate::window) struct Native {
     graphics: settings::Graphics,
     pub menu: preferences::Menu,
     transport: Transport,
+    pub rewind: crate::tenchu2::native::rewind::Rewind,
     pub error: Option<String>,
     donor: Option<Game>,
 }
@@ -126,6 +128,7 @@ impl Application {
             graphics: preferences::graphics(&self.settings),
             menu: preferences::Menu::new(&self.settings),
             transport: Transport::default(),
+            rewind: Default::default(),
             error: None,
             donor: None,
         });
@@ -158,23 +161,45 @@ impl Application {
     pub(in crate::window) fn step_native_tenchu2(&mut self) -> Result<bool> {
         self.controls.stop_rumble();
         let native = self.native_tenchu2.as_mut().unwrap();
-        native.playback.configure(&self.settings);
-        let buttons = native.menu.tools.input(
-            &mut native.playback.content,
-            &mut self.controls,
-            &self.settings,
-            self.focused && !native.menu.panel.open,
-        );
+        native.rewind.resume()?;
+        if !native.rewind.preview {
+            native.playback.configure(&self.settings);
+        }
+        let buttons = if native.rewind.preview {
+            0
+        } else {
+            native.menu.tools.input(
+                &mut native.playback.content,
+                &mut self.controls,
+                &self.settings,
+                self.focused && !native.menu.panel.open,
+            )
+        };
         let ready = native.generation == Some(native.playback.generation)
             && !native.menu.actor_assets_changed;
-        let graphics = &self.settings.rendering().graphics;
+        let graphics = self.settings.rendering().graphics.clone();
         let update = native.transport.frame_step(
             &mut native.playback,
             buttons,
             self.audio.as_ref().map(|audio| audio.output()),
-            |content| {
-                if let Some(drawing) = native.drawing.as_mut().filter(|_| ready) {
-                    drawing.tick(content, graphics)?;
+            |playback, observed| {
+                native
+                    .rewind
+                    .observed(playback, observed, &native.menu.tools);
+                if let Some(drawing) = native
+                    .drawing
+                    .as_mut()
+                    .filter(|_| ready && !observed.replaced)
+                {
+                    drawing.tick(&playback.content, &graphics)?;
+                    if let Some(error) = native.rewind.record(
+                        playback,
+                        drawing,
+                        &mut self.settings,
+                        &native.menu.tools,
+                    ) {
+                        native.menu.notice(error);
+                    }
                 }
                 Ok(())
             },
@@ -214,15 +239,25 @@ impl Application {
         let now = Instant::now();
         let elapsed = now.duration_since(self.last_frame);
         self.last_frame = now;
+        if !self.paused && self.native_tenchu2.as_ref().unwrap().rewind.preview {
+            self.native_tenchu2.as_mut().unwrap().rewind.resume()?;
+        }
+        self.advance_native_rewind(elapsed);
         self.sync_audio_pause();
         let native = self.native_tenchu2.as_mut().unwrap();
-        native.playback.configure(&self.settings);
-        let buttons = native.menu.tools.input(
-            &mut native.playback.content,
-            &mut self.controls,
-            &self.settings,
-            self.focused && !native.menu.panel.open,
-        );
+        if !native.rewind.preview {
+            native.playback.configure(&self.settings);
+        }
+        let buttons = if native.rewind.preview {
+            0
+        } else {
+            native.menu.tools.input(
+                &mut native.playback.content,
+                &mut self.controls,
+                &self.settings,
+                self.focused && !native.menu.panel.open,
+            )
+        };
         let input = PlaybackInput {
             buttons,
             cutscene_speed: self.settings.cutscene_speed,
@@ -238,28 +273,52 @@ impl Application {
             .interpolate(self.settings.rendering().graphics.interpolation)?;
         let ready = native.generation == Some(native.playback.generation)
             && !native.menu.actor_assets_changed;
-        let graphics = &self.settings.rendering().graphics;
+        let graphics = self.settings.rendering().graphics.clone();
         let feedback_enabled = self.focused
             && !input.paused
             && !input.pacing(&native.playback.content).1
             && self.settings.frontend.rumble;
-        let update = native.transport.advance(
-            &mut native.playback,
-            elapsed,
-            input,
-            self.audio.as_ref().map(|audio| audio.output()),
-            |content| {
-                self.controls.native_feedback(
-                    content.feedback(),
-                    feedback_enabled,
-                    &self.settings.vibration,
-                );
-                if let Some(drawing) = native.drawing.as_mut().filter(|_| ready) {
-                    drawing.tick(content, graphics)?;
-                }
-                Ok(())
-            },
-        )?;
+        let update = if native.rewind.preview {
+            native.transport.preview(
+                &mut native.playback,
+                self.audio.as_ref().map(|a| a.output()),
+            );
+            crate::tenchu2::native::transport::Update::default()
+        } else {
+            native.transport.advance(
+                &mut native.playback,
+                elapsed,
+                input,
+                self.audio.as_ref().map(|audio| audio.output()),
+                |playback, observed| {
+                    let content = &playback.content;
+                    native
+                        .rewind
+                        .observed(playback, observed, &native.menu.tools);
+                    self.controls.native_feedback(
+                        content.feedback(),
+                        feedback_enabled,
+                        &self.settings.vibration,
+                    );
+                    if let Some(drawing) = native
+                        .drawing
+                        .as_mut()
+                        .filter(|_| ready && !observed.replaced)
+                    {
+                        drawing.tick(content, &graphics)?;
+                        if let Some(error) = native.rewind.record(
+                            playback,
+                            drawing,
+                            &mut self.settings,
+                            &native.menu.tools,
+                        ) {
+                            native.menu.notice(error);
+                        }
+                    }
+                    Ok(())
+                },
+            )?
+        };
         self.controls.native_feedback(
             native.playback.content.feedback(),
             feedback_enabled && !native.playback.death.frozen(),
@@ -287,8 +346,10 @@ impl Application {
             self.fps_elapsed = 0.0;
             self.fps_frames = 0;
         }
+        let rewind_cpu = std::mem::take(&mut native.rewind.cpu).as_secs_f32() * 1000.0;
         let mut timing = performance::CpuFrame {
-            simulation: now.elapsed().as_secs_f32() * 1000.0,
+            simulation: (now.elapsed().as_secs_f32() * 1000.0 - rewind_cpu).max(0.0),
+            rewind: rewind_cpu,
             ..Default::default()
         };
         let prepare = Instant::now();
@@ -414,7 +475,18 @@ impl Application {
             &native.menu.tools.debug,
             &self.settings,
         )?;
-        timing.prepare = prepare.elapsed().as_secs_f32() * 1000.0;
+        if let Some(error) = native.rewind.record(
+            &native.playback,
+            drawing,
+            &mut self.settings,
+            &native.menu.tools,
+        ) {
+            native.menu.notice(error);
+        }
+        native.rewind.sync(&mut native.menu.tools);
+        let rewind_cpu = std::mem::take(&mut native.rewind.cpu).as_secs_f32() * 1000.0;
+        timing.rewind += rewind_cpu;
+        timing.prepare = (prepare.elapsed().as_secs_f32() * 1000.0 - rewind_cpu).max(0.0);
         let phase = Instant::now();
         let screenshot = std::mem::take(&mut native.menu.screenshot);
         let mut leave = false;
@@ -422,6 +494,7 @@ impl Application {
         let mut reload_artwork = false;
         let mut save_diagnostics = false;
         let mut state_action = None;
+        let mut rewind_action = None;
         let was_open = native.menu.panel.open;
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
@@ -507,6 +580,7 @@ impl Application {
             reload_artwork |= actions.reload_artwork;
             save_diagnostics |= actions.save_diagnostics;
             state_action = actions.state;
+            rewind_action = actions.rewind;
             if actions.clear_blood {
                 native.drawing.as_mut().unwrap().clear_blood();
             }
@@ -569,7 +643,7 @@ impl Application {
         native.drawing.as_mut().unwrap().presentation_audio(
             &native.playback.content,
             &graphics.weather,
-            accelerated,
+            accelerated || native.rewind.preview,
             self.audio.as_ref().map(|audio| audio.output()),
         )?;
         view.window.set_title(&format!(
@@ -640,6 +714,9 @@ impl Application {
         if step && self.native_tenchu2.as_ref().unwrap().error.is_none() {
             leave |= self.step_native_tenchu2()?;
         }
+        if let Some(action) = rewind_action {
+            self.native_rewind_action(action);
+        }
         if let Some(save) = state_action {
             self.native_state_action(save);
         }
@@ -659,7 +736,13 @@ impl Application {
                 native.menu.panel.open = !native.menu.panel.open;
                 self.controls.clear();
             }
-            crate::touch::Action::Pause => self.paused = !self.paused,
+            crate::touch::Action::Pause => {
+                if self.native_tenchu2.as_ref().unwrap().rewind.preview {
+                    self.native_rewind_action(crate::tenchu2::native::rewind::Action::Resume);
+                } else {
+                    self.paused = !self.paused;
+                }
+            }
             crate::touch::Action::Back => {
                 let native = self.native_tenchu2.as_mut().unwrap();
                 if native.menu.panel.open || native.menu.diagnostics {
@@ -851,12 +934,8 @@ impl Application {
                                 && (self.controls.held(KeyCode::ControlLeft)
                                     || self.controls.held(KeyCode::ControlRight))
                             {
-                                self.native_tenchu2.as_mut().unwrap().menu.state_result(
-                                    false,
-                                    Err(settings::runtime::Runtime::Tenchu2
-                                        .unavailable(settings::menu::Item::Rewind)
-                                        .unwrap()
-                                        .into()),
+                                self.native_rewind_action(
+                                    crate::tenchu2::native::rewind::Action::Toggle,
                                 );
                                 return Ok(());
                             }

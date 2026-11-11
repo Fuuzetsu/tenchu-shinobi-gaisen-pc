@@ -193,7 +193,7 @@ fn native_menu_taps_survive_render_cadence() {
         paused: false,
     };
     transport
-        .advance(&mut playback, Duration::ZERO, input, None, |_| Ok(()))
+        .advance(&mut playback, Duration::ZERO, input, None, |_, _| Ok(()))
         .unwrap();
     let Content::Results(results) = &playback.content else {
         unreachable!()
@@ -206,7 +206,7 @@ fn native_menu_taps_survive_render_cadence() {
             Duration::from_millis(34),
             input,
             None,
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     let Content::Results(results) = &playback.content else {
@@ -219,7 +219,7 @@ fn native_menu_taps_survive_render_cadence() {
     let mut playback = start(13);
     input.buttons = 0x4000;
     transport
-        .advance(&mut playback, Duration::ZERO, input, None, |_| Ok(()))
+        .advance(&mut playback, Duration::ZERO, input, None, |_, _| Ok(()))
         .unwrap();
     input.paused = true;
     transport
@@ -228,7 +228,7 @@ fn native_menu_taps_survive_render_cadence() {
             Duration::from_millis(34),
             input,
             None,
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     input.buttons = 0;
@@ -239,7 +239,7 @@ fn native_menu_taps_survive_render_cadence() {
             Duration::from_millis(34),
             input,
             None,
-            |_| Ok(()),
+            |_, _| Ok(()),
         )
         .unwrap();
     let Content::Results(results) = &playback.content else {

@@ -49,6 +49,15 @@ pub struct Update {
     pub quit: bool,
 }
 
+#[derive(Clone, Copy)]
+pub struct Observation {
+    pub replaced: bool,
+    pub buttons: u16,
+    pub navigation: Option<super::NavigationInput>,
+    pub bandage: bool,
+    pub observing_death: bool,
+}
+
 impl Transport {
     pub fn discard_backlog(&mut self) {
         self.clock.discard_host_backlog();
@@ -57,6 +66,12 @@ impl Transport {
     pub fn restored(&mut self, playback: &mut Playback<impl ReadAt>, output: Option<&Output>) {
         *self = Self::default();
         self.audio(playback, false, output);
+    }
+
+    pub fn preview(&mut self, playback: &mut Playback<impl ReadAt>, output: Option<&Output>) {
+        self.clock.discard_host_backlog();
+        self.menu_pending = 0;
+        self.audio(playback, true, output);
     }
 
     pub fn interpolation(&self, playback: &Playback<impl ReadAt>, input: Input) -> f32 {
@@ -92,28 +107,44 @@ impl Transport {
         self.accelerated = accelerated;
     }
 
-    fn step(
+    fn step<S: ReadAt>(
         &mut self,
-        playback: &mut Playback<impl ReadAt>,
+        playback: &mut Playback<S>,
         buttons: u16,
         output: Option<&Output>,
-        observed: &mut impl FnMut(&Content) -> Result<()>,
+        observed: &mut impl FnMut(&Playback<S>, Observation) -> Result<()>,
     ) -> Result<Update> {
         super::diagnostics::record(&mut self.recent, playback, buttons);
         let generation = playback.generation;
         let cutscene = playback.content.cutscene();
+        let mut observation = Observation {
+            replaced: false,
+            buttons,
+            navigation: None,
+            bandage: false,
+            observing_death: playback.death.waiting(),
+        };
+        if let Content::Gameplay(session) = &playback.content {
+            observation.navigation = session.navigation;
+            observation.bandage = session.world.actors[session.world.player]
+                .actor
+                .bleeding
+                .as_ref()
+                .is_some_and(|state| state.bandage_requested());
+        }
         let update = playback.step(buttons)?;
         let replaced = playback.generation != generation;
         let changed = replaced || playback.content.cutscene() != cutscene;
+        observation.replaced = replaced;
         if replaced {
             self.recent.reset(playback.generation);
-        } else {
-            observed(&playback.content)?;
-            if !self.accelerated
-                && let Some(output) = output
-            {
-                update.play_audio(output);
-            }
+        }
+        observed(playback, observation)?;
+        if !replaced
+            && !self.accelerated
+            && let Some(output) = output
+        {
+            update.play_audio(output);
         }
         if changed {
             self.clock.discard_host_backlog();
@@ -125,12 +156,12 @@ impl Transport {
         })
     }
 
-    pub fn frame_step(
+    pub fn frame_step<S: ReadAt>(
         &mut self,
-        playback: &mut Playback<impl ReadAt>,
+        playback: &mut Playback<S>,
         buttons: u16,
         output: Option<&Output>,
-        mut observed: impl FnMut(&Content) -> Result<()>,
+        mut observed: impl FnMut(&Playback<S>, Observation) -> Result<()>,
     ) -> Result<Update> {
         self.audio(playback, false, output);
         self.menu_pending = 0;
@@ -141,13 +172,13 @@ impl Transport {
         Ok(update)
     }
 
-    pub fn advance(
+    pub fn advance<S: ReadAt>(
         &mut self,
-        playback: &mut Playback<impl ReadAt>,
+        playback: &mut Playback<S>,
         elapsed: Duration,
         input: Input,
         output: Option<&Output>,
-        mut observed: impl FnMut(&Content) -> Result<()>,
+        mut observed: impl FnMut(&Playback<S>, Observation) -> Result<()>,
     ) -> Result<Update> {
         let (speed, muted) = input.pacing(&playback.content);
         self.audio(playback, muted && !input.paused, output);

@@ -535,6 +535,16 @@ or accumulated effects. The 96 MiB history cap reserves room for decoded frames;
 heavy states shorten the available history. Unchanged scene geometry, textures
 and static GPU resources are reused; resource changes take the full reload path.
 
+Native T2 uses the same recorder, bounded history and timeline with an independent
+clock across source scene resets. Its `native_timeline_` disc/GPU fixtures check
+gameplay-to-story transitions, exact seeks, timed forward/reverse playback,
+branch continuation, selected recording exports, native input metadata and
+recorded/current graphics and camera. Invalid imports preserve the current
+source and history. Menus and movies are omitted from this history. A separate
+host regression verifies that automatic restoration keeps elapsed restore time
+in the next host interval and leaves an open settings panel open. These are
+isolated tool fixtures; ordinary-play validation still uses the BizHawk workflow.
+
 ## Stealth-kill blood timing review
 
 The 2026-11-01 review of #15 traced all six normal paired executions against a
