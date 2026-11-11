@@ -45,10 +45,70 @@ pub(super) struct Frame<'a> {
     pub alpha: f32,
     pub contact: Option<&'a super::super::contact::History>,
     pub world: Option<(&'a World, &'a Assets)>,
+    pub scenery: Option<&'a tenchu_core::tenchu2::environment::scenery::Frame>,
     pub sprites: &'a tenchu_assets::tenchu2::effects::Sprites,
 }
 
 impl Environment {
+    fn bind_canopies(&mut self, frame: &Frame<'_>) {
+        let canopies = &mut self.contact.canopies;
+        canopies.clear();
+        let mut append = |part: &tenchu_assets::model::Part, matrix| {
+            frame
+                .meshes
+                .visit_canopies(&part.geometry, matrix, |canopy| canopies.push(canopy));
+        };
+        for part in &frame.level.map {
+            append(
+                part,
+                Matrix {
+                    translation: part.position.map(|v| i32::from(v) * 10).into(),
+                    ..Default::default()
+                },
+            );
+        }
+        let phases = frame
+            .world
+            .map(|(world, _)| world.environment.static_phases.as_slice());
+        for (part, matrix) in super::static_models(frame.level, frame.math, phases) {
+            append(part, matrix);
+        }
+        if let Some(scenery) = frame.scenery {
+            for model in &scenery.models {
+                use tenchu_core::tenchu2::environment::scenery::Source;
+                if matches!(model.source, Source::Static(_)) {
+                    continue;
+                }
+                let part = if model.stump {
+                    frame.level.stumps.get(&model.model)
+                } else {
+                    frame.level.objects.get(model.model)
+                };
+                if let Some(part) = part {
+                    append(
+                        part,
+                        Matrix {
+                            translation: model.position,
+                            rotation: frame.math.rotate_yxz(model.rotation),
+                        },
+                    );
+                }
+            }
+        } else {
+            for object in &frame.level.scene.dynamic {
+                if let Some(model) = object.model {
+                    append(
+                        &frame.level.objects[model],
+                        Matrix {
+                            translation: object.position.into(),
+                            rotation: frame.math.rotate_yxz([0, object.facing, 0]),
+                        },
+                    );
+                }
+            }
+        }
+    }
+
     pub fn new(level: &Level, meshes: &Meshes, math: &Math, renderer: &mut Renderer) -> Self {
         let mut vertices = Vec::new();
         let mut water = Vec::new();
@@ -127,22 +187,21 @@ impl Environment {
         self.blood_pools_changed |= self.blood.configure_ground(settings);
     }
 
-    pub fn update(
-        &mut self,
-        frame: &Frame<'_>,
-        graphics: &Graphics,
-        renderer: &mut Renderer,
-    ) -> render_effects::Geometry {
+    pub fn advance(&mut self, frame: &Frame<'_>, graphics: &Graphics) {
         self.configure_blood(&graphics.blood);
         let Frame {
             tick,
             camera,
             world,
-            alpha,
             ..
         } = *frame;
         let inverse = camera.inverse();
         let center = inverse.project_point3(Vec3::ZERO);
+        if graphics.effects.leaves || graphics.effects.scatter {
+            self.bind_canopies(frame);
+        } else {
+            self.contact.canopies.clear();
+        }
         // Fast-forward may advance hundreds of source updates between presentations.
         let start = self
             .tick
@@ -161,6 +220,13 @@ impl Environment {
                 self.weather.sample(&graphics.weather, 1.0).snow,
             );
         }
+        self.footprints.tick_contacts(
+            tick,
+            || world.map_or_else(Vec::new, |(world, assets)| contacts(world, assets)),
+            &self.surfaces,
+            &graphics.weather,
+            self.weather.sample(&graphics.weather, 1.0).snow,
+        );
         let start = self
             .contact
             .last_tick()
@@ -168,11 +234,13 @@ impl Environment {
                 (old + 1).max(tick.saturating_sub(29))
             });
         for step in start..=tick {
-            if self
+            if !self
                 .contact
                 .begin_tick(step, &self.surfaces, graphics, center)
-                && let Some(history) = frame.contact
             {
+                continue;
+            }
+            if let Some(history) = frame.contact {
                 use tenchu_core::tenchu2::effects::Contact;
                 let point =
                     |p: tenchu_core::math::Position| Vec3::from(p.to_array().map(|v| v as f32));
@@ -203,6 +271,30 @@ impl Environment {
                         _ => {}
                     }
                 }
+            }
+            if step == tick
+                && let Some((world, _)) = frame.world
+            {
+                self.contact.scatter(
+                    world
+                        .actors
+                        .iter()
+                        .zip(&world.instances)
+                        .map(|(agent, instance)| {
+                            let actor = &agent.actor;
+                            crate::visuals::contact::StepActor {
+                                id: instance.rig.root,
+                                position: Vec3::from(actor.position.to_array().map(|n| n as f32)),
+                                airborne: actor.terrain.floor.is_none()
+                                    || actor.terrain.height.abs() > 160,
+                                active: actor.health > 0 && actor.flags & 8 == 0,
+                            }
+                        }),
+                    &self.surfaces,
+                    graphics,
+                    self.weather.sample(&graphics.weather, 1.0),
+                    center,
+                );
             }
         }
         {
@@ -301,11 +393,27 @@ impl Environment {
                 }
             }
         }
-        renderer.set_projected_decals(self.blood.projected_pages());
         self.tick = Some(tick);
         if graphics.weather.mode == WeatherMode::Original {
-            self.clear();
+            self.weather = Default::default();
+            self.thunder = None;
         }
+    }
+
+    pub fn update(
+        &mut self,
+        frame: &Frame<'_>,
+        graphics: &Graphics,
+        renderer: &mut Renderer,
+    ) -> render_effects::Geometry {
+        self.advance(frame, graphics);
+        let Frame {
+            tick,
+            camera,
+            alpha,
+            ..
+        } = *frame;
+        renderer.set_projected_decals(self.blood.projected_pages());
         renderer.weather = self.weather.sample(&graphics.weather, 1.0);
         let mut geometry = self.weather.geometry(camera, 1.0, &graphics.weather);
         geometry.append(
@@ -487,3 +595,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod vegetation_tests;

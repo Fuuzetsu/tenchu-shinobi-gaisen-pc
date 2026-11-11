@@ -30,6 +30,18 @@ producers are not yet covered by this comparer. Campaign progression has separat
 controlled fixtures. T2 requires `--scenario` or an update limit; the video tape
 export path remains T1-only.
 
+Native T2 vegetation and snow tracks have separate presentation fixtures. All
+23 available Japanese maps are checked for classified vegetation, bounded
+geometry and unchanged displayed texture pixels. An autumn-map fixture compares
+180 effect updates with frequent and sparse redraws, then restores a checkpoint
+and rebuilds presentation; particles and movement scatter continue identically
+without changing source state. An imported T1 Mission 5 fixture verifies visible
+snow tracks with Original weather, persistence and clearing. A GPU check gives
+the imported texture and active VRAM contradictory snow masks to verify that
+tracks sample the terrain actually being drawn. Before/after captures and logs
+remain in `private/two-releases-20261110/native-vegetation`. These controlled
+fixtures do not add ordinary-play or campaign coverage.
+
 ## Emulator comparisons
 
 The combat/item searches under `~/tenchu-searches/ayame-mission-*` provide

@@ -167,10 +167,13 @@ fn contact_effects_follow_contacts_without_changing_gameplay() {
         let mut tracker = steps::Tracker::default();
         game.roster.get_mut(game.player_id).position = origin.as_ivec3().to_array().into();
         game.roster.get_mut(game.player_id).map.height = 0;
-        tracker.update(&game, &surfaces, origin);
+        tracker.update(steps::gaisen(&game), &surfaces, origin);
         for _ in 0..12 {
             game.roster.get_mut(game.player_id).position.x += speed;
-            if let Some(step) = tracker.update(&game, &surfaces, origin).first() {
+            if let Some(step) = tracker
+                .update(steps::gaisen(&game), &surfaces, origin)
+                .first()
+            {
                 strengths.push(step.strength);
                 break;
             }
@@ -185,12 +188,12 @@ fn contact_effects_follow_contacts_without_changing_gameplay() {
     game.roster.get_mut(game.player_id).position =
         (origin - Vec3::Y * 600.0).as_ivec3().to_array().into();
     game.roster.get_mut(game.player_id).map.height = 600;
-    tracker.update(&game, &surfaces, origin);
+    tracker.update(steps::gaisen(&game), &surfaces, origin);
     game.roster.get_mut(game.player_id).position.y += 400;
-    tracker.update(&game, &surfaces, origin);
+    tracker.update(steps::gaisen(&game), &surfaces, origin);
     game.roster.get_mut(game.player_id).position.y += 200;
     game.roster.get_mut(game.player_id).map.height = 0;
-    let landing = tracker.update(&game, &surfaces, origin);
+    let landing = tracker.update(steps::gaisen(&game), &surfaces, origin);
     assert_eq!(landing.len(), 1);
     assert!(landing[0].strength > strengths[1]);
 

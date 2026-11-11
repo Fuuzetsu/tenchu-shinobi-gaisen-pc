@@ -81,37 +81,58 @@ fn baked_snow_tracks_preserve_bare_texels() {
         false,
         false,
     );
-    let ground = renderer.upload(&terrain);
-    for (texel, snow) in [(0x7fff, true), (0x2108, false)] {
-        vram.words[0] = texel;
-        renderer.update_vram(&vram);
-        renderer.draw(&view, camera, &[&ground], None).unwrap();
-        let bare = read_pixel(&renderer, &target);
-        for tagged in [false, true] {
-            let mut vertices = terrain.clone();
-            for v in &mut vertices {
-                v.position[2] -= 1.0;
-                v.flags |= render_mesh::ALPHA | render_mesh::FOOTPRINT;
-                if tagged {
-                    v.flags |= render_mesh::SNOW;
-                }
-                v.opacity = 1.0;
-            }
-            let effect = renderer.upload_effects(render_effects::Geometry {
-                batches: vec![render_effects::Batch {
-                    blend: 5,
-                    range: 0..vertices.len() as u32,
-                }],
-                vertices,
-            });
-            renderer
-                .draw(&view, camera, &[&ground], Some(&effect))
-                .unwrap();
-            let print = read_pixel(&renderer, &target);
-            if snow && tagged {
-                assert!(print[0] + 20 < bare[0], "{print:?} on {bare:?}");
+    for external in [false, true] {
+        for (texel, snow) in [(0x7fff, true), (0x2108, false)] {
+            vram.words[0] = if external {
+                if snow { 0x2108 } else { 0x7fff }
             } else {
-                assert_eq!(print, bare, "snow {snow}, tagged {tagged}");
+                texel
+            };
+            let mut terrain = terrain.clone();
+            if external {
+                let material = renderer.bind_material(&crate::visuals::models::Material {
+                    id: format!("snow-{snow}"),
+                    region: None,
+                    image: std::sync::Arc::new(crate::visuals::pixels::Image {
+                        size: [1, 1],
+                        rgba: tenchu_assets::texture::rgba8(texel).to_vec(),
+                    }),
+                    animation: None,
+                });
+                for vertex in &mut terrain {
+                    vertex.material = material;
+                }
+            }
+            let ground = renderer.upload(&terrain);
+            renderer.update_vram(&vram);
+            renderer.draw(&view, camera, &[&ground], None).unwrap();
+            let bare = read_pixel(&renderer, &target);
+            for tagged in [false, true] {
+                let mut vertices = terrain.clone();
+                for v in &mut vertices {
+                    v.position[2] -= 1.0;
+                    v.flags |= render_mesh::ALPHA | render_mesh::FOOTPRINT;
+                    if tagged {
+                        v.flags |= render_mesh::SNOW;
+                    }
+                    v.opacity = 1.0;
+                }
+                let effect = renderer.upload_effects(render_effects::Geometry {
+                    batches: vec![render_effects::Batch {
+                        blend: 5,
+                        range: 0..vertices.len() as u32,
+                    }],
+                    vertices,
+                });
+                renderer
+                    .draw(&view, camera, &[&ground], Some(&effect))
+                    .unwrap();
+                let print = read_pixel(&renderer, &target);
+                if snow && tagged {
+                    assert!(print[0] + 20 < bare[0], "{print:?} on {bare:?}");
+                } else {
+                    assert_eq!(print, bare, "snow {snow}, tagged {tagged}");
+                }
             }
         }
     }

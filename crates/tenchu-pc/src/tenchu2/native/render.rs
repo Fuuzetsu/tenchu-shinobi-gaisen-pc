@@ -185,18 +185,18 @@ impl Drawing {
         if session.gaisen.is_some() {
             renderer.update_vram(&session.assets.sprites.vram);
         }
-        drawing.prepare_wounds(session, &graphics.blood, renderer);
+        drawing.prepare_environment(session, graphics, renderer);
         drawing.tick(session, graphics)?;
         Ok(drawing)
     }
 
-    fn prepare_wounds(
+    fn prepare_environment(
         &mut self,
         session: &super::Session,
-        settings: &crate::settings::Blood,
+        graphics: &Graphics,
         renderer: &mut Renderer,
     ) {
-        if settings.wounds() || settings.gush(false) || settings.weapons && settings.amount != 0 {
+        if SceneDrawing::needs_environment(graphics) {
             self.scene.environment(
                 &session.assets.level,
                 &self.models.scenery,
@@ -215,6 +215,21 @@ impl Drawing {
         if let Some(environment) = &mut self.scene.environment {
             self.wounds
                 .tick(session, &self.models, environment, &graphics.blood)?;
+            environment.advance(
+                &environment::Frame {
+                    level: &session.assets.level,
+                    meshes: &self.models.scenery,
+                    math: &session.assets.resources.math,
+                    tick: u64::from(session.world.tick),
+                    camera: camera_matrix(session.world.camera.view, self.camera, [4, 3]),
+                    alpha: 1.0,
+                    contact: Some(&session.contact),
+                    world: Some((&session.world, &session.assets)),
+                    scenery: Some(&session.frame.scenery),
+                    sprites: &session.assets.sprites,
+                },
+                graphics,
+            );
         }
         Ok(())
     }
@@ -239,8 +254,8 @@ impl Drawing {
         self.models
             .scrolling
             .update(&session.world.environment.texture_scrolls, renderer);
-        let blood = renderer.graphics().blood;
-        self.prepare_wounds(session, &blood, renderer);
+        let graphics = renderer.graphics().clone();
+        self.prepare_environment(session, &graphics, renderer);
         self.tick(session, renderer.graphics())?;
         let motion = self.motion.sample(if renderer.graphics().interpolation {
             self.alpha
@@ -346,6 +361,7 @@ impl Drawing {
                 alpha: self.alpha,
                 contact: Some(&session.contact),
                 world: Some((&session.world, &session.assets)),
+                scenery: Some(&session.frame.scenery),
                 sprites: &session.assets.sprites,
             },
             renderer,
@@ -398,6 +414,25 @@ fn camera_matrix(
 }
 
 impl SceneDrawing {
+    fn needs_environment(graphics: &Graphics) -> bool {
+        let sky_light = graphics.sky.enabled
+            || (graphics.lighting.enabled && graphics.lighting.directional.intensity > 0);
+        graphics.weather.mode != crate::settings::WeatherMode::Original
+            || graphics.weather.footprints && graphics.weather.baked_snow
+            || graphics.water.enabled
+            || graphics.effects.sparks
+            || graphics.effects.splashes
+            || graphics.effects.leaves
+            || graphics.effects.scatter
+            || graphics.blood.retained_ground()
+            || graphics.blood.custom_death(false)
+            || graphics.blood.custom_death(true)
+            || graphics.blood.wounds()
+            || graphics.blood.gush(false)
+            || graphics.blood.weapons && graphics.blood.amount != 0
+            || ((graphics.lighting.enabled || sky_light) && graphics.lighting.shadows)
+    }
+
     fn inspect_lights(
         &mut self,
         debug: Option<&crate::debug::Debug>,
@@ -460,19 +495,7 @@ impl SceneDrawing {
         renderer: &mut Renderer,
     ) {
         let graphics = renderer.graphics().clone();
-        let sky_light = graphics.sky.enabled
-            || (graphics.lighting.enabled && graphics.lighting.directional.intensity > 0);
-        if (graphics.weather.mode != crate::settings::WeatherMode::Original
-            || graphics.water.enabled
-            || graphics.effects.sparks
-            || graphics.effects.splashes
-            || graphics.blood.retained_ground()
-            || graphics.blood.custom_death(false)
-            || graphics.blood.custom_death(true)
-            || ((self.lighting.active(&graphics.lighting) || sky_light)
-                && graphics.lighting.shadows))
-            && self.environment.is_none()
-        {
+        if Self::needs_environment(&graphics) && self.environment.is_none() {
             self.environment(frame.level, frame.meshes, frame.math, renderer);
         }
         renderer.weather = Default::default();

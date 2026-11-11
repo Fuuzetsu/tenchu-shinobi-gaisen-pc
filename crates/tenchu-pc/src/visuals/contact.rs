@@ -2,7 +2,9 @@ pub mod foliage;
 mod gaisen;
 mod geometry;
 pub mod rope;
+mod scatter;
 mod steps;
+pub use steps::Actor as StepActor;
 
 use super::surfaces::{Hit, Stamp, Surfaces};
 use crate::{

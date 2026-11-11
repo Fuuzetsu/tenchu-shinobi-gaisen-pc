@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports F1 foliage detail, per-tree variation, falling leaves and
+  petals, leaf density, and movement scatter. Original T2 vegetation textures
+  now drive the shared geometry and wind effects; its autumn trees shed leaves.
+  These effects also work on imported T1 stages and advance on game ticks,
+  independently of redraws, with save/rewind support. Modern High/Ultra include
+  them; Original stays unchanged.
+- Native T2's **Tracks on existing snow** works on imported T1 snow stages
+  with Original weather. Tracks use the imported terrain's texture for their
+  snow mask, persist across redraws and can be cleared from F1.
+
 - Native T2 supports **F1 → Simulation → Rewind history** and **Ctrl+F12** in
   both launchers. Seek, play recorded states backward or forward, and resume
   from a selected frame across gameplay and 3D cutscene transitions, including

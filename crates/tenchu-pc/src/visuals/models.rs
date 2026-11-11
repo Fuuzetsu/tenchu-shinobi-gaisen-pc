@@ -42,29 +42,8 @@ impl Models {
     pub fn canopies(&self, game: &tenchu_core::game::Game) -> Vec<super::contact::foliage::Canopy> {
         let mut out = Vec::new();
         render_mesh::visit_stage(&game.mission, &game.math, |geometry, matrix| {
-            let key = geometry.as_ptr() as usize;
-            let source = self.source(geometry);
-            if let Some(canopies) = source.canopies.get(&key) {
-                let variant = source
-                    .variants
-                    .get(&key)
-                    .map(|s| s.variant(matrix.translation.to_array()));
-                let rotation = rotation(matrix);
-                let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
-                for canopy in canopies {
-                    out.push(canopy.transformed(|position| {
-                        use bytemuck::Zeroable;
-                        let mut v = Vertex {
-                            position: position.to_array(),
-                            ..Vertex::zeroed()
-                        };
-                        if let Some(variant) = &variant {
-                            variant.vertex(&mut v);
-                        }
-                        rotation * Vec3::from(v.position) + translation
-                    }));
-                }
-            }
+            self.source(geometry)
+                .visit_canopies(geometry, matrix, |canopy| out.push(canopy));
         });
         out
     }
@@ -410,6 +389,36 @@ impl Meshes {
 }
 
 impl Meshes {
+    pub fn visit_canopies(
+        &self,
+        geometry: &[Geometry],
+        matrix: Matrix,
+        mut visit: impl FnMut(super::contact::foliage::Canopy),
+    ) {
+        let key = geometry.as_ptr() as usize;
+        if let Some(canopies) = self.canopies.get(&key) {
+            let variant = self
+                .variants
+                .get(&key)
+                .map(|s| s.variant(matrix.translation.to_array()));
+            let rotation = rotation(matrix);
+            let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
+            for canopy in canopies {
+                visit(canopy.transformed(|position| {
+                    use bytemuck::Zeroable;
+                    let mut v = Vertex {
+                        position: position.to_array(),
+                        ..Vertex::zeroed()
+                    };
+                    if let Some(variant) = &variant {
+                        variant.vertex(&mut v);
+                    }
+                    rotation * Vec3::from(v.position) + translation
+                }));
+            }
+        }
+    }
+
     pub fn skin(&mut self, parts: &[tenchu_assets::model::Part]) {
         if !self.meshes.values().any(|m| m.skin.is_some()) {
             return;
@@ -461,6 +470,7 @@ impl Meshes {
         let region_ids = catalog::model_regions(vram, &sources);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
+        let mut displayed_images = Vec::new();
         for source in sources {
             let correction = corrections.get(&source.id);
             let emitter = rules
@@ -611,16 +621,27 @@ impl Meshes {
                             let material = *textures
                                 .entry((id.clone(), Some(region)))
                                 .or_insert_with(|| {
+                                    let mut image = Arc::new(Image {
+                                        size: [
+                                            u32::from(region.rect[2]),
+                                            u32::from(region.rect[3]),
+                                        ],
+                                        rgba: region.pixels(vram),
+                                    });
+                                    if foliage
+                                        && vegetation.contains_key(id)
+                                        && !vram.authored_colors.is_empty()
+                                    {
+                                        // T2 enables palette blending at load time. Geometry
+                                        // sampling needs the authored cutout, not its blend mask.
+                                        displayed_images.push((out.materials.len(), image.clone()));
+                                        Arc::make_mut(&mut image).rgba =
+                                            region.original_pixels(vram);
+                                    }
                                     out.materials.push(Material {
                                         id: id.clone(),
                                         region: Some(region),
-                                        image: Arc::new(Image {
-                                            size: [
-                                                u32::from(region.rect[2]),
-                                                u32::from(region.rect[3]),
-                                            ],
-                                            rgba: region.pixels(vram),
-                                        }),
+                                        image,
                                         animation: vram.animations.iter().copied().find(|scroll| {
                                             region.page & !0x60 == scroll.image.page & !0x60
                                                 && region.palette == scroll.image.palette
@@ -788,6 +809,9 @@ impl Meshes {
                 source.geometry.as_ptr() as usize,
                 Mesh::new(&vertices, skin.as_deref()),
             );
+        }
+        for (index, image) in displayed_images {
+            out.materials[index].image = image;
         }
         Ok(out)
     }

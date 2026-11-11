@@ -25,6 +25,8 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         models: crate::settings::Models {
             characters: g.models.characters,
             grapple: g.models.grapple,
+            foliage: g.models.foliage,
+            variation: g.models.variation,
             ..Default::default()
         },
         blood: crate::settings::Blood {
@@ -59,6 +61,9 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
             sparks: g.effects.sparks,
             splashes: g.effects.splashes,
             spark_density: g.effects.spark_density,
+            leaves: g.effects.leaves,
+            leaf_density: g.effects.leaf_density,
+            scatter: g.effects.scatter,
             ..Default::default()
         },
         sky: g.sky.clone(),

@@ -197,6 +197,7 @@ impl super::Drawing {
                 alpha: self.alpha,
                 contact: None,
                 world: None,
+                scenery: None,
                 sprites: &session.assets.sprites,
             },
             renderer,

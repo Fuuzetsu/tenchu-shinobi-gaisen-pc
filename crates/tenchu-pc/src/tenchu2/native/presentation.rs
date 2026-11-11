@@ -338,9 +338,7 @@ impl ContentDrawing {
             (Self::Gameplay(drawing), Content::Gameplay(session)) => {
                 drawing.tick(session, graphics)
             }
-            (Self::Story(drawing), Content::Story { story, .. }) => {
-                drawing.tick(story, &graphics.motion)
-            }
+            (Self::Story(drawing), Content::Story { story, .. }) => drawing.tick(story, graphics),
             _ => Ok(()),
         }
     }

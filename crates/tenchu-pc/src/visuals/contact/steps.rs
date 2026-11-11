@@ -1,6 +1,24 @@
-use super::{Hit, Surfaces, Vec3, point};
+use super::{Hit, Surfaces, Vec3};
 use std::collections::BTreeMap;
-use tenchu_core::game::Game;
+
+pub struct Actor {
+    pub id: usize,
+    pub position: Vec3,
+    pub airborne: bool,
+    pub active: bool,
+}
+pub fn gaisen(game: &tenchu_core::game::Game) -> impl Iterator<Item = Actor> + Clone + '_ {
+    game.roster.order.iter().map(|&id| {
+        let actor = game.roster.get(id);
+        Actor {
+            id,
+            position: super::point(actor.position),
+            airborne: actor.map.height.abs() > 160,
+            active: actor.health > 0,
+        }
+    })
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Previous {
     position: Vec3,
@@ -18,16 +36,25 @@ pub struct Tracker {
     actors: BTreeMap<usize, Previous>,
 }
 impl Tracker {
-    pub fn update(&mut self, game: &Game, surfaces: &Surfaces, eye: Vec3) -> Vec<Contact> {
+    pub fn update(
+        &mut self,
+        actors: impl Iterator<Item = Actor> + Clone,
+        surfaces: &Surfaces,
+        eye: Vec3,
+    ) -> Vec<Contact> {
         let mut contacts = Vec::new();
-        self.actors.retain(|id, _| game.roster.order.contains(id));
-        for &id in &game.roster.order {
-            let actor = game.roster.get(id);
-            let position = point(actor.position);
-            if actor.health <= 0 || position.distance_squared(eye) > 30000.0_f32.powi(2) {
+        self.actors
+            .retain(|id, _| actors.clone().any(|actor| actor.id == *id));
+        for Actor {
+            id,
+            position,
+            airborne,
+            active,
+        } in actors
+        {
+            if !active || position.distance_squared(eye) > 30000.0_f32.powi(2) {
                 continue;
             }
-            let airborne = actor.map.height.abs() > 160;
             let previous = self.actors.entry(id).or_insert(Previous {
                 position,
                 distance: 0.0,

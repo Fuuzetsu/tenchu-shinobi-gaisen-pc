@@ -1319,6 +1319,25 @@ included in those metadata files. The existing private campaign HD artwork is
 reused without new image generation. Original/HD scene reviews, recorded combat
 checks and browser results are under the ignored `private/effects-review` folder.
 
+Native T2 vegetation support (2026-11-11) reuses this port's scalar canopy,
+foliage refinement, movement scatter and footprint code. The shared step tracker
+accepts native actor roots, positions and terrain probes; source simulation,
+collision and RNG are untouched. Additional `data/vegetation.json` fingerprints
+classify original T2 foliage, grass, bamboo and trunks reviewed from the user's
+EU/JP discs. Only identifiers and classifications are included. Private texture
+surveys and native map/render checks are under
+`private/two-releases-20261110/native-vegetation`.
+
+T2's original texture loader enables palette blending at `80017600`. Foliage
+geometry sampling uses the retained authored cutout before that operation;
+displayed texture pixels keep the source blend class. Native canopy placements
+follow static phases and current object poses, including falling trees and
+stumps. Weather/contact effects advance on source updates in both native hosts,
+with GPU uploads left to presentation. Snow tracks on imported geometry sample
+its bound texture, since that terrain need not reside in the active source VRAM.
+No code was imported from or changed in the sibling research, decompilation or
+viewer repositories for this adapter.
+
 ## Runtime texture recipes (2026-10-28)
 
 Portable Rust recipes reconstruct mixed HD textures from the user's disc and

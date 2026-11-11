@@ -316,7 +316,14 @@ fn alpha_color(v: Fragment, front_facing: bool, precomputed_weather: bool, use_b
         var snow = 0.0;
         if WEATHER_ENABLED { snow = weather_snow(normalize(v.normal), v.world, precomputed_weather); }
         if (v.flags & SNOW) != 0u {
-            let original = filtered(v.uv, v.page, v.palette, texel(vec2<i32>(floor(v.uv)), v.page, v.palette));
+            var original = filtered(v.uv, v.page, v.palette, texel(vec2<i32>(floor(v.uv)), v.page, v.palette));
+            if material_external(v.material) {
+                let coordinate = material_coordinate(v.material, v.world, v.uv);
+                original = material_texel(v.material, coordinate).rgb;
+                if FILTER_MATERIALS && MATERIAL_FILTERING != 0.0 {
+                    original = material_color(v.material, coordinate, dpdx(coordinate), dpdy(coordinate), camera.viewport.y, MATERIAL_FILTERING, MATERIAL_MAGNIFICATION, false, false, original);
+                }
+            }
             snow = max(snow, smoothstep(0.5, 0.78, min(original.r, min(original.g, original.b))));
         }
         opacity *= snow;

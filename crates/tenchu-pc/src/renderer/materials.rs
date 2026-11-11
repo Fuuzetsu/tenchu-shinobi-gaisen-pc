@@ -108,7 +108,8 @@ impl Entry {
                 | if layers == 3 { 8 } else { 0 }
                 | if self.repeating() { 16 } else { 0 }
                 | if self.world_tile.is_some() { 32 } else { 0 }
-                | if self.authored { 64 } else { 0 },
+                | if self.authored { 64 } else { 0 }
+                | if self.region.is_none() { 256 } else { 0 },
             |flags, pixel| {
                 (if pixel[3] < 192 {
                     flags & !SOLID

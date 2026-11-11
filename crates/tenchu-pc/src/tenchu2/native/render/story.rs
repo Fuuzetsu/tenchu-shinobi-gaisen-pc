@@ -81,16 +81,22 @@ impl Drawing {
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         let mut models = models::Models::new(story, graphics, renderer)?;
         let (geometry, texts) = models.geometry(story, renderer, None, None, None)?;
-        Ok(Self {
+        let mut scene = SceneDrawing::new(geometry, renderer, &story.level);
+        if SceneDrawing::needs_environment(graphics) {
+            scene.environment(&story.level, &models.terrain, &story.math, renderer);
+        }
+        let mut drawing = Self {
             models,
             motion: Default::default(),
-            scene: SceneDrawing::new(geometry, renderer, &story.level),
+            scene,
             texts,
             labels: Vec::new(),
             view: story.state.view,
             camera: None,
             alpha: 1.0,
-        })
+        };
+        drawing.tick(story, graphics)?;
+        Ok(drawing)
     }
 
     pub fn update(
@@ -99,7 +105,11 @@ impl Drawing {
         renderer: &mut Renderer,
         debug: Option<&crate::debug::Debug>,
     ) -> Result<()> {
-        self.tick(story, &renderer.graphics().motion)?;
+        if SceneDrawing::needs_environment(renderer.graphics()) {
+            self.scene
+                .environment(&story.level, &self.models.terrain, &story.math, renderer);
+        }
+        self.tick(story, renderer.graphics())?;
         let motion = self.motion.sample(if renderer.graphics().interpolation {
             self.alpha
         } else {
@@ -128,6 +138,7 @@ impl Drawing {
                 alpha: self.alpha,
                 contact: Some(&story.contact),
                 world: None,
+                scenery: None,
                 sprites: &story.sprites,
             },
             renderer,
@@ -138,7 +149,25 @@ impl Drawing {
         Ok(())
     }
 
-    pub fn tick(&mut self, story: &Story, options: &crate::settings::Motion) -> Result<()> {
+    pub fn tick(&mut self, story: &Story, graphics: &Graphics) -> Result<()> {
+        if let Some(environment) = &mut self.scene.environment {
+            environment.advance(
+                &super::environment::Frame {
+                    level: &story.level,
+                    meshes: &self.models.terrain,
+                    math: &story.math,
+                    tick: story.state.effects.tick,
+                    camera: super::camera_matrix(story.state.view, self.camera, [4, 3]),
+                    alpha: 1.0,
+                    contact: Some(&story.contact),
+                    world: None,
+                    scenery: None,
+                    sprites: &story.sprites,
+                },
+                graphics,
+            );
+        }
+        let options = &graphics.motion;
         if self
             .motion
             .current(story.state.frame.max(0) as u64, options)

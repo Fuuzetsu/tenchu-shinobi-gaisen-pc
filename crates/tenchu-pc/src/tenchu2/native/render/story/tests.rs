@@ -394,7 +394,7 @@ fn native_story_secondary_motion_tracks_authored_poses() {
             for tick in 0..160 {
                 story.step(true)?;
                 let before = postcard::to_allocvec(&story.state).unwrap();
-                drawing.tick(&story, &graphics.motion)?;
+                drawing.tick(&story, &graphics)?;
                 let frame = drawing.motion.sample(1.0);
                 if tick % 10 == 0 {
                     let (moving, _) =
