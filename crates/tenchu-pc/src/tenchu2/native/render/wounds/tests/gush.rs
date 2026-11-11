@@ -88,7 +88,7 @@ fn native_death_gushes_follow_source_blood_and_stop() {
                             copy.configure(&options);
                             let mut vertices = Vec::new();
                             copy.append_drops(session.world.camera.view, 1.0,
-                                session.assets.sprites.effects[0], &mut vertices);
+                                session.assets.sprites.effects[1], &mut vertices);
                             assert!(!vertices.is_empty());
                             assert_eq!(vertices[0].flags & render_mesh::SOFT != 0, style == BloodStyle::Modern);
                             assert_eq!(vertices[0].flags & render_mesh::BLOOD_HD != 0, style == BloodStyle::OriginalHd);

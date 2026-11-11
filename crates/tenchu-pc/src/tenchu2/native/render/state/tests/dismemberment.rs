@@ -147,12 +147,15 @@ fn native_dismemberment_rendering_blood_and_restore() {
         }).unwrap();
         let (world, state) = bleeding.unwrap();
         session.restore_state(&world).unwrap();
-        for enabled in [false, true] {
+        let mut without_blood = Vec::new();
+        for (suffix, style) in [
+            ("off", BloodStyle::Off),
+            ("original", BloodStyle::Original),
+            ("hd", BloodStyle::OriginalHd),
+            ("modern", BloodStyle::Modern),
+        ] {
             let mut current = graphics.clone();
-            if !enabled {
-                current.blood.severed_style = BloodStyle::Off;
-            }
-            let suffix = if enabled { "on" } else { "off" };
+            current.blood.severed_style = style;
             capture_frame(
                 &vram,
                 &current,
@@ -191,7 +194,7 @@ fn native_dismemberment_rendering_blood_and_restore() {
                             .unwrap()
                             .blood
                             .has_drops(),
-                        enabled
+                        style != BloodStyle::Off
                     );
                     drawing.scene.terrain = renderer.upload(&floor());
                     drawing.scene.props = renderer.upload(&[]);
@@ -200,6 +203,21 @@ fn native_dismemberment_rendering_blood_and_restore() {
                 },
             )
             .unwrap();
+            let pixels = crate::visuals::pack::decode_png(
+                &std::fs::read(out.join(format!("{name}-bleeding-{suffix}.png"))).unwrap(),
+            )
+            .unwrap()
+            .rgba;
+            if style == BloodStyle::Off {
+                without_blood = pixels;
+            } else {
+                let red = pixels
+                    .chunks_exact(4)
+                    .zip(without_blood.chunks_exact(4))
+                    .filter(|(a, b)| a != b && a[0] > 20 && a[0] / 2 > a[1] && a[0] / 2 > a[2])
+                    .count();
+                assert!(red > 5, "{name} {suffix}: severed droplets are not red");
+            }
         }
     }
 }

@@ -331,7 +331,7 @@ pub(super) fn geometry(
     blood.append_drops(
         view.camera.unwrap_or(session.world.camera.view),
         view.alpha,
-        session.assets.sprites.effects[0],
+        session.assets.sprites.effects[1],
         &mut vertices,
     );
     let count = vertices.len() as u32;

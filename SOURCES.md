@@ -18,6 +18,18 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 optional blood sprite correction (2026-11-11)
+
+Shared severed/death-gush droplets were passed T2 effect 0 (white), copying
+T1's image index. The native source translation in `effects/blood.rs` uses
+`Drop::billboard(1, Blend::Opaque, 128, ...)`; the native presentation adapter
+now supplies effect 1, preserving source pixels for Original and Original HD.
+Modern geometry and source simulation are unchanged. Read-only reviews of the
+viewer effect image lookup and TAS bleed path confirm game-specific image
+indices must remain at the presentation boundary. No sibling code was imported.
+GPU comparisons cover all three styles, all native heroes and imported/custom
+bodies, with saved presentation continuation and finite bleed duration.
+
 ## Native T2 gameplay presets (2026-11-11)
 
 Native F1 reuses the shared five `settings/gameplay.rs` preset definitions and

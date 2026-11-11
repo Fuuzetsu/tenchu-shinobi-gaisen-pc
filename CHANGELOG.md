@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix white severed-limb droplets and death gushes in native T2 with
+  **Original** and **Original HD** blood. Both now use T2's red blood sprite.
+
 - Native T2 and imported T1 stages support all five F1 gameplay presets:
   **Original**, **Living world**, **Keen guards**, **Relaxed stealth** and
   **Practice**. Apply them during a mission to set activation, sight, cutscene
