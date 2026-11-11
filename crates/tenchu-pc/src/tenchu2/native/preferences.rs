@@ -498,6 +498,29 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::Sheathing => {
+                            state.settings.sheathing.enabled =
+                                Settings::default().sheathing.enabled;
+                            Ok(())
+                        }
+                        Item::SheathedOneHit => {
+                            state.settings.sheathing.one_hit =
+                                Settings::default().sheathing.one_hit;
+                            Ok(())
+                        }
+                        Item::SheathedSpeed | Item::SheathedVisibility | Item::SheathedDamage => {
+                            let defaults = Settings::default().sheathing;
+                            match item {
+                                Item::SheathedSpeed => {
+                                    state.settings.sheathing.speed = defaults.speed
+                                }
+                                Item::SheathedVisibility => {
+                                    state.settings.sheathing.visibility = defaults.visibility
+                                }
+                                _ => state.settings.sheathing.damage = defaults.damage,
+                            }
+                            Ok(())
+                        }
                         Item::AnalogWalking => {
                             state.settings.walking.enabled = Settings::default().walking.enabled;
                             Ok(())
@@ -528,6 +551,28 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::Sheathing => {
+                            state.settings.sheathing.enabled = !state.settings.sheathing.enabled;
+                            Ok(())
+                        }
+                        Item::SheathedOneHit => {
+                            state.settings.sheathing.one_hit = !state.settings.sheathing.one_hit;
+                            Ok(())
+                        }
+                        Item::SheathedSpeed | Item::SheathedVisibility | Item::SheathedDamage => {
+                            let field = match item {
+                                Item::SheathedSpeed => &mut state.settings.sheathing.speed,
+                                Item::SheathedVisibility => {
+                                    &mut state.settings.sheathing.visibility
+                                }
+                                _ => &mut state.settings.sheathing.damage,
+                            };
+                            let slider = item.slider().unwrap();
+                            *field = (i32::from(*field) + delta * slider.step)
+                                .clamp(slider.min, slider.max)
+                                as u16;
+                            Ok(())
+                        }
                         Item::AnalogWalking => {
                             state.settings.walking.enabled = !state.settings.walking.enabled;
                             Ok(())
@@ -548,6 +593,7 @@ impl Menu {
                                 state.settings.keep_enemies_active = defaults.keep_enemies_active;
                                 state.settings.circle_action = defaults.circle_action;
                                 state.settings.walking = defaults.walking;
+                                state.settings.sheathing = defaults.sheathing;
                                 state.settings.bleeding = defaults.bleeding;
                                 state.settings.sight_percent = defaults.sight_percent;
                             }
@@ -745,6 +791,77 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires TENCHU2_DISC; native F1 sheathing edits, numeric clamps and resets reach the live player without altering weapon state"]
+    fn native_sheathing_menu_edits_and_resets() {
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let mut playback =
+            super::super::campaign::Playback::load(disc, 9, 2, 17, Some([0; 21]), None).unwrap();
+        let mut menu = Menu::default();
+        let mut settings = Settings::default();
+        let mut paused = true;
+        let mut controls = Controls::default();
+        let mut presets = presets();
+        let mut state = State {
+            settings: &mut settings,
+            paused: &mut paused,
+            controls: &mut controls,
+            presets: &mut presets,
+            lights: 0,
+            samples: &[1],
+            models: None,
+        };
+        let mut action = Action::default();
+        for (item, delta) in [
+            (Item::Sheathing, 1),
+            (Item::SheathedSpeed, 100),
+            (Item::SheathedVisibility, -100),
+            (Item::SheathedDamage, 100),
+            (Item::SheathedOneHit, 1),
+        ] {
+            assert!(Runtime::Tenchu2.unavailable(item).is_none());
+            menu.apply(Edit::Change(item, delta), &mut state, &mut action);
+            assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+        }
+        playback.configure(state.settings).unwrap();
+        let super::super::campaign::Content::Gameplay(session) = &playback.content else {
+            unreachable!()
+        };
+        let actual = session.world.actors[session.world.player]
+            .actor
+            .sheathing
+            .unwrap()
+            .settings;
+        assert!(actual.enabled && actual.one_hit);
+        assert_eq!(
+            (actual.speed, actual.visibility, actual.damage),
+            (200, 25, 400)
+        );
+        let original = session.world.clone();
+        for item in [
+            Item::Sheathing,
+            Item::SheathedSpeed,
+            Item::SheathedVisibility,
+            Item::SheathedDamage,
+            Item::SheathedOneHit,
+        ] {
+            menu.apply(Edit::Reset(item), &mut state, &mut action);
+            assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+        }
+        assert_eq!(state.settings.sheathing, Default::default());
+        playback.configure(state.settings).unwrap();
+        let super::super::campaign::Content::Gameplay(session) = &playback.content else {
+            unreachable!()
+        };
+        let mut expected = original;
+        expected.actors[expected.player].actor.sheathing = None;
+        assert!(
+            postcard::to_allocvec(&session.world).unwrap()
+                == postcard::to_allocvec(&expected).unwrap()
+        );
+    }
+
+    #[test]
     fn native_rewind_controls_and_closed_menu_timeline_are_connected() {
         let mut menu = Menu::default();
         let mut settings = Settings::default();
@@ -933,6 +1050,9 @@ mod tests {
                 settings.bleeding.enabled = true;
                 settings.walking.enabled = true;
                 settings.walking.threshold = 45;
+                settings.sheathing.enabled = true;
+                settings.sheathing.speed = 125;
+                settings.sheathing.one_hit = true;
                 session.world.set_bleeding(settings.bleeding);
                 settings.set_visual_preset(settings::presets::MODERN_ULTRA);
                 let mut expected_settings = settings.clone();
@@ -943,6 +1063,7 @@ mod tests {
                     expected_settings.sight_percent = 100;
                     expected_settings.bleeding = Default::default();
                     expected_settings.walking = Default::default();
+                    expected_settings.sheathing = Default::default();
                 }
                 let mut content = Content::Gameplay(Box::new(session));
                 let mut menu = Menu::new(&settings);

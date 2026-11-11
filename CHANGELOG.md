@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports the rebindable **Draw / sheathe** action and F1's sheathed
+  movement speed, detection range, damage multiplier and one-hit challenge.
+  Manual transitions use the active moveset's original animation, weapon-swap
+  frame and sound. Committed actions and scripts retain control. The optional
+  settings and pending input survive saves, rewind and recordings in both
+  launchers, including imported T1 stages. Native T2 already keeps weapons
+  sheathed after injury; F1 now explains why that T1 option does not apply.
+
 - Native T2 supports **F1 → Movement → Analog / modifier walking** and its
   walk/run threshold in both launchers. Light stick input or the rebindable Walk
   modifier uses T2's original ninja/kunoichi walk cycles; full tilt restores the

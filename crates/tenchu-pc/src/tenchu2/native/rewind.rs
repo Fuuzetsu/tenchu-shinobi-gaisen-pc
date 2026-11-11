@@ -108,6 +108,7 @@ impl Rewind {
             native: Some(recording::NativeInput {
                 navigation: input.navigation,
                 walking: input.walking,
+                sheathing: input.sheathing,
                 initial: false,
             }),
             ..camera_context(tools)
@@ -151,6 +152,12 @@ impl Rewind {
                         initial: true,
                         walking: match &playback.content {
                             Content::Gameplay(session) => session.world.controls.walking,
+                            _ => None,
+                        },
+                        sheathing: match &playback.content {
+                            Content::Gameplay(session) => {
+                                session.world.actors[session.world.player].actor.sheathing
+                            }
                             _ => None,
                         },
                         navigation: match &playback.content {

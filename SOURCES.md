@@ -1318,6 +1318,27 @@ The sibling research, decompilation and viewer repositories were searched and
 left unchanged; no new code was imported from them. Private resource surveys,
 source comparisons and integration checks are under `private/two-releases-20261110`.
 
+## Native T2 optional sheathing (2026-11-11)
+
+Manual draw/stow reuses the active registry's actions `0x700`/`0x701` and the
+existing JP special controller at `80028704`, including authored weapon-event
+frames, zero-duration transitions and sound eligibility. Requests use the shared
+PC binding and are latched independently of rendering. Mission locks, scripts,
+damage, water transitions and committed actions retain precedence. No animation,
+event table or sound bank is substituted for the selected moveset.
+
+The optional stowed speed/detection/damage settings reuse the shared F1 ranges
+and scalar arithmetic. Speed scales the selected forward/backward motion before
+the existing velocity transform; visibility scales direct player sight, including
+bait observers, while corpse sight keeps the global range. Health damage is scaled
+at the native hit resolver without changing the source power used for recoil or
+knockdown. God mode, resurrection, falling and ongoing poison retain their source
+paths. JP injury recovery (`8002ba28`) already retains the weapon state, so the
+T1-specific Stay Sheathed option is explained rather than applied as a no-op.
+The sibling research, decompilation and viewer repositories were searched read-only;
+no new code was imported. Shared sheathing demo and graphical presets were reviewed:
+this remains an optional gameplay edit; native demo sequencing is still separate.
+
 ## Optional effects and geometry refinement (2026-10-24)
 
 Persistent stains, surface queries, weather particles/coatings, the sky clock,

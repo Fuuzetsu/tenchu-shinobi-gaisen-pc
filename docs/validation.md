@@ -52,6 +52,16 @@ the existing BizHawk training capture and original standing-controller oracle.
 These are optional-mode fixtures and regression checks of existing coverage,
 not a new recorded ordinary-play route.
 
+Native T2 manual sheathing fixtures cover original and imported source motion
+events, audible weapon samples, committed actions, scripts, mission input locks
+and water entry. Speed checks use actual running/walking velocities; damage checks
+use the native melee/projectile resolver, including protection and resurrection.
+Live guard sight and its overlay verify stowed detection scaling. Native injury
+and knockdown recovery checks retain the original weapon state. Saves, rewind,
+recordings and imported-stage continuation include the optional settings and input.
+These are controlled feature checks; source-default regressions reuse the existing
+damage/AI/controller oracles and BizHawk training recording.
+
 ## Emulator comparisons
 
 The combat/item searches under `~/tenchu-searches/ayame-mission-*` provide

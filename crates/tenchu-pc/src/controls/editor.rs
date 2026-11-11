@@ -135,7 +135,6 @@ impl Editor {
                 egui::Grid::new("binding-rows").striped(true).spacing([8.0, 5.0]).show(ui, |ui| {
                     ui.strong("Action"); ui.strong("Primary"); ui.strong("Alternate"); ui.end_row();
                     for target in Target::ALL {
-                        if tenchu2 && target == Target::Sheathe { continue; }
                         ui.label(target.description().0);
                         for slot in 0..2 {
                             let capture = Capture { target, slot, device: self.device };

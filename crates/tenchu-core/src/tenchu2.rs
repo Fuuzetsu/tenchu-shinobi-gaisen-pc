@@ -20,6 +20,7 @@ pub mod physics;
 pub mod progress;
 pub mod rig;
 pub mod selection;
+pub mod sheathing;
 pub mod story;
 pub mod terrain;
 pub mod visibility;

@@ -226,6 +226,13 @@ impl Owned {
         }
         for (agent, instance) in world.actors.iter().zip(&world.instances) {
             let actor = &agent.actor;
+            if let Some(state) = actor.sheathing {
+                let mut settings = state.settings;
+                settings.validate();
+                if !settings.enabled || settings != state.settings {
+                    return Err("Invalid native T2 sheathing settings".into());
+                }
+            }
             let definition = assets
                 .resources
                 .registry

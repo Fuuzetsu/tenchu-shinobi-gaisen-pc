@@ -328,6 +328,20 @@ Attacks, guarding, crouching, swimming and collision retain their source behavio
 This optional gameplay edit stays off by default and is separate from graphical
 presets. Save/rewind retains its motion state and recordings retain its input.
 
+**Draw / sheathe weapons** enables the shared rebindable action (H by default).
+It starts the active moveset's native draw/stow animation from grounded free
+stances, with the original weapon-swap frame and sound. It cannot interrupt
+attacks, injury, jumps, scripts or mission input locks. The movement-speed,
+detection-range and damage options apply while this feature is enabled and the
+weapon is stowed. Speed changes affect forward/backward running and optional
+walking. Detection changes stack with the guard sight-distance setting. Damage
+changes affect health loss from melee and item/projectile hits; recoil, falling,
+ongoing poison, God mode and resurrection keep their original rules. Disabling
+the feature removes its modifiers and preserves T2's current weapon state.
+Native T2 already retains a stowed weapon after injury and knockdown, so the
+T1 **Stay sheathed after damage** option is unnecessary here. Saves, rewind and
+recordings retain the settings and pending manual input.
+
 **F1 → Player model** uses the shared searchable gallery of Gaisen and connected
 T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**
 on **Selected player body** to inherit its moves. You can also select an explicit

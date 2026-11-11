@@ -106,6 +106,7 @@ impl System {
             .actor;
         let player_body = Body::from(player);
         let player_health = player.health;
+        let player_sight_percent = player.sight_percent(self.sight_percent);
         if index >= agents.len() {
             return Err("Missing Tenchu 2 AI actor".into());
         }
@@ -160,6 +161,7 @@ impl System {
             scene: &scene,
             sight_range: agent.sight_range,
             sight_percent: self.sight_percent,
+            player_sight_percent,
             ignore_player,
             script: frame.script,
             controllers: frame.controllers,
@@ -181,7 +183,7 @@ impl System {
             player_distance,
             notice_distance: sight::scale_range(
                 callbacks.ranges.standing.notice,
-                self.sight_percent,
+                player_sight_percent,
             ),
             player_action: player_body.action,
             player: frame.player,
@@ -214,7 +216,7 @@ impl System {
                         body: player_body,
                         slot: agent.slot,
                         range: agent.sight_range,
-                        range_percent: self.sight_percent,
+                        range_percent: player_sight_percent,
                         ignore_player,
                         ranges: callbacks.ranges,
                     },
@@ -318,6 +320,7 @@ struct Reactions<'a, 'b, E> {
     scene: &'a entry::Scene,
     sight_range: i16,
     sight_percent: u16,
+    player_sight_percent: u16,
     ignore_player: bool,
     script: u16,
     controllers: [u16; 2],
@@ -426,7 +429,7 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
                         body: self.player_body,
                         slot: self.scene.slot,
                         range: self.sight_range,
-                        range_percent: self.sight_percent,
+                        range_percent: self.player_sight_percent,
                         ignore_player: self.ignore_player,
                         ranges: self.ranges,
                     },
@@ -478,6 +481,8 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
 
     fn sight(&mut self, c: &mut Context<'_>) -> Result<()> {
         let target = c.actor.target.and_then(|id| self.others.get(id, c.actor));
+        let range_percent =
+            target.map_or(self.sight_percent, |a| a.sight_percent(self.sight_percent));
         c.target = target.map(combat::Target::from);
         let target = target.map(Body::from);
         *c.visibility = c.sight.check(
@@ -499,7 +504,7 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
                 player_position: self.player_body.position,
                 player_yaw: self.player_body.yaw,
                 script_mode: self.script,
-                range_percent: self.sight_percent,
+                range_percent,
                 hidden: self.ignore_player && c.actor.target == Some(self.scene.player),
                 terrain: self.terrain,
                 math: &c.resources.math,

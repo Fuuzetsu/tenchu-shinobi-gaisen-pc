@@ -284,6 +284,16 @@ fn native_imported_sheathing_keeps_source_event_frames() {
             .unwrap();
         let source = library.get(id).unwrap().imported_moveset.as_ref().unwrap();
         let owner = session.world.player;
+        session
+            .world
+            .set_player_sheathing(
+                tenchu_core::game::sheathing::Settings {
+                    enabled: true,
+                    ..Default::default()
+                },
+                &session.assets,
+            )
+            .unwrap();
         for (drawn, action, host_action) in [
             (true, 0x700, tenchu_core::ids::MOT_STATE_DRAW),
             (false, 0x701, tenchu_core::ids::MOT_STATE_SHEATHE),
@@ -317,8 +327,25 @@ fn native_imported_sheathing_keeps_source_event_frames() {
                 )
                 .unwrap();
             actor
-                .change_motion(action, actor::Velocity::Motion, &session.assets.resources)
+                .change_motion(
+                    if drawn { 0 } else { 0x100 },
+                    actor::Velocity::Motion,
+                    &session.assets.resources,
+                )
                 .unwrap();
+            actor.pad = Default::default();
+            actor.sheathing.as_mut().unwrap().clear_input();
+            actor.sheathing.as_mut().unwrap().input(true);
+            session
+                .world
+                .control_actor(
+                    owner,
+                    &mut session.assets,
+                    &mut super::super::bleeding_tests::Recorded::default(),
+                )
+                .unwrap();
+            let actor = &session.world.actors[owner].actor;
+            assert_eq!(actor.motion.action, action);
             assert!(actor.motion.clip.unwrap() < 0);
             let mut swaps = Vec::new();
             let mut audible = false;

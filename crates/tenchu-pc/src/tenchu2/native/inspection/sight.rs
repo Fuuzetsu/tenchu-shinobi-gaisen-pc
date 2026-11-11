@@ -53,7 +53,13 @@ fn query(session: &Session, agent: &Agent, stance: u8) -> tenchu_assets::Result<
             player_position: player.position,
             player_yaw: player.rotation.y,
             script_mode: world.script,
-            range_percent: world.ai.sight_percent,
+            range_percent: agent
+                .actor
+                .target
+                .and_then(|id| world.actors.get(id))
+                .map_or(world.ai.sight_percent, |a| {
+                    a.actor.sight_percent(world.ai.sight_percent)
+                }),
             hidden: world.ai.ignore_player
                 && world.script == 0
                 && agent.actor.target == Some(world.player),
@@ -90,7 +96,9 @@ pub(super) fn draw(session: &Session, debug: &Debug, drawing: &mut Builder) {
             .wrapping_sub(Position::new(0, i32::from(actor.height), 0));
         let range = sight::scale_range(
             i32::from(agent.sight_range) * if crouched { 7 } else { 10 } / 10,
-            world.ai.sight_percent,
+            world.actors[world.player]
+                .actor
+                .sight_percent(world.ai.sight_percent),
         );
         let half = if crouched { 349 } else { 699 };
         let points: Vec<_> = (0..=24)
@@ -156,6 +164,122 @@ pub(super) fn draw(session: &Session, debug: &Debug, drawing: &mut Builder) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires Japanese TENCHU2_DISC; optional stowed detection scales live guard sight and the overlay, stacks with range edits and restores when drawn/disabled"]
+    fn native_sheathing_sight_modifiers_reach_guard_and_overlay() {
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let mut session = Session::load(&disc, 9, 17).unwrap();
+        session.world.terrain = tenchu_assets::tenchu2::level::Level::load(&disc, 1)
+            .unwrap()
+            .collision;
+        let player = session.world.player;
+        let guard = session
+            .world
+            .actors
+            .iter()
+            .position(|a| matches!(a.actor.kind & 0xf0, 0x20..=0x50))
+            .unwrap();
+        let actor = &mut session.world.actors[guard].actor;
+        actor.kind = 0x20;
+        actor.position = [18380, 2000, -20820].into();
+        actor.rotation.y = 0;
+        actor.height = 500;
+        actor.target = Some(player);
+        actor.state = State::Ready;
+        actor.flags = 0x10;
+        session.world.actors[guard].sight_range = 24000;
+        let actor = &mut session.world.actors[player].actor;
+        actor.position = [18380, 1500, -29820].into();
+        actor.height = 2000;
+        actor.state = State::Normal;
+        actor.motion.action = 0;
+        actor.flags &= !(0x2000 | 0x40);
+        session.world.ai.ranges = sight::Ranges::new(24000);
+        session.world.tick = (-(i32::from(session.world.actors[guard].slot)) & 31) as u32;
+        let initial = session.world.clone();
+        for (base, visibility, drawn, enabled, expected) in [
+            (100, 100, false, true, Visibility::Recognized),
+            (100, 50, false, true, Visibility::Suspicious),
+            (100, 37, false, true, Visibility::Unnoticed),
+            (100, 25, false, true, Visibility::Hidden),
+            (200, 50, false, true, Visibility::Recognized),
+            (100, 25, true, true, Visibility::Recognized),
+            (100, 25, false, false, Visibility::Recognized),
+        ] {
+            session.world = initial.clone();
+            session.world.ai.sight_percent = base;
+            session
+                .world
+                .set_player_sheathing(
+                    tenchu_core::game::sheathing::Settings {
+                        enabled,
+                        visibility,
+                        ..Default::default()
+                    },
+                    &session.assets,
+                )
+                .unwrap();
+            if drawn {
+                session.world.actors[player].actor.flags |= 0x40;
+            }
+            let before = postcard::to_allocvec(&session.world).unwrap();
+            assert_eq!(
+                query(&session, &session.world.actors[guard], 0)
+                    .unwrap()
+                    .visibility,
+                expected
+            );
+            let mut drawing = Builder::new(glam::Mat4::IDENTITY, 16.0 / 9.0, true);
+            let mut debug = Debug::default();
+            debug.selected_actor = guard;
+            draw(&session, &debug, &mut drawing);
+            assert!(
+                drawing
+                    .finish()
+                    .labels
+                    .iter()
+                    .any(|label| label.1.contains(&format!("{expected:?}")))
+            );
+            assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+            let mut bait = session.world.clone();
+            bait.actors[guard].actor.target = None;
+            bait.actors[guard].behavior.bait = Some(tenchu_core::tenchu2::ai::bait::Bait {
+                model: bait.instances[player].rig.root,
+                position: [18380, 2000, -24820].into(),
+            });
+            bait.decide_actor(
+                guard,
+                [0; 2],
+                &session.assets,
+                &mut super::super::super::bleeding_tests::Recorded::default(),
+            )
+            .unwrap();
+            assert_eq!(
+                bait.ai.visibility,
+                if expected == Visibility::Suspicious {
+                    Visibility::Unnoticed
+                } else {
+                    expected
+                },
+                "bait: {base}, {visibility}, {drawn}, {enabled}"
+            );
+            session
+                .world
+                .decide_actor(
+                    guard,
+                    [0; 2],
+                    &session.assets,
+                    &mut super::super::super::bleeding_tests::Recorded::default(),
+                )
+                .unwrap();
+            assert_eq!(
+                session.world.ai.visibility, expected,
+                "base {base}, visibility {visibility}, drawn {drawn}, enabled {enabled}"
+            );
+        }
+    }
 
     #[test]
     #[ignore = "requires Japanese TENCHU2_DISC; source clear-ray fixture, live range control, overlay and obstruction"]

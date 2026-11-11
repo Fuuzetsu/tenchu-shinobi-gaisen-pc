@@ -227,6 +227,7 @@ fn native_walking_with_imported_movesets() {
         "tenchu2-jp:ayamea",
         "tenchu2-jp:tatumaru",
         "disc:0",
+        "disc:1",
     ] {
         let mut session = ready(&disc, 9);
         let settings = Settings {
@@ -275,6 +276,38 @@ fn native_walking_with_imported_movesets() {
         assert_eq!(
             weapons,
             session.world.instances[session.world.player].rig.weapons
+        );
+        session
+            .world
+            .set_player_sheathing(
+                tenchu_core::game::sheathing::Settings {
+                    enabled: true,
+                    ..Default::default()
+                },
+                &session.assets,
+            )
+            .unwrap();
+        let owner = session.world.player;
+        let drawn = session.world.actors[owner].actor.weapon_drawn();
+        session.world.actors[owner]
+            .actor
+            .sheathing
+            .as_mut()
+            .unwrap()
+            .input(true);
+        session.step(0).unwrap();
+        assert_eq!(
+            session.world.actors[owner].actor.motion.action,
+            if drawn { 0x701 } else { 0x700 },
+            "{id}"
+        );
+        for _ in 0..120 {
+            session.step(0).unwrap();
+        }
+        assert_eq!(
+            session.world.actors[owner].actor.weapon_drawn(),
+            !drawn,
+            "{id}"
         );
     }
 }
@@ -351,4 +384,39 @@ fn native_walking_on_imported_stages() {
     assert!(session.gaisen.is_some());
     assert!(session.world.controls.walking.unwrap().held);
     assert!(session.capture_state().unwrap() == before);
+    session
+        .world
+        .set_player_sheathing(
+            tenchu_core::game::sheathing::Settings {
+                enabled: true,
+                speed: 125,
+                ..Default::default()
+            },
+            &session.assets,
+        )
+        .unwrap();
+    let player = session.world.player;
+    let drawn = session.world.actors[player].actor.weapon_drawn();
+    session.world.actors[player]
+        .actor
+        .sheathing
+        .as_mut()
+        .unwrap()
+        .input(true);
+    session.step(0).unwrap();
+    assert_eq!(
+        session.world.actors[player].actor.motion.action,
+        if drawn { 0x701 } else { 0x700 }
+    );
+    let saved = session.capture_state().unwrap();
+    for _ in 0..120 {
+        session.step(0).unwrap();
+    }
+    assert_eq!(session.world.actors[player].actor.weapon_drawn(), !drawn);
+    let expected = session.capture_state().unwrap();
+    session.restore_state(&saved).unwrap();
+    for _ in 0..120 {
+        session.step(0).unwrap();
+    }
+    assert!(session.capture_state().unwrap() == expected);
 }

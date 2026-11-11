@@ -16,7 +16,13 @@ use tenchu_core::{
 };
 
 #[derive(Default)]
-struct Recorded(Vec<Event>);
+pub(super) struct Recorded(Vec<Event>);
+impl tenchu_core::tenchu2::ai::behavior::Events for Recorded {
+    fn voice(&mut self, _: &tenchu_core::tenchu2::actor::Actor, id: u8) -> Result<()> {
+        self.0.push(Event::Voice(id));
+        Ok(())
+    }
+}
 impl tenchu_core::tenchu2::environment::Events for Recorded {
     fn emit(&mut self, _: tenchu_core::tenchu2::environment::Event, _: &mut Random) -> Result<()> {
         Ok(())
@@ -39,7 +45,7 @@ fn settings() -> Settings {
     }
 }
 
-fn fixture() -> (Session, usize) {
+pub(super) fn fixture() -> (Session, usize) {
     let (mut world, assets, guard) = crate::tenchu2::tests::native_world::fixture();
     world.actors[world.player].actor.inventory.counts[0] = 255;
     let disc =
@@ -94,6 +100,16 @@ fn strike(
     held: u16,
     object: Option<(u8, Option<usize>)>,
 ) -> Recorded {
+    strike_with_weapon(session, guard, held, object, true)
+}
+
+pub(super) fn strike_with_weapon(
+    session: &mut Session,
+    guard: usize,
+    held: u16,
+    object: Option<(u8, Option<usize>)>,
+    drawn: bool,
+) -> Recorded {
     let world = &mut session.world;
     let assets = &mut session.assets;
     for who in [world.player, guard] {
@@ -104,13 +120,23 @@ fn strike(
                 who,
                 &mut world.collision,
                 &assets.resources,
-                WeaponMode::Draw,
+                if who == world.player && !drawn {
+                    WeaponMode::Sheathe
+                } else {
+                    WeaponMode::Draw
+                },
             )
             .unwrap();
         actor
             .change_motion(
                 if who == world.player {
-                    if held == GUARD { 0x110 } else { 0x100 }
+                    if held == GUARD {
+                        0x110
+                    } else if drawn {
+                        0x100
+                    } else {
+                        0
+                    }
                 } else {
                     0x900
                 },

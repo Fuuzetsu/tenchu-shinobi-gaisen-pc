@@ -253,10 +253,22 @@ impl Tools {
                         walking.held,
                     );
                 }
+                if let Some(sheathing) =
+                    &mut session.world.actors[session.world.player].actor.sheathing
+                {
+                    sheathing.input(buttons & crate::controls::SHEATHE != 0);
+                }
                 return (buttons & !(crate::controls::WALK | crate::controls::SHEATHE))
                     .swap_bytes();
-            } else if let Some(walking) = &mut session.world.controls.walking {
-                walking.held = false;
+            } else {
+                if let Some(walking) = &mut session.world.controls.walking {
+                    walking.held = false;
+                }
+                if let Some(sheathing) =
+                    &mut session.world.actors[session.world.player].actor.sheathing
+                {
+                    sheathing.clear_input();
+                }
             }
         }
         if enabled {

@@ -97,6 +97,7 @@ pub struct Actor {
     pub invulnerable: bool,
     #[serde(default)]
     pub bleeding: Option<crate::game::bleeding::State>,
+    pub sheathing: Option<super::sheathing::State>,
     pub breath: u8,
     pub width: i16,
     pub height: i16,
@@ -177,6 +178,7 @@ impl Actor {
             max_health: health,
             invulnerable: false,
             bleeding: None,
+            sheathing: None,
             width,
             breath: 100,
             height,

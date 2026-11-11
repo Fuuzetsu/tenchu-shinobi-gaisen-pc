@@ -23,6 +23,7 @@ pub struct Input {
 pub struct NativeInput {
     pub navigation: Option<crate::navigation::NativeInput>,
     pub walking: Option<tenchu_core::tenchu2::world::controls::Walking>,
+    pub sheathing: Option<tenchu_core::tenchu2::sheathing::State>,
     pub initial: bool,
 }
 
@@ -431,6 +432,7 @@ mod tests {
                 native: Some(NativeInput {
                     initial: false,
                     walking: None,
+                    sheathing: None,
                     navigation: Some(crate::navigation::NativeInput {
                         yaw: f32::NAN,
                         pitch: 0,

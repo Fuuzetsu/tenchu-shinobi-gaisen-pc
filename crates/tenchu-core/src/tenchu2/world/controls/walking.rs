@@ -48,6 +48,15 @@ impl World {
                 ..walking
             }
             .motion(&mut self.actors[self.player].actor, &assets.resources)?;
+            if self.script == 0
+                && self.mission.input_allowed()
+                && self.actors[self.player].behavior.programs.idle
+                    != crate::tenchu2::ai::Program::Disabled
+            {
+                self.actors[self.player]
+                    .actor
+                    .sheathed_velocity(&assets.resources)?;
+            }
         }
         self.controls.walking = clip.map(|clip| Walking { clip, held: false });
         Ok(())

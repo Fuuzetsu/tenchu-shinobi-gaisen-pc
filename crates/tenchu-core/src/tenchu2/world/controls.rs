@@ -189,6 +189,9 @@ impl World {
     ) -> Result<()> {
         let (before, tail) = self.actors.split_at_mut(index);
         let (agent, after) = tail.split_first_mut().ok_or("Missing Tenchu 2 actor")?;
+        let sheathing_requested = agent.actor.take_sheathing_request()
+            && index == self.player
+            && self.mission.input_allowed();
         let mut input = ControlInput {
             held: agent.actor.pad.held,
             player: index == self.player,
@@ -221,6 +224,8 @@ impl World {
                 difficulty: self.difficulty,
                 home: agent.behavior.home,
                 enabled: agent.behavior.programs.idle != crate::tenchu2::ai::Program::Disabled,
+                sheathing_requested,
+                input_allowed: self.mission.input_allowed(),
                 others: Others { before, after },
                 instances: &mut self.instances,
                 scene: &mut self.scene,
@@ -275,6 +280,8 @@ struct Context<'a, E> {
     sequence: u16,
     difficulty: u8,
     enabled: bool,
+    sheathing_requested: bool,
+    input_allowed: bool,
     home: Position,
     others: Others<'a>,
     instances: &'a mut [Instance],
@@ -481,6 +488,14 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
             walking.held &= self.context.enabled && *self.context.script != 3;
             walking.motion(actor, resources)?;
         }
+        if self.context.index == self.context.player
+            && self.context.enabled
+            && self.context.input_allowed
+            && *self.context.script == 0
+            && request.velocity == Velocity::Motion
+        {
+            actor.sheathed_velocity(resources)?;
+        }
         self.context.sync_contacts(actor);
         Ok(())
     }
@@ -521,6 +536,10 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
         input: &mut ControlInput,
         resources: &mut Resources,
     ) -> Result<()> {
+        let sheathing = self.context.sheathing_requested
+            && self.context.enabled
+            && input.script == 0
+            && !matches!(input.camera, 6 | 20);
         match actor.state {
             State::Normal | State::Ready => self.standing(actor, request, input, resources),
             State::Crouched => self.crouched(actor, request, input, resources),
@@ -542,6 +561,10 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
             ),
             State::Swimming => self.swimming(actor, request, input, resources),
             State::Item => self.item_control(actor, request, input, resources),
+        }?;
+        if sheathing {
+            actor.request_sheathing(request, resources);
         }
+        Ok(())
     }
 }

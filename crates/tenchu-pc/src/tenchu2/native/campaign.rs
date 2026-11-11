@@ -85,6 +85,9 @@ impl<S: ReadAt> Playback<S> {
         if let Content::Gameplay(session) = &mut self.content {
             session.world.set_bleeding(self.bleeding);
             session.configure_walking(&self.disc, settings.walking.enabled)?;
+            session
+                .world
+                .set_player_sheathing(settings.sheathing, &session.assets)?;
         }
         Ok(())
     }

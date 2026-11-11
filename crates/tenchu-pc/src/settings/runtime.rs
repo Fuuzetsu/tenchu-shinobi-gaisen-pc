@@ -28,6 +28,31 @@ impl Runtime {
             "GAMEPLAY EDIT: lightly tilt the movement stick or hold the rebindable Walk modifier to use T2's original ninja/kunoichi walking cycle. Full tilt runs. Classic controls walk forward; camera-relative controls walk in any direction. Weapons, attacks, crouching, swimming and collision keep their native rules. Off restores the selected moveset's running clips."
         } else if self == Self::Tenchu2 && item == Item::WalkThreshold {
             "Stick travel after the circular deadzone. Below this walks, above it runs, with a small margin to prevent jitter. The Walk modifier always walks. Original T2 ninja/kunoichi speeds are 38/31 units per tick. No extra sight or damage bonus."
+        } else if self == Self::Tenchu2 && item == Item::Sheathing {
+            "GAMEPLAY EDIT: press Draw / sheathe (H by default; rebind under General > Controls) to play the active moveset's native draw/stow transition and weapon sounds. Available in grounded free stances; cannot cancel attacks, injuries, jumps or scripts. Enables the sheathed speed, detection and damage options. Off removes these edits and leaves T2's current weapon state and original controls intact."
+        } else if self == Self::Tenchu2
+            && matches!(
+                item,
+                Item::SheathedSpeed
+                    | Item::SheathedVisibility
+                    | Item::SheathedDamage
+                    | Item::SheathedOneHit
+            )
+        {
+            match item {
+                Item::SheathedSpeed => {
+                    "With Draw / sheathe enabled and the weapon stowed, scale forward/backward running and optional walking. 100% keeps source speed. Turning, crouching, dodges, jumps, attacks and collision rules are unchanged."
+                }
+                Item::SheathedVisibility => {
+                    "With Draw / sheathe enabled and the weapon stowed, scale direct player sight distances, including guards approaching bait. Stacks with enemy sight-distance settings. Shared alerts, corpse sight and line-of-sight rules are unchanged."
+                }
+                Item::SheathedDamage => {
+                    "With Draw / sheathe enabled and the weapon stowed, multiply health damage from melee and item/projectile hits. 100% keeps source damage. Recoil, falling and ongoing poison retain their original rules; God mode still protects you."
+                }
+                _ => {
+                    "With Draw / sheathe enabled and the weapon stowed, any damaging melee or item/projectile hit is fatal. Replaces the damage multiplier; God mode and resurrection items retain their original rules."
+                }
+            }
         } else if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
@@ -51,7 +76,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && matches!(item, Item::Rewind | Item::RewindHistory) {
             "Record up to 30 seconds of native T2 gameplay and 3D cutscenes, including imported T1 stages. Ctrl+F12 plays backward; the timeline seeks or plays forward, and F3 resumes from the selected state. Menus and movie playback are omitted. Export selected frames or import a T2 recording under General. History uses at most 96 MiB and may be shorter for large scenes."
         } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
-            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
+            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking/sheathing, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
         } else if self == Self::Tenchu2 && item == Item::Reset {
             "Reset all saved preferences and debug tools, including character overrides and simulation tweaks. Keeps the current mission, armour and inventory; does not undo actor edits, kills or campaign progress."
         } else {
@@ -84,6 +109,9 @@ impl Runtime {
             return None;
         }
         match item {
+            StaySheathed => Some(
+                "Native T2 already preserves the current weapon state after injury and knockdown. This option changes T1's automatic draw after recovery; it is not needed here.",
+            ),
             GuardControls => Some(
                 "Native T2 already has its original guard/dodge stance. Use Shift / Circle action to choose Circle or R1; this extra T1 R1 controller does not apply.",
             ),
@@ -119,6 +147,9 @@ impl Runtime {
             CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,
+            Sheathing | SheathedSpeed | SheathedVisibility | SheathedDamage | SheathedOneHit => {
+                None
+            }
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) | Reset | ResetTweaks => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient

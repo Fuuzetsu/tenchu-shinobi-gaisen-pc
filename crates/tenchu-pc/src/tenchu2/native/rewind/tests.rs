@@ -226,6 +226,7 @@ fn native_timeline_preserves_transitions_and_branch_continuation() {
 fn native_timeline_recordings_restore_metadata_and_graphics_atomically() {
     let mut host = Host::new(119);
     host.settings.walking.enabled = true;
+    host.settings.sheathing.enabled = true;
     host.playback.configure(&host.settings).unwrap();
     let camera = crate::debug::camera::Camera {
         position: glam::Vec3::new(500.0, -2000.0, 1200.0),
@@ -236,6 +237,12 @@ fn native_timeline_recordings_restore_metadata_and_graphics_atomically() {
     host.tools.debug.camera = Some(camera);
     if let Content::Gameplay(session) = &mut host.playback.content {
         session.world.controls.walking.as_mut().unwrap().held = true;
+        session.world.actors[session.world.player]
+            .actor
+            .sheathing
+            .as_mut()
+            .unwrap()
+            .input(true);
         session.navigation = Some(super::super::NavigationInput {
             yaw: 0.3,
             pitch: 200,
@@ -290,6 +297,14 @@ fn native_timeline_recordings_restore_metadata_and_graphics_atomically() {
             .is_some_and(|walking| walking.held)
     );
     let graphics = host.settings.graphics.clone();
+    assert!(history.entries.iter().any(|entry| {
+        entry
+            .input
+            .as_ref()
+            .and_then(|input| input.native.as_ref())
+            .and_then(|input| input.sheathing)
+            .is_some()
+    }));
     host.settings.graphics.fog = !graphics.fog;
     host.tools.debug.camera = None;
     let (rewind, mut state) = host.state();
