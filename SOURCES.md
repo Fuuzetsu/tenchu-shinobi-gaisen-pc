@@ -18,6 +18,19 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 gameplay presets (2026-11-11)
+
+Native F1 reuses the shared five `settings/gameplay.rs` preset definitions and
+existing native settings/debug-edit boundaries. Applying a preset resets the
+same optional gameplay group as Gaisen, while original T2 controllers, current
+inventory, actor edits, campaign state and presentation preferences remain owned
+by their existing systems. This is host UI composition, not a retail mechanic
+or a source-code import. Selection requires a playable, living-player scene;
+native/imported cinematic and transition holds do not partially change settings.
+Sight and practice flags keep their existing per-area lifetime. Disc-backed
+native and imported-stage checks cover application, cycling, reset, pending edits,
+and retained health/position/inventory/RNG/campaign/graphics.
+
 ## Native T2 optional repeat-detection damage (2026-11-11)
 
 The native adapter reuses the existing scalar `ai/escalation.rs` settings,

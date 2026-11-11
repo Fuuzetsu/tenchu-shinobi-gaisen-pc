@@ -819,13 +819,13 @@ mod tests {
         let mut edits = Vec::new();
         let paint = |ctx: &egui::Context, rect: &mut egui::Rect, edits: &mut Vec<Edit>| {
             egui::CentralPanel::default().show(ctx, |ui| {
-                available_ui(ui, Runtime::Tenchu2, Item::GameplayPreset, |ui| {
-                    *rect = ui.button("Gameplay preset").rect;
+                available_ui(ui, Runtime::Tenchu2, Item::BehaviorProfiles, |ui| {
+                    *rect = ui.button("Behavior profiles").rect;
                 });
                 action_button(
                     ui,
                     "Reset",
-                    Edit::Reset(Item::GameplayPreset),
+                    Edit::Reset(Item::BehaviorProfiles),
                     Runtime::Tenchu2,
                     edits,
                 );
@@ -848,11 +848,11 @@ mod tests {
         });
         fn has_reason(shape: &egui::Shape) -> bool {
             match shape {
-                egui::Shape::Text(text) => text
-                    .galley
-                    .job
-                    .text
-                    .contains(Runtime::Tenchu2.unavailable(Item::GameplayPreset).unwrap()),
+                egui::Shape::Text(text) => text.galley.job.text.contains(
+                    Runtime::Tenchu2
+                        .unavailable(Item::BehaviorProfiles)
+                        .unwrap(),
+                ),
                 egui::Shape::Vec(shapes) => shapes.iter().any(has_reason),
                 _ => false,
             }

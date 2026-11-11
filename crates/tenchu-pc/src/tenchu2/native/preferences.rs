@@ -10,6 +10,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod gameplay_tests;
+
 pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
     let settings = settings.rendering();
     let g = &settings.graphics;
@@ -403,6 +406,40 @@ impl Menu {
         action
     }
 
+    fn gameplay_preset(
+        &mut self,
+        index: usize,
+        state: &mut State<'_>,
+    ) -> tenchu_assets::Result<()> {
+        let preset = settings::gameplay::PRESETS
+            .get(index)
+            .ok_or("Unknown gameplay preset")?;
+        self.tools.gameplay_preset(preset)?;
+        let defaults = Settings::default();
+        let settings = &mut state.settings;
+        settings.keep_enemies_active = preset.active;
+        settings.independent_attacks = defaults.independent_attacks;
+        settings.quick_shuriken_dodge = defaults.quick_shuriken_dodge;
+        settings.strict_corpse_sight = defaults.strict_corpse_sight;
+        settings.guard_controls = defaults.guard_controls;
+        settings.circle_action = defaults.circle_action;
+        settings.walking = defaults.walking;
+        settings.sheathing = defaults.sheathing;
+        settings.bleeding = defaults.bleeding;
+        settings.dismemberment = defaults.dismemberment;
+        settings.damage_escalation = defaults.damage_escalation;
+        settings.multi_target_attacks = defaults.multi_target_attacks;
+        settings.attack_assist = defaults.attack_assist;
+        settings.behavior_profiles = defaults.behavior_profiles;
+        settings.reinforcement_limit = defaults.reinforcement_limit;
+        settings.reinforcement_call = defaults.reinforcement_call;
+        settings.sight_percent = preset.sight;
+        settings.cutscene_speed = preset.cutscenes;
+        self.fast_forward = false;
+        state.controls.clear();
+        Ok(())
+    }
+
     fn apply(&mut self, edit: Edit, state: &mut State<'_>, action: &mut Action) {
         self.panel.notice.clear();
         if let Some(reason) = Runtime::Tenchu2.unavailable_edit(&edit) {
@@ -472,6 +509,7 @@ impl Menu {
                 }
             }
             Edit::Preset(choice) => state.presets.library.apply(choice, state.settings),
+            Edit::GameplayPreset(index) => self.gameplay_preset(index, state),
             Edit::PresetLibrary => {
                 state.presets.open = true;
                 Ok(())
@@ -486,6 +524,7 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::GameplayPreset => self.gameplay_preset(0, state),
                         Item::DetectionDamage | Item::DetectionDamageLimit => {
                             let defaults = Settings::default().damage_escalation;
                             if item == Item::DetectionDamage {
@@ -582,6 +621,16 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::GameplayPreset => {
+                            let count = settings::gameplay::PRESETS.len();
+                            let current =
+                                settings::gameplay::current(state.settings, &self.tools.debug);
+                            let index = current.map_or_else(
+                                || if delta < 0 { count - 1 } else { 0 },
+                                |i| (i as i32 + delta).rem_euclid(count as i32) as usize,
+                            );
+                            self.gameplay_preset(index, state)
+                        }
                         Item::DetectionDamage | Item::DetectionDamageLimit => {
                             let (field, step, maximum) = if item == Item::DetectionDamage {
                                 (&mut state.settings.damage_escalation.increment, 10, 100)
@@ -1478,12 +1527,7 @@ mod tests {
                 }
             }
         }
-        for edit in [
-            Edit::GameplayPreset(0),
-            Edit::Randomizer,
-            Edit::Benchmark,
-            Edit::ImportUnarmed,
-        ] {
+        for edit in [Edit::Randomizer, Edit::Benchmark, Edit::ImportUnarmed] {
             menu.apply(edit, &mut state, &mut action);
             assert!(!menu.panel.notice.is_empty());
             assert_eq!(*state.settings, original);
@@ -1578,6 +1622,7 @@ mod tests {
                     && !matches!(
                         row.item,
                         Item::FreeCamera
+                            | Item::GameplayPreset
                             | Item::FollowActor
                             | Item::ClickTeleport
                             | Item::ClickKill

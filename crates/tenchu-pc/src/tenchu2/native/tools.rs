@@ -34,6 +34,7 @@ pub struct Tools {
     player_orbit: bool,
     menu_input: Option<bool>,
     reset_simulation: bool,
+    player_editable: bool,
 }
 
 impl Tools {
@@ -65,6 +66,7 @@ impl Tools {
                 actor_models: std::mem::take(&mut self.actor_models),
                 scene: std::mem::take(&mut self.scene),
                 generation: self.generation,
+                player_editable: self.player_editable,
                 ..Self::default()
             };
             self.debug.actors_edited = actors_edited;
@@ -87,7 +89,32 @@ impl Tools {
         self.reset_simulation = true;
     }
 
+    pub(super) fn gameplay_preset(
+        &mut self,
+        preset: &crate::settings::gameplay::Preset,
+    ) -> Result<()> {
+        if !self.player_editable {
+            return Err("Gameplay presets require a living player outside a cinematic or mission transition.".into());
+        }
+        self.restore_defaults(false);
+        self.debug.god_mode = preset.practice;
+        self.debug.stealth = preset.practice;
+        self.debug.sight_percent = preset.sight;
+        self.debug.armor = false;
+        self.debug.click_teleport = preset.practice;
+        self.edits.extend([
+            experiment::Edit::GodMode(preset.practice),
+            experiment::Edit::Stealth(preset.practice),
+            experiment::Edit::Sight(preset.sight),
+            experiment::Edit::Armor(false),
+        ]);
+        Ok(())
+    }
+
     pub fn sync(&mut self, content: &Content, generation: u64) {
+        self.player_editable = matches!(content, Content::Gameplay(session)
+            if !session.cinematic() && session.world.mission.input_allowed()
+                && session.world.actors[session.world.player].actor.health > 0);
         let changed = self.generation != Some(generation);
         if changed {
             self.actor_models = match content {

@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 and imported T1 stages support all five F1 gameplay presets:
+  **Original**, **Living world**, **Keen guards**, **Relaxed stealth** and
+  **Practice**. Apply them during a mission to set activation, sight, cutscene
+  speed and practice tools, reset other gameplay tweaks and disable armour.
+  Graphics, character overrides, inventory and mission progress are retained.
+
 - Native T2 supports F1's repeat-detection damage and maximum-bonus controls.
   Each guard gains damage only after fully calming down and directly seeing
   the player again. Shared alarms and brief sight loss do not count. Melee,

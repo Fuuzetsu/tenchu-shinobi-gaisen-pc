@@ -75,6 +75,8 @@ impl Runtime {
             "Guards ignore the player and corpses and return to their original idle/patrol behavior. Already committed attacks and projectiles can still hurt; use God mode for protection. Scripted sequences and fights against other actors remain active. Resets on a new area."
         } else if self == Self::Tenchu2 && item == Item::KeepEnemiesActive {
             "GAMEPLAY EDIT: keep all placed native actors simulating, patrolling and animating regardless of distance or the original activation budget. Scripted holds and deaths remain intact. Changes RNG and encounters; can cost more CPU. Off restores source distance/budget activation at its next check."
+        } else if self == Self::Tenchu2 && item == Item::GameplayPreset {
+            "During a mission, apply Original, Living world, Keen guards, Relaxed stealth or Practice to activation, sight, cutscene speed and practice tools. Resets other optional gameplay tweaks and disables armour. Keeps graphics, character overrides, inventory and mission progress. Sight and practice tools reset on a new area; activation and cutscene speed remain saved."
         } else if self == Self::Tenchu2 && item == Item::QuickShurikenDodge {
             "GAMEPLAY EDIT: alert armed enemies use their own sidestep as soon as the player aims a shuriken at them, at most once per second. Requires clear terrain sight and an available dodge; does not interrupt attacks, injuries, scripts or forced navigation. Off keeps T2's original chance to evade thrown projectiles."
         } else if self == Self::Tenchu2 && item == Item::StrictCorpseSight {
@@ -176,9 +178,9 @@ impl Runtime {
             | SeverSide | PlayerDismemberment | PlayerSeverHead | PlayerSeverArms
             | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
-            | ClearItems | Inventory(_) | Reset | ResetTweaks | QuickShurikenDodge
-            | StrictCorpseSight | MultiTargetAttacks | AttackAssist | DetectionDamage
-            | DetectionDamageLimit => None,
+            | ClearItems | Inventory(_) | Reset | ResetTweaks | GameplayPreset
+            | QuickShurikenDodge | StrictCorpseSight | MultiTargetAttacks | AttackAssist
+            | DetectionDamage | DetectionDamageLimit => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight
