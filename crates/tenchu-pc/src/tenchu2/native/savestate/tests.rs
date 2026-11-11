@@ -194,7 +194,7 @@ fn native_savestates_keep_embedded_overrides_with_an_empty_gallery() {
         model_moveset: true,
         moveset_model: "tenchu2-jp:ayamea".into(),
         weapon_model: "tenchu2-jp:yorojyu".into(),
-        voice_model: "tenchu2-jp:kagami".into(),
+        voice_model: "voice:en:disc:1".into(),
         ..Default::default()
     };
     let Content::Gameplay(session) = &mut original.content else {

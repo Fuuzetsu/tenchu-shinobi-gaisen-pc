@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- T1 character voice overrides now follow T1's dialogue language instead of
+  always using the Japanese bank. F1's voice selector also offers explicit
+  English, French, Italian and Japanese T1 voices in both games, including
+  English T1 Ayame with a T2 body or moveset. Weapon sounds remain independent.
+
 - Fix white severed-limb droplets and death gushes in native T2 with
   **Original** and **Original HD** blood. Both now use T2's red blood sprite.
 

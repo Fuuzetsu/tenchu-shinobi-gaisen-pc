@@ -18,6 +18,19 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Localized character voice overrides (2026-11-11)
+
+The shared appearance library now uses `audio::Bank::load`'s existing language
+prefix table (Gaisen MAIN.EXE 0x8008ea58), then extracts the original character
+program with `VoiceSet::extract`. Explicit voice choices carry a language code;
+plain T1 selections follow the mission's script language, while native T2's
+plain selections retain Japanese. Source cue translation and independent weapon
+sounds are unchanged. T1 moveset voices also retain the mission language.
+Disc-backed checks compare the emitted banks against independently extracted
+English/French/Italian/Japanese programs, including T2 movesets, native T2,
+selection changes and serialized continuation. No replacement recordings or
+sibling code are imported. This does not replace recorded cutscene dialogue.
+
 ## Native T2 optional blood sprite correction (2026-11-11)
 
 Shared severed/death-gush droplets were passed T2 effect 0 (white), copying

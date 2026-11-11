@@ -1489,7 +1489,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::VoiceModel,
                 "Player voice",
                 s.voice_model.clone(),
-                "Choose gameplay attack, injury and other vocal cues independently of body, weapons and moveset. Follow moveset restores its voice. Cutscene dialogue keeps the original recording.",
+                "Choose gameplay attack, injury and other vocal cues independently of body, weapons and moveset. T1 voices offer English, French, Italian and Japanese; Game language follows T1 dialogue settings (Japanese in native T2). Follow moveset restores its voice. Cutscene dialogue keeps the original recording.",
             ),
             (
                 Item::ModelPlayerMovement,

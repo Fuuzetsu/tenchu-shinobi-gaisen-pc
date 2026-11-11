@@ -49,6 +49,7 @@ pub struct Native {
 pub struct Library {
     pub bodies: Vec<Body>,
     aliases: BTreeMap<String, usize>,
+    voices: BTreeMap<(String, String), Arc<tenchu_assets::audio::voice::VoiceSet>>,
 }
 
 impl Library {

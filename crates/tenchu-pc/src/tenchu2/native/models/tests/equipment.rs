@@ -256,3 +256,108 @@ fn independent_equipment_and_voice_in_native_t2() {
         assert!(registrations == postcard::to_allocvec(&definition.motions).unwrap());
     }
 }
+
+#[test]
+#[ignore = "requires both discs; native T2 emits localized T1 vocal cues independently of weapon sounds"]
+fn native_t2_uses_explicit_english_t1_voices() {
+    use tenchu_assets::{
+        audio::{
+            bank::Bank,
+            voice::{Dialect, VoiceSet},
+        },
+        script::Language,
+    };
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&gaisen).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let mut donor = donor(&gaisen).unwrap();
+    let mut session = Session::load(&disc, 9, 1).unwrap();
+    for _ in 0..30 {
+        session.step(0).unwrap();
+    }
+    let player = session.world.player;
+    let expected = VoiceSet::extract(
+        &Bank::load(&gaisen, 0, 1, Language::English).unwrap(),
+        5,
+        Dialect::Gaisen,
+    )
+    .unwrap();
+    for moves in ["", "tenchu2-jp:ayame", "disc:1"] {
+        let settings = Settings {
+            model_moveset: !moves.is_empty(),
+            moveset_model: moves.into(),
+            weapon_model: "tenchu2-jp:kagami".into(),
+            voice_model: "voice:en:disc:1".into(),
+            ..Default::default()
+        };
+        session
+            .models
+            .sync(
+                &mut session.world,
+                &mut session.assets,
+                &mut donor,
+                &library,
+                &Arc::default(),
+                &settings,
+            )
+            .unwrap();
+        assert!(
+            !session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &Arc::default(),
+                    &settings
+                )
+                .unwrap()
+        );
+        let checkpoint = session.capture_state().unwrap();
+        session.restore_state(&checkpoint).unwrap();
+        let listener = session.world.listener();
+        let mut pending = BTreeSet::new();
+        let mut output = Output {
+            player,
+            feedback: &mut session.feedback,
+            voice: session.models.voice.as_ref(),
+            weapon_voice: session.models.weapon_voice.as_ref(),
+            actor_voices: &session.actor_voices,
+            listener,
+            requests: Vec::new(),
+            wounds: Vec::new(),
+            melee_hits: BTreeSet::new(),
+            pending: &mut pending,
+        };
+        for cue in [0, 1, 2, 6, 10, 13, 14, 15] {
+            output
+                .emit(
+                    EventSource {
+                        listener,
+                        voice: session.world.instances[player].voice,
+                        index: player,
+                        actor: &session.world.actors[player].actor,
+                        rig: &session.world.instances[player].rig,
+                        scene: &mut session.world.scene,
+                    },
+                    Event::Voice(cue),
+                    &mut session.world.random,
+                )
+                .unwrap();
+            let (bank, sound) = output.requests.pop().unwrap().source.unwrap();
+            let voice = if cue <= 5 {
+                library.voice("tenchu2-jp:kagami").unwrap().unwrap()
+            } else {
+                &Arc::new(expected.clone())
+            };
+            assert!(
+                postcard::to_allocvec(&bank).unwrap()
+                    == postcard::to_allocvec(&voice.bank).unwrap()
+            );
+            assert_eq!(i16::from(sound), voice.cue(Dialect::Tenchu2, cue, false));
+        }
+    }
+}
