@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.29.1 — 2026-11-11
+
 - Fix roof slope and grapple checks on imported T1 stages. T2 now receives the
   surface that produced the queried height, instead of an overlapping roof
   underside that could incorrectly reject a grapple or change ledge handling.
