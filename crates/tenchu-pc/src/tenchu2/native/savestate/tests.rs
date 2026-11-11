@@ -48,6 +48,8 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
             wait_after_death: true,
             live_death_scene: true,
             circle_action: tenchu_core::input::CircleAction::Crouch,
+            quick_shuriken_dodge: true,
+            strict_corpse_sight: true,
             ..Default::default()
         };
         settings.bleeding.enabled = true;
@@ -113,6 +115,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         assert_eq!(current.walking, settings.walking);
         assert_eq!(current.sheathing, settings.sheathing);
         assert_eq!(current.dismemberment, settings.dismemberment);
+        assert!(current.quick_shuriken_dodge && current.strict_corpse_sight);
         assert!(
             current.keep_enemies_active && current.wait_after_death && current.live_death_scene
         );

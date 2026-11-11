@@ -115,6 +115,29 @@ impl World {
         assets: &Assets,
         events: &mut impl Events,
     ) -> Result<u16> {
+        let animated_corpse =
+            if self.ai.strict_corpse_sight && self.actors[index].actor.state == State::Dead {
+                Some(
+                    self.scene
+                        .world(self.instances[index].rig.joints[0])?
+                        .translation,
+                )
+            } else {
+                None
+            };
+        let aim_yaw = if self.ai.quick_shuriken_dodge
+            && self.camera.mode == 20
+            && self.items.aim.direction != crate::math::Position::ZERO
+        {
+            Some(direction(
+                &assets.resources.math,
+                self.items.aim.direction.x,
+                self.items.aim.direction.z,
+                0,
+            )?)
+        } else {
+            None
+        };
         let held = self.ai.update(
             index,
             &mut self.actors,
@@ -131,6 +154,8 @@ impl World {
                 terrain: &self.terrain,
                 cursor: &mut self.cursor,
                 collision: &self.collision,
+                animated_corpse,
+                aim_yaw,
                 random: &mut self.random,
                 events,
             },

@@ -90,6 +90,7 @@ fn native_bait_ai_matches_original_sight_and_approach() {
             &mut c,
             &global,
             &mut Frame {
+                quick_shuriken_yaw: None,
                 terrain: map,
                 cursor: &mut Cursor::default(),
                 tick: int("tick") as u32,

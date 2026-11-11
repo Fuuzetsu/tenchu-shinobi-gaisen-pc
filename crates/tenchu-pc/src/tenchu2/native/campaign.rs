@@ -83,6 +83,8 @@ impl<S: ReadAt> Playback<S> {
             self.run.carry.bleeding = None;
         }
         if let Content::Gameplay(session) = &mut self.content {
+            session.world.ai.quick_shuriken_dodge = settings.quick_shuriken_dodge;
+            session.world.ai.strict_corpse_sight = settings.strict_corpse_sight;
             session.world.controls.dismemberment = settings.dismemberment;
             if let Some(scene) = &mut session.gaisen {
                 scene.director.source.combat.dismemberment = settings.dismemberment;

@@ -1,7 +1,7 @@
 use super::{direction, local_alert_only};
 use crate::{
     Result,
-    math::Math,
+    math::{Math, Position},
     tenchu2::{
         actor::{Actor, State},
         terrain::{self, Cursor},
@@ -19,6 +19,7 @@ pub struct CorpseContext<'a> {
     pub player: usize,
     pub difficulty: u8,
     pub distance: i32,
+    pub animated_position: Option<Position>,
     pub terrain: &'a Collision,
     pub cursor: &'a mut Cursor,
     pub math: &'a Math,
@@ -64,14 +65,35 @@ impl CorpseSearch {
         let mut eye = observer.position;
         eye.y = eye.y.wrapping_sub(i32::from(observer.height) >> 1);
         world.cursor.current = None;
-        Ok(terrain::segment(
+        if terrain::segment(
             world.terrain,
             world.cursor,
             eye,
             body.position.wrapping_sub(eye),
             world.math,
         )?
-        .is_none()
-        .then_some(self.observer))
+        .is_some()
+        {
+            return Ok(None);
+        }
+        if let Some(position) = world.animated_position {
+            eye.y = observer
+                .position
+                .y
+                .wrapping_add(300 - i32::from(observer.height));
+            world.cursor.current = None;
+            if terrain::segment(
+                world.terrain,
+                world.cursor,
+                eye,
+                position.wrapping_sub(eye),
+                world.math,
+            )?
+            .is_some()
+            {
+                return Ok(None);
+            }
+        }
+        Ok(Some(self.observer))
     }
 }

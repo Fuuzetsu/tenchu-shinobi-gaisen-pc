@@ -13,6 +13,7 @@ pub mod bait;
 pub mod behavior;
 pub mod combat;
 pub mod entry;
+mod evasion;
 pub mod navigation;
 pub mod perception;
 pub mod runtime;

@@ -61,6 +61,8 @@ pub struct System {
     pub sight_percent: u16,
     #[serde(default)]
     pub ignore_player: bool,
+    pub quick_shuriken_dodge: bool,
+    pub strict_corpse_sight: bool,
 }
 
 fn original_sight() -> u16 {
@@ -87,6 +89,8 @@ impl System {
             last_spotter: None,
             sight_percent: 100,
             ignore_player: false,
+            quick_shuriken_dodge: false,
+            strict_corpse_sight: false,
         }
     }
 
@@ -107,6 +111,11 @@ impl System {
         let player_body = Body::from(player);
         let player_health = player.health;
         let player_sight_percent = player.sight_percent(self.sight_percent);
+        let quick_shuriken_yaw = (self.quick_shuriken_dodge
+            && player.health > 0
+            && player.motion.action == 0x802
+            && player.inventory.active.index() == 4)
+            .then_some(frame.aim_yaw.unwrap_or(player.rotation.y));
         if index >= agents.len() {
             return Err("Missing Tenchu 2 AI actor".into());
         }
@@ -163,6 +172,7 @@ impl System {
             sight_percent: self.sight_percent,
             player_sight_percent,
             ignore_player,
+            animated_corpse: frame.animated_corpse,
             script: frame.script,
             controllers: frame.controllers,
             events: frame.events,
@@ -208,6 +218,7 @@ impl System {
                     cursor: callbacks.cursor,
                     tick: frame.tick,
                     script: frame.script,
+                    quick_shuriken_yaw,
                     controllers: frame.controllers,
                     rotation_phase: &mut self.global.rotation_phase,
                     events: callbacks.events,
@@ -267,6 +278,8 @@ pub struct Frame<'a, E> {
     pub terrain: &'a Collision,
     pub cursor: &'a mut Cursor,
     pub collision: &'a collision::Collision,
+    pub animated_corpse: Option<crate::math::Position>,
+    pub aim_yaw: Option<i16>,
     pub random: &'a mut Random,
     pub events: &'a mut E,
 }
@@ -322,6 +335,7 @@ struct Reactions<'a, 'b, E> {
     sight_percent: u16,
     player_sight_percent: u16,
     ignore_player: bool,
+    animated_corpse: Option<crate::math::Position>,
     script: u16,
     controllers: [u16; 2],
     events: &'a mut E,
@@ -421,6 +435,7 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
                     cursor: self.cursor,
                     tick: self.scene.tick,
                     script: self.script,
+                    quick_shuriken_yaw: None,
                     controllers: self.controllers,
                     rotation_phase: &mut global.rotation_phase,
                     events: self.events,
@@ -455,6 +470,7 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
                 player: self.scene.player,
                 difficulty: c.difficulty as u8,
                 distance: sight::scale_range(self.ranges.standing.notice, self.sight_percent),
+                animated_position: self.animated_corpse,
                 terrain: self.terrain,
                 cursor: self.cursor,
                 math: &c.resources.math,

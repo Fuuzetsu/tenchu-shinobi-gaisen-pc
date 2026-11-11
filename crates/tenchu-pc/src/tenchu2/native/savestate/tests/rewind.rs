@@ -102,7 +102,12 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
         for _ in 0..if sequence == 23 { 600 } else { 30 } {
             playback.step(0).unwrap();
         }
-        let mut settings = Settings::default();
+        let mut settings = Settings {
+            quick_shuriken_dodge: true,
+            strict_corpse_sight: true,
+            ..Default::default()
+        };
+        playback.configure(&settings).unwrap();
         settings.graphics.asset_pack = false;
         settings.graphics.blood = crate::settings::Blood::modern();
         settings.graphics.weather.mode = crate::settings::WeatherMode::Snow;
@@ -143,6 +148,8 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
         let pointers = geometry(&playback);
         let mut elapsed = std::time::Duration::ZERO;
         for index in [30, 10, 50, 30] {
+            settings.quick_shuriken_dodge = false;
+            settings.strict_corpse_sight = false;
             let saved = history.snapshot(index).unwrap();
             let started = std::time::Instant::now();
             restore_rewind(
@@ -155,6 +162,7 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             )
             .unwrap();
             elapsed += started.elapsed();
+            assert!(settings.quick_shuriken_dodge && settings.strict_corpse_sight);
             assert_eq!(geometry(&playback), pointers, "scene geometry was replaced");
             assert!(
                 postcard::to_allocvec(&snapshot(&playback, &drawing, &settings, &tools).unwrap())

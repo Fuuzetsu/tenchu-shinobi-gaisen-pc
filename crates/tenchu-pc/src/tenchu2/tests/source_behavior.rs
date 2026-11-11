@@ -175,6 +175,7 @@ fn native_behavior_sequences_match_source() {
                 &scene,
                 &mut global,
                 &mut Frame {
+                    quick_shuriken_yaw: None,
                     terrain: &terrain,
                     cursor: &mut cursor,
                     tick: int("step") as u32,

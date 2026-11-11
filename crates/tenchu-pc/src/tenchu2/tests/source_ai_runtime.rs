@@ -174,6 +174,8 @@ fn native_ai_runtime_matches_source() {
                             terrain: &terrain,
                             cursor: &mut cursor,
                             collision: &collision,
+                            animated_corpse: None,
+                            aim_yaw: None,
                             random: &mut random,
                             events: &mut effects,
                         },

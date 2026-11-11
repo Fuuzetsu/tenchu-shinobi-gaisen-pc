@@ -2153,6 +2153,24 @@ counters retain source order. Shared melee helpers also pass the existing blade
 comparisons. Motion-change requests remain recorded boundaries; enclosing AI and
 native-world integration still need implementation.
 
+Optional native T2 perception edits (2026-11-11) reuse the port's existing
+Gaisen `ai/evasion.rs` and `actor/death.rs` rules: a 30-tick per-enemy shuriken
+reaction limit, range/facing/clear-sight gates, and an additional eye-to-animated-
+corpse ray. The T2 adapter uses native `0x113`/`0x114` sidesteps, native terrain
+segments and the active shuriken aim direction (including first-person aim).
+It does not replace source throw-time random evasion or the original corpse
+scan/ray at JP `80033394`. These are off-by-default port options, not retail
+behavior. Cooldowns live in ordinary per-actor behavior state and serialize with
+the world; no batched/TAS machinery was imported.
+
+Read-only sibling review: both `tenchu-decomp*/src/main.exe/THINK.C` copies retain
+T1's global `AttackActionCount`, and the glitch-research `Think3chase` shows its
+shared cooldown update. The viewer's `src/actors.rs` poses artwork at authored
+positions and supplies no native T2 AI policy. The existing source-verified T2
+`Fighter` keeps its delay per actor, so F1 explains that Independent enemy attacks
+is already native behavior rather than adding a no-op setting. No sibling code
+or copyrighted data was imported or modified for these adapters.
+
 Combat dispatch, cautious approach, home defense and flanking follow EU
 `80033a98`, `80033bcc`, `80034354`, `80034740` and JP `80034840`, `80034974`,
 `800350fc`, `800354e8`. Each edition matches 120,000 source decisions

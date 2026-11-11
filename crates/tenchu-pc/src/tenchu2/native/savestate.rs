@@ -206,6 +206,8 @@ fn restore_snapshot(
     settings.walking = saved.preferences.walking;
     settings.sheathing = saved.preferences.sheathing;
     settings.dismemberment = saved.preferences.dismemberment;
+    settings.quick_shuriken_dodge = saved.preferences.quick_shuriken_dodge;
+    settings.strict_corpse_sight = saved.preferences.strict_corpse_sight;
     if recorded_visuals {
         settings.graphics = saved.preferences.graphics;
         settings.retro = saved.preferences.retro;

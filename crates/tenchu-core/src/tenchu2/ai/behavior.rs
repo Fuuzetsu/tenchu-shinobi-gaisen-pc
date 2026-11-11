@@ -34,6 +34,7 @@ pub struct Frame<'a, E> {
     pub cursor: &'a mut terrain::Cursor,
     pub tick: u32,
     pub script: u16,
+    pub quick_shuriken_yaw: Option<i16>,
     pub controllers: [u16; 2],
     pub rotation_phase: &'a mut i16,
     pub events: &'a mut E,
@@ -135,6 +136,7 @@ pub struct Behavior {
     active: Active,
     memory: Position,
     remembered_visibility: Visibility,
+    pub(super) last_evasion: Option<u32>,
 }
 
 impl Behavior {
@@ -151,6 +153,7 @@ impl Behavior {
             active: Active::None,
             memory: Position::default(),
             remembered_visibility: Visibility::Unchanged,
+            last_evasion: None,
         }
     }
 
@@ -493,7 +496,12 @@ impl<E: Events> perception::Reactions for Reactions<'_, '_, E> {
         let program = match routine {
             Routine::Idle => return self.behavior.idle(c, global, self.frame),
             Routine::Suspicious => self.behavior.programs.suspicious,
-            Routine::Combat => self.behavior.programs.combat,
+            Routine::Combat => {
+                if self.behavior.evade_shuriken(c, self.frame)? {
+                    return Ok(Decision::default());
+                }
+                self.behavior.programs.combat
+            }
             Routine::Search => self.behavior.programs.searching,
             Routine::Watch => Program::Watch,
             Routine::Corpse => return self.behavior.corpse(c, global, self.frame.events),

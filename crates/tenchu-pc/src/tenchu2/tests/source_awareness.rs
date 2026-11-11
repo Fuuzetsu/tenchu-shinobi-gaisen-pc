@@ -173,6 +173,7 @@ fn native_corpse_search_and_terrain_visibility_match_source() {
                 actors.len(),
                 |index| actors.get(index),
                 &mut CorpseContext {
+                    animated_position: None,
                     player: 0,
                     difficulty: int("difficulty") as u8,
                     distance: int("distance"),

@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports F1's **Quick shuriken evasion** and **Strict corpse
+  visibility**. Enemies can sidestep during shuriken aim, with a per-enemy
+  cooldown and terrain checks; corpse discovery can require sight to the animated
+  body. Both stay off by default and survive saves and rewind. F1 also explains
+  that T2 already uses independent enemy attack cooldowns.
+
 - Native T2 supports optional enemy/player head and forearm severing through
   F1's dismemberment controls, including chances, side preference and resting
   pose. Rear kills use T2's authored blood timing; detached parts retain their

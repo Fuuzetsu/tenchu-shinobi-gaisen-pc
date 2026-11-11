@@ -486,6 +486,16 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::QuickShurikenDodge | Item::StrictCorpseSight => {
+                            if item == Item::QuickShurikenDodge {
+                                state.settings.quick_shuriken_dodge =
+                                    Settings::default().quick_shuriken_dodge;
+                            } else {
+                                state.settings.strict_corpse_sight =
+                                    Settings::default().strict_corpse_sight;
+                            }
+                            Ok(())
+                        }
                         Item::HeadRest => {
                             state.settings.dismemberment.head_rest =
                                 Settings::default().dismemberment.head_rest;
@@ -554,6 +564,15 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::QuickShurikenDodge | Item::StrictCorpseSight => {
+                            let field = if item == Item::QuickShurikenDodge {
+                                &mut state.settings.quick_shuriken_dodge
+                            } else {
+                                &mut state.settings.strict_corpse_sight
+                            };
+                            *field = !*field;
+                            Ok(())
+                        }
                         Item::HeadRest => {
                             let choices = tenchu_core::game::dismemberment::HeadRest::ALL;
                             let at = choices
@@ -623,6 +642,8 @@ impl Menu {
                                 state.settings.dismemberment = defaults.dismemberment;
                                 state.settings.bleeding = defaults.bleeding;
                                 state.settings.sight_percent = defaults.sight_percent;
+                                state.settings.quick_shuriken_dodge = defaults.quick_shuriken_dodge;
+                                state.settings.strict_corpse_sight = defaults.strict_corpse_sight;
                             }
                             self.tools.restore_defaults(all);
                             state.controls.clear();
@@ -899,6 +920,67 @@ mod tests {
         assert!(
             postcard::to_allocvec(&session.world).unwrap()
                 == postcard::to_allocvec(&expected).unwrap()
+        );
+    }
+
+    #[test]
+    #[ignore = "requires TENCHU2_DISC; native F1 edits, individual resets and reset-tweaks reach gameplay AI"]
+    fn native_ai_options_menu_configures_and_resets_source_preferences() {
+        use super::super::campaign::{Content, Playback};
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let mut playback = Playback::load(disc, 9, 2, 17, Some([0; 21]), None).unwrap();
+        let mut menu = Menu::default();
+        let mut settings = Settings::default();
+        let mut paused = true;
+        let mut controls = Controls::default();
+        let mut presets = presets();
+        let mut state = State {
+            settings: &mut settings,
+            paused: &mut paused,
+            controls: &mut controls,
+            presets: &mut presets,
+            lights: 0,
+            samples: &[1],
+            models: None,
+        };
+        let mut action = Action::default();
+        for reset in [None, Some(Item::ResetTweaks), Some(Item::Reset)] {
+            for item in [Item::QuickShurikenDodge, Item::StrictCorpseSight] {
+                assert!(Runtime::Tenchu2.unavailable(item).is_none());
+                menu.apply(Edit::Change(item, 1), &mut state, &mut action);
+                assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+            }
+            playback.configure(state.settings).unwrap();
+            let Content::Gameplay(session) = &playback.content else {
+                unreachable!()
+            };
+            assert!(session.world.ai.quick_shuriken_dodge && session.world.ai.strict_corpse_sight);
+            let mut expected = session.world.clone();
+            expected.ai.quick_shuriken_dodge = false;
+            expected.ai.strict_corpse_sight = false;
+            if let Some(item) = reset {
+                menu.apply(Edit::Change(item, 1), &mut state, &mut action);
+            } else {
+                for item in [Item::QuickShurikenDodge, Item::StrictCorpseSight] {
+                    menu.apply(Edit::Reset(item), &mut state, &mut action);
+                }
+            }
+            assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
+            playback.configure(state.settings).unwrap();
+            let Content::Gameplay(session) = &playback.content else {
+                unreachable!()
+            };
+            assert!(
+                postcard::to_allocvec(&session.world).unwrap()
+                    == postcard::to_allocvec(&expected).unwrap()
+            );
+        }
+        assert!(
+            Runtime::Tenchu2
+                .unavailable(Item::IndependentAttacks)
+                .unwrap()
+                .contains("each fighter")
         );
     }
 

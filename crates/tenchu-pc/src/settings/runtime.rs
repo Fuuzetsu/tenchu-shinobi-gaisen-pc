@@ -75,6 +75,10 @@ impl Runtime {
             "Guards ignore the player and corpses and return to their original idle/patrol behavior. Already committed attacks and projectiles can still hurt; use God mode for protection. Scripted sequences and fights against other actors remain active. Resets on a new area."
         } else if self == Self::Tenchu2 && item == Item::KeepEnemiesActive {
             "GAMEPLAY EDIT: keep all placed native actors simulating, patrolling and animating regardless of distance or the original activation budget. Scripted holds and deaths remain intact. Changes RNG and encounters; can cost more CPU. Off restores source distance/budget activation at its next check."
+        } else if self == Self::Tenchu2 && item == Item::QuickShurikenDodge {
+            "GAMEPLAY EDIT: alert armed enemies use their own sidestep as soon as the player aims a shuriken at them, at most once per second. Requires clear terrain sight and an available dodge; does not interrupt attacks, injuries, scripts or forced navigation. Off keeps T2's original chance to evade thrown projectiles."
+        } else if self == Self::Tenchu2 && item == Item::StrictCorpseSight {
+            "GAMEPLAY EDIT: corpse discoveries also require clear terrain sight from the guard's eye height to the animated corpse root. T2's original half-height-to-position ray, scan cadence, range, facing and shared alerts still apply. Off restores the original single ray."
         } else if self == Self::Tenchu2 && item == Item::SharpText {
             "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. Authored title and rank artwork stays original."
         } else if self == Self::Tenchu2 && item == Item::SaveState {
@@ -86,7 +90,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && matches!(item, Item::Rewind | Item::RewindHistory) {
             "Record up to 30 seconds of native T2 gameplay and 3D cutscenes, including imported T1 stages. Ctrl+F12 plays backward; the timeline seeks or plays forward, and F3 resumes from the selected state. Menus and movie playback are omitted. Export selected frames or import a T2 recording under General. History uses at most 96 MiB and may be shorter for large scenes."
         } else if self == Self::Tenchu2 && item == Item::ResetTweaks {
-            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking/sheathing, dismemberment, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
+            "Restore normal simulation speed, original sight and activation, native stance buttons, and disable optional walking/sheathing, dismemberment, quick shuriken evasion, strict corpse sight, God mode, never noticed, bleeding and click tools. Keeps graphics, character overrides, armour, inventory and the current mission state."
         } else if self == Self::Tenchu2 && item == Item::Reset {
             "Reset all saved preferences and debug tools, including character overrides and simulation tweaks. Keeps the current mission, armour and inventory; does not undo actor edits, kills or campaign progress."
         } else {
@@ -119,6 +123,9 @@ impl Runtime {
             return None;
         }
         match item {
+            IndependentAttacks => Some(
+                "Native T2 already gives each fighter its own attack cooldown. This option removes T1's shared cooldown and is not needed here.",
+            ),
             StaySheathed => Some(
                 "Native T2 already preserves the current weapon state after injury and knockdown. This option changes T1's automatic draw after recovery; it is not needed here.",
             ),
@@ -163,7 +170,8 @@ impl Runtime {
             | SeverSide | PlayerDismemberment | PlayerSeverHead | PlayerSeverArms
             | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
-            | ClearItems | Inventory(_) | Reset | ResetTweaks => None,
+            | ClearItems | Inventory(_) | Reset | ResetTweaks | QuickShurikenDodge
+            | StrictCorpseSight => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight
