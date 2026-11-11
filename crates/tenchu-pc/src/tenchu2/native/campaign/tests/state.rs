@@ -3,6 +3,43 @@ use crate::source::DiscSource;
 use tenchu_core::tenchu2::mission::Outcome;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; failed preparations preserve the current scene and source state with or without resource reuse"]
+fn native_checkpoint_preparation_failure_is_atomic() {
+    for sequence in [9, 23] {
+        let mut playback = start(sequence);
+        for _ in 0..30 {
+            playback.step(0).unwrap();
+        }
+        let earlier = postcard::to_allocvec(&playback.snapshot().unwrap()).unwrap();
+        for _ in 0..30 {
+            playback.step(0).unwrap();
+        }
+        let current = postcard::to_allocvec(&playback.snapshot().unwrap()).unwrap();
+        let generation = playback.generation;
+        let alternate = start(if sequence == 9 { 119 } else { 9 });
+        let other_scene = postcard::to_allocvec(&alternate.snapshot().unwrap()).unwrap();
+        for (bytes, expected_reuse) in [(&earlier, true), (&other_scene, false)] {
+            let saved = postcard::from_bytes(bytes).unwrap();
+            let result: Result<()> = playback.restore_snapshot_with(saved, |_, reused| {
+                assert_eq!(reused, expected_reuse);
+                Err("deliberate preparation failure".into())
+            });
+            assert_eq!(result.unwrap_err(), "deliberate preparation failure");
+            assert_eq!(playback.generation, generation);
+            assert!(postcard::to_allocvec(&playback.snapshot().unwrap()).unwrap() == current);
+        }
+        let saved = postcard::from_bytes(&earlier).unwrap();
+        playback
+            .restore_snapshot_with(saved, |_, reused| {
+                assert!(reused);
+                Ok(())
+            })
+            .unwrap();
+        assert!(postcard::to_allocvec(&playback.snapshot().unwrap()).unwrap() == earlier);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; complete native histories retain thirty seconds, changed resources and exact branch continuation"]
 fn native_rewind_capture_retains_history_and_branches() {
     for sequence in [9, 119, 191, 23] {

@@ -78,3 +78,41 @@ impl Game {
         Ok(())
     }
 }
+
+impl Game {
+    pub fn same_scene(&self, previous: &Self) -> bool {
+        let a = &self.mission;
+        let b = &previous.mission;
+        if a.stage != b.stage
+            || a.trial.is_some() != b.trial.is_some()
+            || self.player().kind != previous.player().kind
+        {
+            return false;
+        }
+        if a.scripts.language != b.scripts.language
+            || a.placements != b.placements
+            || a.map != b.map
+            || a.objects != b.objects
+            || a.models != b.models
+            || a.common_models != b.common_models
+            || a.weapons.models != b.weapons.models
+            || a.imported_models != b.imported_models
+            || a.world_vram != b.world_vram
+            || a.imported_voices != b.imported_voices
+        {
+            return false;
+        }
+        true
+    }
+
+    pub fn reuse_scene(&mut self, previous: &mut Self) {
+        let a = &mut self.mission;
+        let b = &mut previous.mission;
+        std::mem::swap(&mut a.map, &mut b.map);
+        std::mem::swap(&mut a.objects, &mut b.objects);
+        std::mem::swap(&mut a.models, &mut b.models);
+        std::mem::swap(&mut a.common_models, &mut b.common_models);
+        std::mem::swap(&mut a.weapons.models, &mut b.weapons.models);
+        std::mem::swap(&mut a.world_vram, &mut b.world_vram);
+    }
+}

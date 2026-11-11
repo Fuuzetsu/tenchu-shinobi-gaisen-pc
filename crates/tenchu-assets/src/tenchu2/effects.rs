@@ -7,7 +7,7 @@ use crate::{
     u32_le,
 };
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Sprites {
     pub vram: Vram,
     pub effects: Vec<Image>,

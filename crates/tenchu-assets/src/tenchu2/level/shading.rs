@@ -1,6 +1,6 @@
 use crate::{ReadAt, Result, model::Part, tenchu2::volume::Volume};
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Shading(#[serde(with = "serde_big_array::BigArray")] [[u8; 3]; 256]);
 
 impl Shading {

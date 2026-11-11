@@ -4,6 +4,8 @@ use tenchu_core::tenchu2::world::gaisen::Director;
 
 const SIGNATURE: &str = "native-tenchu2-jp-session-1";
 
+mod reuse;
+
 #[derive(Serialize, Deserialize)]
 pub(super) struct State<C, D> {
     signature: String,

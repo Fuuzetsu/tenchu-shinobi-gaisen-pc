@@ -130,15 +130,24 @@ impl<S: ReadAt> Playback<S> {
         self.restore_snapshot(crate::savestate::decode(bytes)?, |_| Ok(()))
     }
 
+    #[cfg(test)]
     pub(in crate::tenchu2::native) fn restore_snapshot<T>(
         &mut self,
         saved: Owned,
         prepare: impl FnOnce(&Content) -> Result<T>,
     ) -> Result<T> {
+        self.restore_snapshot_with(saved, |content, _| prepare(content))
+    }
+
+    pub(in crate::tenchu2::native) fn restore_snapshot_with<T>(
+        &mut self,
+        saved: Owned,
+        prepare: impl FnOnce(&Content, bool) -> Result<T>,
+    ) -> Result<T> {
         saved.validate(&self.campaign, self.gaisen.is_some())?;
         let State {
             run,
-            content,
+            mut content,
             action,
             loadout,
             previous_buttons,
@@ -150,33 +159,57 @@ impl<S: ReadAt> Playback<S> {
             gaisen_water_depth,
             ..
         } = saved;
-        let content = match content {
-            Scene::Gameplay(session) => {
-                Content::Gameplay(Box::new(session.restore(self.gaisen.as_ref())?))
-            }
-            Scene::Story(story) => {
-                let story = story.restore(&self.disc, &self.campaign)?;
-                let audio = match &self.content {
-                    Content::Story {
-                        story: previous,
-                        audio,
-                    } if previous.resources.audio == story.resources.audio => audio.clone(),
-                    _ => story
-                        .resources
-                        .audio
-                        .as_ref()
-                        .map(|track| Clip::load(&self.disc, track).map(Arc::new))
-                        .transpose()?,
-                };
-                Content::Story {
-                    story: Box::new(story),
-                    audio,
+        let reused = match (&content, &self.content) {
+            (Scene::Gameplay(saved), Content::Gameplay(current)) => saved.reusable(current)?,
+            (Scene::Story(saved), Content::Story { story, .. }) => saved.reusable(story)?,
+            _ => false,
+        };
+        let prepared = if reused {
+            content.swap(&mut self.content);
+            match prepare(&self.content, true) {
+                Ok(prepared) => {
+                    if let (Scene::Gameplay(previous), Content::Gameplay(current)) =
+                        (&content, &mut self.content)
+                    {
+                        previous.finish_reuse(current);
+                    }
+                    prepared
+                }
+                Err(error) => {
+                    content.swap(&mut self.content);
+                    return Err(error);
                 }
             }
+        } else {
+            let content = match content {
+                Scene::Gameplay(session) => {
+                    Content::Gameplay(Box::new(session.restore(self.gaisen.as_ref())?))
+                }
+                Scene::Story(story) => {
+                    let story = story.restore(&self.disc, &self.campaign)?;
+                    let audio = match &self.content {
+                        Content::Story {
+                            story: previous,
+                            audio,
+                        } if previous.resources.audio == story.resources.audio => audio.clone(),
+                        _ => story
+                            .resources
+                            .audio
+                            .as_ref()
+                            .map(|track| Clip::load(&self.disc, track).map(Arc::new))
+                            .transpose()?,
+                    };
+                    Content::Story {
+                        story: Box::new(story),
+                        audio,
+                    }
+                }
+            };
+            let prepared = prepare(&content, false)?;
+            self.content = content;
+            prepared
         };
-        let prepared = prepare(&content)?;
         self.run = run;
-        self.content = content;
         self.action = action;
         self.loadout = loadout;
         self.previous_buttons = previous_buttons;
@@ -199,6 +232,16 @@ impl<S: ReadAt> Playback<S> {
         settings.keep_enemies_active = self.keep_all_active;
         settings.circle_action = self.circle_action;
         settings.bleeding = self.bleeding;
+    }
+}
+
+impl Scene<super::super::state::Owned, super::super::story::state::Owned> {
+    fn swap(&mut self, content: &mut Content) {
+        match (self, content) {
+            (Self::Gameplay(saved), Content::Gameplay(session)) => saved.swap(session),
+            (Self::Story(saved), Content::Story { story, .. }) => saved.swap(story),
+            _ => unreachable!("validated scene reuse"),
+        }
     }
 }
 

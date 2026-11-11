@@ -98,6 +98,28 @@ impl Story {
 }
 
 impl Owned {
+    pub(in crate::tenchu2::native) fn reusable(&self, story: &Story) -> Result<bool> {
+        if self.signature != SIGNATURE {
+            return Err("Not a native T2 cutscene state".into());
+        }
+        if self.sequence != story.sequence || self.event != story.event {
+            return Ok(false);
+        }
+        self.validate(&story.resources)?;
+        self.models.same_body(&story.models)
+    }
+
+    pub(in crate::tenchu2::native) fn swap(&mut self, story: &mut Story) {
+        for (id, vram) in &mut self.textures {
+            std::mem::swap(vram, &mut story.resources.models.get_mut(id).unwrap().vram);
+        }
+        self.models.reuse_skin(&mut story.models);
+        std::mem::swap(&mut self.playback, &mut story.state);
+        std::mem::swap(&mut self.interpolation, &mut story.interpolation);
+        std::mem::swap(&mut self.models, &mut story.models);
+        std::mem::swap(&mut self.contact, &mut story.contact);
+    }
+
     pub(in crate::tenchu2::native) fn restore(
         self,
         disc: &Disc<impl ReadAt>,

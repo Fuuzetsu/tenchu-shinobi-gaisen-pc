@@ -43,6 +43,7 @@ impl Drawing {
             .motion_inputs(story, &renderer.graphics().motion)?;
         self.motion = state.motion;
         self.motion.rebind_inputs(&inputs);
+        self.models.invalidate_textures();
         self.scene.restore_state(
             state.scene,
             &story.level,

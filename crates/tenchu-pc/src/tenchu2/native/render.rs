@@ -881,14 +881,7 @@ impl Models {
             .collect();
         let mut items = build(&assets.items.vram, item_sources, graphics)?;
         renderer.bind_meshes(&mut items);
-        let mut weapon_names = BTreeMap::new();
-        for (agent, instance) in world.actors.iter().zip(&world.instances) {
-            weapon_names.extend(
-                interpolation::weapons(&agent.actor, instance, assets)?
-                    .map(|(root, name)| (root, name.to_owned())),
-            );
-        }
-        Ok(Self {
+        let mut models = Self {
             player: None,
             scenery,
             lamps,
@@ -897,8 +890,21 @@ impl Models {
             weapons,
             imported_weapons,
             items,
-            weapon_names,
-        })
+            weapon_names: BTreeMap::new(),
+        };
+        models.rebind_weapons(assets, world)?;
+        Ok(models)
+    }
+
+    fn rebind_weapons(&mut self, assets: &Assets, world: &World) -> Result<()> {
+        self.weapon_names.clear();
+        for (agent, instance) in world.actors.iter().zip(&world.instances) {
+            self.weapon_names.extend(
+                interpolation::weapons(&agent.actor, instance, assets)?
+                    .map(|(root, name)| (root, name.to_owned())),
+            );
+        }
+        Ok(())
     }
 
     #[cfg(not(target_arch = "wasm32"))]

@@ -115,7 +115,7 @@ impl Draw {
     }
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct ImportedModel {
     /// Disc-qualified identity; artwork packs use `source_id` independently.
     pub id: String,

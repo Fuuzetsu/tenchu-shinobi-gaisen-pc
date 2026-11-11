@@ -1,13 +1,13 @@
 use super::{directory, model, upload_textures};
 use crate::{ReadAt, Result, model::Part, tenchu2::volume::Volume, texture::Vram};
 
-#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Background {
     pub sky: Vec<Sky>,
     pub landscape: Option<Part>,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Sky {
     pub model: Part,
     pub yaw: i16,

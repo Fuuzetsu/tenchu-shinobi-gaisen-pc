@@ -9,7 +9,7 @@ mod shading;
 use objects::{Objects, Variant};
 pub use shading::Shading;
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Level {
     pub id: usize,
     pub gaisen: Option<crate::game::Stage>,

@@ -108,16 +108,64 @@ pub fn restore(
     tools: &mut Tools,
     renderer: &mut Renderer,
 ) -> std::result::Result<ContentDrawing, RestoreError> {
-    let mut saved: State<campaign::state::Owned> = crate::savestate::decode(bytes)?;
+    restore_snapshot(
+        playback,
+        crate::savestate::decode(bytes)?,
+        settings,
+        tools,
+        renderer,
+        None,
+    )
+    .map(|drawing| drawing.expect("new drawing for a disk state"))
+}
+
+#[cfg(test)]
+fn restore_rewind(
+    playback: &mut Playback<impl ReadAt>,
+    snapshot: &crate::rewind::Snapshot,
+    settings: &mut Settings,
+    tools: &mut Tools,
+    renderer: &mut Renderer,
+    drawing: &mut ContentDrawing,
+) -> std::result::Result<(), RestoreError> {
+    if let Some(replacement) = restore_snapshot(
+        playback,
+        snapshot.decode()?,
+        settings,
+        tools,
+        renderer,
+        Some(drawing),
+    )? {
+        *drawing = replacement;
+    }
+    Ok(())
+}
+
+fn restore_snapshot(
+    playback: &mut Playback<impl ReadAt>,
+    mut saved: State<campaign::state::Owned>,
+    settings: &mut Settings,
+    tools: &mut Tools,
+    renderer: &mut Renderer,
+    drawing: Option<&mut ContentDrawing>,
+) -> std::result::Result<Option<ContentDrawing>, RestoreError> {
     if saved.signature != SIGNATURE {
         return Err("This is not a native T2 JP savestate".to_string().into());
     }
     saved.preferences.validate();
     let graphics = super::preferences::graphics(settings);
     let mut drawing_changed = false;
-    let drawing = playback
-        .restore_snapshot(saved.campaign, |content| {
+    let replacement = playback
+        .restore_snapshot_with(saved.campaign, |content, reused| {
             saved.visuals.validate(content)?;
+            if reused
+                && renderer.graphics() == &graphics
+                && let Some(drawing) = drawing
+            {
+                drawing_changed = true;
+                drawing.restore_state(saved.visuals, content, renderer)?;
+                return Ok(None);
+            }
             let vram = match content {
                 Content::Gameplay(session) => &session.assets.sprites.vram,
                 Content::Story { story, .. } => &story.sprites.vram,
@@ -128,7 +176,7 @@ pub fn restore(
             renderer.reset_vram(vram);
             let mut drawing = ContentDrawing::new(content, &graphics, renderer)?;
             drawing.restore_state(saved.visuals, content, renderer)?;
-            Ok(drawing)
+            Ok(Some(drawing))
         })
         .map_err(|message| RestoreError {
             message,
@@ -142,7 +190,7 @@ pub fn restore(
         saved.orbit,
         saved.actors_edited,
     );
-    Ok(drawing)
+    Ok(replacement)
 }
 
 impl Content {

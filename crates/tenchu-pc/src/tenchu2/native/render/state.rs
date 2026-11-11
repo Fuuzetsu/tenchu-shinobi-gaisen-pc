@@ -82,6 +82,7 @@ impl SceneDrawing {
             self.environment = None;
         }
         self.sky = state.sky;
+        self.lighting = lighting::Lighting::new(level);
     }
 }
 
@@ -100,6 +101,8 @@ impl Drawing {
         session: &super::super::Session,
         renderer: &mut Renderer,
     ) -> Result<()> {
+        self.models
+            .rebind_weapons(&session.assets, &session.world)?;
         let inputs = self
             .models
             .motion_inputs(session, &renderer.graphics().motion)?;

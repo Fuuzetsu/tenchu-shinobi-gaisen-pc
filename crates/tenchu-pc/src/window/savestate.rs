@@ -146,7 +146,7 @@ impl Application {
         }
         let reuse = rewind
             && self.settings.player_model == state.preferences.player_model
-            && same_scene(&state.game, &self.campaign.game);
+            && state.game.same_scene(&self.campaign.game);
         let sound = if reuse {
             None
         } else {
@@ -189,7 +189,7 @@ impl Application {
             frontend.leave();
         }
         if reuse {
-            reuse_scene(&mut state.game, &mut self.campaign.game);
+            state.game.reuse_scene(&mut self.campaign.game);
         }
         if state.game.trial.is_some() {
             if self.trial_previous.is_none() {
@@ -370,42 +370,6 @@ impl State<Game> {
         }
         crate::savestate::validate_game(&self.game)
     }
-}
-
-fn same_scene(next: &Game, previous: &Game) -> bool {
-    let a = &next.mission;
-    let b = &previous.mission;
-    if a.stage != b.stage
-        || a.trial.is_some() != b.trial.is_some()
-        || next.player().kind != previous.player().kind
-    {
-        return false;
-    }
-    if a.scripts.language != b.scripts.language
-        || a.placements != b.placements
-        || a.map != b.map
-        || a.objects != b.objects
-        || a.models != b.models
-        || a.common_models != b.common_models
-        || a.weapons.models != b.weapons.models
-        || a.imported_models != b.imported_models
-        || a.world_vram != b.world_vram
-        || a.imported_voices != b.imported_voices
-    {
-        return false;
-    }
-    true
-}
-
-fn reuse_scene(next: &mut Game, previous: &mut Game) {
-    let a = &mut next.mission;
-    let b = &mut previous.mission;
-    std::mem::swap(&mut a.map, &mut b.map);
-    std::mem::swap(&mut a.objects, &mut b.objects);
-    std::mem::swap(&mut a.models, &mut b.models);
-    std::mem::swap(&mut a.common_models, &mut b.common_models);
-    std::mem::swap(&mut a.weapons.models, &mut b.weapons.models);
-    std::mem::swap(&mut a.world_vram, &mut b.world_vram);
 }
 
 #[cfg(test)]

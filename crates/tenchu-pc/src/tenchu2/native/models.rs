@@ -61,6 +61,16 @@ pub struct Custom {
 }
 
 impl Custom {
+    fn same_resources(a: Option<&Self>, b: Option<&Self>) -> Result<bool> {
+        match (a, b) {
+            (None, None) => Ok(true),
+            (Some(a), Some(b)) if a.id == b.id => Ok(Arc::ptr_eq(&a.pack, &b.pack)
+                || postcard::to_allocvec(&a.pack).map_err(|e| e.to_string())?
+                    == postcard::to_allocvec(&b.pack).map_err(|e| e.to_string())?),
+            _ => Ok(false),
+        }
+    }
+
     fn validate_state(&self) -> Result<()> {
         let body = self
             .pack
@@ -126,6 +136,11 @@ struct Original {
 }
 
 impl Override {
+    pub(super) fn same_body(&self, other: &Self) -> Result<bool> {
+        Ok(self.applied == other.applied
+            && Custom::same_resources(self.custom.as_ref(), other.custom.as_ref())?)
+    }
+
     pub fn current(&self, settings: &Settings) -> bool {
         let body = if settings.player_model.starts_with("pack:") {
             ""

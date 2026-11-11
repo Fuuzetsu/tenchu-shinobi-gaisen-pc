@@ -10,7 +10,7 @@ pub struct Character {
     pub idle: Option<Clip>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Rig {
     pub parts: Vec<Part>,
     pub vram: Vram,

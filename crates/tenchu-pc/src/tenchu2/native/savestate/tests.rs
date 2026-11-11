@@ -1,6 +1,8 @@
 use super::*;
 use crate::source::DiscSource;
 
+mod rewind;
+
 fn start(sequence: usize) -> Playback<DiscSource> {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
@@ -180,7 +182,7 @@ fn native_savestates_keep_embedded_overrides_with_an_empty_gallery() {
     let bytes = capture(&original, &drawing, &settings, &tools).unwrap();
     check_rewind(&original, &drawing, &settings, &tools);
     let mut restored = start(119);
-    restore(
+    let mut drawing = restore(
         &mut restored,
         &bytes,
         &mut settings,
@@ -188,6 +190,13 @@ fn native_savestates_keep_embedded_overrides_with_an_empty_gallery() {
         &mut renderer,
     )
     .unwrap();
+    rewind::check_seek(
+        &mut restored,
+        &mut drawing,
+        &mut settings,
+        &mut tools,
+        &mut renderer,
+    );
     let expected = restored.capture_state().unwrap();
     let Content::Gameplay(session) = &mut restored.content else {
         unreachable!()
@@ -278,6 +287,13 @@ fn native_savestates_restore_imported_stages_from_disk() {
     drawing
         .update(&restored.content, &mut renderer, &tools.debug, &settings)
         .unwrap();
+    rewind::check_seek(
+        &mut restored,
+        &mut drawing,
+        &mut settings,
+        &mut tools,
+        &mut renderer,
+    );
     for _ in 0..90 {
         original.step(0).unwrap();
         restored.step(0).unwrap();

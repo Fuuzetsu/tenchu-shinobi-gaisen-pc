@@ -26,7 +26,7 @@ pub(super) struct Models {
 
 struct AnimatedTextures {
     owner: i16,
-    revision: u64,
+    revision: Option<u64>,
     materials: Vec<AnimatedMaterial>,
 }
 
@@ -39,6 +39,12 @@ struct AnimatedMaterial {
 }
 
 impl Models {
+    pub(super) fn invalidate_textures(&mut self) {
+        for textures in &mut self.textures {
+            textures.revision = None;
+        }
+    }
+
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         renderer.update_vram(&story.sprites.vram);
         let level = &story.level;
@@ -118,7 +124,7 @@ impl Models {
             if !materials.is_empty() {
                 textures.push(AnimatedTextures {
                     owner,
-                    revision: vram.revision,
+                    revision: Some(vram.revision),
                     materials,
                 });
             }
@@ -190,8 +196,8 @@ impl Models {
         renderer.visual_time = f32::from(story.state.frame.max(0)) / 30.0;
         for textures in &mut self.textures {
             let vram = &resources.models[&textures.owner].vram;
-            if textures.revision != vram.revision {
-                textures.revision = vram.revision;
+            if textures.revision != Some(vram.revision) {
+                textures.revision = Some(vram.revision);
                 for material in &mut textures.materials {
                     material.update(material.region.pixels(vram), renderer);
                 }

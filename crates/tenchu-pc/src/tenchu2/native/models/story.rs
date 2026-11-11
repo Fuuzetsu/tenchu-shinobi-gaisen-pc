@@ -11,7 +11,7 @@ pub struct Override {
     pub custom: Option<Custom>,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Skin {
     pub parts: Vec<Part>,
     pub vram: Arc<Vram>,
@@ -19,6 +19,18 @@ pub struct Skin {
 }
 
 impl Override {
+    pub(in crate::tenchu2::native) fn same_body(&self, other: &Self) -> Result<bool> {
+        Ok(self.selected == other.selected
+            && self.hero == other.hero
+            && self.actors == other.actors
+            && self.skin == other.skin
+            && Custom::same_resources(self.custom.as_ref(), other.custom.as_ref())?)
+    }
+
+    pub(in crate::tenchu2::native) fn reuse_skin(&mut self, other: &mut Self) {
+        std::mem::swap(&mut self.skin, &mut other.skin);
+    }
+
     #[cfg(test)]
     pub(in crate::tenchu2::native) fn capture<C: tenchu_assets::checkpoint::Capture>(
         &self,

@@ -120,6 +120,28 @@ impl Scene {
 }
 
 impl State<Director> {
+    pub(super) fn reusable(&self, scene: &Scene) -> Result<bool> {
+        self.validate(Some(scene))?;
+        Ok(self.director.source.same_scene(&scene.director.source))
+    }
+
+    pub(super) fn swap(&mut self, scene: &mut Scene) {
+        self.director.source.reuse_scene(&mut scene.director.source);
+        std::mem::swap(&mut self.director, &mut scene.director);
+        std::mem::swap(&mut self.current, &mut scene.audio.current);
+        std::mem::swap(&mut self.started, &mut scene.audio.started);
+        std::mem::swap(&mut self.tick, &mut scene.audio.tick);
+    }
+
+    pub(super) fn finish_reuse(&self, scene: &mut Scene) {
+        if self.current != scene.audio.current {
+            scene.audio.clip = None;
+            scene.audio.loader.request(scene.audio.current.clone());
+        }
+        scene.audio.changed = true;
+        scene.audio.sounds.clear();
+    }
+
     pub(super) fn create(self, source: &Source) -> Result<Scene> {
         let game = &self.director.source;
         crate::savestate::validate_game(game)?;
@@ -151,7 +173,6 @@ impl State<Director> {
         })
     }
 
-    #[cfg(test)]
     pub(super) fn validate(&self, current: Option<&Scene>) -> Result<()> {
         let current = current.ok_or("Open the matching T1 stage before restoring this state")?;
         let game = &self.director.source;

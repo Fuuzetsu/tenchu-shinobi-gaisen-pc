@@ -1,6 +1,6 @@
 use crate::{Result, short3, slice, u16_le};
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Grid {
     pub origin: [i16; 3],
     pub dimensions: [i16; 3],
