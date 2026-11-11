@@ -260,6 +260,11 @@ impl<E: Events> Driver<'_, E> {
                 scene: c.scene,
                 collision: c.collision,
                 random: self.random,
+                multi_target: input.player
+                    && c.enabled
+                    && c.input_allowed
+                    && *c.script == 0
+                    && c.controls.multi_target_attacks,
             },
             |actor, context, cue| {
                 match cue {

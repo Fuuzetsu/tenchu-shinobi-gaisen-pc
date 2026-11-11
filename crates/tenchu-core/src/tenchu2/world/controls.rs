@@ -45,6 +45,7 @@ pub struct Controls {
     pub hud: crate::tenchu2::hud::Hud,
     pub walking: Option<Walking>,
     pub dismemberment: crate::game::dismemberment::Settings,
+    pub multi_target_attacks: bool,
 }
 
 impl Default for Controls {
@@ -67,6 +68,7 @@ impl Default for Controls {
             hud: Default::default(),
             walking: None,
             dismemberment: Default::default(),
+            multi_target_attacks: false,
         }
     }
 }

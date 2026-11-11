@@ -56,7 +56,10 @@ fn native_weapon_clashes_handle_expanded_contact_lists() {
     assert!(definition.start + 1 < definition.end);
     template.attack.index = Some(attack);
     template.motion.frame = i16::from(definition.start) + 1;
-    for count in [63, 65, 130] {
+    for (count, multi_target) in [63, 65, 130]
+        .into_iter()
+        .flat_map(|count| [false, true].map(|multi| (count, multi)))
+    {
         let mut actor = template.clone();
         let mut scene = world.scene.clone();
         let mut collision = world.collision.clone();
@@ -64,6 +67,7 @@ fn native_weapon_clashes_handle_expanded_contact_lists() {
         let slot = collision.insert(joint).unwrap();
         slot.owner = Some(0);
         slot.flags = WEAPON;
+        slot.multi_target = multi_target;
         slot.size = Vector3::new(1000, 1000, 1000);
         let mut opponents = Vec::new();
         for index in 0..count {
@@ -98,6 +102,7 @@ fn native_weapon_clashes_handle_expanded_contact_lists() {
                     scene: &mut scene,
                     collision: &mut collision,
                     random: &mut Random::new(1),
+                    multi_target,
                 },
                 |_, _, cue| {
                     if let CombatCue::Clash { opponent, .. } = cue {
@@ -254,6 +259,7 @@ fn native_attack_contacts_parries_steering_and_recovery_match_source() {
                         scene: &mut scene,
                         collision: &mut collision,
                         random: &mut random,
+                        multi_target: false,
                     },
                     |_, _, cue| {
                         calls.push(match cue {

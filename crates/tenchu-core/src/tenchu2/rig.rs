@@ -205,6 +205,10 @@ impl Actor {
                 && slot.flags & WEAPON != 0
             {
                 slot.flags = WEAPON | if mode == Contacts::Start { 0 } else { DISABLED };
+                if mode == Contacts::Start {
+                    slot.multi_target = false;
+                    slot.hit_targets.clear();
+                }
             }
         }
         self.refresh_contact_mask(rig, collision);

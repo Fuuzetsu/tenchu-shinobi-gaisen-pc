@@ -311,10 +311,17 @@ impl<E: Events> Driver<'_, E> {
             }
         }
         if damage.hit_disabled {
-            c.collision
+            let slot = c
+                .collision
                 .slot_mut(hit_index)
-                .ok_or("Missing Tenchu 2 hit slot")?
-                .flags |= DISABLED;
+                .ok_or("Missing Tenchu 2 hit slot")?;
+            if slot.multi_target {
+                if !slot.hit_targets.contains(&body_joint) {
+                    slot.hit_targets.push(body_joint);
+                }
+            } else {
+                slot.flags |= DISABLED;
+            }
         }
         c.sync_attacker(&damage)?;
         input.camera = damage.camera;

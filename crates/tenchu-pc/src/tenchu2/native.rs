@@ -46,6 +46,8 @@ pub(crate) mod gaisen;
 mod gaisen_tests;
 mod inspection;
 mod interpolation;
+#[cfg(test)]
+mod melee_tests;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod models;
 mod navigation;

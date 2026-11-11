@@ -36,6 +36,9 @@ impl Actor {
                 .slot(contact.index)
                 .ok_or("Missing Tenchu 2 contact")?;
             if slot.flags & WEAPON != 0 {
+                if slot.hit_targets.contains(&body) {
+                    continue;
+                }
                 if self.flags & HIT == 0 || slot.flags & OBJECT == 0 {
                     self.hit = Some(contact.index);
                     self.flags |= HIT;

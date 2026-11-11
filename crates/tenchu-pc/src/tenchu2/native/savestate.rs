@@ -208,6 +208,7 @@ fn restore_snapshot(
     settings.dismemberment = saved.preferences.dismemberment;
     settings.quick_shuriken_dodge = saved.preferences.quick_shuriken_dodge;
     settings.strict_corpse_sight = saved.preferences.strict_corpse_sight;
+    settings.multi_target_attacks = saved.preferences.multi_target_attacks;
     if recorded_visuals {
         settings.graphics = saved.preferences.graphics;
         settings.retro = saved.preferences.retro;

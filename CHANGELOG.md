@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2 supports F1's **Multi-target player attacks**, including imported
+  movesets and optional unarmed attacks. Each striking limb can hit each enemy
+  once during its active frames, while native damage, blocks, terrain checks,
+  recoil and clashes still apply. The setting stays off by default; changes
+  apply to the next swing. Saves and rewind preserve an active swing's hit list.
+- Savestates and recordings use an updated state format. Earlier files require
+  the build that created them.
+
 ## 0.28.0 — 2026-11-11
 
 - Selecting T1 Rikimaru or Ayame no longer replaces the sheathed idle with

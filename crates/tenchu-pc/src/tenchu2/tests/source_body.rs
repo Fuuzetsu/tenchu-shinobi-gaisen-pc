@@ -90,13 +90,14 @@ fn native_body_response_preserves_knockback_and_contact_order() {
         let slots = row["slots"].as_array().unwrap();
         collision["len"] = json!(slots.len());
         for (i, slot) in slots.iter().enumerate() {
-            collision["slots"][i] = json!({
-                "model": i, "owner": slot["owner"],
-                "position": vector::<i32>(&slot["position"]),
-                "offset": Vector3::<i16>::default(), "size": vector::<i16>(&slot["size"]),
-                "flags": slot["flags"], "contacts": if i == 0 { (1u64 << slots.len()) - 2 } else { 0 },
-            });
+            let target = &mut collision["slots"][i];
+            target["model"] = json!(i);
+            target["owner"] = slot["owner"].clone();
+            target["position"] = json!(vector::<i32>(&slot["position"]));
+            target["size"] = json!(vector::<i16>(&slot["size"]));
+            target["flags"] = slot["flags"].clone();
         }
+        collision["slots"][0]["contacts"] = json!((1..slots.len()).collect::<Vec<_>>());
         let collision: Collision = serde_json::from_value(collision).unwrap();
         actor
             .move_on_terrain(

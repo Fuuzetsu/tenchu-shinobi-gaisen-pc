@@ -79,6 +79,8 @@ impl Runtime {
             "GAMEPLAY EDIT: alert armed enemies use their own sidestep as soon as the player aims a shuriken at them, at most once per second. Requires clear terrain sight and an available dodge; does not interrupt attacks, injuries, scripts or forced navigation. Off keeps T2's original chance to evade thrown projectiles."
         } else if self == Self::Tenchu2 && item == Item::StrictCorpseSight {
             "GAMEPLAY EDIT: corpse discoveries also require clear terrain sight from the guard's eye height to the animated corpse root. T2's original half-height-to-position ray, scan cadence, range, facing and shared alerts still apply. Off restores the original single ray."
+        } else if self == Self::Tenchu2 && item == Item::MultiTargetAttacks {
+            "GAMEPLAY EDIT: player melee swings can keep hitting new enemies throughout their active frames. Each striking limb can hit a given enemy once per swing. Damage, blocks, recoil, weapon clashes and swing timing stay native. Off restores T2's original hit consumption."
         } else if self == Self::Tenchu2 && item == Item::SharpText {
             "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. Authored title and rank artwork stays original."
         } else if self == Self::Tenchu2 && item == Item::SaveState {
@@ -171,7 +173,7 @@ impl Runtime {
             | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) | Reset | ResetTweaks | QuickShurikenDodge
-            | StrictCorpseSight => None,
+            | StrictCorpseSight | MultiTargetAttacks => None,
             Lighting | Shadows | FireLights | LightRadius | LightIntensity | LightAmbient
             | LightResolution | LightCount | ShadowCount | ShadowSoftness | LightSourceSize => None,
             LightMarkers | FocusLight | PlaceLight | PlayerLight | FollowLight | DebugLight

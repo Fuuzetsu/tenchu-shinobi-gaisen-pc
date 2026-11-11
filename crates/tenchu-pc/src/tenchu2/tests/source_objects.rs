@@ -212,7 +212,6 @@ fn native_surface_traps_and_object_motion_match_source() {
 #[ignore = "requires Japanese TENCHU2_DISC and TENCHU2_OBJECT_CONTACTS_ORACLE from original object contacts"]
 fn native_doors_breakables_and_hazards_match_source_contacts() {
     use tenchu_assets::tenchu2::level::objects::Bounds;
-    use tenchu_core::math::Vector3;
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let math = Math {
@@ -251,8 +250,21 @@ fn native_doors_breakables_and_hazards_match_source_contacts() {
             } else {
                 Some(usize::from(!row["owner"].as_bool().unwrap()))
             };
-            collision["slots"][i] = json!({"model":coordinate,"owner":owner,"position":if i==0 {Position::default()}else{super::source_physics::vector::<i32>(&row["distance"])},"offset":Vector3::<i16>::default(),"size":Vector3::<i16>::default(),"flags":if i==0 {0x1000}else{row["flags"].as_u64().unwrap()},"contacts":if i==0 {2}else{0}});
+            let slot = &mut collision["slots"][i];
+            slot["model"] = json!(coordinate);
+            slot["owner"] = json!(owner);
+            slot["position"] = json!(if i == 0 {
+                Position::default()
+            } else {
+                super::source_physics::vector::<i32>(&row["distance"])
+            });
+            slot["flags"] = if i == 0 {
+                json!(0x1000)
+            } else {
+                row["flags"].clone()
+            };
         }
+        collision["slots"][0]["contacts"] = json!([1]);
         let mut collision: collision::Collision = serde_json::from_value(collision).unwrap();
         let t = &row["trigger"];
         let mut environment = Environment {

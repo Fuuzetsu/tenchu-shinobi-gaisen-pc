@@ -18,6 +18,25 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 optional multi-target melee (2026-11-11)
+
+This is an optional gameplay change, sharing Gaisen's existing per-striking-limb
+hit-history policy. Native `control/attack`, `rig`, `physics/contacts` and
+`world/controls/injury` retain the translated source activation, frozen contact
+order, terrain rejection, damage, block, recoil and weapon-clash behavior.
+Only an interactive player's new swing can keep a consumed weapon contact
+active for a different body; each source limb records a body once until its
+next authored activation. Item/projectile and paired-kill paths are unchanged.
+The original same-update contact list can already hit more than one actor;
+that source behavior also remains when the option is off.
+
+The existing scalar Gaisen implementation and read-only `MOTION.C` combat code,
+TAS damage/contact boundary and viewer weapon attachments were reviewed. No
+sibling code or state architecture was imported. Disc-backed fixtures exercise
+native/imported/unarmed contacts, and original-instruction attack, damage and
+body-response comparisons check the option-off path. Hit history belongs to
+owned collision state and is validated and preserved by checkpoints and rewind.
+
 ## Native T2 optional bleeding and bandages (2026-11-11)
 
 This adapter reuses the port's optional `game/bleeding.rs` scalar state and its

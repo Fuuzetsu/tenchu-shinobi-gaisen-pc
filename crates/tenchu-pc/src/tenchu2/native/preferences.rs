@@ -486,6 +486,11 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::MultiTargetAttacks => {
+                            state.settings.multi_target_attacks =
+                                Settings::default().multi_target_attacks;
+                            Ok(())
+                        }
                         Item::QuickShurikenDodge | Item::StrictCorpseSight => {
                             if item == Item::QuickShurikenDodge {
                                 state.settings.quick_shuriken_dodge =
@@ -564,6 +569,11 @@ impl Menu {
                     Ok(())
                 } else {
                     match item {
+                        Item::MultiTargetAttacks => {
+                            state.settings.multi_target_attacks =
+                                !state.settings.multi_target_attacks;
+                            Ok(())
+                        }
                         Item::QuickShurikenDodge | Item::StrictCorpseSight => {
                             let field = if item == Item::QuickShurikenDodge {
                                 &mut state.settings.quick_shuriken_dodge
@@ -644,6 +654,7 @@ impl Menu {
                                 state.settings.sight_percent = defaults.sight_percent;
                                 state.settings.quick_shuriken_dodge = defaults.quick_shuriken_dodge;
                                 state.settings.strict_corpse_sight = defaults.strict_corpse_sight;
+                                state.settings.multi_target_attacks = defaults.multi_target_attacks;
                             }
                             self.tools.restore_defaults(all);
                             state.controls.clear();
@@ -946,7 +957,11 @@ mod tests {
         };
         let mut action = Action::default();
         for reset in [None, Some(Item::ResetTweaks), Some(Item::Reset)] {
-            for item in [Item::QuickShurikenDodge, Item::StrictCorpseSight] {
+            for item in [
+                Item::QuickShurikenDodge,
+                Item::StrictCorpseSight,
+                Item::MultiTargetAttacks,
+            ] {
                 assert!(Runtime::Tenchu2.unavailable(item).is_none());
                 menu.apply(Edit::Change(item, 1), &mut state, &mut action);
                 assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
@@ -956,13 +971,19 @@ mod tests {
                 unreachable!()
             };
             assert!(session.world.ai.quick_shuriken_dodge && session.world.ai.strict_corpse_sight);
+            assert!(session.world.controls.multi_target_attacks);
             let mut expected = session.world.clone();
             expected.ai.quick_shuriken_dodge = false;
             expected.ai.strict_corpse_sight = false;
+            expected.controls.multi_target_attacks = false;
             if let Some(item) = reset {
                 menu.apply(Edit::Change(item, 1), &mut state, &mut action);
             } else {
-                for item in [Item::QuickShurikenDodge, Item::StrictCorpseSight] {
+                for item in [
+                    Item::QuickShurikenDodge,
+                    Item::StrictCorpseSight,
+                    Item::MultiTargetAttacks,
+                ] {
                     menu.apply(Edit::Reset(item), &mut state, &mut action);
                 }
             }

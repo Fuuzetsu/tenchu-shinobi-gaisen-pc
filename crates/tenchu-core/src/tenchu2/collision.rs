@@ -20,6 +20,8 @@ pub struct Slot {
     pub offset: Vector3<i16>,
     pub size: Vector3<i16>,
     pub flags: u16,
+    pub multi_target: bool,
+    pub hit_targets: Vec<ModelId>,
     contacts: Vec<usize>,
 }
 
@@ -54,6 +56,8 @@ impl Collision {
                     || slot.owner.is_some_and(|owner| owner >= actors)
                     // Source contacts can retain slots beyond the active prefix.
                     || slot.contacts.iter().any(|&id| id >= self.slots.len())
+                    || !slot.multi_target && !slot.hit_targets.is_empty()
+                    || slot.hit_targets.iter().enumerate().any(|(index, &id)| id >= models || slot.hit_targets[..index].contains(&id))
             })
         {
             return Err("Invalid Tenchu 2 collision references".into());

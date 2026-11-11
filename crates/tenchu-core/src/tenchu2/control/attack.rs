@@ -33,6 +33,7 @@ pub struct AttackContext<'a> {
     pub scene: &'a mut Scene,
     pub collision: &'a mut Collision,
     pub random: &'a mut Random,
+    pub multi_target: bool,
 }
 
 impl Actor {
@@ -170,6 +171,16 @@ impl Actor {
         let frame = self.motion.frame;
         if frame == i16::from(attack.start) {
             self.set_attack_contacts(context.rig, context.collision, resources, Contacts::Start)?;
+            if context.multi_target {
+                for (bone, &joint) in context.rig.joints.iter().enumerate() {
+                    if attack.bones & 1u32.wrapping_shl(bone as u32) != 0
+                        && let Some(slot) = context.collision.get_mut(joint)
+                        && slot.flags == WEAPON
+                    {
+                        slot.multi_target = true;
+                    }
+                }
+            }
             cue(
                 self,
                 context,
