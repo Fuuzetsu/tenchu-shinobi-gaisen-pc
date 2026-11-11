@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix optional severed-wound bleeding in Kataoka's SA execution scene. The
+  detached head and stump now bleed for the configured duration and leave ground
+  stains in both English and Japanese endings. Original scene timing is retained.
+
 ## 0.30.0 — 2026-11-11
 
 - **F1 → General → Benchmarks** now runs native T2 scenes in both hosts,

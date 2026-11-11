@@ -25,13 +25,7 @@ impl Blood {
             return;
         }
         let mut sources = Vec::new();
-        for actor in game
-            .roster
-            .actors
-            .iter()
-            .flatten()
-            .filter(|a| a.health == 0)
-        {
+        for actor in game.roster.actors.iter().flatten() {
             let Some(severed) = &actor.severed else {
                 continue;
             };

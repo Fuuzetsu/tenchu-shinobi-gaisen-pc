@@ -49,3 +49,5 @@
 - When closing a visual issue, attach relevant before/after verification
   screenshots when attachment access is available. Identify the release/commit
   and pertinent settings. Keep screenshots outside Git.
+- Include `Fixes #<issue>` in commits that resolve a GitHub issue, so the issue
+  closes when the fix reaches the default branch. Only claim verified scope.

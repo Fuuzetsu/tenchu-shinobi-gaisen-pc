@@ -55,6 +55,15 @@ ten and retains Gaisen's captions, voice/music schedule and scene duration in al
 four languages. It does not alter Ayame's ending or TRIAL missions. Random enemy
 and player dismemberment can remain disabled.
 
+Severed-wound presentation follows the detached part, including scripted actors
+whose life remains `-1`. The local decomp's `src/main.exe/CHRANIM.C`
+(`CVA_CMD_ACTOR`) sets `HUMANOID_LIFE_INACTIVE` when hiding an actor and only
+zeros positive life when starting a death motion. Kataoka therefore retains
+`-1` during this execution; it must not be changed to enable blood. The same
+source is present in `tenchu-decomp-glitch-research`, whose cinematic audit also
+distinguishes script despawns from deaths. The presentation fix imports no code
+or assets and leaves source blood, script state and RNG untouched.
+
 The optional Tatsumaru importer supports **Tenchu 2 Europe SLES-02452** and
 **Japan SLPS-03040**. Their VOLUME.DAT archives contain 4,730 and 4,764 entries;
 `T_00.cab` supplies the base motion bank and `weapon/atktbl.dat` supplies damage,
