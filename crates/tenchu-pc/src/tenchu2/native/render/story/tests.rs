@@ -268,6 +268,7 @@ fn animated_story_draw_matches_fresh_meshes() {
             smooth_models: refined,
             models: crate::settings::Models {
                 characters: if refined { 2 } else { 0 },
+                heroes: refined,
                 ..Default::default()
             },
             asset_pack: false,

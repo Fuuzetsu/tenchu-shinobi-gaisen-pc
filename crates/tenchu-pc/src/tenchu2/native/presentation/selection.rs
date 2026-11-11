@@ -40,6 +40,7 @@ impl Drawing {
                     .enumerate()
                     .map(|(i, part)| catalog::ModelSource {
                         role: catalog::Role::Actor,
+                        hero_part: None,
                         id: format!("tenchu2/actors/{name}/{i}"),
                         label: name.into(),
                         geometry: &part.geometry,

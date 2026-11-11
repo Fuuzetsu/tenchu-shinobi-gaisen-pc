@@ -90,6 +90,10 @@ fn native_story_model_override_preserves_cast_and_playback() {
         let graphics = Graphics {
             fog: false,
             asset_pack: false,
+            models: crate::settings::Models {
+                heroes: true,
+                ..Default::default()
+            },
             ..Default::default()
         };
         let hero_slot = story

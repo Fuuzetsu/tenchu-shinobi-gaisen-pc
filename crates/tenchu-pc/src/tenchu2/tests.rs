@@ -135,6 +135,7 @@ fn check_artwork(
         .enumerate()
         .map(|(index, part)| catalog::ModelSource {
             role: catalog::Role::Other,
+            hero_part: None,
             id: format!("tenchu2/{name}/{index}"),
             label: name.into(),
             geometry: &part.geometry,

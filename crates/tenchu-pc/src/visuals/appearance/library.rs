@@ -362,18 +362,22 @@ impl Body {
         self.parts
             .iter()
             .enumerate()
-            .map(|(i, part)| catalog::ModelSource {
-                role: catalog::Role::Actor,
-                id: self
+            .map(|(i, part)| {
+                let id = self
                     .character
                     .as_ref()
                     .filter(|_| !self.is_tenchu2())
                     .map_or_else(
                         || format!("{}/{i}", self.resource),
                         |c| format!("actors/{:04x}/{i}", c.kind),
-                    ),
-                label: self.name.clone(),
-                geometry: &part.geometry,
+                    );
+                catalog::ModelSource {
+                    role: catalog::Role::Actor,
+                    hero_part: crate::visuals::heroes::part(&id),
+                    id,
+                    label: self.name.clone(),
+                    geometry: &part.geometry,
+                }
             })
             .collect()
     }

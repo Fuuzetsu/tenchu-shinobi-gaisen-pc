@@ -2,13 +2,31 @@ use crate::render_mesh::{self, Vertex};
 use glam::Vec3;
 
 pub fn part(id: &str) -> Option<usize> {
-    let rest = id
-        .strip_prefix("actors/0000/")
-        .or_else(|| id.strip_prefix("actors/0001/"))?;
-    rest.parse().ok().filter(|&part| part < 15)
+    let (body, part) = id.rsplit_once('/')?;
+    if !matches!(body, "actors/0000" | "actors/0001")
+        && !body
+            .strip_prefix("tenchu2/actors/")
+            .is_some_and(|name| tenchu_assets::tenchu2::characters::hero(name).is_some())
+    {
+        return None;
+    }
+    part.parse().ok().filter(|&part| part < 15)
 }
 
-pub fn prepare(vertices: &mut Vec<Vertex>, part: usize, budget: &mut usize) {
+#[cfg(not(target_arch = "wasm32"))]
+pub fn native_part(id: &str) -> Option<usize> {
+    let bone = part(id)?;
+    tenchu_assets::tenchu2::BONES
+        .iter()
+        .position(|&b| b == bone)
+}
+
+pub fn prepare(
+    vertices: &mut Vec<Vertex>,
+    part: usize,
+    budget: &mut usize,
+    skin: &mut Vec<super::appearance::skin::Influence>,
+) {
     let cost = vertices.len().saturating_mul(64);
     if vertices.is_empty() || cost > *budget {
         return;
@@ -22,8 +40,13 @@ pub fn prepare(vertices: &mut Vec<Vertex>, part: usize, budget: &mut usize) {
     );
     let size = max - min;
     // Retail limbs are separate rigid meshes; shortening their Y axis opens joints.
-    super::refine::preserve_height(vertices, if part == 2 { 0.012 } else { 0.035 }, budget);
-    if matches!(part, 13 | 14) {
+    super::refine::preserve_height(
+        vertices,
+        if part == 2 { 0.012 } else { 0.035 },
+        budget,
+        skin,
+    );
+    if matches!(part, 13 | 14) && size.y > 0.0 && size.z > 0.0 {
         let sign = if part == 14 { -1.0 } else { 1.0 };
         for v in vertices.iter_mut() {
             if v.flags & render_mesh::TEXTURED != 0 {

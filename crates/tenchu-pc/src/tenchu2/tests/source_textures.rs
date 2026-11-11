@@ -52,6 +52,7 @@ fn imported_water_scroll_matches_original_texture_moves() {
             .enumerate()
             .map(|(index, p)| crate::visuals::catalog::ModelSource {
                 role: crate::visuals::catalog::Role::Terrain,
+                hero_part: None,
                 id: format!("tenchu2/map{map}/terrain/{index}"),
                 label: String::new(),
                 geometry: &p.geometry,
@@ -109,6 +110,7 @@ fn imported_water_materials_drive_shared_rendering_in_every_water_map() {
                     .map(|(index, part)| catalog::ModelSource {
                         id: format!("tenchu2/map{map}/terrain/{index}"),
                         role: catalog::Role::Terrain,
+                        hero_part: None,
                         label: String::new(),
                         geometry: &part.geometry,
                     })

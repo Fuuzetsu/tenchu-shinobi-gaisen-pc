@@ -62,6 +62,7 @@ impl Models {
                 catalog::ModelSource {
                     id: format!("weapons/{kind:04x}/grip"),
                     role: catalog::Role::Other,
+                    hero_part: None,
                     label: mission.weapons.names[&kind].clone(),
                     geometry,
                 }
@@ -103,14 +104,18 @@ impl Models {
             let sources: Vec<_> = parts
                 .iter()
                 .enumerate()
-                .map(|(i, part)| catalog::ModelSource {
-                    role: catalog::Role::Actor,
-                    id: source.source_id.as_ref().map_or_else(
+                .map(|(i, part)| {
+                    let id = source.source_id.as_ref().map_or_else(
                         || format!("actors/{:04x}/{i}", source.source_kind),
                         |id| format!("{id}/{i}"),
-                    ),
-                    label: format!("Imported actor {}", source.source_kind),
-                    geometry: &part.geometry,
+                    );
+                    catalog::ModelSource {
+                        role: catalog::Role::Actor,
+                        hero_part: super::heroes::part(&id),
+                        id,
+                        label: format!("Imported actor {}", source.source_kind),
+                        geometry: &part.geometry,
+                    }
                 })
                 .collect();
             let pack = if graphics.asset_pack {
@@ -134,6 +139,7 @@ impl Models {
             let sources = vec![catalog::ModelSource {
                 id: source.source_id.clone(),
                 role: catalog::Role::Other,
+                hero_part: None,
                 label: source.id.clone(),
                 geometry,
             }];
@@ -490,7 +496,7 @@ impl Meshes {
             let grapple = graphics.models.grapple && source.role == catalog::Role::Grapple;
             let round = source.role == catalog::Role::Actor && replacement.is_none();
             let hero = (graphics.models.heroes && replacement.is_none())
-                .then(|| super::heroes::part(&source.id))
+                .then_some(source.hero_part)
                 .flatten();
             let water_enabled = graphics.water.enabled && source.role.scenery();
             let snow_enabled = graphics.weather.baked_snow && source.role.scenery();
@@ -716,7 +722,12 @@ impl Meshes {
                     &mut native_skin,
                 );
             } else if let Some(part) = hero {
-                super::heroes::prepare(&mut vertices, part, &mut refinement_budget);
+                super::heroes::prepare(
+                    &mut vertices,
+                    part,
+                    &mut refinement_budget,
+                    &mut native_skin,
+                );
             } else if refined {
                 super::refine::prepare_skinned(
                     &mut vertices,

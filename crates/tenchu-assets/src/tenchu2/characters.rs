@@ -16,6 +16,15 @@ pub struct Rig {
     pub vram: Vram,
 }
 
+pub fn hero(name: &str) -> Option<usize> {
+    match name {
+        "rikimaru" | "rikia" | "riki2" | "rikia2" | "riki3" | "rikia3" => Some(0),
+        "ayame" | "ayamea" => Some(1),
+        "tatumaru" | "tatu2" | "tatu2_m" | "tatua" | "tatua_m" => Some(2),
+        _ => None,
+    }
+}
+
 pub fn rig(disc: &Disc<impl ReadAt>, name: &str) -> Result<Rig> {
     if name.is_empty()
         || name.len() >= 32

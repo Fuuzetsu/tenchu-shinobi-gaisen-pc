@@ -233,7 +233,7 @@ impl Runtime {
             Bleeding | BleedChance | BleedSeconds | BleedDamage | BandageLoadout | Bandages
             | UseBandage | MedicineBleeding => None,
             ReloadModels | ReloadAssets | SmoothModels | ModelDetail | CharacterRefinement
-            | WeaponReflections => None,
+            | HeroModels | WeaponReflections => None,
             HairMotion | ClothMotion | EquipmentMotion | MotionStrength | MotionResponse
             | MotionWind => None,
             SaveState | LoadState | StateSlot => None,

@@ -119,7 +119,7 @@ impl Override {
                     .get(slot)
                     .and_then(|track| resources.models.get(&track.model))
                     .is_none_or(|actor| {
-                        !is_hero(&actor.name, self.hero)
+                        tenchu_assets::tenchu2::characters::hero(&actor.name) != Some(self.hero)
                             || parts.iter().any(|p| {
                                 p.bone >= actor.parts.len()
                                     || p.model.vram.words.len() != 1024 * 512
@@ -177,7 +177,7 @@ impl Override {
                 let Some(actor) = resources.models.get(&track.model) else {
                     continue;
                 };
-                if !is_hero(&actor.name, hero)
+                if tenchu_assets::tenchu2::characters::hero(&actor.name) != Some(hero)
                     || weapon.id.starts_with("tenchu2-jp:")
                         && weapon.resource == format!("tenchu2/actors/{}", actor.name)
                 {
@@ -210,7 +210,7 @@ impl Override {
             .iter()
             .filter(|(_, model)| {
                 (custom.is_some() || body.is_some())
-                    && is_hero(&model.name, hero)
+                    && tenchu_assets::tenchu2::characters::hero(&model.name) == Some(hero)
                     && !body.is_some_and(|body| {
                         body.id.starts_with("tenchu2-jp:")
                             && body.resource == format!("tenchu2/actors/{}", model.name)
@@ -237,17 +237,5 @@ fn equipment_id(settings: &Settings) -> &str {
         &settings.weapon_model
     } else {
         settings.moveset_id().unwrap_or(&settings.player_model)
-    }
-}
-
-fn is_hero(name: &str, hero: usize) -> bool {
-    match hero {
-        0 => matches!(
-            name,
-            "rikimaru" | "rikia" | "riki2" | "rikia2" | "riki3" | "rikia3"
-        ),
-        1 => matches!(name, "ayame" | "ayamea"),
-        2 => matches!(name, "tatumaru" | "tatu2" | "tatu2_m" | "tatua" | "tatua_m"),
-        _ => false,
     }
 }

@@ -166,6 +166,7 @@ impl Models {
                     .map(|(part, id)| crate::visuals::catalog::ModelSource {
                         id: id.clone(),
                         role: Role::Actor,
+                        hero_part: crate::visuals::heroes::part(id),
                         label: String::new(),
                         geometry: &part.geometry,
                     })
@@ -195,6 +196,7 @@ impl Models {
                     vec![crate::visuals::catalog::ModelSource {
                         id: attachment.model.source_id.clone(),
                         role: Role::Other,
+                        hero_part: None,
                         label: String::new(),
                         geometry: &part.geometry,
                     }],

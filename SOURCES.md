@@ -18,6 +18,29 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native and imported T2 high-detail heroes (2026-11-12)
+
+The port's existing `visuals/heroes.rs` and scalar bounded subdivision now serve
+T2's nine protagonist outfits and four additional Rikimaru cutscene models as
+well as the original T1 heroes. Model sources
+carry the canonical hero part explicitly: native T2 parts use the existing
+`tenchu_assets::tenchu2::BONES` mapping, while library imports already use the
+canonical order. Resource IDs alone cannot distinguish these two rig layouts.
+The refinement path now subdivides existing native vertex influences with the
+same weight interpolation used by Character surfaces, retaining vertical joint
+extents, source rigs, attachment transforms and original animation state.
+
+Native gameplay, cutscene models and canonical appearance overrides share this
+path. Replacement geometry remains exempt; neither model data nor simulation is
+modified. Read-only review of the viewer's posed actor/attachment traversal,
+decomp ACTION.C motion-manager ownership and research pose checks informed that
+boundary. No sibling code, motion data or artwork was imported. The bounded
+refinement is an optional port effect, not a source gameplay algorithm.
+Modern High/Ultra already enable High-detail heroes, and the shared HeroModels
+demo already exposes it; native demo sequencing remains pending. Original keeps
+the authored geometry. Disc-backed checks cover both rig orders, joint bounds,
+skinning, ordinary source poses, cutscene faces, custom rigs and reset rendering.
+
 ## Native T2 Modern gunfire (2026-11-12)
 
 The optional native adapter reuses the existing Gaisen flash/smoke geometry and

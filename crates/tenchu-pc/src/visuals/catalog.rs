@@ -181,6 +181,8 @@ impl Role {
 #[derive(Clone)]
 pub struct ModelSource<'a> {
     pub role: Role,
+    // Canonical fifteen-part hero rig, independent of the source model's bone order.
+    pub hero_part: Option<usize>,
     pub id: String,
     pub label: String,
     pub geometry: &'a [Geometry],
@@ -202,6 +204,7 @@ pub fn world_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
         out.push(ModelSource {
             id: format!("stages/{}/map/{index}", mission.stage.directory),
             role: Role::Terrain,
+            hero_part: None,
             label: format!("Map part {index}"),
             geometry: &part.geometry,
         });
@@ -210,6 +213,7 @@ pub fn world_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
         out.push(ModelSource {
             id: format!("stages/{}/objects/{index}", mission.stage.directory),
             role: Role::Prop,
+            hero_part: None,
             label: mission
                 .object_names
                 .get(index)
@@ -231,6 +235,7 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
             out.push(ModelSource {
                 id: format!("actors/{kind:04x}/{index}"),
                 role: Role::Actor,
+                hero_part: matches!(kind, 0 | 1).then_some(index).filter(|&i| i < 15),
                 label: format!(
                     "{}, part {index}",
                     mission
@@ -250,6 +255,7 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
         out.push(ModelSource {
             id: format!("weapons/{kind:04x}"),
             role: Role::Other,
+            hero_part: None,
             label: mission.weapons.names[&kind].clone(),
             geometry,
         });
@@ -257,6 +263,7 @@ fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
     for (&kind, geometry) in mission.common_models.iter() {
         out.push(ModelSource {
             id: format!("common/{kind}"),
+            hero_part: None,
             role: if kind == 26 {
                 Role::Grapple
             } else {

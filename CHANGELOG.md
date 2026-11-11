@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- **High-detail heroes** now covers T2 Rikimaru, Ayame and Tatsumaru outfits
+  in both games, including native T2 cutscenes and character overrides. Refined
+  surfaces preserve joint lengths, skinning and attachments; custom models are
+  retained. Native T2 exposes the setting in F1. Modern High/Ultra include it,
+  and Original keeps the authored geometry.
+
 - Native T2 supports F1's **Modern gunfire**: brief muzzle flashes and lights,
   drifting smoke and impact flashes follow the original shots. Effects retain
   finite lifetimes through saves, rewind and fast-forward. Modern High/Ultra

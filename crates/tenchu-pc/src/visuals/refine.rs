@@ -34,8 +34,13 @@ pub fn prepare_skinned(
     refine(vertices, levels, maximum, budget, false, skin);
 }
 
-pub fn preserve_height(vertices: &mut Vec<Vertex>, maximum: f32, budget: &mut usize) {
-    refine(vertices, 3, maximum, budget, true, &mut Vec::new());
+pub fn preserve_height(
+    vertices: &mut Vec<Vertex>,
+    maximum: f32,
+    budget: &mut usize,
+    skin: &mut Vec<Influence>,
+) {
+    refine(vertices, 3, maximum, budget, true, skin);
 }
 
 fn refine(

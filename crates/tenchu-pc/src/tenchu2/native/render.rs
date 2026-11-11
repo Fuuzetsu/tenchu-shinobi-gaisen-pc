@@ -789,11 +789,15 @@ fn sources<'a>(name: &str, parts: &'a [Part], role: Role) -> Vec<catalog::ModelS
     parts
         .iter()
         .enumerate()
-        .map(|(index, part)| catalog::ModelSource {
-            id: format!("tenchu2/{name}/{index}"),
-            role,
-            label: name.into(),
-            geometry: &part.geometry,
+        .map(|(index, part)| {
+            let id = format!("tenchu2/{name}/{index}");
+            catalog::ModelSource {
+                hero_part: crate::visuals::heroes::native_part(&id),
+                id,
+                role,
+                label: name.into(),
+                geometry: &part.geometry,
+            }
         })
         .collect()
 }
@@ -880,6 +884,7 @@ impl Models {
             if let Some(ids) = assets.model_sources.get(name) {
                 for (source, id) in model_sources.iter_mut().zip(ids) {
                     source.id.clone_from(id);
+                    source.hero_part = crate::visuals::heroes::part(id);
                 }
             }
             let mut meshes = build(&model.vram, model_sources, graphics)?;

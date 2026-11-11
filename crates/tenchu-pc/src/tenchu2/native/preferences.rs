@@ -25,13 +25,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         exposure: g.exposure,
         smooth_models: g.smooth_models,
         model_detail: g.model_detail,
-        models: crate::settings::Models {
-            characters: g.models.characters,
-            grapple: g.models.grapple,
-            foliage: g.models.foliage,
-            variation: g.models.variation,
-            ..Default::default()
-        },
+        models: g.models.clone(),
         blood: g.blood,
         weapon_reflections: g.weapon_reflections,
         motion: g.motion.clone(),

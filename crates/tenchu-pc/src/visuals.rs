@@ -6,7 +6,7 @@ pub mod death;
 #[cfg(not(target_arch = "wasm32"))]
 mod export;
 pub mod footprints;
-mod heroes;
+pub(crate) mod heroes;
 pub mod interpolation;
 pub mod lights;
 pub mod model_patch;

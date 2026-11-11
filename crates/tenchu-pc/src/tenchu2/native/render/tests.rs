@@ -1,6 +1,7 @@
 use super::*;
 use glam::Vec3;
 mod gaisen;
+mod heroes;
 
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; checks opaque night scenery independently of particles"]
@@ -779,6 +780,10 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
     let graphics = Graphics {
         fog: false,
         asset_pack: false,
+        models: crate::settings::Models {
+            heroes: true,
+            ..Default::default()
+        },
         motion: crate::settings::Motion {
             hair: true,
             cloth: true,
@@ -857,6 +862,47 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
                     .map(|&j| scene.world(j))
                     .collect::<tenchu_assets::Result<Vec<_>>>()?;
                 let target = custom.pose(&matrices, scene.models[rig.joints[0]].local);
+                let definition = session
+                    .assets
+                    .resources
+                    .registry
+                    .actor(actor.definition_kind())
+                    .unwrap();
+                let body = &session.assets.models[&definition.model];
+                let mut plain_graphics = graphics.clone();
+                plain_graphics.models.heroes = false;
+                let plain = custom::Player::new(
+                    "0000",
+                    &pack,
+                    &body.parts,
+                    &body.vram,
+                    &plain_graphics,
+                    renderer,
+                )?;
+                assert_eq!(
+                    plain.pose(&matrices, scene.models[rig.joints[0]].local),
+                    target
+                );
+                let posed = |player: &custom::Player| {
+                    player.appearance.meshes.pose_skin(&target, None);
+                    let mut vertices: Vec<Vertex> = Vec::new();
+                    for (part, &matrix) in player.appearance.parts.iter().zip(&target) {
+                        player.appearance.meshes.visit(
+                            &part.geometry,
+                            matrix,
+                            false,
+                            0,
+                            None,
+                            |t| vertices.extend(t),
+                        );
+                    }
+                    vertices
+                };
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&posed(custom)),
+                    bytemuck::cast_slice::<_, u8>(&posed(&plain)),
+                    "hero refinement changed custom geometry"
+                );
                 let point = |p: Position| Vec3::from(p.to_array().map(|v| v as f32));
                 for root in rig.weapons.iter().take(3).flat_map(|p| p.iter()) {
                     let parent = scene.models[*root].parent.unwrap();
@@ -953,14 +999,38 @@ fn native_custom_bodies_keep_source_state_and_weapon_attachments() {
 }
 
 #[test]
-#[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; shared refinement must preserve source state, palettes, joint motion and terrain"]
+#[ignore = "requires both discs, TENCHU_MODEL_REVIEW and GPU; shared refinement preserves native/imported source state, palettes, joint motion and terrain"]
 fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
     std::fs::create_dir_all(&output).unwrap();
-    for sequence in [9, 119, 191] {
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let mut library = crate::visuals::appearance::library::Library::load(&gaisen).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let mut donor = crate::tenchu2::native::models::donor(&gaisen).unwrap();
+    for (sequence, body) in [
+        (9, ""),
+        (119, ""),
+        (191, ""),
+        (119, "disc:1"),
+        (191, "tenchu2-jp:ayamea"),
+    ] {
         let mut session = super::super::Session::load(&disc, sequence, 17).unwrap();
+        session
+            .models
+            .sync(
+                &mut session.world,
+                &mut session.assets,
+                &mut donor,
+                &library,
+                &Default::default(),
+                &crate::settings::Settings {
+                    player_model: body.into(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
         for tick in 0..60 {
             let buttons = if tick < 10 {
                 tenchu_core::tenchu2::input::UP
@@ -977,18 +1047,22 @@ fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() 
         let mut camera = crate::debug::camera::Camera::from_view(session.world.camera.view, 300.0);
         camera.focus(center, false);
         let mut results: Vec<Geometry> = Vec::new();
-        for mode in 0..5 {
+        for mode in 0..6 {
             let mut settings = crate::settings::Settings::default();
             settings.graphics.fog = false;
             settings.graphics.smooth_models = (1..4).contains(&mode);
             settings.graphics.model_detail = if mode == 2 { 2 } else { 0 };
             settings.graphics.models.characters = if mode == 3 { 2 } else { 0 };
+            settings.graphics.models.heroes = mode == 4;
             settings.graphics.lighting.directional.intensity = 60;
             let graphics = super::super::preferences::graphics(&settings);
             capture_frame(
                 &session.assets.sprites.vram,
                 &graphics,
-                &output.join(format!("jp-refinement-s{sequence}-{mode}.png")),
+                &output.join(format!(
+                    "jp-refinement-s{sequence}-{}-{mode}.png",
+                    body.replace(':', "-")
+                )),
                 |renderer| {
                     let mut drawing = Drawing::new(&session, &graphics, renderer)?;
                     let geometry = drawing.models.geometry(
@@ -1026,7 +1100,7 @@ fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() 
                 .zip(&results[1].actors)
                 .any(|(a, b)| a.normal != b.normal)
         );
-        for refined in &results[2..4] {
+        for refined in &results[2..5] {
             assert!(refined.actors.len() > baseline.actors.len());
             assert_eq!(refined.terrain.len(), baseline.terrain.len());
             assert!(
@@ -1053,7 +1127,7 @@ fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() 
         }
         assert_eq!(
             bytemuck::cast_slice::<_, u8>(&baseline.actors),
-            bytemuck::cast_slice::<_, u8>(&results[4].actors)
+            bytemuck::cast_slice::<_, u8>(&results[5].actors)
         );
         assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
     }

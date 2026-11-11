@@ -27,7 +27,7 @@ fn native_story_equipment_follows_selection_and_authored_state() {
                 let Some(actor) = resources
                     .models
                     .get(&track.model)
-                    .filter(|a| is_hero(&a.name, hero))
+                    .filter(|a| tenchu_assets::tenchu2::characters::hero(&a.name) == Some(hero))
                 else {
                     continue;
                 };
