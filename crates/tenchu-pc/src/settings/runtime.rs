@@ -137,6 +137,12 @@ impl Runtime {
             EnglishShuriken => Some(
                 "This corrects T1's English Crimson Blade shop label. Native T2 JP uses its own Japanese item names, so the correction does not apply.",
             ),
+            Lightning => Some(
+                "This redraws Mei-Oh's T1 lightning attack. Native T2 does not emit that effect; weather lightning is controlled separately under Weather.",
+            ),
+            BurningSpatial | BurningVolume | BurningRange => Some(
+                "These controls change T1's repeating burning-body crackle. Native T2's burn effect does not emit that loop; its original fire and injury sounds are unchanged.",
+            ),
             IndependentAttacks => Some(
                 "Native T2 already gives each fighter its own attack cooldown. This option removes T1's shared cooldown and is not needed here.",
             ),

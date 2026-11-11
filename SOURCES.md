@@ -18,6 +18,19 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 effect-control applicability (2026-11-12)
+
+The shared Modern lightning control renders T1 Mei-Oh projectiles, distinct
+from the optional weather lightning already supported in native T2. The burning
+sound controls adjust T1's repeated effect `0x39` in `actor/shadow.rs` and
+`audio.rs`. JP `GAME.EXE` burn construction at `0x8003f580..0x8003f7dc` calls the
+sprite allocator at `0x8003d6b8`; its update at `0x8003d708..0x8003db48` performs
+motion, projection, drawing and release without a repeating sound call. Burn
+sprites use the source linear motion, as covered by the existing sprite oracle.
+Native injury/fire cues have separate ownership. F1 now describes these source
+differences instead of presenting the four rows as unfinished native features.
+No source behavior or new effect was added.
+
 ## Native and imported T2 high-detail heroes (2026-11-12)
 
 The port's existing `visuals/heroes.rs` and scalar bounded subdivision now serve

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 explains why the T1 Mei-Oh lightning and burning-body crackle controls do
+  not apply to native T2. Weather lightning and native fire sounds remain
+  separate.
+
 - **High-detail heroes** now covers T2 Rikimaru, Ayame and Tatsumaru outfits
   in both games, including native T2 cutscenes and character overrides. Refined
   surfaces preserve joint lengths, skinning and attachments; custom models are
