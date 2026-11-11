@@ -54,6 +54,19 @@ pub struct Surfaces {
 }
 
 impl Surfaces {
+    pub fn stage(
+        mission: &tenchu_assets::stage::MissionAssets,
+        math: &tenchu_core::math::Math,
+        models: Option<&super::models::Models>,
+    ) -> Self {
+        // Blended TMD faces can be solid ground (Mission 4), so use all casters.
+        let mut vertices = crate::render_mesh::shadow_stage(mission, math, models);
+        for vertex in &mut vertices {
+            vertex.flags |= crate::render_mesh::FOG;
+        }
+        Self::new(&vertices)
+    }
+
     pub fn contains(&self, flags: u32) -> bool {
         self.flags & flags == flags
     }

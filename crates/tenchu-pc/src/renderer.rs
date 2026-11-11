@@ -943,7 +943,13 @@ impl Renderer {
                 pass.draw(0..sky.count, 0..1);
             }
             for background in meshes.backgrounds {
-                draw_effects(&mut pass, &self.pipelines.effects, background, None);
+                draw_effects(
+                    &mut pass,
+                    &self.pipelines.effects,
+                    background,
+                    None,
+                    EffectPass::All,
+                );
             }
             let mark = |pass: &mut wgpu::RenderPass<'_>, stage| {
                 if let Some(timer) = &self.timings {
@@ -985,6 +991,17 @@ impl Renderer {
                     }
                 }
                 mark(&mut pass, stage);
+            }
+            // Blended TMDs also contain opaque terrain texels. Establish their
+            // color and depth before drawing decals on those surfaces.
+            if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
+                draw_effects(
+                    &mut pass,
+                    &self.pipelines.effects,
+                    effects,
+                    Some(false),
+                    EffectPass::Opaque,
+                );
             }
             if blood_pass {
                 drop(pass);
@@ -1037,13 +1054,25 @@ impl Renderer {
             }
             mark(&mut pass, timing::SceneStage::Decals);
             if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
-                draw_effects(&mut pass, &self.pipelines.effects, effects, Some(false));
+                draw_effects(
+                    &mut pass,
+                    &self.pipelines.effects,
+                    effects,
+                    Some(false),
+                    EffectPass::Blended,
+                );
             }
             mark(&mut pass, timing::SceneStage::Effects);
             if self.post.is_none()
                 && let Some(effects) = effects.filter(|e| e.mesh.count != 0)
             {
-                draw_effects(&mut pass, &self.pipelines.effects, effects, Some(true));
+                draw_effects(
+                    &mut pass,
+                    &self.pipelines.effects,
+                    effects,
+                    Some(true),
+                    EffectPass::All,
+                );
             }
             mark(&mut pass, timing::SceneStage::Overlays);
         }
@@ -1083,7 +1112,13 @@ impl Renderer {
             pass.set_bind_group(0, &self.bindings, &[]);
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
             pass.set_bind_group(2, &self.materials.bindings, &[]);
-            draw_effects(&mut pass, &self.overlay_effects, effects, Some(true));
+            draw_effects(
+                &mut pass,
+                &self.overlay_effects,
+                effects,
+                Some(true),
+                EffectPass::All,
+            );
         }
         if let Some(timer) = &self.timings {
             timer.resolve(&mut encoder);
@@ -1096,11 +1131,18 @@ impl Renderer {
     }
 }
 
+enum EffectPass {
+    All,
+    Opaque,
+    Blended,
+}
+
 fn draw_effects(
     pass: &mut wgpu::RenderPass<'_>,
     pipelines: &[wgpu::RenderPipeline; 6],
     effects: &EffectMesh,
     overlay: Option<bool>,
+    phase: EffectPass,
 ) {
     effects.mesh.bind(pass);
     let ranges = overlay.map(|overlay| &effects.ranges[usize::from(overlay)]);
@@ -1117,11 +1159,14 @@ fn draw_effects(
             pass.draw(range, 0..1);
         }
     };
-    if !effects.opaque_ranges.is_empty() {
+    if !matches!(phase, EffectPass::Blended) && !effects.opaque_ranges.is_empty() {
         pass.set_pipeline(&pipelines[0]);
         for range in &effects.opaque_ranges {
             draw(pass, range.clone());
         }
+    }
+    if matches!(phase, EffectPass::Opaque) {
+        return;
     }
     for batch in &effects.batches {
         if batch.blend == 0 {

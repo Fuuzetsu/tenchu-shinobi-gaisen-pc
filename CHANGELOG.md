@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix retained ground blood disappearing along Mission 4's route after the
+  first boss (#65). Stains and wound drips now recognize the blended ground
+  polygons, and the renderer draws their opaque texels before the stains.
+  Original, Original HD and Modern stains remain on the actual ground.
+
 - Fix a native T2 weapon-clash crash when all-active mode or placed actors
   produce more than 64 overlapping collision entries. Clashes retain their
   original order and process contacts beyond the original pool size.

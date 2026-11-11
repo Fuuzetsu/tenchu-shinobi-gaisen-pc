@@ -1364,6 +1364,22 @@ unarmed import/export remain outstanding. Graphical presets are unchanged.
 
 ## Optional effects and geometry refinement (2026-10-24)
 
+Mission 4 ground-blood fix (#65, 2026-11-11): the reported Gaisen stage9 position
+`(-49197,8000,2251)` lies on an unlit blended TMD quad (mode`0x3f`, flags`1`).
+The ordinary opaque stage mesh excludes that quad, although the effects pass
+renders its opaque texture pixels. Presentation surface queries now reuse the
+existing full shadow-caster traversal, with fog retained for projected stains.
+The renderer establishes opaque effect color/depth before retained decals and
+draws blended fragments afterward. Core terrain, effect lifetimes and RNG are
+unchanged; no mission-specific surface or gameplay workaround was added.
+`tenchu-decomp/src/main.exe/EFFECT.C::DrawBlood`, the corresponding research-tree
+source and `DrawTMD.s` confirm source contact/lifetime and primitive traversal;
+`tenchu-viewer/src/mesh.rs` and `effects.rs` supply the existing geometry/sprite
+reference. These sibling repositories were only read; no code was imported.
+Private route fixtures cover original and prepared meshes, three retained styles,
+wound drops and five actual positions; GPU checks cover opaque/blended terrain,
+cutouts, foreground occlusion and postprocessing. Captures remain outside Git.
+
 Persistent stains, surface queries, weather particles/coatings, the sky clock,
 water shading/curves and secondary-motion springs are new presentation code for
 this port. They consume original game state without changing core simulation.

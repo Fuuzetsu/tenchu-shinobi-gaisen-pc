@@ -1,6 +1,89 @@
 use super::*;
 
 #[test]
+#[ignore = "requires a GPU; retained stains on opaque texels of blended terrain match ordinary terrain"]
+fn blended_terrain_keeps_retained_stains_and_foreground_occlusion() {
+    use crate::visuals::surfaces::{Stamp, Surfaces};
+    use std::sync::Arc;
+
+    let mut vram = Vram::default();
+    vram.words[0] = 0x7fff;
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let source = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    let ground = renderer.upload(&source);
+    let background = renderer.upload(&rectangle(1500, 102, None, false, false, false));
+    let foreground = renderer.upload(&rectangle(800, 60, None, false, false, false));
+    let page = Arc::new(Surfaces::new(&source).project(&Stamp {
+        center: glam::Vec3::new(0.0, 0.0, 1000.0),
+        normal: glam::Vec3::NEG_Z,
+        radius: 400.0,
+        depth: 1.0,
+        seed: 0,
+        shape: None,
+    }));
+    for post in [false, true] {
+        let mut graphics = crate::settings::Graphics::default();
+        graphics.post.enabled = post;
+        renderer.configure(&graphics);
+        for texel in [0x7fff, 0] {
+            vram.words[0] = texel;
+            renderer.update_vram(&vram);
+            for occluded in [false, true] {
+                let mut meshes = vec![&background, &ground];
+                if occluded {
+                    meshes.push(&foreground);
+                }
+                renderer.set_decals(std::iter::empty());
+                renderer.draw(&view, camera, &meshes, None).unwrap();
+                let clean = read_pixels(&renderer, &target);
+                renderer.set_decals([&page]);
+                renderer.draw(&view, camera, &meshes, None).unwrap();
+                let expected = read_pixels(&renderer, &target);
+                if texel != 0 && !occluded {
+                    assert_ne!(expected, clean);
+                } else {
+                    assert_eq!(expected, clean);
+                }
+                meshes.retain(|m| !std::ptr::eq(*m, &ground));
+                for blend in 1..=4 {
+                    let mut vertices = source.clone();
+                    for vertex in &mut vertices {
+                        vertex.flags |= render_mesh::TRANSLUCENT | render_mesh::SCENERY;
+                    }
+                    let effects = renderer.upload_effects(render_effects::Geometry {
+                        batches: vec![render_effects::Batch {
+                            blend,
+                            range: 0..vertices.len() as u32,
+                        }],
+                        vertices,
+                    });
+                    renderer
+                        .draw(&view, camera, &meshes, Some(&effects))
+                        .unwrap();
+                    assert_eq!(
+                        read_pixels(&renderer, &target),
+                        expected,
+                        "blend={blend}, post={post}, texel={texel:x}, occluded={occluded}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a GPU; specialised ground blood must preserve surface textures, alpha order, snow and fallback styles"]
 fn projected_blood_shader_preserves_surface_flags_and_blending() {
     use crate::visuals::surfaces::{Stamp, Surfaces};

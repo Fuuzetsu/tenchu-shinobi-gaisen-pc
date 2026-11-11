@@ -30,6 +30,8 @@ mod runoff;
 mod severed;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use severed::Source as SeveredSource;
+#[cfg(test)]
+mod mission_four;
 mod storage;
 mod weapons;
 mod wounds;

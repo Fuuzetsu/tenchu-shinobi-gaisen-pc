@@ -92,11 +92,7 @@ impl View {
         game: &Game,
     ) -> &crate::visuals::surfaces::Surfaces {
         self.surfaces.get_or_insert_with(|| {
-            crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
-                &game.mission,
-                &game.math,
-                Some(&self.models),
-            ))
+            crate::visuals::surfaces::Surfaces::stage(&game.mission, &game.math, Some(&self.models))
         })
     }
     pub(super) fn diagnostic_snapshot(&self) -> serde_json::Value {
@@ -181,11 +177,11 @@ impl View {
         let contact = settings.graphics.effects.active();
         if blood || weather || footprints || contact {
             let surfaces = self.surfaces.get_or_insert_with(|| {
-                crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
+                crate::visuals::surfaces::Surfaces::stage(
                     &game.mission,
                     &game.math,
                     Some(&self.models),
-                ))
+                )
             });
             if blood {
                 self.blood.tick(
