@@ -881,3 +881,4 @@ fn native_heroes_restore_their_weapons_and_movement() {
 }
 
 mod equipment;
+mod sheathing;

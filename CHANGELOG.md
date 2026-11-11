@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Selecting T1 Rikimaru or Ayame no longer replaces the sheathed idle with
+  their rigid neutral pose. T1 keeps its optional sheathing fallback, and T2
+  keeps its native sheathed idle. Draw, sheathe and attack animations still
+  follow the selected moveset where it supplies them.
+- Fix HD replacement blades appearing through the sheaths when T1 heroes
+  stow their weapons. Stowed grips now use separate geometry from drawn weapons.
+- T2 movesets in T1 now use their own turn speed, including T2's slower
+  forward turning and straight backward movement while sheathed. **Keep player
+  movement** retains T1's movement behavior and turn speed.
+
 - Fix retained ground blood disappearing along Mission 4's route after the
   first boss (#65). Stains and wound drips now recognize the blended ground
   polygons, and the renderer draws their opaque texels before the stains.

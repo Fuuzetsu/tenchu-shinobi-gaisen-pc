@@ -6,7 +6,7 @@ pub fn metal_weapon(id: &str) -> bool {
     id.starts_with("tenchu2/weapons/")
         || id
             .strip_prefix("weapons/")
-            .and_then(|id| i16::from_str_radix(id, 16).ok())
+            .and_then(|id| i16::from_str_radix(id.strip_suffix("/grip").unwrap_or(id), 16).ok())
             .is_some_and(|kind| !matches!(kind, CLAW | FIST | JAW))
 }
 

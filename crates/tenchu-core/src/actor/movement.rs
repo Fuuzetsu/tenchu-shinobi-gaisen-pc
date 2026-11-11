@@ -323,6 +323,11 @@ impl Actor {
         center: Position,
     ) -> Result<Option<(i16, bool)>> {
         let turn = ctx.mission.characters[self.definition].turn;
+        let imported = self.imported_circle_guard
+            && self
+                .sheathing_motions
+                .iter()
+                .any(|&(action, _)| action == self.motion.action);
         let mut pending = None;
         match self.motion.action {
             MOT_MOVE => {
@@ -341,6 +346,7 @@ impl Actor {
                         self.map.height = height;
                     }
                 } else if held & (LEFT | RIGHT) != 0 {
+                    let turn = if imported { turn / 2 } else { turn };
                     self.rotation[1] =
                         self.rotation[1].wrapping_add(if held & RIGHT != 0 { turn } else { -turn });
                     self.motion_velocity(ctx);
@@ -353,10 +359,13 @@ impl Actor {
                 if held & DOWN == 0 {
                     pending = Some((MOT_NORMAL, true));
                 }
-                // The retail backward walk takes the left branch even without a turn button.
-                self.rotation[1] =
-                    self.rotation[1].wrapping_add(if held & RIGHT != 0 { turn } else { -turn });
-                self.motion_velocity(ctx);
+                if !imported || held & DOWN != 0 && held & (LEFT | RIGHT) != 0 {
+                    let turn = if imported { turn.wrapping_mul(2) } else { turn };
+                    // Gaisen takes the left branch even without a turn button.
+                    self.rotation[1] =
+                        self.rotation[1].wrapping_add(if held & RIGHT != 0 { turn } else { -turn });
+                    self.motion_velocity(ctx);
+                }
             }
             MOT_MOVE_DASH_FWD..=MOT_MOVE_DASH_LEFT => {
                 if self.motion.count == 1 {

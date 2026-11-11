@@ -3558,3 +3558,37 @@ the shared contact history and environment accept story sprites without a
 gameplay World. This preserves existing blood style, retention, pool and Modern
 preset behavior. All scene meshes/portraits keep their independent textures.
 No copyrighted assets, captured state or private oracle outputs are committed.
+
+
+### Imported hero idle, stowed grips and turning (2026-11-11)
+
+Gaisen's original Rikimaru/Ayame definitions register static neutral clip509
+for `MOT_NORMAL`, but spawn armed (also reflected by the read-only viewer's
+weapon attachment catalog). Treating that registration as a sheathed idle
+overrode both the optional Gaisen NINJAB/KUNOITI fallback and native T2's
+standing clip. Only those two T1 hero neutral registrations yield to the host
+sheathing fallback; source-owned draw, stow and T2 neutral clips still win.
+No motion keys were invented or imported from sibling repositories.
+
+The original NINJA/KODATI grip subsets already exclude blade faces. Rendering
+registered them under the full weapon's artwork ID, allowing a full HD mesh
+to reintroduce the blade. Derived grips now use `weapons/<kind>/grip` identities,
+retaining texture identity and metal classification separately from the full
+weapon replacement. Full drawn weapons and source collision stay unchanged.
+
+Gaisen moveset selection now copies the selected character's source turn value
+unless Keep player movement is requested. The native JP heroes use40 angle
+units per update, compared with Gaisen Rikimaru50/Ayame60. For imported T2
+sheathed locomotion, forward turning uses half that value, backward turning
+uses twice it, and a backward walk without a turn button stays straight, as in
+JP `800238a4` / `80023f98`. Gaisen's original backward-walk left-turn glitch
+remains in its own controller path. The existing scalar MOTION.C implementations
+in the two read-only decompilation repositories and the verified native standing
+controller are the references; no sibling files were changed.
+
+Disc-backed regression fixtures compare turning against native T2 updates,
+exercise both original protagonists and all three imported heroes, retain the
+host movement override, and check sheathed poses, source attacks and checkpoint
+restoration. A replacement-mesh regression reproduces the hidden-blade failure
+and checks both ordinary and weapon-material rendering paths. Visual evidence
+is kept outside Git. These fixtures do not represent a full ordinary playthrough.

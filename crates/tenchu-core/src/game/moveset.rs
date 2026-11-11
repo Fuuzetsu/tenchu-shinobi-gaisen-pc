@@ -156,6 +156,9 @@ impl Game {
         let base = &self.mission.characters[original];
         let replacement = character.map(|source| {
             let mut result = base.clone();
+            if !options.player_movement {
+                result.turn = source.turn;
+            }
             let owns_attack = source.motions.iter().any(|r| r.action == MOT_ATTACK && clips.iter().any(|c| c.id == r.clip));
             if owns_attack {
                 result.weapon = source.weapon;
@@ -206,6 +209,7 @@ impl Game {
         actor.sheathing_motions = character
             .into_iter()
             .flat_map(|source| &source.motions)
+            .filter(|r| kind.is_none_or(|kind| !placeholder_idle(kind, r.action)))
             .filter(|r| {
                 matches!(
                     r.action,
@@ -260,6 +264,11 @@ fn is_movement(action: i16) -> bool {
         | MOT_SQUAT..=MOT_SQUAT_BACKFLIP
         | MOT_STICKON..=MOT_STICKON_SLIDE_R
     )
+}
+
+pub fn placeholder_idle(kind: i16, action: i16) -> bool {
+    // T1 heroes start armed; their neutral registration is a static attention pose.
+    matches!(kind, 0 | 1) && action == MOT_NORMAL
 }
 
 // Gaisen actions with an equivalent in T2's standing, crouch, jump and melee

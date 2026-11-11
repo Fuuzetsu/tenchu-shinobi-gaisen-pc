@@ -60,7 +60,7 @@ impl Models {
             let mut sources = catalog::models(mission);
             sources.extend(mission.weapons.grips.iter().map(|(&kind, geometry)| {
                 catalog::ModelSource {
-                    id: format!("weapons/{kind:04x}"),
+                    id: format!("weapons/{kind:04x}/grip"),
                     role: catalog::Role::Other,
                     label: mission.weapons.names[&kind].clone(),
                     geometry,

@@ -106,6 +106,9 @@ pub(super) fn convert_moves(
             .retain(|r| !(0x900..0x916).contains(&r.action));
     }
     for &(gaisen, native) in T2_ACTIONS {
+        if tenchu_core::game::moveset::placeholder_idle(character.kind, gaisen) {
+            continue;
+        }
         if options.player_movement
             && native < 0x900
             && !matches!(native, 0 | 0x100 | 0x110 | 0x700 | 0x701)

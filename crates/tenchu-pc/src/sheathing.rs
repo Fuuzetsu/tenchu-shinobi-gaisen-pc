@@ -1,5 +1,8 @@
 pub mod imports;
 
+#[cfg(test)]
+mod report;
+
 use tenchu_assets::{ReadAt, Result, executable::Executable, game::GameAssets};
 use tenchu_core::{
     game::{
