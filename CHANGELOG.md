@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.30.0 — 2026-11-11
+
 - **F1 → General → Benchmarks** now runs native T2 scenes in both hosts,
   including automatic graphics tuning. The active campaign or randomizer stays
   untouched; returning preserves weather, cloth and wound effects. The existing
