@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Native T2's F1 menu explains why T1 shop-room lighting and the English
+  **Crimson Blade → Shuriken** correction do not apply to its equipment screen.
+
 ## 0.29.0 — 2026-11-11
 
 - Fix blue-tinted T2 guards, player models and weapons on imported T1 stages.

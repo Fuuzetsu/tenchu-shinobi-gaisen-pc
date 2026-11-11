@@ -131,6 +131,12 @@ impl Runtime {
             return None;
         }
         match item {
+            ShopLighting => Some(
+                "This relights the room in T1's equipment-screen artwork. Native T2 uses a different equipment screen without that room.",
+            ),
+            EnglishShuriken => Some(
+                "This corrects T1's English Crimson Blade shop label. Native T2 JP uses its own Japanese item names, so the correction does not apply.",
+            ),
             IndependentAttacks => Some(
                 "Native T2 already gives each fighter its own attack cooldown. This option removes T1's shared cooldown and is not needed here.",
             ),
