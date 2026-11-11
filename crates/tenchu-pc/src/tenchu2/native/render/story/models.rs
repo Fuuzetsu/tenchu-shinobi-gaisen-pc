@@ -14,11 +14,17 @@ use crate::{
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::Result;
 use tenchu_core::math::Matrix;
+use tenchu_core::tenchu2::{
+    effects::shadow::{IMAGE, Shadow},
+    terrain::{self, Cursor, Query},
+    world::Foot,
+};
 
 pub(super) struct Models {
     pub(super) terrain: Meshes,
     lamps: crate::visuals::lights::Emitters,
     actors: BTreeMap<i16, Meshes>,
+    shadow_widths: BTreeMap<i16, i16>,
     weapons: BTreeMap<String, Meshes>,
     textures: Vec<AnimatedTextures>,
     overrides: BTreeMap<i16, super::super::custom::Player>,
@@ -74,8 +80,16 @@ impl Models {
         terrain.detach_textures();
         renderer.bind_meshes(&mut terrain);
         let mut actors = BTreeMap::new();
+        let mut shadow_widths = BTreeMap::new();
         let mut textures = Vec::new();
         for (&id, model) in &resources.models {
+            if (0..106).contains(&id) && id != 0x4b {
+                let bounds = tenchu_core::tenchu2::actor::model_bounds(&model.parts)?;
+                let width = bounds[0].wrapping_add(bounds[2]);
+                if width != 0 {
+                    shadow_widths.insert(id, width);
+                }
+            }
             let directory = match id {
                 0..=105 | 290..=293 => "actors",
                 106..=231 => "weapons",
@@ -220,6 +234,7 @@ impl Models {
             terrain,
             lamps,
             actors,
+            shadow_widths,
             weapons,
             textures,
             overrides,
@@ -279,6 +294,7 @@ impl Models {
                 ModelStyle::Prop,
             );
         }
+        let mut shadow_cursor = story.state.effects.cursor.clone();
         for slot in 0..resources.script.actors.len() {
             let Some(actor) = self.actor(story, slot, pose)? else {
                 continue;
@@ -300,6 +316,16 @@ impl Models {
                     actor.style,
                     deformation.as_ref(),
                 );
+            }
+            if renderer.graphics().blob_shadows
+                && let Some(&width) = self.shadow_widths.get(&actor.id)
+                && let Some(shadow) = actor.shadow(story, width, &mut shadow_cursor)?
+                && (camera.is_some()
+                    || !renderer.graphics().fog
+                    || renderer.graphics().fog_distance > 100
+                    || shadow.visible(story.state.view, level.draw_distance))
+            {
+                output.shadow(&shadow, story.sprites.effects[usize::from(IMAGE)]);
             }
             if let Some(equipment) = self.equipment.get(&slot) {
                 for gear in equipment {
@@ -460,6 +486,32 @@ struct Actor<'a> {
 }
 
 impl Actor<'_> {
+    fn shadow(&self, story: &Story, width: i16, cursor: &mut Cursor) -> Result<Option<Shadow>> {
+        let joints = [
+            8,
+            if matches!(self.id, 0x20 | 0x21 | 0x48 | 0x49) {
+                11
+            } else {
+                14
+            },
+        ];
+        let mut feet = [Foot::default(); 2];
+        for (foot, joint) in feet.iter_mut().zip(joints) {
+            if self.original.as_ref().unwrap_or(&self.matrices).len() <= joint {
+                return Err("Missing Tenchu 2 cutscene shadow joint".into());
+            }
+            foot.position = self.attachment(joint).translation;
+            let mut probe = foot.position;
+            probe.y = probe.y.wrapping_sub(500);
+            foot.floor = terrain::level(&story.level.collision, cursor, probe, Query::Surface)?;
+        }
+        Ok(if feet.iter().all(|foot| foot.floor.is_some()) {
+            Shadow::new(&feet, width, &story.math)
+        } else {
+            None
+        })
+    }
+
     fn key(&self, slot: usize, joint: usize) -> crate::visuals::interpolation::Part {
         let joint = if self.original.is_some() {
             tenchu_assets::tenchu2::BONES[joint]

@@ -65,6 +65,8 @@ impl Runtime {
             "Tatsumaru uses the current Japanese T2 disc, including its original hit frames and striking limbs. Onikage uses your connected Gaisen disc. The style changes after the active attack finishes; your armed moveset is retained."
         } else if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
+        } else if self == Self::Tenchu2 && item == Item::BlobShadows {
+            "T2's original ground shadow beneath living characters, shaped by their native foot contacts and floor heights. Also works on imported T1 stages and follows the authored rules in cutscenes. Separate from dynamic model shadows; changes drawing only."
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
             "Add a pool beneath the player's finished, grounded corpse when the native death has no pool. Uses the death style, size and retention settings. Existing source pools still follow Death pool / star; this option does not duplicate them."
         } else if self == Self::Tenchu2 && item == Item::DistantDoors {
@@ -213,7 +215,7 @@ impl Runtime {
             | NightAmbient
             | SunPath
             | DayRelighting => None,
-            LampLights | DistantDoors => None,
+            LampLights | DistantDoors | BlobShadows => None,
             Weather | WeatherAmount | WeatherWind | WeatherHeading | WeatherQuality
             | WeatherDistance | Wetness | RainReflections | PuddleCoverage | PoolingSpeed
             | RainHaze | RainStreaks | SnowCover | SnowDrift | Footprints | FootprintSeconds

@@ -41,6 +41,7 @@ mod motion;
 mod particles;
 mod scenery;
 mod scrolling;
+mod shadows;
 #[cfg(not(target_arch = "wasm32"))]
 mod sprites;
 #[cfg(not(target_arch = "wasm32"))]
@@ -1055,6 +1056,13 @@ impl Models {
                 output.deformed_model(meshes, part, matrix, style, deformation.as_ref());
             },
         )?;
+        if graphics.blob_shadows {
+            output.shadows(
+                world,
+                assets,
+                camera.is_none() && graphics.fog && graphics.fog_distance <= 100,
+            );
+        }
         let mut rope = None;
         if let Some(hook) = world.items.grapple() {
             if let Some(parts) = assets.items.model(0) {

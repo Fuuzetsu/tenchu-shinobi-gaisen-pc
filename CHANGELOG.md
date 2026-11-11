@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore T2's original ground shadows in gameplay and 3D cutscenes, including
+  T1 stages played with T2 rules. Shadows follow the native feet and terrain,
+  and remain visible on coplanar floors. F1's **Original blob shadows** now
+  controls them; Modern High/Ultra keep using their existing model shadows.
+
 - F1 explains why the T1 Mei-Oh lightning and burning-body crackle controls do
   not apply to native T2. Weather lightning and native fire sounds remain
   separate.

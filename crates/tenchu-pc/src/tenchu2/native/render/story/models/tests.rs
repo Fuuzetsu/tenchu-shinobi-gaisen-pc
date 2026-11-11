@@ -4,6 +4,83 @@ use crate::visuals::{appearance::library::Library, pack::Pack};
 use tenchu_assets::tenchu2::campaign::{Campaign, Kind};
 
 #[test]
+#[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; cutscene ground shadows use authored feet and restore without advancing playback"]
+fn cutscene_ground_shadows_preserve_playback_and_restore_exactly() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    for (sequence, event, ticks) in [(0, 201, 600), (10, 4, 360)] {
+        let mut story = Story::load(&disc, sequence, event, 17).unwrap();
+        for _ in 0..ticks {
+            story.step(true).unwrap();
+        }
+        let state = postcard::to_allocvec(&story.state).unwrap();
+        let mut images = Vec::new();
+        for (label, enabled) in [("before", false), ("after", true), ("reset", false)] {
+            let graphics = Graphics {
+                blob_shadows: enabled,
+                asset_pack: false,
+                fog: false,
+                ..Default::default()
+            };
+            let path = output.join(format!("story-shadow-{event}-{label}.png"));
+            super::super::super::capture_frame(&story.sprites.vram, &graphics, &path, |renderer| {
+                let mut models = Models::new(&story, &graphics, renderer)?;
+                let mut cursor = story.state.effects.cursor.clone();
+                let mut center = None;
+                for slot in 0..story.resources.script.actors.len() {
+                    let Some(actor) = models.actor(&story, slot, None)? else {
+                        continue;
+                    };
+                    let Some(&width) = models.shadow_widths.get(&actor.id) else {
+                        continue;
+                    };
+                    if let Some(shadow) = actor.shadow(&story, width, &mut cursor)? {
+                        center = Some(glam::Vec3::from_array(
+                            shadow.position.to_array().map(|v| v as f32),
+                        ));
+                        break;
+                    }
+                }
+                let center = center.expect("no eligible cutscene actor on the floor");
+                let source = crate::debug::camera::Camera::from_view(story.state.view, 300.0);
+                let mut eye = center + (source.position - center).normalize() * 2400.0;
+                eye.y = center.y - 1500.0;
+                let forward = (center - eye).normalize();
+                let camera = crate::debug::camera::Camera {
+                    position: eye,
+                    yaw: forward.x.atan2(forward.z),
+                    pitch: (-forward.y).asin(),
+                    fov: 45.0,
+                };
+                let (geometry, _) = models.geometry(&story, renderer, Some(camera), None, None)?;
+                Ok((
+                    super::super::super::SceneDrawing::new(geometry, renderer, &story.level),
+                    camera.source_view(),
+                    Vec::new(),
+                ))
+            })
+            .unwrap();
+            assert_eq!(state, postcard::to_allocvec(&story.state).unwrap());
+            images.push(crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap());
+        }
+        assert_eq!(images[0].rgba, images[2].rgba, "reset event {event}");
+        let darker = images[0]
+            .rgba
+            .chunks_exact(4)
+            .zip(images[1].rgba.chunks_exact(4))
+            .filter(|(a, b)| {
+                (0..3).any(|i| u16::from(b[i]) + 5 < u16::from(a[i]))
+                    && (0..3).all(|i| b[i] <= a[i])
+            })
+            .count();
+        assert!(darker > 50, "event {event}: {darker} darker pixels");
+        eprintln!("event {event}: {darker} darker pixels");
+    }
+}
+
+#[test]
 #[ignore = "requires both discs, TENCHU_MODEL_REVIEW and GPU; hero-only cutscene body overrides preserve scripts and attachments"]
 fn native_story_model_override_preserves_cast_and_playback() {
     let disc =

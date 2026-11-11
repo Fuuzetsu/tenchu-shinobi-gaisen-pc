@@ -410,6 +410,11 @@ cutscenes, use the shared terrain/model shadows, and remain presentation-only.
 The visual clock follows simulation time, including pause and fast-forward;
 changing models or artwork preserves it.
 
+**Original blob shadows** draws T2's original foot-contact shadow beneath living
+characters, including on imported T1 stages, and follows the authored shadow
+rules in 3D cutscenes. Original enables it; Modern High/Ultra disable it
+in favor of their model shadows. The toggle changes drawing only.
+
 **F1 → Overlays** provides hitboxes, actor labels and the actor inspector, with
 X-ray and photo-mode handling. The boxes come from native collision slots.
 Terrain/collision, patrol routes, mission destinations and surface triggers also

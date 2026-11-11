@@ -18,6 +18,39 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 ground shadows (2026-11-12)
+
+JP `GAME.EXE` `8001c8f0` draws shadows for visible, living actors outside kind
+group `0x70`, after the body and before its weapons. `8003fdb8` passes the two
+cached foot records and actor width to `8003fddc`. The port already retained
+those records from `8001cbb8`; it now follows the omitted drawing calculation:
+maximum foot/floor Y, midpoint, three-quarter separation, 1024-unit vertical
+cutoff, source VectorNormalSS and minimum length, and the half-width cross axis.
+Signed narrowing and arithmetic shifts remain in source order. Original camera
+screen/depth gates use the existing source projection; extended views retain the
+same geometry. Gameplay consumes the existing contacts without new terrain
+queries, actor updates, RNG or saved state.
+
+JP `EVENT.BIN` `800d1c78` obtains cutscene shadow widths from `8002f11c` model
+bounds (X + Z), excluding model `0x4b` and IDs 106 onward. `800d2e6c` queries
+the floor 500 units above joints 8 and 14 (11 for models `0x20`, `0x21`, `0x48`,
+`0x49`) and calls the same shadow routine only when both floors exist. The
+unadjusted joint positions feed the geometry. The renderer uses a private
+collision cursor, leaving playback/effect state unchanged. Imported bodies
+reuse the existing attachment retargeting for their displayed feet.
+
+`8003a44c` loads effect image 28 into the GT4 template at `800c5510` through
+`8004324c` with mode 6. `80043a68` submits the four corners with semi-transparency,
+giving the subtractive blend used by the shared renderer. A one-unit rendering
+offset preserves the source ordering-table overlay on coplanar floors, including
+blended imported T1 faces; collision and source geometry retain their exact heights.
+The texture comes from
+the user's disc. Gaisen EFFECT.C/DrawShadow was reviewed read-only to distinguish
+its separate model-based shadow; that T1 implementation remains unchanged.
+Modern High/Ultra already disable blob shadows in favor of model shadows. The
+shared ShadowQuality demo already compares them; native demo sequencing remains
+pending. The existing native graphics filter now retains this preference.
+
 ## Native T2 effect-control applicability (2026-11-12)
 
 The shared Modern lightning control renders T1 Mei-Oh projectiles, distinct

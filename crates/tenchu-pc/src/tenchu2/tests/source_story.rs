@@ -325,6 +325,21 @@ fn native_story_models_load_from_their_event_bundles() {
             if let Some(model) = resources.models.get(&actor.model) {
                 tenchu_core::motion::Pose::new(&model.parts).unwrap();
                 assert!(!model.parts.is_empty(), "event {event}: {}", model.name);
+                if (0..106).contains(&actor.model) && actor.model != 0x4b {
+                    let bounds = tenchu_core::tenchu2::actor::model_bounds(&model.parts).unwrap();
+                    if bounds[0].wrapping_add(bounds[2]) != 0 {
+                        let foot = if matches!(actor.model, 0x20 | 0x21 | 0x48 | 0x49) {
+                            11
+                        } else {
+                            14
+                        };
+                        assert!(
+                            model.parts.len() > foot,
+                            "event {event}: {} has no source shadow foot {foot}",
+                            model.name
+                        );
+                    }
+                }
                 assert!(
                     model.vram.words.iter().any(|&v| v != 0),
                     "event {event}: {} has no texture data",

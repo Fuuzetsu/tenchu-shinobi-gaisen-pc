@@ -27,6 +27,7 @@ pub fn graphics(settings: &Settings) -> crate::settings::Graphics {
         model_detail: g.model_detail,
         models: g.models.clone(),
         blood: g.blood,
+        blob_shadows: g.blob_shadows,
         weapon_reflections: g.weapon_reflections,
         motion: g.motion.clone(),
         interpolation: g.interpolation,

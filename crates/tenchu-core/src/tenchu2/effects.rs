@@ -11,6 +11,7 @@ pub mod blood;
 pub mod paper;
 pub mod points;
 pub mod ribbon;
+pub mod shadow;
 mod spawn;
 pub mod sprites;
 pub mod surface;
