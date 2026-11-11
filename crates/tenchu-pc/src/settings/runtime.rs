@@ -149,6 +149,9 @@ impl Runtime {
             return None;
         }
         match item {
+            AlternateDeathChance => Some(
+                "Native T2 already randomly chooses among five ordinary collapse motions for all three heroes. This option varies T1's fixed player collapse; T2 retains its original death selection, special deaths and RNG.",
+            ),
             ShopLighting => Some(
                 "This relights the room in T1's equipment-screen artwork. Native T2 uses a different equipment screen without that room.",
             ),

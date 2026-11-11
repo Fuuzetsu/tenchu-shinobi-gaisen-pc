@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 explains that native T2 already randomizes ordinary player death motions;
+  **Alternate player deaths** applies to T1's fixed collapse animation.
+
 - Native T2 and imported T1 stages support F1's optional **Enemy behavior**
   profiles, seeded mixing, per-guard combat/idle choices and mission progression.
   Native perception, weapon reach, motions and collision remain in use; bosses,

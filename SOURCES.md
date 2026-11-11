@@ -18,6 +18,24 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 alternate-death control applicability (2026-11-12)
+
+The JP registry has no `0xb00` registration for heroes 0, 1 or 2. Their ordinary
+lethal-damage path in `tenchu2/control/damage.rs` therefore follows the verified
+source fallback, `0xb01 + next15() % 5`. Common registrations resolve these
+actions to disc clips `0x430` through `0x434`. All five have authored root motion
+and fifteen joint tracks. Native T2 already provides the variation for which
+the optional T1 visual-death replacement was introduced. F1 now explains that
+the T1 chance slider does not apply; no extra roll, animation replacement or
+gameplay change was added. Special deaths and model movesets remain unchanged.
+
+The existing 41,400-case original-instruction damage comparison covers the
+source selection and RNG. Read-only reviews of decomp `MOTION.C`, the TAS motion
+implementation and viewer `src/motion.rs` distinguish the T1 fixed-player
+selection and AMD sampler from T2's native registry/sampler. No code or assets
+were imported. Graphics presets and the demo catalog remain unchanged because
+this is a capability explanation, not a new presentation feature.
+
 ## Native T2 ground shadows (2026-11-12)
 
 JP `GAME.EXE` `8001c8f0` draws shadows for visible, living actors outside kind
