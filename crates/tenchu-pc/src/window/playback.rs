@@ -140,6 +140,10 @@ impl Application {
     }
 
     pub(super) fn advance_simulation(&mut self, elapsed: Duration) {
+        if self.report_save.active() {
+            self.debug.frame_step = false;
+            return;
+        }
         if self.reverse.active {
             self.advance_rewind(elapsed);
             return;

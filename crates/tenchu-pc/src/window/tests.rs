@@ -55,6 +55,7 @@ pub(super) fn application(options: Options) -> Application {
         fps: 0.0,
         performance: Default::default(),
         recent_inputs: Default::default(),
+        report_save: Default::default(),
         rewind: Default::default(),
         reverse: Default::default(),
         benchmarks: Default::default(),
@@ -942,4 +943,22 @@ fn remake_presets_keep_graphics_inventory_and_gameplay_separate() {
     assert!(!app.debug.click_teleport);
     assert_eq!(app.settings.sight_percent, 100);
     assert_eq!(app.debug.inventory, inventory);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; a pending report dialog pauses normal ticks, rewind and manual frame advance"]
+fn report_dialog_holds_gameplay_without_blocking_event_processing() {
+    let mut app = application(Options::default());
+    app.report_save.start("unused.json".into(), Vec::new());
+    assert!(app.is_suspended());
+    let before = crate::session::tests::state(&app.campaign.game);
+    for _ in 0..120 {
+        app.advance_simulation(Duration::from_millis(33));
+    }
+    app.debug.frame_step = true;
+    app.advance_simulation(Duration::ZERO);
+    app.reverse.active = true;
+    app.advance_simulation(Duration::from_secs(1));
+    assert!(crate::session::tests::state(&app.campaign.game) == before);
+    assert!(!app.debug.frame_step);
 }

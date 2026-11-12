@@ -12,6 +12,7 @@ struct Voices(Vec<u8>);
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Frame {
+    pub tutorial: crate::tenchu2::tutorial::Update,
     pub scenery: crate::tenchu2::environment::scenery::Frame,
     pub effects: crate::tenchu2::effects::Frame,
     pub reticle: Option<crate::tenchu2::items::aim::Reticle>,
@@ -82,11 +83,13 @@ impl World {
         } else {
             self.controls.hud.frame.clear();
         }
+        let tutorial = self.update_training(assets)?;
         let mut effects = self.update_effects(assets)?;
         items.quads.append(&mut effects.quads);
         effects.quads = items.quads;
         self.update_reinforcements(assets)?;
         Ok(Frame {
+            tutorial,
             scenery,
             effects,
             reticle: items.reticle,

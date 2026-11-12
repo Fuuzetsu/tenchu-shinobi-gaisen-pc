@@ -836,7 +836,19 @@ pub(crate) fn surface_geometry_into(
     mut surfaces: Vec<Surface>,
     mut vertices: Vec<Vertex>,
 ) -> Geometry {
-    surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));
+    let decal = |surface: &Surface| {
+        surface.vertices.first().is_some_and(|v| {
+            v.flags & (render_mesh::STAIN | render_mesh::SCREEN) == render_mesh::STAIN
+        })
+    };
+    // Coplanar stains compose in source order, independent of camera movement.
+    // Draw them before airborne effects, which still need back-to-front sorting.
+    surfaces.sort_by(|a, b| match (decal(a), decal(b)) {
+        (true, true) => std::cmp::Ordering::Equal,
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        (false, false) => b.depth.total_cmp(&a.depth),
+    });
     vertices.clear();
     let mut out = Geometry {
         vertices,

@@ -205,12 +205,12 @@ fn cached_terrain_matches_rebuilt_frames() {
 
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC; checks dormant doors, live poses, removal and source-state independence"]
-fn native_distant_doors_preserve_poses_and_activation() {
+fn native_distant_scenery_preserves_poses_and_activation() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let layouts = tenchu_assets::tenchu2::layout::Layout::available(&disc).unwrap();
     let mut hidden = 0;
-    for map in [1, 4, 12, 15] {
+    for map in [0, 1, 4, 12, 15] {
         let sequence = layouts.iter().find(|l| l.map == map).unwrap().sequence;
         let mut session = super::super::super::Session::load(&disc, sequence, 1).unwrap();
         for _ in 0..30 {
@@ -218,12 +218,18 @@ fn native_distant_doors_preserve_poses_and_activation() {
         }
         let level = &session.assets.level;
         let before = postcard::to_allocvec(&session.world).unwrap();
-        let models: Vec<_> = distant_doors(&session.world, level, &session.frame.scenery).collect();
+        let models: Vec<_> = distant_objects(
+            &session.world,
+            level,
+            &session.frame.scenery,
+            &session.assets.resources.math,
+        )
+        .collect();
         hidden += models.len();
         assert!(postcard::to_allocvec(&session.world).unwrap() == before);
         for model in &models {
             let Source::Object(index) = model.source else {
-                panic!("non-object door")
+                panic!("non-object scenery")
             };
             assert!(
                 session
@@ -238,22 +244,38 @@ fn native_distant_doors_preserve_poses_and_activation() {
             object.yaw = object.yaw.wrapping_add(512) & 4095;
             object.position.x += 500;
             let expected = (object.position, object.yaw);
-            let pose = distant_doors(&moved, level, &session.frame.scenery)
-                .find(|pose| pose.source == model.source)
-                .unwrap();
+            let pose = distant_objects(
+                &moved,
+                level,
+                &session.frame.scenery,
+                &session.assets.resources.math,
+            )
+            .find(|pose| pose.source == model.source)
+            .unwrap();
             assert_eq!((pose.position, pose.rotation[1]), expected);
             moved.environment.objects[index].model = None;
             assert!(
-                !distant_doors(&moved, level, &session.frame.scenery)
-                    .any(|pose| pose.source == model.source)
+                !distant_objects(
+                    &moved,
+                    level,
+                    &session.frame.scenery,
+                    &session.assets.resources.math
+                )
+                .any(|pose| pose.source == model.source)
             );
         }
         session.frame.scenery.models.extend(models);
         assert_eq!(
-            distant_doors(&session.world, level, &session.frame.scenery).count(),
+            distant_objects(
+                &session.world,
+                level,
+                &session.frame.scenery,
+                &session.assets.resources.math
+            )
+            .count(),
             0
         );
         assert!(postcard::to_allocvec(&session.world).unwrap() == before);
     }
-    assert!(hidden > 0, "disc fixtures must contain dormant doors");
+    assert!(hidden > 0, "disc fixtures must contain dormant scenery");
 }

@@ -6,6 +6,7 @@ impl World {
         out: &mut C,
     ) -> Result<(), C::Error> {
         let Self {
+            tutorial,
             audio,
             items,
             effects,
@@ -39,6 +40,10 @@ impl World {
             statistics,
             mission,
         } = self;
+        out.value(&tutorial.is_some())?;
+        if let Some(tutorial) = tutorial {
+            tutorial.capture(out)?;
+        }
         out.value(audio)?;
         out.value(items)?;
         out.value(effects)?;

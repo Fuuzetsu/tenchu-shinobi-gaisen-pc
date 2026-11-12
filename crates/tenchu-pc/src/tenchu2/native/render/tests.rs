@@ -2404,28 +2404,35 @@ fn native_lamps_use_shared_lighting_without_changing_source_state() {
 
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; dormant doors draw without activation and join moving shadow casters"]
-fn native_distant_doors_render_without_waking_source_objects() {
+fn native_distant_scenery_renders_without_waking_source_objects() {
+    distant_scenery_fixture(true);
+    distant_scenery_fixture(false);
+}
+
+fn distant_scenery_fixture(training: bool) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap())
+        .join(if training { "signs" } else { "doors" });
     std::fs::create_dir_all(&output).unwrap();
     let layouts = tenchu_assets::tenchu2::layout::Layout::available(&disc).unwrap();
-    let (session, door) = [1, 4, 12, 15]
-        .into_iter()
+    let maps: &[usize] = if training { &[0] } else { &[1, 4, 12, 15] };
+    let (session, door) = maps.iter().copied()
         .find_map(|map| {
             let sequence = layouts.iter().find(|l| l.map == map).unwrap().sequence;
             let mut session = super::super::Session::load(&disc, sequence, 1).unwrap();
             for _ in 0..30 {
                 session.step(0).unwrap();
             }
-            let door = scenery::distant_doors(
+            let door = scenery::distant_objects(
                 &session.world,
                 &session.assets.level,
                 &session.frame.scenery,
+                &session.assets.resources.math,
             )
             .find(|model| {
                 matches!(model.source, tenchu_core::tenchu2::environment::scenery::Source::Object(index)
-                    if session.assets.level.scene.dynamic[index].kind <= 2)
+                    if if training {session.assets.level.scene.dynamic[index].model==Some(18)} else {session.assets.level.scene.dynamic[index].kind <= 2})
             });
             door.map(|door| (session, door))
         })

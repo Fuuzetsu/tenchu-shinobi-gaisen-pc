@@ -191,6 +191,9 @@ impl Application {
     }
 
     pub(in crate::window) fn step_native_tenchu2(&mut self) -> Result<bool> {
+        if self.report_save.active() {
+            return Ok(false);
+        }
         self.controls.stop_rumble();
         let native = self.native_tenchu2.as_mut().unwrap();
         native.rewind.resume()?;
@@ -285,7 +288,9 @@ impl Application {
         if !self.paused && self.native_tenchu2.as_ref().unwrap().rewind.preview {
             self.native_tenchu2.as_mut().unwrap().rewind.resume()?;
         }
-        self.advance_native_rewind(elapsed);
+        if !self.report_save.active() {
+            self.advance_native_rewind(elapsed);
+        }
         self.sync_audio_pause();
         let native = self.native_tenchu2.as_mut().unwrap();
         if !native.rewind.preview {

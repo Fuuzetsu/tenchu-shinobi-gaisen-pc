@@ -138,7 +138,12 @@ impl Content {
                 output.send(Command::Music(Some(selection.music.clone()), false));
             }
             Self::Prologue(intro) => output.send(Command::Music(Some(intro.audio.clone()), false)),
-            Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
+            Self::Gameplay(session) => {
+                output.send(Command::Bank(session.bank.clone()));
+                if let Some(training) = &session.training {
+                    training.resume(session.world.tick, output);
+                }
+            }
             Self::Equipment(selection) => output.send(Command::Bank(selection.bank.clone())),
             Self::Results(results) => output.send(Command::Bank(results.bank.clone())),
             Self::Story { story, audio } if story.state.ending.is_none() => {

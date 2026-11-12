@@ -1,7 +1,7 @@
 mod environment;
 mod recent;
 mod report;
-pub use environment::{renderer, save};
+pub use environment::{Save, renderer};
 pub use recent::Recent;
 pub use report::{finish, report};
 

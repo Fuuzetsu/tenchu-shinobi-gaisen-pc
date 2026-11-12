@@ -10,7 +10,7 @@ pub struct Track {
     pub repeat: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Clip {
     pub rate: u32,
     pub frames: Vec<[i16; 2]>,

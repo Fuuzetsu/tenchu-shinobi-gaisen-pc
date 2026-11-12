@@ -1,10 +1,7 @@
 use std::collections::BTreeSet;
 use tenchu_assets::tenchu2::level::Level;
 use tenchu_core::tenchu2::{
-    environment::{
-        GAISEN_PITFALL,
-        scenery::{Frame, Model, Source},
-    },
+    environment::scenery::{Frame, Model, Source},
     world::World,
 };
 
@@ -95,10 +92,11 @@ impl Static<'_> {
     }
 }
 
-pub(super) fn distant_doors<'a>(
+pub(super) fn distant_objects<'a>(
     world: &'a World,
     level: &'a Level,
     frame: &Frame,
+    math: &'a tenchu_core::math::Math,
 ) -> impl Iterator<Item = Model> + 'a {
     let drawn: BTreeSet<_> = frame
         .models
@@ -113,14 +111,15 @@ pub(super) fn distant_doors<'a>(
         .objects
         .iter()
         .enumerate()
-        .filter_map(move |(index, object)| {
-            (matches!(
-                level.scene.dynamic[index].kind as i16,
-                0..=2 | 6 | 7 | GAISEN_PITFALL
-            ) && level.grid.contains(object.cell)
-                && !drawn.contains(&index))
-            .then(|| Model::object(index, object))
-            .flatten()
+        .filter(move |(index, object)| level.grid.contains(object.cell) && !drawn.contains(index))
+        .flat_map(move |(index, object)| {
+            let yaw = object.fall_yaw.unwrap_or_else(|| {
+                object
+                    .actor
+                    .and_then(|i| world.actors.get(i))
+                    .map_or(object.yaw, |a| a.actor.rotation.y)
+            });
+            Model::poses(index, object, yaw, math).into_iter().flatten()
         })
 }
 

@@ -1124,3 +1124,39 @@ AI checks and both corpse fixtures pass. The archived Mission 1 stealth/item
 routes still match all 4,121 observed PS1 updates, including 30 skipped draws,
 without correcting native state after initialization. Those controller-only
 parity routes are separate from the controlled placement experiments above.
+
+## T2 training signs, blood overlap and report dialogs (2026-11-13)
+
+The report at `/tmp/blood-flicker.json` locates native training near
+`[59774, 500, 4035]`. It contains settings and input history, not a restorable
+recording. Controlled GPU fixtures at that location reproduce speckled overlapping
+floor stains: opaque contact quads wrote competing depth values. Rendering them
+without depth writes and preserving source insertion order removes the pattern
+as the camera moves. Double-sided wall contacts also receive separation on the
+viewed side. The regression compares overlapping floor/wall marks in Original
+and Original HD against independent ordered composition at three camera positions;
+one-channel quantization differences of one are tolerated. Source world bytes
+remain unchanged. The earlier single-mark floor regression remains separate.
+
+Distant-scenery checks use native maps 0, 1, 4, 12 and 15, including dormant
+training signs. Rendering does not activate collisions or alter source object
+poses/destruction state. GPU toggles cover both signs and doors. Falling trees
+reuse the same pose calculation for active and distant drawing; the existing
+JP falling-prop oracle checks the source arithmetic and destruction timing.
+
+Training narration is derived from JP `DATAMNG.BIN` handler `800d202c`, its 27
+lesson records at `800d8d68`, course starts at `800d8f18` and bounds at `800d8f24`.
+Cue metadata comes from `GAME.EXE` at `800812e4`; audio is decoded from the user's
+`NARAT_J.XA`. The existing sibling research repositories were reviewed read-only;
+none supplied a T2 lesson implementation. The local original-code Unicorn
+harness was reused to execute the handler over 4,000 boundary/action cases.
+`training_lessons_match_original_handler` consumes those private traces through
+`TENCHU2_TUTORIAL_ORACLE`. Separate disc checks decode the narration, enter all
+four courses, check retrigger behavior and restore lesson/audio state. These are
+source and integration fixtures, not an additional recorded campaign playthrough.
+
+The diagnostic save uses an asynchronous native dialog polled by the window
+loop. Pending/completed/cancelled/failed-dialog checks cover pause lifetime;
+a game fixture checks normal ticks, rewind and manual stepping while pending.
+Evidence and screenshots remain outside Git in
+`private/release-fixes-20261113`.

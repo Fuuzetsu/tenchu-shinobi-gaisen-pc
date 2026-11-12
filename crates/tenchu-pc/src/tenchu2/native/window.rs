@@ -263,6 +263,7 @@ struct Application {
     quit: bool,
     gallery: Option<super::models::Gallery>,
     gallery_error: Option<String>,
+    report_save: crate::diagnostics::Save,
 }
 
 impl Application {
@@ -301,6 +302,9 @@ impl Application {
     }
 
     fn step(&mut self) -> Result<()> {
+        if self.report_save.active() {
+            return Ok(());
+        }
         self.rewind.resume()?;
         self.controls.stop_rumble();
         self.configure_gameplay()?;
@@ -352,6 +356,18 @@ impl Application {
     }
 
     fn redraw(&mut self) -> Result<()> {
+        if let Some(result) = self.report_save.poll() {
+            match result {
+                Ok(Some(notice)) => self.menu.panel.notice = notice,
+                Ok(None) => {}
+                Err(error) => {
+                    self.menu.panel.notice = format!("Could not save diagnostic report: {error}")
+                }
+            }
+            self.controls.clear();
+            self.transport.discard_backlog();
+            self.last = Instant::now();
+        }
         if self.benchmark_redraw()? {
             return Ok(());
         }
@@ -375,8 +391,11 @@ impl Application {
         if !self.paused && self.rewind.preview {
             self.rewind.resume()?;
         }
-        self.advance_rewind(elapsed);
-        let paused = self.paused
+        if !self.report_save.active() {
+            self.advance_rewind(elapsed);
+        }
+        let paused = self.report_save.active()
+            || self.paused
             || !self.focused && self.settings.pause_on_defocus
             || self.error.is_some()
             || self.menu.modal_open()
@@ -836,11 +855,10 @@ impl Application {
 
     fn save_diagnostics(&mut self, suspended: bool) -> Result<()> {
         let bytes = self.diagnostic_report(suspended)?;
-        if let Some(notice) =
-            crate::diagnostics::save(&super::diagnostics::filename(&self.session), &bytes)?
-        {
-            self.menu.panel.notice = notice;
-        }
+        self.report_save
+            .start(super::diagnostics::filename(&self.session), bytes);
+        self.controls.clear();
+        self.transport.discard_backlog();
         Ok(())
     }
 
@@ -1120,6 +1138,7 @@ fn run_options(
         quit: false,
         gallery: None,
         gallery_error: None,
+        report_save: Default::default(),
     };
     let events = EventLoop::new().map_err(|e| e.to_string())?;
     events

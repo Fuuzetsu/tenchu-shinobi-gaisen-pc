@@ -647,6 +647,11 @@ impl<S: ReadAt> Playback<S> {
                     Some(self.run.finish_area(&session.world, &self.campaign)?)
                 } else {
                     update.sounds = session.step(buttons)?;
+                    if let (Some(training), Some(state)) =
+                        (&mut session.training, &session.world.tutorial)
+                    {
+                        update.music = training.audio(&self.disc, state)?;
+                    }
                     if let Some(active) = &mut self.randomizer.active {
                         active.replenish(session);
                         active.health = session.world.actors[session.world.player].actor.health;

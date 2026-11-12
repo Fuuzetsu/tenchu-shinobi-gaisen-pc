@@ -34,6 +34,7 @@ mod profiles;
 mod reinforcements;
 mod replacement;
 mod ribbons;
+mod tutorial;
 mod update;
 pub use assets::Assets;
 pub use experiment::Placement;
@@ -83,6 +84,7 @@ pub struct Statistics {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct World {
+    pub tutorial: Option<super::tutorial::Training>,
     pub audio: super::audio::Audio,
     pub items: super::items::Items,
     pub effects: super::effects::Effects,
@@ -137,6 +139,7 @@ impl World {
             .get(layout.sequence)
             .ok_or("Missing Tenchu 2 mission descriptor")?;
         let mut world = Self {
+            tutorial: None,
             audio: super::audio::Audio::default(),
             items: super::items::Items::default(),
             effects: super::effects::Effects::default(),

@@ -1852,9 +1852,9 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
             (
                 Item::DistantDoors,
-                "Distant doors without fog",
+                "Distant scenery without fog",
                 on(s.graphics.distant_doors),
-                "Show doors and trapdoors beyond retail range when fog is disabled or extended. Collision and activation stay unchanged. Off restores retail drawing.",
+                "Show doors, training signs and other scenery beyond retail range when fog is disabled or extended. Collision and activation stay unchanged. Off restores retail drawing.",
             ),
             (
                 Item::Textures,

@@ -61,18 +61,49 @@ pub(super) fn platform() -> Value {
     info
 }
 
-pub fn save(name: &str, bytes: &[u8]) -> Result<Option<String>> {
+type SaveFuture = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>>>>>;
+
+#[derive(Default)]
+pub struct Save {
+    pending: Option<SaveFuture>,
+}
+
+impl Save {
+    pub fn active(&self) -> bool {
+        self.pending.is_some()
+    }
+
+    pub fn start(&mut self, name: String, bytes: Vec<u8>) {
+        if !self.active() {
+            self.pending = Some(Box::pin(save(name, bytes)));
+        }
+    }
+
+    pub fn poll(&mut self) -> Option<Result<Option<String>>> {
+        // Both window loops redraw while paused, including while a native dialog is open.
+        let context = &mut std::task::Context::from_waker(std::task::Waker::noop());
+        let std::task::Poll::Ready(result) = self.pending.as_mut()?.as_mut().poll(context) else {
+            return None;
+        };
+        self.pending = None;
+        Some(result)
+    }
+}
+
+async fn save(name: String, bytes: Vec<u8>) -> Result<Option<String>> {
     #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     {
-        let Some(path) = rfd::FileDialog::new()
+        let Some(file) = rfd::AsyncFileDialog::new()
             .set_title("Save diagnostic report")
             .add_filter("Diagnostic report (JSON)", &["json"])
-            .set_file_name(name)
+            .set_file_name(&name)
             .save_file()
+            .await
         else {
             return Ok(None);
         };
-        crate::storage::atomic_write(&path, bytes)?;
+        let path = file.path();
+        crate::storage::atomic_write(path, &bytes)?;
         Ok(Some(format!(
             "Diagnostic report saved to {}",
             path.display()
@@ -80,13 +111,16 @@ pub fn save(name: &str, bytes: &[u8]) -> Result<Option<String>> {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        crate::web::download_report(name, std::str::from_utf8(bytes).map_err(|e| e.to_string())?)
-            .map_err(|e| format!("Diagnostic download failed: {e:?}"))?;
+        crate::web::download_report(
+            &name,
+            std::str::from_utf8(&bytes).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("Diagnostic download failed: {e:?}"))?;
         Ok(Some("Diagnostic report sent to browser downloads".into()))
     }
     #[cfg(target_os = "android")]
     {
-        crate::android::export(name, bytes)?;
+        crate::android::export(&name, &bytes)?;
         Ok(Some("Choose where to save the report".into()))
     }
 }
@@ -126,4 +160,37 @@ pub fn renderer(
         "gpu_profiling_active": renderer.profiling,
 
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn pending_dialog_yields_until_completion_then_releases_pause() {
+        use std::{cell::RefCell, rc::Rc, task::Poll};
+        for result in [
+            Ok(Some("saved".to_owned())),
+            Ok(None),
+            Err("write failed".to_owned()),
+        ] {
+            let reply = Rc::new(RefCell::new(None));
+            let future_reply = reply.clone();
+            let mut save = Save {
+                pending: Some(Box::pin(std::future::poll_fn(move |_| {
+                    future_reply
+                        .borrow_mut()
+                        .take()
+                        .map_or(Poll::Pending, Poll::Ready)
+                }))),
+            };
+            for _ in 0..120 {
+                assert!(save.active());
+                assert!(save.poll().is_none());
+            }
+            *reply.borrow_mut() = Some(result.clone());
+            assert_eq!(save.poll(), Some(result));
+            assert!(!save.active());
+            assert!(save.poll().is_none());
+        }
+    }
 }

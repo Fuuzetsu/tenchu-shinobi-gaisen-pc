@@ -184,15 +184,19 @@ impl Builder {
             });
             if ground_blood || death_blood {
                 let [a, b, c, _] = points.map(glam::Vec3::from);
-                let normal = (b - a).cross(c - a).normalize_or_zero();
-                if normal.y < 0.0 {
-                    // Source contacts lie on the collision plane. Give live floor stains
-                    // the same separation as retained decals, without moving simulation drops.
-                    for point in &mut points {
-                        *point = (glam::Vec3::from(*point)
-                            + normal * crate::visuals::surfaces::DECAL_LIFT)
-                            .to_array();
-                    }
+                let mut normal = (b - a).cross(c - a).normalize_or_zero();
+                let eye = crate::renderer::view_matrix(self.view)
+                    .inverse()
+                    .transform_point3(glam::Vec3::ZERO);
+                if normal.dot(eye - a) < 0.0 {
+                    normal = -normal;
+                }
+                // Source wall quads have no outward winding. Separate double-sided
+                // contacts from the receiver on the viewed side, as for floor decals.
+                for point in &mut points {
+                    *point = (glam::Vec3::from(*point)
+                        + normal * crate::visuals::surfaces::DECAL_LIFT)
+                        .to_array();
                 }
             }
             let mut vertices = render_effects::quad(
@@ -208,7 +212,7 @@ impl Builder {
                     vertex.flags |= render_mesh::DOUBLE_SIDED;
                 }
             }
-            let blend = if ground_blood
+            let mut blend = if ground_blood
                 && graphics.blood.ground == crate::settings::BloodStyle::OriginalHd
                 || death_blood && graphics.blood.death == crate::settings::BloodStyle::OriginalHd
             {
@@ -216,6 +220,19 @@ impl Builder {
             } else {
                 blend
             };
+            if ground_blood || death_blood {
+                for vertex in &mut vertices {
+                    vertex.flags |= render_mesh::STAIN;
+                    if blend == 0 {
+                        vertex.flags |= render_mesh::ALPHA;
+                    }
+                }
+                // Contact marks share a plane. Test against the scene without
+                // writing depth that would make overlapping stains fight each other.
+                if blend == 0 {
+                    blend = 5;
+                }
+            }
             self.surface(vertices, blend);
         }
         Ok(())

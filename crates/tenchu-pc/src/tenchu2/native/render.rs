@@ -1087,7 +1087,7 @@ impl Models {
         if graphics.distant_doors
             && (!graphics.fog || graphics.fog_distance > 100 || camera.is_some())
         {
-            for model in scenery::distant_doors(world, &assets.level, &frame.scenery) {
+            for model in scenery::distant_objects(world, &assets.level, &frame.scenery, math) {
                 output.scenery(&self.scenery, &assets.level, math, &model)?;
             }
         }

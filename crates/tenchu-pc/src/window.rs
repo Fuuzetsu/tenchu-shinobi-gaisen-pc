@@ -81,6 +81,7 @@ struct Application {
     fps: f32,
     performance: performance::Performance,
     recent_inputs: diagnostics::RecentInputs,
+    report_save: crate::diagnostics::Save,
     rewind: crate::rewind::History,
     reverse: rewind::Playback,
     benchmarks: benchmark::Benchmarks,
@@ -267,6 +268,9 @@ impl Application {
     }
 
     fn is_suspended(&self) -> bool {
+        if self.report_save.active() {
+            return true;
+        }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(native) = &self.native_tenchu2 {
             return self.backgrounded()
@@ -1257,6 +1261,7 @@ impl ApplicationHandler for Application {
             }
 
             WindowEvent::RedrawRequested => {
+                self.poll_diagnostics();
                 #[cfg(target_os = "android")]
                 {
                     if self.view.as_ref().is_some_and(View::preparing) {
@@ -1739,6 +1744,7 @@ pub fn run(
         fps: 0.0,
         performance: Default::default(),
         recent_inputs: Default::default(),
+        report_save: Default::default(),
         rewind: Default::default(),
         reverse: Default::default(),
         benchmarks: benchmark::Benchmarks::new(startup.benchmark),

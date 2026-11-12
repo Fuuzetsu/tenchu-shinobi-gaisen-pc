@@ -277,8 +277,9 @@ lanterns and bright walls stay unlit. Their source positions remain available
 outside the native draw list, so moving the camera does not activate them.
 Fog-off and free-camera views also draw distant static props; the original
 simulation still decides when interactive objects update. **Graphics → Distant
-doors without fog** also draws dormant doors and collapsing platforms when fog
-is off or extended, or a custom camera is active. Opening/destroyed objects keep
+scenery without fog** also draws dormant doors, training signs, collapsing
+platforms and other scenery when fog is off or extended, or a custom camera is
+active. Opening/destroyed objects keep
 their current source poses; collision and triggers remain source-controlled.
 Disable the option to restore source drawing. Moving props also cast dynamic
 shadows in gameplay and 3D cutscenes.
@@ -634,6 +635,12 @@ selection and pickup notices, with optional HD text. Story playback includes scr
 sprites, joint-attached fire and the original frame-feedback overlays.
 The native renderer also loads the original sky layers and distant scenery,
 including the story sequences' alternate evening palettes.
+Training signs use the JP disc's original lesson regions and action checks to
+play their instruction narration. Entering the throwing and combat courses
+replenishes practice shuriken and resets the practice guards as in the original.
+Lesson state advances on logic ticks; paused playback and quickstate restoration
+keep narration at the corresponding position. The original lesson text panels
+and floating diamond prompts are not yet drawn.
 The existing BizHawk observer/replay checker now compares bounded native JP
 training play, including recorded display skips. Separate controlled fixtures
 cover progression, failure and retry through all three campaigns. Neither is a

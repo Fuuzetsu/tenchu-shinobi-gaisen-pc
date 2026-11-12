@@ -68,6 +68,52 @@ impl Model {
             ],
         })
     }
+    pub fn poses(
+        index: usize,
+        object: &Object,
+        yaw: i16,
+        math: &crate::math::Math,
+    ) -> [Option<Self>; 2] {
+        let Some(mut base) = Self::object(index, object) else {
+            return [None, None];
+        };
+        if object.kind != 14 || object.link == 0 || object.clock == 1 {
+            return [Some(base), None];
+        }
+        if object.clock > 80 {
+            return [None, None];
+        }
+        base.stump = true;
+        let mut position = object.position;
+        let step = i32::from(object.clock.min(15)) * 10;
+        let [sin, cos] = math.pair(yaw.wrapping_add(1024));
+        position.x = position.x.wrapping_sub((-sin * step) >> 12);
+        position.z = position.z.wrapping_sub((-cos * step) >> 12);
+        let clock = i32::from(object.clock);
+        if clock < 31 {
+            let fall = if clock < 10 {
+                0
+            } else {
+                i32::from(((clock - 10) * (clock + 40)) as i16).min(1000)
+            };
+            position.y = position.y.wrapping_add(fall - 1000);
+        }
+        let roll = if clock < 20 {
+            0
+        } else if clock <= 60 {
+            (((clock - 20) * ((clock - 20) / 2 + 5)) as i16).min(1024)
+        } else {
+            1024
+        };
+
+        let falling = Self {
+            position,
+            rotation: [0, yaw, roll],
+            stump: false,
+            ..base.clone()
+        };
+        [Some(base), Some(falling)]
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -238,54 +284,14 @@ impl Environment {
                         .and_then(|i| input.actors.get(i))
                         .map_or(object.yaw, |a| a.actor.rotation.y)
                 });
-                if object.clock == 1 {
-                    frame.models.push(Model {
-                        source: Source::Object(index),
-                        model,
-                        stump: false,
-                        position: object.position,
-                        rotation: [0, object.yaw, 0],
-                    });
-                } else {
-                    if object.clock == 30 {
-                        c.sound(object.position, 0x2d)?;
-                    }
-                    frame.models.push(Model {
-                        source: Source::Object(index),
-                        model,
-                        stump: true,
-                        position: object.position,
-                        rotation: [0, object.yaw, 0],
-                    });
-                    let mut position = object.position;
-                    let step = i32::from(object.clock.min(15)) * 10;
-                    let [sin, cos] = c.math.pair(yaw.wrapping_add(1024));
-                    position.x = position.x.wrapping_sub((-sin * step) >> 12);
-                    position.z = position.z.wrapping_sub((-cos * step) >> 12);
-                    let clock = i32::from(object.clock);
-                    if clock < 31 {
-                        let fall = if clock < 10 {
-                            0
-                        } else {
-                            i32::from(((clock - 10) * (clock + 40)) as i16).min(1000)
-                        };
-                        position.y = position.y.wrapping_add(fall - 1000);
-                    }
-                    let roll = if clock < 20 {
-                        0
-                    } else if clock <= 60 {
-                        (((clock - 20) * ((clock - 20) / 2 + 5)) as i16).min(1024)
-                    } else {
-                        1024
-                    };
-                    frame.models.push(Model {
-                        source: Source::Object(index),
-                        model,
-                        stump: false,
-                        position,
-                        rotation: [0, yaw, roll],
-                    });
+                if object.clock == 30 {
+                    c.sound(object.position, 0x2d)?;
                 }
+                frame.models.extend(
+                    Model::poses(index, object, yaw, c.math)
+                        .into_iter()
+                        .flatten(),
+                );
             } else {
                 frame.models.push(
                     Model::object(index, object).ok_or("Missing Tenchu 2 visible object model")?,

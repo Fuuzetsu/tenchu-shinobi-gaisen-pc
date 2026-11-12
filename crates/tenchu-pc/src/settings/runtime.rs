@@ -86,7 +86,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && item == Item::BloodPlayerDeath {
             "Add a pool beneath the player's finished, grounded corpse when the native death has no pool. Uses the death style, size and retention settings. Existing source pools still follow Death pool / star; this option does not duplicate them."
         } else if self == Self::Tenchu2 && item == Item::DistantDoors {
-            "Draw doors and collapsing platforms outside the source camera's range when fog is disabled or extended, or while using a custom camera. Current positions and destroyed objects are respected. Collision, triggers and activation stay unchanged. Off restores source drawing."
+            "Draw doors, training signs and other scenery outside the source camera's range when fog is disabled or extended, or while using a custom camera. Current positions and destroyed objects are respected. Collision, triggers and activation stay unchanged. Off restores source drawing."
         } else if self == Self::Tenchu2 && item == Item::SightDistance {
             "GAMEPLAY EDIT: scale native notice, recognition, forgetting and corpse-detection distances, including guards approaching bait. Sight angles, terrain checks and activation remain original. 100% restores source ranges; resets on a new area."
         } else if self == Self::Tenchu2 && item == Item::Stealth {

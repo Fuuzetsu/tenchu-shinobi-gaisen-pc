@@ -94,6 +94,7 @@ mod title;
 mod tools;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod transport;
+mod tutorial;
 #[cfg(not(target_arch = "wasm32"))]
 mod unarmed;
 mod walking;
@@ -109,6 +110,7 @@ pub struct Session {
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
     actor_voices: BTreeMap<usize, Option<Arc<VoiceSet>>>,
     pub pending: BTreeSet<String>,
+    training: Option<tutorial::Training>,
     pub interpolation: Option<crate::visuals::interpolation::History>,
     pub navigation: Option<navigation::Input>,
     pub circle_action: tenchu_core::input::CircleAction,
@@ -170,7 +172,14 @@ impl Session {
         let assets = Assets::equipped(disc, hero, &layout, alternate)?;
         let world = World::new(&layout, options, &assets)?;
         let bank = Arc::new(Audio::load(disc, hero, layout.map)?.bank);
-        Ok(Self::from_parts(world, assets, bank))
+        let mut session = Self::from_parts(world, assets, bank);
+        if layout.map == 0 {
+            session.world.tutorial = Some(tenchu_core::tenchu2::tutorial::Training::new(
+                tenchu_assets::tenchu2::tutorial::Tutorial::load(disc)?,
+            ));
+            session.training = Some(tutorial::Training::default());
+        }
+        Ok(session)
     }
 
     #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -218,6 +227,7 @@ impl Session {
             bank,
             actor_voices: BTreeMap::new(),
             pending: BTreeSet::new(),
+            training: None,
             interpolation: None,
             navigation: None,
             circle_action: Default::default(),
@@ -361,6 +371,7 @@ impl Session {
                 self.actor_voices.insert(index, voice);
             }
         }
+        sounds.extend(self.training_step().into_iter().map(Sourced::from));
         if !observing_death {
             sounds.extend(
                 self.world

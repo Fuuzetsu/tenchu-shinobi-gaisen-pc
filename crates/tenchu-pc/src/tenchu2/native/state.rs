@@ -2,7 +2,7 @@ use super::*;
 use serde::{Deserialize, Serialize};
 use tenchu_core::tenchu2::world::gaisen::Director;
 
-const SIGNATURE: &str = "native-tenchu2-jp-session-4";
+const SIGNATURE: &str = "native-tenchu2-jp-session-5";
 
 mod reuse;
 
@@ -15,6 +15,7 @@ pub(super) struct State<C, D> {
     bank: Arc<tenchu_assets::audio::bank::Bank>,
     actor_voices: BTreeMap<usize, Option<Arc<VoiceSet>>>,
     pending: BTreeSet<String>,
+    training: Option<tutorial::Training>,
     interpolation: Option<crate::visuals::interpolation::History>,
     navigation: Option<navigation::Input>,
     circle_action: tenchu_core::input::CircleAction,
@@ -38,6 +39,7 @@ impl Borrowed<'_> {
             bank,
             actor_voices,
             pending,
+            training,
             interpolation,
             navigation,
             circle_action,
@@ -60,6 +62,10 @@ impl Borrowed<'_> {
             }
         }
         out.value(pending)?;
+        out.value(&training.is_some())?;
+        if let Some(training) = training {
+            training.capture(out)?;
+        }
         out.value(interpolation)?;
         out.value(navigation)?;
         out.value(circle_action)?;
@@ -83,6 +89,7 @@ impl Session {
             bank,
             actor_voices,
             pending,
+            training,
             interpolation,
             navigation,
             circle_action,
@@ -97,6 +104,7 @@ impl Session {
             bank: bank.clone(),
             actor_voices: actor_voices.clone(),
             pending: pending.clone(),
+            training: training.clone(),
             interpolation: interpolation.clone(),
             navigation: *navigation,
             circle_action: *circle_action,
@@ -152,6 +160,7 @@ impl Owned {
             bank,
             actor_voices,
             pending,
+            training,
             interpolation,
             navigation,
             circle_action,
@@ -167,6 +176,7 @@ impl Owned {
             bank,
             actor_voices,
             pending,
+            training,
             interpolation,
             navigation,
             circle_action,
@@ -223,6 +233,15 @@ impl Owned {
         world
             .collision
             .validate_references(world.scene.models.len(), world.actors.len())?;
+        if self.training.is_some() != world.tutorial.is_some() {
+            return Err("Missing native training state or playback".into());
+        }
+        if let Some(training) = &self.training {
+            if world.map != 0 || self.gaisen.is_some() {
+                return Err("Training state outside native training stage".into());
+            }
+            training.validate(world.tutorial.as_ref().ok_or("Missing training state")?)?;
+        }
         for model in &world.scene.models {
             let mut parent = model.parent;
             for depth in 0..=world.scene.models.len() {

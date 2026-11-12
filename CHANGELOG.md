@@ -5,6 +5,18 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix T2 blood flickering on floors and walls as the camera moves, including
+  overlapping stains and HD blood.
+
+- Keep the game window responsive while the diagnostic-report save dialog is
+  open. Gameplay, rewind and frame advance remain paused until it closes.
+
+- Show T2 training signs and other dormant scenery at long distances with
+  **Distant scenery without fog**. Restore the training signs' Japanese
+  instruction audio and original lesson progression. Native T2 quickstates now
+  include lesson and narration state; make fresh F11 snapshots after updating.
+  Campaign progress saves remain compatible.
+
 - Keep mapped T2 enemies and their own equipment in T1 cutscenes played with
   T2 rules, including Onikage's encounter in **Free the Princess** (Mission 10).
 

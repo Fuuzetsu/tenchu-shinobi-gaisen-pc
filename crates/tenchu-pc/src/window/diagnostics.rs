@@ -116,7 +116,20 @@ impl Application {
         let name = self.native_tenchu2.as_ref().map_or(name, |native| {
             crate::tenchu2::native::diagnostics::filename(&native.playback)
         });
-        if let Some(notice) = crate::diagnostics::save(&name, &bytes)? {
+        self.report_save.start(name, bytes);
+        self.sync_pause();
+        Ok(())
+    }
+
+    pub(super) fn poll_diagnostics(&mut self) {
+        let Some(result) = self.report_save.poll() else {
+            return;
+        };
+        let notice = match result {
+            Ok(notice) => notice,
+            Err(error) => Some(format!("Could not save diagnostic report: {error}")),
+        };
+        if let Some(notice) = notice {
             self.menu.notice = notice.clone();
             #[cfg(not(target_arch = "wasm32"))]
             if let Some(native) = &mut self.native_tenchu2 {
@@ -124,7 +137,6 @@ impl Application {
             }
         }
         self.sync_pause();
-        Ok(())
     }
 }
 
