@@ -675,14 +675,25 @@ routes and the campaign tapes listed in the [guide](guide.md) complete through
 the standalone replay command. These are useful port-integration examples, not
 console recordings.
 
-The broader `controller_route` test filter has five pre-existing failures: the
-two whole-campaign routes and the independent Rikimaru Mission 3, 7 and 10
-routes. They fail identically on the unmodified v0.9.10 tag and this batch.
-Rikimaru's campaign reaches Mission 6 with one fewer grenade than its old stock
-assertion expects; the other routes miss their endpoints or die. The causes of
-these older divergences have not been isolated. Their original expectations
-are retained pending a separate fixture audit;
-do not count this suite as passing or change gameplay to force those paths.
+The 2026-11-12 audit ran all twelve route tests: six passed and six failed.
+The passing `controller_route` filter now covers both training heroes, Ayame's
+delivery, and Rikimaru's checkpoint, cult, mountain and castle routes. The six
+failing tests live in `campaign::tests::routes::legacy`, with their tapes and
+original assertions retained. Run that filter explicitly with `--ignored` to
+reproduce the unresolved failures:
+
+- Rikimaru campaign: Mission 6 starts with two grenades instead of the asserted three.
+- Ayame campaign: dies in Mission 4 at tick 10,371.
+- Rikimaru rescue: dies at tick 3,677.
+- Punishment: dies at tick 6,472.
+- Rikimaru pirates: reaches scenes 10 and 20, but not 100.
+- Rikimaru final: dies at tick 4,567.
+
+The previous audit reproduced five of these failures on v0.9.10; punishment is
+an additional failure recorded in this audit, without a historical baseline
+claim. Their causes remain unisolated. Separating the fixtures does not fix or
+validate them; do not count them as passing or change gameplay to force these
+PC-authored paths.
 Standalone Ayame Mission 4/10 and both Mission 7 campaign tapes also fail to
 complete, and are excluded from the verified examples.
 
