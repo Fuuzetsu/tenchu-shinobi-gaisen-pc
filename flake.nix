@@ -37,6 +37,8 @@
             ./Cargo.toml
             ./Cargo.lock
             ./crates
+            ./artwork/release.json
+            ./artwork/tenchu2/release.json
             ./COPYING.md
             ./LICENSE
           ];
