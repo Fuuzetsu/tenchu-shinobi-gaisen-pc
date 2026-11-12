@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.31.1 — 2026-11-12
+
 - Match the original T2 title's selection colors while fading into its idle
   movie: all three choices turn red instead of keeping one highlighted.
 
