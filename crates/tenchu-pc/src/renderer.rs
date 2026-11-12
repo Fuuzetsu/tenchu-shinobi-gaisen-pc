@@ -969,13 +969,15 @@ impl Renderer {
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
             pass.set_bind_group(2, &self.materials.bindings, &[]);
             if !wet && let Some(sky) = &sky {
+                pass.set_pipeline(&self.pipelines.backgrounds[0]);
                 sky.bind(&mut pass);
                 pass.draw(0..sky.count, 0..1);
             }
+            // Authored sky layers share the far plane and compose before the world.
             for background in meshes.backgrounds {
                 draw_effects(
                     &mut pass,
-                    &self.pipelines.effects,
+                    &self.pipelines.backgrounds,
                     background,
                     None,
                     EffectPass::All,

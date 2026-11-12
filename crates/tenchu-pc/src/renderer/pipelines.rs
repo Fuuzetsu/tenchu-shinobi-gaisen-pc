@@ -50,6 +50,7 @@ pub(super) struct Pipelines {
     pub opaque: wgpu::RenderPipeline,
     pub scenery: wgpu::RenderPipeline,
     pub effects: [wgpu::RenderPipeline; 6],
+    pub backgrounds: [wgpu::RenderPipeline; 6],
     pub visibility: wgpu::RenderPipeline,
     pub ground_blood: wgpu::RenderPipeline,
     pub snow_blood: wgpu::RenderPipeline,
@@ -119,47 +120,49 @@ pub(super) fn create(
     };
     // Earlier TMD faces cover later coplanar authoring/backing faces in the original OT.
     let pipeline = make_pipeline(None, "opaque", 0, true, wgpu::CompareFunction::Less);
-    let effects = std::array::from_fn(|mode| {
-        if mode == 0 {
-            return make_pipeline(None, "opaque", -2, true, wgpu::CompareFunction::LessEqual);
-        }
-        if mode == 5 {
-            return make_pipeline(
-                Some(wgpu::BlendState::ALPHA_BLENDING),
-                "alpha",
-                -2,
-                false,
-                wgpu::CompareFunction::LessEqual,
-            );
-        }
-        let blend = wgpu::BlendState {
-            color: wgpu::BlendComponent {
-                src_factor: if matches!(mode, 1 | 4) {
-                    wgpu::BlendFactor::Constant
-                } else {
-                    wgpu::BlendFactor::One
+    let effects = |background| {
+        std::array::from_fn(|mode| {
+            let compare = if background {
+                wgpu::CompareFunction::Always
+            } else {
+                wgpu::CompareFunction::LessEqual
+            };
+            let bias = if background { 0 } else { -2 };
+            if mode == 0 {
+                return make_pipeline(None, "opaque", bias, !background, compare);
+            }
+            if mode == 5 {
+                return make_pipeline(
+                    Some(wgpu::BlendState::ALPHA_BLENDING),
+                    "alpha",
+                    bias,
+                    false,
+                    compare,
+                );
+            }
+            let blend = wgpu::BlendState {
+                color: wgpu::BlendComponent {
+                    src_factor: if matches!(mode, 1 | 4) {
+                        wgpu::BlendFactor::Constant
+                    } else {
+                        wgpu::BlendFactor::One
+                    },
+                    dst_factor: if mode == 1 {
+                        wgpu::BlendFactor::Constant
+                    } else {
+                        wgpu::BlendFactor::One
+                    },
+                    operation: if mode == 3 {
+                        wgpu::BlendOperation::ReverseSubtract
+                    } else {
+                        wgpu::BlendOperation::Add
+                    },
                 },
-                dst_factor: if mode == 1 {
-                    wgpu::BlendFactor::Constant
-                } else {
-                    wgpu::BlendFactor::One
-                },
-                operation: if mode == 3 {
-                    wgpu::BlendOperation::ReverseSubtract
-                } else {
-                    wgpu::BlendOperation::Add
-                },
-            },
-            alpha: wgpu::BlendComponent::REPLACE,
-        };
-        make_pipeline(
-            Some(blend),
-            "translucent",
-            -2,
-            false,
-            wgpu::CompareFunction::LessEqual,
-        )
-    });
+                alpha: wgpu::BlendComponent::REPLACE,
+            };
+            make_pipeline(Some(blend), "translucent", bias, false, compare)
+        })
+    };
     // Leave one depth unit for the color pass's strict test, preserving coplanar face order.
     Pipelines {
         forward_weather: forward_weather.then(|| {
@@ -173,7 +176,8 @@ pub(super) fn create(
         }),
         opaque: pipeline,
         scenery: make_pipeline(None, "scenery", 0, true, wgpu::CompareFunction::Less),
-        effects,
+        effects: effects(false),
+        backgrounds: effects(true),
         visibility: make_pipeline(None, "depth_only", 1, true, wgpu::CompareFunction::Less),
         snow_blood: make_pipeline(
             Some(wgpu::BlendState::ALPHA_BLENDING),

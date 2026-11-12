@@ -3,6 +3,102 @@ use bytemuck::Zeroable;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires GPU; authored background layers must compose in order without depth fighting or covering foreground"]
+fn background_layers_preserve_order_at_different_depths() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let camera = Mat4::perspective_rh(90.0_f32.to_radians(), 1.0, 50.0, 250_000.0);
+    let quad = |depths: [f32; 4], color, extent: f32, sky| {
+        let corners = [(-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)];
+        [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: [
+                corners[i].0 * depths[i] * extent,
+                corners[i].1 * depths[i] * extent,
+                -depths[i],
+            ],
+            color,
+            flags: render_mesh::DOUBLE_SIDED
+                | render_mesh::UNLIT
+                | if sky { render_mesh::SKY } else { 0 },
+            opacity: 1.0,
+            ..Vertex::zeroed()
+        })
+    };
+    let foreground = renderer.upload(&quad([1000.0; 4], [0.0, 0.0, 1.0], 0.25, false));
+    let mut graphics = crate::settings::Graphics {
+        fog: false,
+        ..Default::default()
+    };
+    for sky in [false, true] {
+        graphics.sky.enabled = sky;
+        renderer.configure(&graphics);
+        renderer.daylight = sky.then(|| crate::visuals::sky::Daylight::at(720.0, &graphics.sky));
+        for depth in [730.0, 9237.0, 133333.0] {
+            let backgrounds = [
+                quad(
+                    [depth, depth * 2.3, depth * 3.7, depth * 1.7],
+                    [1.0, 0.0, 0.0],
+                    1.1,
+                    true,
+                ),
+                quad(
+                    [depth * 7.1, depth * 1.1, depth * 2.7, depth * 4.9],
+                    [0.0, 1.0, 0.0],
+                    1.1,
+                    true,
+                ),
+            ]
+            .map(|vertices| {
+                renderer.upload_effects(render_effects::Geometry {
+                    vertices: vertices.to_vec(),
+                    batches: vec![render_effects::Batch {
+                        range: 0..6,
+                        blend: 0,
+                    }],
+                })
+            });
+            let mut capture = |layers: &[EffectMesh]| {
+                renderer
+                    .draw_lit(
+                        &view,
+                        camera,
+                        SceneMeshes {
+                            terrain: &[&foreground],
+                            actors: &[],
+                            backgrounds: layers,
+                        },
+                        None,
+                        &[],
+                        &[],
+                    )
+                    .unwrap();
+                read_pixels(&renderer, &target)
+            };
+            let expected = capture(&backgrounds[1..]);
+            let actual = capture(&backgrounds);
+            assert!(
+                actual == expected,
+                "background order at depth {depth}, modern sky {sky}"
+            );
+            assert!(
+                actual
+                    .chunks_exact(4)
+                    .filter(|p| p[1] > 200 && p[0] == 0)
+                    .count()
+                    > 3000
+            );
+            assert!(
+                actual
+                    .chunks_exact(4)
+                    .filter(|p| p[2] > 200 && p[1] == 0)
+                    .count()
+                    > 200
+            );
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; the day cycle moves actual shadows, supports lighting on its own, and disabling it restores the original image"]
 fn sun_and_moon_cycle_moves_shadows_and_restores_original_rendering() {
     let (mut renderer, target) = fixture(&Vram::default());

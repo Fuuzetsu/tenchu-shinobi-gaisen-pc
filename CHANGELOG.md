@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix native T2 sky and distant scenery layers flickering through one another,
+  including the training stage. Backgrounds now compose in their original
+  order without competing for the same depth value.
+
 - Keep multiple named campaign saves for Shinobi Gaisen and native T2 JP. Open
   **Campaign saves** from either title or the top of F1 to see each character's
   progress, create or duplicate a campaign, rename it, or switch back to it.
