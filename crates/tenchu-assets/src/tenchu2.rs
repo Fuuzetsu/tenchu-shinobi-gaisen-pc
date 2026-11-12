@@ -24,6 +24,7 @@ pub mod registry;
 pub mod selection;
 pub mod story;
 mod texture;
+pub mod title;
 mod volume;
 pub mod weapons;
 use crate::{ReadAt, Result, disc::Disc, i16_le, motion, slice, u32_le, weapon};

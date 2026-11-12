@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Switch between Shinobi Gaisen and the original Japanese Tenchu 2 title menu
+  with Left/Right or the on-screen button. Importing the T2 disc opens its title
+  directly; the menu leads to campaign selection and PC settings, with the
+  original artwork, sound effects, fades and idle movies. T2's mission editor
+  remains unavailable.
+
 - Keep the selected player body and weapon set during T1 cutscenes played with
   T2 rules, including Mission 10. Custom bodies and independent weapon choices
   follow the authored poses and drawn/sheathed state.

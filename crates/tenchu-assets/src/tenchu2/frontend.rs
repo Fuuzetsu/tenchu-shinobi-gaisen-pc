@@ -108,6 +108,27 @@ pub struct Movie {
 }
 
 impl Movie {
+    pub fn title(disc: &Disc<impl ReadAt>, opening: bool) -> Result<Self> {
+        super::selection::executable(disc)?;
+        let (name, last_frame) = if opening {
+            ("OP_MOV", 0xa82)
+        } else {
+            ("TITLE", 0xd5)
+        };
+        let path = format!("TENCHU2/MOVIE/{name}.STR");
+        let file = disc.find(&path)?;
+        Ok(Self {
+            audio: Track {
+                path,
+                channel: 1,
+                start: 0,
+                end: file.size.div_ceil(2048),
+                repeat: false,
+            },
+            last_frame,
+        })
+    }
+
     pub fn load(disc: &Disc<impl ReadAt>, resource: u16) -> Result<Option<Self>> {
         let (edition, bytes) = executable(disc)?;
         if edition != Edition::Japan || resource > 12 {

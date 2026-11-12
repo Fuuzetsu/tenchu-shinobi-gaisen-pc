@@ -47,6 +47,7 @@ impl Input {
 pub struct Update {
     pub changed: bool,
     pub quit: bool,
+    pub settings: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -159,6 +160,7 @@ impl Transport {
         Ok(Update {
             changed,
             quit: update.quit,
+            settings: update.settings,
         })
     }
 
@@ -214,7 +216,7 @@ impl Transport {
             }
             let buttons = input.buttons | std::mem::take(&mut self.menu_pending);
             let update = self.step(playback, buttons, output, &mut observed)?;
-            if update.changed || update.quit {
+            if update.changed || update.quit || update.settings {
                 // Discard accumulated time at scene boundaries; the next scene chooses its own rate.
                 let (_, accelerated) = input.pacing(&playback.content);
                 self.audio(playback, accelerated, output);

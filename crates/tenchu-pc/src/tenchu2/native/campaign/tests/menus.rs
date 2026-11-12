@@ -51,7 +51,8 @@ fn native_menu_convention_applies_at_the_input_boundary() {
                 for _ in 0..20 {
                     quit |= playback.step(0).unwrap().quit;
                 }
-                assert!(quit);
+                assert!(!quit);
+                assert!(matches!(playback.content, Content::Title(_)));
             } else {
                 next(&mut playback);
                 assert!(matches!(
@@ -176,6 +177,97 @@ fn native_menu_convention_applies_at_the_input_boundary() {
             }
         }
     }
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; title, mission selection/back, options, editor boundary and both attract movies"]
+fn title_menu_enters_campaign_and_returns_without_changing_progress() {
+    use tenchu_core::tenchu2::title::Choice;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut playback = Playback::title(disc, 2, 17, None).unwrap();
+    let progress = postcard::to_allocvec(&playback.run.progress).unwrap();
+    for _ in 0..15 {
+        playback.step(0).unwrap();
+    }
+    playback.confirm();
+    playback.step(0).unwrap();
+    for _ in 0..20 {
+        playback.step(0x2000).unwrap();
+    }
+    assert!(
+        matches!(playback.content, Content::Title(_)),
+        "held start must only reveal the menu"
+    );
+    playback.step(0).unwrap();
+    playback.step(0x2000).unwrap();
+    next(&mut playback);
+    assert!(matches!(playback.content, Content::MissionSelection(_)));
+    for _ in 0..15 {
+        playback.step(0).unwrap();
+    }
+    playback.action = Some(Action::Quit);
+    playback.step(0).unwrap();
+    next(&mut playback);
+    assert!(matches!(playback.content, Content::Title(_)));
+    for choice in [Choice::Options, Choice::Editor] {
+        for _ in 0..15 {
+            playback.step(0).unwrap();
+        }
+        playback.action = Some(Action::Title(choice));
+        playback.step(0).unwrap();
+        let generation = playback.generation;
+        let mut settings = false;
+        for _ in 0..20 {
+            let update = playback.step(0).unwrap();
+            assert!(!update.quit);
+            settings |= update.settings;
+            if playback.generation != generation {
+                break;
+            }
+        }
+        assert_eq!(settings, choice == Choice::Options);
+        let Content::Title(title) = &playback.content else {
+            panic!("not title")
+        };
+        assert_eq!(title.editor_notice, choice == Choice::Editor);
+    }
+    playback.step(0).unwrap();
+    playback.step(0x4000).unwrap();
+    assert!(matches!(&playback.content, Content::Title(title) if !title.editor_notice));
+    next(&mut playback);
+    assert!(matches!(
+        playback.content,
+        Content::TitleMovie { opening: true, .. }
+    ));
+    for opening in [true, false] {
+        let Content::TitleMovie {
+            movie,
+            opening: actual,
+        } = &playback.content
+        else {
+            panic!("not attract movie")
+        };
+        assert_eq!(*actual, opening);
+        assert!(movie.frame.is_some());
+        assert!(
+            movie.audio.as_ref().is_some_and(|audio| audio
+                .frames
+                .iter()
+                .flatten()
+                .any(|&sample| sample != 0))
+        );
+        playback.step(8).unwrap();
+        assert!(matches!(&playback.content, Content::TitleMovie { movie, .. } if !movie.finished));
+        playback.step(0).unwrap();
+        playback.step(8).unwrap();
+        next(&mut playback);
+    }
+    assert!(matches!(&playback.content, Content::Title(title) if title.state.fade == 0));
+    assert_eq!(
+        postcard::to_allocvec(&playback.run.progress).unwrap(),
+        progress
+    );
 }
 
 #[test]

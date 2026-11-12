@@ -4,6 +4,15 @@ use tenchu_core::tenchu2::{introduction::Frame, progress};
 
 fn state(content: &Content) -> Vec<u8> {
     match content {
+        Content::Title(value) => postcard::to_allocvec(&(
+            value.state.choice,
+            value.state.fade,
+            value.state.color,
+            value.state.tick,
+            value.state.active,
+            value.state.idle,
+            value.state.finished,
+        )),
         Content::MissionSelection(value) => postcard::to_allocvec(&value.state),
         Content::Equipment(value) => postcard::to_allocvec(&value.state),
         Content::Results(value) => postcard::to_allocvec(&value.values),
@@ -44,7 +53,18 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
         },
     )
     .unwrap();
+    let mut title = native::title::Title::load(&disc).unwrap();
+    for _ in 0..75 {
+        title.step(0, None);
+    }
+    let mut active_title = native::title::Title::load(&disc).unwrap();
+    for _ in 0..75 {
+        active_title.step(0, None);
+    }
+    active_title.step(0x2000, None);
     let cases = [
+        ("title", Content::Title(Box::new(title))),
+        ("title-menu", Content::Title(Box::new(active_title))),
         ("selection", Content::MissionSelection(Box::new(selection))),
         ("equipment", Content::Equipment(Box::new(equipment))),
         ("results", Content::Results(Box::new(results))),
@@ -81,7 +101,7 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
                         ..Default::default()
                     },
                     |ctx| {
-                        content.controls(ctx, circle_confirm);
+                        content.controls(ctx, circle_confirm, true);
                     },
                 );
                 renderer.update_overlay_textures(
@@ -108,7 +128,7 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
                         },
                         |ctx| {
                             drawing.paint(&content, ctx);
-                            content.controls(ctx, circle_confirm);
+                            content.controls(ctx, circle_confirm, true);
                         },
                     );
                     let jobs = ctx.tessellate(frame.shapes, frame.pixels_per_point);

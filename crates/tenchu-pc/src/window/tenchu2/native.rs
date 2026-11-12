@@ -1,4 +1,5 @@
 use super::super::*;
+use super::Entry;
 use crate::tenchu2::native::{
     campaign::{Action as NativeAction, Content, Playback},
     preferences,
@@ -68,13 +69,13 @@ impl Application {
         crate::diagnostics::finish(report, &self.settings, self.settings_store.path.parent())
     }
 
-    pub(in crate::window) fn start_native_tenchu2(&mut self, selection: bool) -> Result<()> {
+    pub(in crate::window) fn start_native_tenchu2(&mut self, entry: Entry) -> Result<()> {
         let difficulty = match self.campaign.options.difficulty {
             tenchu_core::ai::Difficulty::Easy => 1,
             tenchu_core::ai::Difficulty::Normal => 2,
             tenchu_core::ai::Difficulty::Hard => 3,
         };
-        let playback = if self.tenchu2.imported() {
+        let playback = if matches!(entry, Entry::Mission) && self.tenchu2.imported() {
             let path = self
                 .tenchu2
                 .japanese_disc()
@@ -110,16 +111,21 @@ impl Application {
                 self.tenchu2.gaisen_water_depth,
             )?
         } else {
-            let sequence = self
-                .tenchu2
-                .sequence
-                .ok_or("Select a Japanese mission layout")?;
             let disc = crate::source::open_disc(self.tenchu2.path.as_ref())?;
             let save = Some(crate::tenchu2::native::save::SaveFile::new()?);
-            if selection {
-                Playback::menu(disc, difficulty, self.campaign.seed, save)?
-            } else {
-                Playback::load(disc, sequence, difficulty, self.campaign.seed, None, save)?
+            match entry {
+                Entry::Title => Playback::title(disc, difficulty, self.campaign.seed, save)?,
+                Entry::Selection => Playback::menu(disc, difficulty, self.campaign.seed, save)?,
+                Entry::Mission => Playback::load(
+                    disc,
+                    self.tenchu2
+                        .sequence
+                        .ok_or("Select a Japanese mission layout")?,
+                    difficulty,
+                    self.campaign.seed,
+                    None,
+                    save,
+                )?,
             }
         };
         self.finish_recording();
@@ -144,6 +150,8 @@ impl Application {
             donor: None,
         });
         self.tenchu2.open = false;
+        self.tenchu2.title = false;
+        self.controls.clear();
         self.menu.open = false;
         self.randomizer.open = false;
         self.paused = false;
@@ -160,12 +168,25 @@ impl Application {
         self.controls.close_editor();
         self.presets.open = false;
         self.touch.clear();
+        self.controls.clear();
         self.campaign.screen = Screen::Launcher;
         self.campaign.quick_launcher = true;
         self.campaign.cursor = 1;
         self.reload_game()?;
         self.update_view();
         self.update_overlay();
+        Ok(())
+    }
+
+    fn back_from_native_tenchu2(&mut self) -> Result<()> {
+        let title = matches!(
+            self.native_tenchu2.as_ref().unwrap().playback.content,
+            Content::Title(_) | Content::TitleMovie { .. }
+        );
+        self.leave_native_tenchu2()?;
+        if title {
+            self.open_title();
+        }
         Ok(())
     }
 
@@ -220,6 +241,10 @@ impl Application {
         )?;
         if update.changed {
             self.last_frame = Instant::now();
+        }
+        if update.settings {
+            native.menu.panel.open = true;
+            self.controls.clear();
         }
         Ok(update.quit)
     }
@@ -287,6 +312,14 @@ impl Application {
                 || self.native_tenchu2.as_ref().unwrap().menu.fast_forward,
             paused: self.is_suspended(),
         };
+        if buttons & 0xa0 != 0
+            && matches!(
+                self.native_tenchu2.as_ref().unwrap().playback.content,
+                Content::Title(_)
+            )
+        {
+            return self.back_from_native_tenchu2();
+        }
         let native = self.native_tenchu2.as_mut().unwrap();
         native
             .playback
@@ -356,7 +389,11 @@ impl Application {
             &self.settings.navigation,
         );
         if update.quit {
-            return self.leave_native_tenchu2();
+            return self.back_from_native_tenchu2();
+        }
+        if update.settings {
+            native.menu.panel.open = true;
+            self.controls.clear();
         }
         if update.changed {
             self.last_frame = Instant::now();
@@ -541,7 +578,7 @@ impl Application {
                 native.playback.action = native
                     .playback
                     .content
-                    .controls(ctx, self.settings.circle_confirm)
+                    .controls(ctx, self.settings.circle_confirm, true)
                     .or(native.playback.action);
                 native.playback.content.inspect(
                     ctx,
@@ -762,8 +799,11 @@ impl Application {
             }
             self.sync_pause();
         }
-        if step && self.native_tenchu2.as_ref().unwrap().error.is_none() {
-            leave |= self.step_native_tenchu2()?;
+        if step
+            && self.native_tenchu2.as_ref().unwrap().error.is_none()
+            && self.step_native_tenchu2()?
+        {
+            return self.back_from_native_tenchu2();
         }
         if let Some(action) = rewind_action {
             self.native_rewind_action(action);
@@ -822,8 +862,10 @@ impl Application {
                 {
                     native.menu.tools.debug.return_camera();
                     self.controls.clear();
+                } else if native.playback.back_menu() {
+                    self.controls.clear();
                 } else {
-                    return self.leave_native_tenchu2();
+                    return self.back_from_native_tenchu2();
                 }
             }
             crate::touch::Action::QuickMenu => return self.leave_native_tenchu2(),
@@ -974,6 +1016,27 @@ impl Application {
                 }
                 if pressed {
                     match code {
+                        KeyCode::ArrowLeft | KeyCode::ArrowRight
+                            if !menu_open
+                                && !menu.modal_open()
+                                && matches!(
+                                    self.native_tenchu2.as_ref().unwrap().playback.content,
+                                    Content::Title(_)
+                                ) =>
+                        {
+                            return self.back_from_native_tenchu2();
+                        }
+                        KeyCode::ArrowUp | KeyCode::ArrowDown
+                            if !menu_open
+                                && !menu.modal_open()
+                                && matches!(
+                                    self.native_tenchu2.as_ref().unwrap().playback.content,
+                                    Content::Title(_)
+                                ) =>
+                        {
+                            self.controls.key(code, true);
+                            return Ok(());
+                        }
                         KeyCode::Backspace
                             if !menu_open
                                 && !menu.modal_open()
@@ -1055,7 +1118,7 @@ impl Application {
                                 && self.native_tenchu2.as_ref().unwrap().error.is_none() =>
                         {
                             if self.step_native_tenchu2()? {
-                                self.leave_native_tenchu2()?;
+                                self.back_from_native_tenchu2()?;
                             }
                             return Ok(());
                         }
@@ -1087,6 +1150,9 @@ impl Application {
 
 #[cfg(test)]
 mod launcher_tests;
+
+#[cfg(test)]
+mod title_tests;
 
 #[cfg(test)]
 mod tests {

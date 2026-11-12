@@ -6,6 +6,7 @@ mod launcher;
 
 pub struct Menu {
     pub open: bool,
+    pub title: bool,
     pub path: String,
     pub notice: String,
     pub character: i16,
@@ -32,6 +33,7 @@ impl Default for Menu {
     fn default() -> Self {
         Self {
             open: false,
+            title: false,
             path: String::new(),
             notice: String::new(),
             character: 0,
@@ -68,6 +70,8 @@ pub enum Event {
     Gaisen(bool),
     GaisenTenchu2,
     Quick,
+    #[cfg(not(target_arch = "wasm32"))]
+    Title,
 }
 
 impl Menu {
@@ -89,6 +93,9 @@ impl Menu {
     pub fn show(&mut self, ctx: &egui::Context) -> Option<Event> {
         if !self.open {
             return None;
+        }
+        if self.title {
+            return self.title_import(ctx);
         }
         let mut event = None;
         let mut open = true;
@@ -128,6 +135,44 @@ impl Menu {
         if !open {
             event = Some(Event::Close);
         }
+        event
+    }
+
+    fn title_import(&mut self, ctx: &egui::Context) -> Option<Event> {
+        let mut event = None;
+        ctx.layer_painter(egui::LayerId::background()).rect_filled(
+            ctx.screen_rect(),
+            0.0,
+            egui::Color32::BLACK,
+        );
+        egui::Window::new("Tenchu 2")
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .collapsible(false)
+            .resizable(false)
+            .max_width((ctx.screen_rect().width() - 32.0).clamp(240.0, 520.0))
+            .show(ctx, |ui| {
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
+                ui.label("Import your Japanese Tenchu 2 disc to open its title menu and campaign.");
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.path)
+                        .hint_text("CUE, disc folder or archive path"),
+                );
+                ui.horizontal_wrapped(|ui| {
+                    if ui.button("Browse…").clicked() {
+                        event = Some(Event::Browse);
+                    }
+                    if ui.button("Import disc").clicked() {
+                        event = Some(Event::Connect);
+                    }
+                });
+                if !self.notice.is_empty() {
+                    ui.label(&self.notice);
+                }
+                ui.separator();
+                if ui.button("◀ Shinobi Gaisen · Left / Right ▶").clicked() {
+                    event = Some(Event::Close);
+                }
+            });
         event
     }
 }

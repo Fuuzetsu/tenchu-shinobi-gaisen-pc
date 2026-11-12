@@ -20,6 +20,10 @@ title, character selection, mission map and options are ported from `MENU.EXE`.
 The opening/training movies, both character epilogues, credits and final results
 from `ENDING.EXE` play from the disc. **F6** opens the previous quick launcher;
 **Esc** there returns to the title. **F1** still opens PC settings.
+On desktop and Android, **Left/Right** on either title switches between Shinobi
+Gaisen and [Tenchu 2 Japan](tenchu2-native.md); the footer also accepts mouse/touch.
+If T2 is not connected, the screen offers to import its disc. T2's original title
+leads to campaign selection and PC settings. Its mission editor is not yet ported.
 **F1 → General → Music while paused** keeps in-mission music playing during
 pause, frame stepping, settings-menu pauses and defocus pauses. Gameplay sounds
 remain suspended, and frontend movies/narration pause normally. It is off by default.

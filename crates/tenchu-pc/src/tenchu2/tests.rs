@@ -60,6 +60,7 @@ mod source_stealth;
 mod source_story;
 mod source_swimming;
 mod source_terrain;
+mod source_title;
 mod source_wall;
 mod source_weapons;
 mod source_world;

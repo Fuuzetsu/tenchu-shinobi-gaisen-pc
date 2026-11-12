@@ -19,6 +19,11 @@ pub(super) mod state;
 mod tests;
 
 pub enum Content {
+    Title(Box<super::title::Title>),
+    TitleMovie {
+        movie: Box<super::film::Movie>,
+        opening: bool,
+    },
     MissionSelection(Box<super::selection::Selection>),
     Prologue(Box<super::film::Prologue>),
     Equipment(Box<super::equipment::Selection>),
@@ -42,6 +47,7 @@ pub enum Action {
     Equipment(super::equipment::Edit),
     MissionSelection(super::selection::Edit),
     SelectMission,
+    Title(tenchu_core::tenchu2::title::Choice),
 }
 
 #[derive(Default)]
@@ -51,6 +57,7 @@ pub struct Update {
     pub stop_music: bool,
     pub music: Option<Arc<Clip>>,
     pub quit: bool,
+    pub settings: bool,
 }
 
 pub struct Playback<S> {
@@ -140,6 +147,24 @@ impl<S: ReadAt> Playback<S> {
         let mut playback = Self::new(disc, None, difficulty, seed, None, save)?;
         playback.select_mission()?;
         Ok(playback)
+    }
+
+    pub fn title(
+        disc: Disc<S>,
+        difficulty: u8,
+        seed: u32,
+        save: Option<super::save::SaveFile>,
+    ) -> Result<Self> {
+        let mut playback = Self::new(disc, None, difficulty, seed, None, save)?;
+        playback.show_title()?;
+        Ok(playback)
+    }
+
+    fn show_title(&mut self) -> Result<()> {
+        self.content = Content::Title(Box::new(super::title::Title::load(&self.disc)?));
+        self.generation += 1;
+        self.death.clear();
+        Ok(())
     }
 
     pub fn gaisen(
@@ -408,13 +433,67 @@ impl<S: ReadAt> Playback<S> {
         let mut update = Update::default();
         let mut choose_mission = false;
         let destination = match &mut self.content {
+            Content::Title(title) => {
+                if matches!(action, Some(Action::Quit)) {
+                    update.quit = true;
+                } else if title.state.finished {
+                    use tenchu_core::tenchu2::title::Choice;
+                    if title.state.attract {
+                        self.content = Content::TitleMovie {
+                            movie: Box::new(super::film::Movie::title(&self.disc, true)?),
+                            opening: true,
+                        };
+                        self.generation += 1;
+                    } else {
+                        match title.state.choice {
+                            Choice::Campaign => self.select_mission()?,
+                            Choice::Options => {
+                                self.show_title()?;
+                                update.settings = true;
+                            }
+                            Choice::Editor => {
+                                self.show_title()?;
+                                if let Content::Title(title) = &mut self.content {
+                                    title.editor_notice = true;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    update.sounds = title
+                        .step(buttons, action)
+                        .into_iter()
+                        .map(Into::into)
+                        .collect();
+                }
+                None
+            }
+            Content::TitleMovie { movie, opening } => {
+                if movie.finished {
+                    if *opening {
+                        self.content = Content::TitleMovie {
+                            movie: Box::new(super::film::Movie::title(&self.disc, false)?),
+                            opening: false,
+                        };
+                        self.generation += 1;
+                    } else {
+                        self.show_title()?;
+                        if let Content::Title(title) = &mut self.content {
+                            title.state.fade = 0;
+                        }
+                    }
+                } else {
+                    movie.step_title(&self.disc, buttons)?;
+                }
+                None
+            }
             Content::MissionSelection(selection) => {
                 if selection.state.finished {
                     self.run.progress.clone_from(&selection.state.progress);
                     if selection.state.outcome
                         == Some(tenchu_core::tenchu2::selection::Outcome::Cancel)
                     {
-                        update.quit = true;
+                        self.show_title()?;
                         None
                     } else {
                         let hero = selection.state.hero;
@@ -596,6 +675,7 @@ impl<S: ReadAt> Playback<S> {
                                 None
                             }
                             Action::Equipment(_)
+                            | Action::Title(_)
                             | Action::MissionSelection(_)
                             | Action::SelectMission => None,
                         }

@@ -88,12 +88,22 @@ impl Hold {
 }
 
 impl<S: ReadAt> Playback<S> {
+    pub fn back_menu(&mut self) -> bool {
+        match &mut self.content {
+            Content::MissionSelection(_) => self.action = Some(Action::Quit),
+            Content::Title(title) if title.editor_notice => self.action = Some(Action::Continue),
+            _ => return false,
+        }
+        true
+    }
+
     pub fn confirm(&mut self) {
         self.action = if self.death.waiting() {
             Some(Action::Continue)
         } else {
             match self.content {
-                Content::MissionSelection(_)
+                Content::Title(_)
+                | Content::MissionSelection(_)
                 | Content::Prologue(_)
                 | Content::Equipment(_)
                 | Content::Results(_) => Some(Action::Continue),

@@ -135,6 +135,8 @@ pub fn report(
         "random": playback.run.random, "summary": playback.run.summary,
         "carry": playback.run.carry, "results": playback.run.results});
     let screen = match &playback.content {
+        Content::Title(_) => "title",
+        Content::TitleMovie { .. } => "title-movie",
         Content::MissionSelection(_) => "mission-selection",
         Content::Prologue(_) => "prologue",
         Content::Equipment(_) => "equipment",

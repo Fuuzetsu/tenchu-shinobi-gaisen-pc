@@ -41,6 +41,27 @@ No usable T2 debug-symbol release has been verified. The known demo `PSX.SYM`
 belongs to Tenchu 1 and is already used by `../tenchu-decomp`. This comparison does
 not depend on finding further symbols and commits no executable or captured data.
 
+## Native T2 title menu
+
+The title state follows JP `MENU.EXE` `8010fa3c`, called by `8010f87c`.
+The four `title.arc` images use layout descriptors at `80130e0c`; shared sprite
+parsing and the existing frontend Canvas/GPU renderer supply presentation.
+The port preserves release-before-press input, the initial menu reveal,
+non-wrapping selection, signed copyright-color increment, subtractive fade and
+1,801-tick idle boundary at nominal 60 Hz. Host rendering cadence does not drive
+the source's slow-frame counter branch. The PC's Settings entry opens F1;
+T2 `TRIAL.EXE` and the original options submenus remain separate boundaries.
+
+The local oracle executes the original title instructions with pad, sound and
+sprite submission hooks: 66 traces / 59,151 updates cover held and simultaneous
+buttons, navigation limits, confirmation/fade boundaries and attract timeout.
+Evidence: `private/render-consolidation-20261112/title-oracle.py` and its JSONL;
+neither executable bytes nor oracle data are committed. The `OP_MOV.STR` and
+`TITLE.STR` cutoffs are 2,690 and 213, and both files carry stereo XA on channel 1.
+Campaign movies retain their existing three-frame tail cutoff. Native title
+integration checks cover disc import, save isolation, mission selection/back,
+the editor boundary, settings, movie skip edges and rendered control prompts.
+
 ## Native T2 story effects
 
 The 2026-11-12 completion uses JP `EVENT.BIN` command dispatch `800d42b4`,

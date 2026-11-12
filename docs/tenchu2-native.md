@@ -1,5 +1,20 @@
 # Japanese Tenchu 2 native play
 
+Press **Left/Right** on the Shinobi Gaisen title, or use its **Tenchu 2** button,
+to open the original JP title menu. If the disc is missing, import it from the
+prompt; the title opens immediately afterward. Either direction or the footer
+button switches back to Shinobi Gaisen. Held controls must be released after
+switching. This frontend is available on desktop and Android.
+
+The title uses the original disc artwork, menu sounds, fades and idle movies.
+Enter or the configured confirm button reveals its three choices; Up/Down
+selects. **Campaign** opens the original mission screen, whose Back action
+returns to the T2 title. **Settings** opens F1. The original **Mission editor**
+entry explains that T2's editor has not yet been ported. Switching titles does
+not change either campaign's saved progress. The PC enters the still title
+directly; after 30 seconds without input, the original opening and title movies
+play. Start/Circle skips each movie.
+
 Connect your Japanese disc through **F6 → Connect another disc…**, select
 **Tenchu 2 Japan**, an area and a sequence, then **Start mission**. JP selections
 now use the native JP runtime. The sequence determines the original player and

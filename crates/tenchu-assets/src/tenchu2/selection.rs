@@ -22,6 +22,28 @@ pub struct Sprite {
     pub selected: usize,
 }
 
+pub(super) fn sprites(exe: &Executable<'_>, address: u32, images: usize) -> Result<Vec<Sprite>> {
+    let mut sprites = Vec::new();
+    for index in 0..64 {
+        let row = exe.bytes(address + index * 10, 10)?;
+        if row[0] == 255 {
+            return Ok(sprites);
+        }
+        if usize::from(row[1]) >= images || row[0] & 0xc0 != 0 && row[8] == 0 {
+            return Err("Invalid Japanese menu sprite".into());
+        }
+        sprites.push(Sprite {
+            flags: row[0],
+            image: usize::from(row[1]),
+            position: [i16_le(row, 2)?, i16_le(row, 4)?],
+            layer: i16_le(row, 6)?,
+            slices: usize::from(row[8]),
+            selected: usize::from(row[9]),
+        });
+    }
+    Err("Unterminated Japanese menu layout".into())
+}
+
 pub struct Resources {
     pub rules: Rules,
     pub images: Vec<Image>,
@@ -38,7 +60,7 @@ pub struct Resources {
 
 pub(super) fn executable(disc: &Disc<impl ReadAt>) -> Result<Vec<u8>> {
     if Edition::detect(disc)? != Edition::Japan {
-        return Err("Native Tenchu 2 mission selection requires the Japanese disc".into());
+        return Err("Native Tenchu 2 menus require the Japanese disc".into());
     }
     let entry = disc.find("TENCHU2/MENU.EXE")?;
     if entry.size > 2 * 1024 * 1024 {
@@ -120,24 +142,7 @@ impl Resources {
         let images = (0..7)
             .map(|i| super::texture::image(arc_entry(&data, i)?))
             .collect::<Result<Vec<_>>>()?;
-        let mut sprites = Vec::new();
-        for index in 0..64 {
-            let row = exe.bytes(0x80130e54 + index * 10, 10)?;
-            if row[0] == 255 {
-                break;
-            }
-            if usize::from(row[1]) >= images.len() || row[0] & 0xc0 != 0 && row[8] == 0 {
-                return Err("Invalid Japanese mission sprite".into());
-            }
-            sprites.push(Sprite {
-                flags: row[0],
-                image: usize::from(row[1]),
-                position: [i16_le(row, 2)?, i16_le(row, 4)?],
-                layer: i16_le(row, 6)?,
-                slices: usize::from(row[8]),
-                selected: usize::from(row[9]),
-            });
-        }
+        let sprites = sprites(&exe, 0x80130e54, images.len())?;
         if sprites.len() != 18 {
             return Err("Invalid Japanese mission layout".into());
         }

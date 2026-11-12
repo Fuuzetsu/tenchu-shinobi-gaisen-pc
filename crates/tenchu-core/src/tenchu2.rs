@@ -24,6 +24,7 @@ pub mod selection;
 pub mod sheathing;
 pub mod story;
 pub mod terrain;
+pub mod title;
 pub mod visibility;
 pub mod world;
 

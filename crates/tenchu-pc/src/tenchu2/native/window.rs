@@ -148,7 +148,7 @@ impl View {
                 if !menu.panel.open && !menu.modal_open() {
                     session.action = session
                         .content
-                        .controls(ctx, state.settings.circle_confirm)
+                        .controls(ctx, state.settings.circle_confirm, false)
                         .or(session.action);
                     session.content.inspect(
                         ctx,
@@ -340,6 +340,10 @@ impl Application {
             .tools
             .sync(&self.session.content, self.session.generation);
         self.quit |= update.quit;
+        if update.settings {
+            self.menu.panel.open = true;
+            self.controls.clear();
+        }
         if update.changed {
             self.last = Instant::now();
         }
@@ -453,6 +457,10 @@ impl Application {
             .tools
             .sync(&self.session.content, self.session.generation);
         self.quit |= update.quit;
+        if update.settings {
+            self.menu.panel.open = true;
+            self.controls.clear();
+        }
         if update.changed {
             self.last = Instant::now();
         }
@@ -955,6 +963,7 @@ impl ApplicationHandler for Application {
                                 self.menu.tools.debug.return_camera();
                                 self.controls.clear();
                             }
+                            KeyCode::Escape if self.session.back_menu() => self.controls.clear(),
                             KeyCode::Escape => events.exit(),
                             KeyCode::F6 => events.exit(),
                             KeyCode::F7 => {

@@ -25,9 +25,22 @@ impl Application {
 
     pub(super) fn open_title(&mut self) {
         self.clear_rewind();
-        let Some(frontend) = &mut self.frontend else {
-            return;
-        };
+        if self.frontend.is_none() {
+            match crate::frontend::Frontend::new(
+                &self.assets,
+                &self.disc,
+                &self.campaign,
+                self.settings.frontend.clone(),
+            ) {
+                Ok(frontend) => self.frontend = Some(frontend),
+                Err(error) => {
+                    self.pause_error(error);
+                    return;
+                }
+            }
+        }
+        let frontend = self.frontend.as_mut().unwrap();
+        self.campaign.frontend = true;
         self.campaign.screen = Screen::Frontend;
         self.campaign.quick_launcher = false;
         if let Err(error) = frontend
@@ -49,6 +62,16 @@ impl Application {
 
     pub(super) fn frontend_action(&mut self, action: Action) {
         if self.demo.is_some() || self.tenchu2.open {
+            return;
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        if matches!(action, Action::Left | Action::Right)
+            && self
+                .frontend
+                .as_ref()
+                .is_some_and(|f| f.page == Page::Title)
+        {
+            self.tenchu2_action(crate::tenchu2::menu::Event::Title);
             return;
         }
         #[cfg(target_arch = "wasm32")]
@@ -112,6 +135,8 @@ impl Application {
         let pending = std::mem::take(&mut frontend.events);
         for event in pending {
             match event {
+                #[cfg(not(target_arch = "wasm32"))]
+                Event::Tenchu2Title => self.tenchu2_action(crate::tenchu2::menu::Event::Title),
                 Event::Quit => events.exit(),
                 Event::TrialEditor => self.open_trial(),
                 Event::QuickLauncher => {

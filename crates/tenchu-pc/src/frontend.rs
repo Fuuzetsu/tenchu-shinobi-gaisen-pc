@@ -89,6 +89,8 @@ pub enum Event {
     StartMission,
     CancelPreparation,
     QuickLauncher,
+    #[cfg(not(target_arch = "wasm32"))]
+    Tenchu2Title,
     TrialEditor,
     Save,
     Load,

@@ -6,6 +6,13 @@ mod native;
 #[cfg(not(target_arch = "wasm32"))]
 pub(super) use native::Native;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub(super) enum Entry {
+    Mission,
+    Selection,
+    Title,
+}
+
 impl Application {
     pub(super) fn tenchu2_action(&mut self, event: Event) {
         if let Err(error) = self.apply_tenchu2(event) {
@@ -34,7 +41,7 @@ impl Application {
             Event::MissionSelection => {
                 #[cfg(not(target_arch = "wasm32"))]
                 if self.tenchu2.native() && self.tenchu2.path == self.tenchu2.connected {
-                    return self.start_native_tenchu2(true);
+                    return self.start_native_tenchu2(Entry::Selection);
                 }
             }
             Event::Gaisen(continue_save) => {
@@ -53,7 +60,7 @@ impl Application {
             Event::GaisenTenchu2 => {
                 #[cfg(not(target_arch = "wasm32"))]
                 if self.tenchu2.imported() {
-                    return self.start_native_tenchu2(false);
+                    return self.start_native_tenchu2(Entry::Mission);
                 }
                 return Err("Select Tenchu 2 gameplay rules for a Gaisen stage first".into());
             }
@@ -75,12 +82,30 @@ impl Application {
                 }
                 self.campaign.cursor = 7;
             }
-            Event::Close => self.tenchu2.open = false,
+            Event::Close => {
+                self.tenchu2.open = false;
+                self.tenchu2.title = false;
+                self.controls.clear();
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            Event::Title => {
+                self.tenchu2.title = true;
+                self.tenchu2.open = true;
+                self.tenchu2.notice.clear();
+                self.controls.clear();
+                self.tenchu2.refresh_discs();
+                if let Some(path) = self.tenchu2.japanese_disc().map(str::to_owned) {
+                    self.tenchu2.path = path;
+                    return self.apply_tenchu2(Event::Connect);
+                }
+                self.tenchu2.path.clear();
+            }
             Event::Open => {
                 if self.campaign.playing() || self.demo.is_some() {
                     return Ok(());
                 }
                 self.tenchu2.open = true;
+                self.tenchu2.title = false;
                 self.randomizer.open = false;
                 self.menu.open = false;
                 #[cfg(not(target_arch = "wasm32"))]
@@ -146,6 +171,12 @@ impl Application {
                         self.menu.weapon_models.clear();
                         self.menu.voice_models.clear();
                     }
+                    if self.tenchu2.title {
+                        if self.tenchu2.selected != Some(tenchu_assets::tenchu2::Edition::Japan) {
+                            return Err("This disc is connected. The native title menu currently requires the Japanese edition.".into());
+                        }
+                        return self.start_native_tenchu2(Entry::Title);
+                    }
                 }
             }
             Event::Play => {
@@ -155,7 +186,7 @@ impl Application {
                         return Err("Load the selected disc first".into());
                     }
                     if self.tenchu2.native() {
-                        return self.start_native_tenchu2(false);
+                        return self.start_native_tenchu2(Entry::Mission);
                     }
                     let guard = self.tenchu2.sequence.and(self.tenchu2.guard);
                     let mut sandbox = crate::tenchu2::Sandbox::open(

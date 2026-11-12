@@ -98,6 +98,8 @@ impl Frontend {
             0.0
         } else if self.page == Page::Shop {
             90.0
+        } else if self.page == Page::Title && !cfg!(target_arch = "wasm32") {
+            100.0
         } else {
             60.0
         };
@@ -178,6 +180,17 @@ impl Frontend {
             return None;
         }
         let mut action = None;
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.page == Page::Title {
+            egui::Area::new("frontend game switch".into())
+                .anchor(Align2::CENTER_BOTTOM, [0.0, -6.0])
+                .show(ctx, |ui| {
+                    ui.spacing_mut().interact_size.y = 36.0;
+                    if ui.button("◀ Tenchu 2 · Left / Right ▶").clicked() {
+                        self.events.push(Event::Tenchu2Title);
+                    }
+                });
+        }
         egui::Area::new("frontend mouse".into())
             .order(egui::Order::Background)
             .fixed_pos(rect.min)

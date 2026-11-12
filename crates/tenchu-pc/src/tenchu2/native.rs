@@ -89,6 +89,8 @@ mod story;
 #[cfg(test)]
 mod tests;
 #[cfg(not(target_arch = "wasm32"))]
+mod title;
+#[cfg(not(target_arch = "wasm32"))]
 mod tools;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod transport;

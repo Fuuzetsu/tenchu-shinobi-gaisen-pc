@@ -571,7 +571,10 @@ impl Application {
             return;
         }
         if self.tenchu2.open {
-            if matches!(command, Command::Menu(Action::Back)) {
+            if matches!(command, Command::Menu(Action::Back))
+                || self.tenchu2.title
+                    && matches!(command, Command::Menu(Action::Left | Action::Right))
+            {
                 self.tenchu2_action(crate::tenchu2::menu::Event::Close);
             }
             return;
@@ -1070,7 +1073,12 @@ impl ApplicationHandler for Application {
                     return;
                 }
                 if self.tenchu2.open {
-                    if event.state == ElementState::Pressed && code == KeyCode::Escape {
+                    if event.state == ElementState::Pressed
+                        && (code == KeyCode::Escape
+                            || self.tenchu2.title
+                                && matches!(code, KeyCode::ArrowLeft | KeyCode::ArrowRight)
+                                && !self.view.as_ref().is_some_and(|v| v.overlay.editing()))
+                    {
                         self.tenchu2_action(crate::tenchu2::menu::Event::Close);
                     }
                     return;
@@ -1761,7 +1769,7 @@ pub fn run(
             .iter()
             .find(|layout| layout.sequence == sequence)
             .map_or(0, |layout| layout.map);
-        application.start_native_tenchu2(false)?;
+        application.start_native_tenchu2(tenchu2::Entry::Mission)?;
     }
     if application.exporting_video() {
         println!(

@@ -59,7 +59,20 @@ impl Movie {
     }
 
     pub fn load(disc: &Disc<impl ReadAt>, resource: u16) -> Result<Self> {
-        let descriptor = frontend::Movie::load(disc, resource)?;
+        let descriptor = frontend::Movie::load(disc, resource)?.map(|mut descriptor| {
+            descriptor.last_frame -= 3;
+            descriptor
+        });
+        Self::open(disc, descriptor)
+    }
+
+    pub fn title(disc: &Disc<impl ReadAt>, opening: bool) -> Result<Self> {
+        let mut movie = Self::open(disc, Some(frontend::Movie::title(disc, opening)?))?;
+        movie.previous = u16::MAX;
+        Ok(movie)
+    }
+
+    fn open(disc: &Disc<impl ReadAt>, descriptor: Option<frontend::Movie>) -> Result<Self> {
         let mut movie = Self {
             frame: None,
             audio: None,
@@ -84,6 +97,14 @@ impl Movie {
 
     pub fn step(&mut self, disc: &Disc<impl ReadAt>, buttons: u16) -> Result<()> {
         self.quit = buttons == 9;
+        self.advance(disc, buttons)
+    }
+
+    pub fn step_title(&mut self, disc: &Disc<impl ReadAt>, buttons: u16) -> Result<()> {
+        self.advance(disc, buttons)
+    }
+
+    fn advance(&mut self, disc: &Disc<impl ReadAt>, buttons: u16) -> Result<()> {
         self.finished |= self.quit || (self.previous == 0 && matches!(buttons, 8 | 0x2000));
         self.previous = buttons;
         self.ticks += 1;
@@ -94,7 +115,7 @@ impl Movie {
                 .unwrap()
                 .next(disc)?
                 .ok_or("Japanese Tenchu 2 movie ended before its final frame")?;
-            self.finished = frame.number >= self.last_frame - 3;
+            self.finished = frame.number >= self.last_frame;
             self.frame = Some(Arc::new(frame));
         }
         Ok(())

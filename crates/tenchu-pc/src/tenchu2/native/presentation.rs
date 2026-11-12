@@ -17,6 +17,7 @@ mod results;
 mod selection;
 #[cfg(test)]
 mod text_tests;
+mod title;
 
 fn swap_menu_icons(
     image: &tenchu_assets::frontend::Image,
@@ -79,14 +80,19 @@ impl Content {
         matches!(self, Self::Gameplay(session) if session.cinematic())
             || matches!(
                 self,
-                Self::Prologue(_) | Self::Introduction(_) | Self::Movie(_) | Self::Story { .. }
+                Self::Prologue(_)
+                    | Self::Introduction(_)
+                    | Self::Movie(_)
+                    | Self::TitleMovie { .. }
+                    | Self::Story { .. }
             )
     }
 
     pub fn menu_controls(&self) -> bool {
         matches!(
             self,
-            Self::MissionSelection(_)
+            Self::Title(_)
+                | Self::MissionSelection(_)
                 | Self::Equipment(_)
                 | Self::Results(_)
                 | Self::Failed
@@ -99,7 +105,7 @@ impl Content {
         let seconds = match self {
             Self::Prologue(intro) => f64::from(intro.state.tick) / 15.0,
             Self::Introduction(intro) => f64::from(intro.state.tick) / 15.0,
-            Self::Movie(movie) => movie.seconds(),
+            Self::Movie(movie) | Self::TitleMovie { movie, .. } => movie.seconds(),
             Self::Story { story, .. } => f64::from(story.state.frame.max(0)) / 30.0,
             _ => return,
         };
@@ -108,13 +114,16 @@ impl Content {
 
     pub fn tick(&self) -> i64 {
         match self {
+            Self::Title(title) => i64::from(title.state.tick),
             Self::MissionSelection(selection) => i64::from(selection.state.tick),
             Self::Prologue(intro) => i64::from(intro.state.tick),
             Self::Gameplay(session) => session.presentation_tick() as i64,
             Self::Equipment(selection) => i64::from(selection.state.tick),
             Self::Story { story, .. } => i64::from(story.state.frame),
             Self::Introduction(intro) => i64::from(intro.state.tick),
-            Self::Movie(movie) => movie.frame.as_ref().map_or(0, |f| i64::from(f.number)),
+            Self::Movie(movie) | Self::TitleMovie { movie, .. } => {
+                movie.frame.as_ref().map_or(0, |f| i64::from(f.number))
+            }
             _ => 0,
         }
     }
@@ -123,6 +132,7 @@ impl Content {
         output.send(Command::Clear);
         output.send(Command::Music(None, false));
         match self {
+            Self::Title(title) => output.send(Command::Bank(title.bank.clone())),
             Self::MissionSelection(selection) => {
                 output.send(Command::Bank(selection.bank.clone()));
                 output.send(Command::Music(Some(selection.music.clone()), false));
@@ -134,7 +144,9 @@ impl Content {
             Self::Story { story, audio } if story.state.ending.is_none() => {
                 output.send(Command::Music(audio.clone(), false));
             }
-            Self::Movie(movie) => output.send(Command::Music(movie.audio.clone(), false)),
+            Self::Movie(movie) | Self::TitleMovie { movie, .. } => {
+                output.send(Command::Music(movie.audio.clone(), false))
+            }
             Self::Introduction(intro)
                 if intro.state.phase == tenchu_core::tenchu2::introduction::Phase::Narration =>
             {
@@ -144,14 +156,21 @@ impl Content {
         }
     }
 
-    pub fn controls(&self, ctx: &egui::Context, circle_confirm: bool) -> Option<Action> {
+    pub fn controls(
+        &self,
+        ctx: &egui::Context,
+        circle_confirm: bool,
+        switch_games: bool,
+    ) -> Option<Action> {
         let mut action = None;
         let (confirm, back) = if circle_confirm {
             ("Circle", "Cross")
         } else {
             ("Cross", "Circle")
         };
-        if let Self::MissionSelection(selection) = self {
+        if let Self::Title(title) = self {
+            action = title::controls(title, ctx, confirm, switch_games);
+        } else if let Self::MissionSelection(selection) = self {
             action = selection::controls(selection, ctx, confirm, back);
         } else if let Self::Prologue(_) = self {
             egui::Area::new("jp-prologue-actions".into())
@@ -318,6 +337,7 @@ impl Content {
 }
 
 pub(crate) enum ContentDrawing {
+    Title(title::Drawing),
     MissionSelection(selection::Drawing),
     Prologue(film::Drawing),
     Equipment(equipment::Drawing),
@@ -411,6 +431,7 @@ impl ContentDrawing {
 
     pub fn new(content: &Content, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         match content {
+            Content::Title(title) => Ok(Self::Title(title::Drawing::new(title))),
             Content::MissionSelection(selection) => Ok(Self::MissionSelection(
                 selection::Drawing::new(selection, graphics)?,
             )),
@@ -427,7 +448,7 @@ impl ContentDrawing {
             Content::Introduction(intro) => {
                 Ok(Self::Introduction(film::Drawing::introduction(intro)))
             }
-            Content::Movie(_) => Ok(Self::Movie {
+            Content::Movie(_) | Content::TitleMovie { .. } => Ok(Self::Movie {
                 texture: None,
                 frame: None,
             }),
@@ -476,6 +497,10 @@ impl ContentDrawing {
         settings: &crate::settings::Settings,
     ) -> Result<()> {
         match (self, content) {
+            (Self::Title(drawing), Content::Title(title)) => {
+                drawing.update(title);
+                Ok(())
+            }
             (Self::MissionSelection(drawing), Content::MissionSelection(selection)) => {
                 drawing.update(selection, settings.circle_confirm)
             }
@@ -502,7 +527,7 @@ impl ContentDrawing {
                 drawing.update_introduction(intro, settings.sharp_text);
                 Ok(())
             }
-            (Self::Movie { .. }, Content::Movie(_)) => Ok(()),
+            (Self::Movie { .. }, Content::Movie(_) | Content::TitleMovie { .. }) => Ok(()),
             (Self::Results(drawing), Content::Results(results)) => {
                 drawing.update(results, settings.sharp_text, settings.circle_confirm);
                 Ok(())
@@ -522,12 +547,13 @@ impl ContentDrawing {
             (Self::Gameplay(drawing), Content::Gameplay(_)) => drawing.draw(target, renderer),
             (Self::Story(drawing), Content::Story { .. }) => drawing.draw(target, renderer),
             (Self::Results(_), Content::Results(_))
+            | (Self::Title(_), Content::Title(_))
             | (Self::MissionSelection(_), Content::MissionSelection(_))
             | (Self::Prologue(_), Content::Prologue(_))
             | (Self::Equipment(_), Content::Equipment(_))
             | (Self::Empty, Content::Failed | Content::Complete)
             | (Self::Introduction(_), Content::Introduction(_))
-            | (Self::Movie { .. }, Content::Movie(_)) => {
+            | (Self::Movie { .. }, Content::Movie(_) | Content::TitleMovie { .. }) => {
                 let mut encoder = renderer.device.create_command_encoder(&Default::default());
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("JP campaign screen"),
@@ -552,6 +578,14 @@ impl ContentDrawing {
 
     pub fn paint(&mut self, content: &Content, ctx: &egui::Context) {
         match (self, content) {
+            (Self::Title(drawing), _) => {
+                ctx.layer_painter(egui::LayerId::background()).add(
+                    egui_wgpu::Callback::new_paint_callback(
+                        title::rect(ctx),
+                        crate::frontend::gpu::Paint::Frontend(drawing.frame.clone()),
+                    ),
+                );
+            }
             (Self::Gameplay(drawing), _) => {
                 crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts);
                 crate::debug::overlay::paint_labels(ctx, &drawing.labels);
@@ -595,7 +629,10 @@ impl ContentDrawing {
                     ),
                 );
             }
-            (Self::Movie { texture, frame }, Content::Movie(movie)) => {
+            (
+                Self::Movie { texture, frame },
+                Content::Movie(movie) | Content::TitleMovie { movie, .. },
+            ) => {
                 if let Some(current) = &movie.frame {
                     if frame.as_ref().map(|f| f.number) != Some(current.number) {
                         let image =
