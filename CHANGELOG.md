@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.30.1 — 2026-11-12
+
 - Restore Android builds after the native T2 randomizer integration.
 
 - Fix a Mission 4 guard treating valid ground as a wall at an indexed terrain
