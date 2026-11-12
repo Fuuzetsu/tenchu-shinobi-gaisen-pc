@@ -112,6 +112,7 @@ impl super::Drawing {
             None,
             render_effects::Style {
                 sharp_text: self.sharp_text,
+                subtitle_language: self.subtitle_language,
                 blood: graphics.blood,
                 hinged: false,
                 ..Default::default()
@@ -203,11 +204,8 @@ impl super::Drawing {
             renderer,
         );
         self.scene.update(geometry, renderer);
-        self.texts = if self.sharp_text {
-            crate::fonts::game_text(source, false)
-        } else {
-            Vec::new()
-        };
+        self.texts =
+            crate::fonts::game_text(source, false, self.sharp_text, self.subtitle_language);
         self.view = source.rendered_view;
         renderer.visual_time = source.tick as f32 / 30.0;
         Ok(())
@@ -507,17 +505,22 @@ mod tests {
             let source = postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap();
             for sharp in [false, true] {
                 settings.sharp_text = sharp;
-                super::super::capture(
-                    &session,
-                    &settings,
-                    &output.join(format!("source-{character}-caption-{sharp}.png")),
-                )
-                .unwrap();
-                assert_eq!(world, postcard::to_allocvec(&session.world).unwrap());
-                assert_eq!(
-                    source,
-                    postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap()
-                );
+                for subtitle in [None, Some(Language::Japanese)] {
+                    settings.subtitle_language = subtitle;
+                    super::super::capture(
+                        &session,
+                        &settings,
+                        &output.join(format!(
+                            "source-{character}-caption-{sharp}-{subtitle:?}.png"
+                        )),
+                    )
+                    .unwrap();
+                    assert_eq!(world, postcard::to_allocvec(&session.world).unwrap());
+                    assert_eq!(
+                        source,
+                        postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director).unwrap()
+                    );
+                }
             }
             let cached = output.join(format!("source-{character}-native-cached.png"));
             let fresh = output.join(format!("source-{character}-native-fresh.png"));
@@ -526,6 +529,7 @@ mod tests {
                 let mut drawing =
                     super::super::Drawing::new(&session, &settings.graphics, renderer)?;
                 drawing.sharp_text = true;
+                drawing.subtitle_language = settings.subtitle_language;
                 drawing.update(&session, renderer, None)?;
                 assert!(!drawing.texts.is_empty());
                 for _ in 0..6000 {

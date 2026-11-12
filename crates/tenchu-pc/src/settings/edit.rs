@@ -360,6 +360,20 @@ impl Item {
             } as u16;
         } else {
             match self {
+                Item::SubtitleLanguage => {
+                    use tenchu_assets::script::Language::*;
+                    settings.subtitle_language = cycle(
+                        settings.subtitle_language,
+                        &[
+                            None,
+                            Some(English),
+                            Some(French),
+                            Some(Italian),
+                            Some(Japanese),
+                        ],
+                        direction,
+                    );
+                }
                 Item::CircleAction => {
                     settings.circle_action = settings.circle_action.cycle(direction)
                 }
@@ -504,6 +518,7 @@ impl Item {
         } else {
             match self {
                 Item::CircleAction => settings.circle_action = defaults.circle_action,
+                Item::SubtitleLanguage => settings.subtitle_language = defaults.subtitle_language,
                 Item::DirectionalColor => {
                     settings.graphics.lighting.directional.color =
                         defaults.graphics.lighting.directional.color

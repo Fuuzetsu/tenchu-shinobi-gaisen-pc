@@ -285,6 +285,7 @@ pub enum Item {
     ShadowPreview,
     AssetPack,
     SharpText,
+    SubtitleLanguage,
     EnglishShuriken,
     ReloadAssets,
     Upscale,
@@ -1675,6 +1676,19 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         Page::General => vec![
+            (
+                Item::SubtitleLanguage,
+                "Subtitle language (T1)",
+                match s.subtitle_language {
+                    None => "Follow game language",
+                    Some(tenchu_assets::script::Language::English) => "English",
+                    Some(tenchu_assets::script::Language::French) => "French",
+                    Some(tenchu_assets::script::Language::Italian) => "Italian",
+                    Some(tenchu_assets::script::Language::Japanese) => "Japanese",
+                }
+                .into(),
+                "Choose T1 cinematic subtitles independently of the game's Language option, which keeps selecting dialogue audio and scene/camera presentation. Uses the selected subtitle script's own timing and readable text. Follow game language preserves the linked original behavior. Also applies to movies and T1 scenes imported into T2; native T2 JP only has Japanese subtitles.",
+            ),
             (
                 Item::CircleConfirm,
                 "Circle confirms in menus",

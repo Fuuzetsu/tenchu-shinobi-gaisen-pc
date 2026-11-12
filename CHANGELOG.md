@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Choose **F1 → General → Subtitle language (T1)** independently of dialogue
+  audio and scene/camera language. Supports English, French, Italian and Japanese
+  in T1 scenes, movies and T1 scenes played with T2 rules. Follow game language
+  keeps the original linked behavior; native T2 JP captions remain Japanese.
+
 - Restore the remaining native T2 cutscene particles, animated fire/light sprites,
   burning actors and original frame-feedback effects. Pausing keeps effects still;
   Original and Modern presets share the authored timing and random-number order.
@@ -24,7 +29,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Fix actor sounds using positions from later in the update, which could give
   footsteps the wrong volume and stereo position while using a speed scroll.
 
-- Update the mid-mission savestate format to retain pending sound positions.
+- Update the mid-mission savestate format to retain pending sound positions,
+  T2 story effects and independent subtitle tracks.
   Older snapshots require the build that created them; campaign saves are unchanged.
 
 ## 0.30.1 — 2026-11-12

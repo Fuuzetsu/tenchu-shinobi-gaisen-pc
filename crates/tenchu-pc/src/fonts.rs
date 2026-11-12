@@ -94,9 +94,14 @@ pub fn caption_sprites(game: &Game) -> usize {
     game.cinematic.sprites.len().saturating_sub(poems)
 }
 
-pub fn game_text(game: &Game, show_hud: bool) -> Vec<Text> {
+pub fn game_text(
+    game: &Game,
+    show_hud: bool,
+    sharp_text: bool,
+    subtitles: Option<tenchu_assets::script::Language>,
+) -> Vec<Text> {
     let mut text = Vec::new();
-    if show_hud {
+    if show_hud && sharp_text {
         if game.hud.bandage_selected()
             && let Some([x, y]) = game.hud.bandage_position(game.player())
         {
@@ -129,7 +134,20 @@ pub fn game_text(game: &Game, show_hud: bool) -> Vec<Text> {
             });
         }
     }
-    if caption_sprites(game) != 0 {
+    let alternate = subtitles.filter(|language| *language != game.mission.scripts.language);
+    let caption = if let Some(language) = alternate {
+        if game.cinematic.frame {
+            game.mission.scripts.subtitles[language as usize]
+                // Text is drawn before the source script advances its elapsed time.
+                .text(
+                    game.cinematic.sequence,
+                    game.cinematic.elapsed.saturating_sub(1),
+                )
+                .to_owned()
+        } else {
+            String::new()
+        }
+    } else if sharp_text && caption_sprites(game) != 0 {
         let bytes = &game.cinematic.displayed_caption;
         let language = game.mission.scripts.language;
         let bytes = if language == tenchu_assets::script::Language::Japanese {
@@ -137,7 +155,12 @@ pub fn game_text(game: &Game, show_hud: bool) -> Vec<Text> {
         } else {
             bytes
         };
-        for (line, caption) in language.decode(bytes).lines().enumerate() {
+        language.decode(bytes)
+    } else {
+        String::new()
+    };
+    if !caption.is_empty() {
+        for (line, caption) in caption.lines().enumerate() {
             text.push(Text {
                 position: Pos2::new(0.0, 90.0 + line as f32 * 16.0),
                 text: caption.into(),

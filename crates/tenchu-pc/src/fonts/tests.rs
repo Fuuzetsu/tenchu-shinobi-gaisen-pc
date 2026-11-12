@@ -1,6 +1,148 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; compares independent subtitles with four live localized scenes and preserves the source scene"]
+fn independent_scene_subtitles_follow_localized_cues_without_changing_the_scene() {
+    use std::collections::BTreeMap;
+    use tenchu_assets::{game::GameAssets, script::Language};
+
+    let disc = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+    let languages = [
+        Language::English,
+        Language::French,
+        Language::Italian,
+        Language::Japanese,
+    ];
+    let load = |language| {
+        let mut game = crate::session::Options {
+            language: Some(language),
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.step(0).unwrap();
+        let player = game.roster.get_mut(game.player_id);
+        player.position = tenchu_core::math::Position::new(1000, 0, 5000);
+        game.scene
+            .update(player.root_model, player.root(&game.math));
+        game
+    };
+    let mut references: [BTreeMap<i16, String>; 4] = Default::default();
+    for language in languages {
+        let mut game = load(language);
+        for tick in 0..2000 {
+            game.step(0).unwrap();
+            if game.cinematic.frame {
+                let expected = game_text(&game, false, true, None)
+                    .into_iter()
+                    .map(|text| text.text)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert_eq!(
+                    game.mission.scripts.subtitles[language as usize].text(
+                        game.cinematic.sequence,
+                        game.cinematic.elapsed.saturating_sub(1)
+                    ),
+                    expected,
+                    "{language:?} tick {tick}, elapsed {}",
+                    game.cinematic.elapsed
+                );
+                references[language as usize].insert(game.cinematic.elapsed, expected);
+            }
+            if tick > 0 && !game.cinematic.active {
+                break;
+            }
+            assert!(tick < 1999, "unfinished {language:?} scene");
+        }
+    }
+    assert_ne!(
+        references[Language::Japanese as usize][&231],
+        references[Language::Japanese as usize][&246]
+    );
+    assert_eq!(
+        references[Language::English as usize][&231],
+        references[Language::English as usize][&246]
+    );
+
+    let mut game = load(Language::Japanese);
+    while game.tick < 2000 {
+        game.step(0).unwrap();
+        if game.cinematic.frame {
+            for subtitle in languages {
+                if let Some(expected) = references[subtitle as usize].get(&game.cinematic.elapsed) {
+                    let text = game_text(&game, false, true, Some(subtitle))
+                        .into_iter()
+                        .map(|text| text.text)
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    assert_eq!(
+                        &text, expected,
+                        "{subtitle:?} at {}",
+                        game.cinematic.elapsed
+                    );
+                }
+            }
+        }
+        if game.cinematic.elapsed == 340 && game.cinematic.tail == 0 {
+            let state = crate::session::tests::state(&game);
+            let geometry = |subtitle_language| {
+                crate::render_effects::build_presented(
+                    &game,
+                    true,
+                    None,
+                    true,
+                    None,
+                    None,
+                    crate::render_effects::Style {
+                        subtitle_language,
+                        ..Default::default()
+                    },
+                )
+            };
+            let original = geometry(None);
+            let translated = geometry(Some(Language::English));
+            let world = |geometry: &crate::render_effects::Geometry| {
+                let vertices: Vec<_> = geometry
+                    .vertices
+                    .iter()
+                    .copied()
+                    .filter(|vertex| vertex.flags & crate::render_mesh::UI == 0)
+                    .collect();
+                bytemuck::cast_slice::<_, u8>(&vertices).to_vec()
+            };
+            assert_eq!(world(&original), world(&translated));
+            assert!(translated.vertices.len() < original.vertices.len());
+            assert!(game_text(&game, true, false, None).is_empty());
+            assert!(!game_text(&game, true, false, Some(Language::English)).is_empty());
+            if let Some(directory) = std::env::var_os("TENCHU_FONT_CAPTURE_DIR") {
+                std::fs::create_dir_all(&directory).unwrap();
+                for (name, subtitle_language) in
+                    [("linked", None), ("english", Some(Language::English))]
+                {
+                    crate::capture::frame_with_settings(
+                        &game,
+                        &std::path::Path::new(&directory).join(format!("jp-scene-{name}.png")),
+                        &assets,
+                        &crate::settings::Settings {
+                            subtitle_language,
+                            ..Default::default()
+                        },
+                    )
+                    .unwrap();
+                }
+            }
+            assert_eq!(state, crate::session::tests::state(&game));
+        }
+        if game.tick > 1 && !game.cinematic.active {
+            break;
+        }
+    }
+    game.step(0).unwrap();
+    assert!(game_text(&game, false, true, Some(Language::English)).is_empty());
+}
+
+#[test]
 fn outline_font_contains_localized_letters_and_keeps_layout_within_the_view() {
     let ctx = egui::Context::default();
     install(&ctx);
@@ -177,7 +319,7 @@ fn localized_captions_change_only_presentation_and_render_at_720p_and_4k() {
         };
         assert_eq!(world(&original), world(&sharp));
         assert!(sharp.vertices.len() < original.vertices.len());
-        let mut text = game_text(&game, false);
+        let mut text = game_text(&game, false, true, None);
         assert!(!text.is_empty());
         for line in &mut text {
             line.position.y = -80.0 + row as f32 * 45.0;

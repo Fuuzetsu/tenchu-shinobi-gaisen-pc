@@ -387,7 +387,7 @@
   {
     "id": "cinematics",
     "title": "Fast-forward a cinematic",
-    "description": "Replay the same opening at 1x, 4x, then 16x. Every original script tick still runs; acceleration stops when the cinematic ends. Hold Backspace in normal play for maximum speed.",
+    "description": "Replay the same opening at 1x, 4x, then 16x. Every original script tick still runs; acceleration stops when the cinematic ends. Hold Backspace in normal play for maximum speed. F1 General also lets you select subtitles independently of dialogue and scene language.",
     "seconds": 16,
     "mission": 2,
     "character": 1,

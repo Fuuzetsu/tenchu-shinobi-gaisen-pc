@@ -4,6 +4,7 @@ use tenchu_core::effects::Graphic;
 #[derive(Clone, Copy)]
 pub struct Style {
     pub sharp_text: bool,
+    pub subtitle_language: Option<tenchu_assets::script::Language>,
     pub blood: Blood,
     pub lightning: bool,
     pub gunfire: bool,
@@ -17,6 +18,7 @@ impl Default for Style {
     fn default() -> Self {
         Self {
             sharp_text: false,
+            subtitle_language: None,
             blood: Blood::default(),
             lightning: false,
             gunfire: false,
@@ -32,6 +34,7 @@ impl From<&Settings> for Style {
     fn from(settings: &Settings) -> Self {
         Self {
             sharp_text: settings.sharp_text,
+            subtitle_language: settings.subtitle_language,
             blood: settings.graphics.blood,
             lightning: settings.graphics.effects.lightning,
             gunfire: settings.graphics.effects.gunfire,

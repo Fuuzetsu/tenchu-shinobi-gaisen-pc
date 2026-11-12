@@ -491,6 +491,7 @@ impl ContentDrawing {
                 drawing.camera = debug.camera.or(debug.follow_camera);
                 drawing.show_hud = settings.show_hud && !debug.photo_mode;
                 drawing.sharp_text = settings.sharp_text;
+                drawing.subtitle_language = settings.subtitle_language;
                 drawing.update(session, renderer, Some(debug))
             }
             (Self::Story(drawing), Content::Story { story, .. }) => {

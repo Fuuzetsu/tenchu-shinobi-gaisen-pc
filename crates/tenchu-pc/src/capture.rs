@@ -69,6 +69,15 @@ pub fn frame(
     } else {
         crate::settings::Settings::default()
     };
+    frame_with_settings(game, destination, assets, &settings)
+}
+
+pub(crate) fn frame_with_settings(
+    game: &tenchu_core::game::Game,
+    destination: &Path,
+    assets: &GameAssets<DiscSource>,
+    settings: &crate::settings::Settings,
+) -> Result<()> {
     let instance = wgpu::Instance::new(&Default::default());
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
@@ -174,7 +183,7 @@ pub fn frame(
                 retain_original: false,
                 ..settings.graphics.blood
             },
-            ..render_effects::Style::from(&settings)
+            ..render_effects::Style::from(settings)
         },
     ));
     renderer.draw_lit(
@@ -185,11 +194,16 @@ pub fn frame(
         &lights,
         &casters.iter().collect::<Vec<_>>(),
     )?;
-    if settings.sharp_text {
+    if settings.sharp_text || settings.subtitle_language.is_some() {
         crate::fonts::capture(
             &renderer,
             &texture,
-            &crate::fonts::game_text(game, settings.show_hud),
+            &crate::fonts::game_text(
+                game,
+                settings.show_hud,
+                settings.sharp_text,
+                settings.subtitle_language,
+            ),
         );
     }
     read_texture(&renderer, &texture, destination)

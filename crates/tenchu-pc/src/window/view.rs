@@ -1004,8 +1004,13 @@ impl View {
                     batches: Vec::new(),
                 }
             } else {
-                if settings.sharp_text && !debug.photo_mode {
-                    self.text = crate::fonts::game_text(game, settings.show_hud);
+                if !debug.photo_mode {
+                    self.text = crate::fonts::game_text(
+                        game,
+                        settings.show_hud,
+                        settings.sharp_text,
+                        settings.subtitle_language,
+                    );
                 }
                 render_effects::build_presented(
                     game,

@@ -1,21 +1,16 @@
+use super::captions::Playback;
 use super::raster::Canvas;
 use crate::{source::DiscSource, web, web_assets::movie_file};
 use std::{path::Path, sync::Arc, time::Duration};
 use tenchu_assets::{
-    Result,
-    audio::stream::Clip,
-    font::Font,
-    frontend::{Movie, movie_commands},
-    game::GameAssets,
-    script::Language,
+    Result, audio::stream::Clip, font::Font, frontend::Movie, game::GameAssets, script::Language,
     texture::Vram,
 };
-use tenchu_core::frontend::Captions;
 
 pub struct Player {
     video: web_sys::HtmlVideoElement,
     movie: Movie,
-    captions: Captions,
+    captions: Playback,
     frame: u32,
     pixels: Vec<u8>,
     font: Font,
@@ -37,22 +32,27 @@ impl Player {
         movie: Movie,
         language: Language,
     ) -> Result<Self> {
-        let commands = movie
-            .subtitles(language)
-            .map(|p| assets.asset(&p).and_then(|b| movie_commands(&b)))
-            .transpose()?
-            .unwrap_or_default();
         let mut vram = Vram::default();
         let font = Font::load(assets, &mut vram)?;
         Ok(Self {
             video: web::movie_create(&movie_file(movie)).map_err(web::js_error)?,
             movie,
-            captions: Captions::new(commands),
+            captions: Playback::load(assets, movie, language)?,
             frame: 0,
             pixels: vec![0; 320 * 240 * 4],
             font,
             vram,
         })
+    }
+
+    pub fn subtitles(
+        &mut self,
+        assets: &GameAssets<DiscSource>,
+        audio: Language,
+        language: Option<Language>,
+    ) -> Result<bool> {
+        self.captions
+            .select(assets, self.movie, audio, language, self.frame)
     }
 
     pub fn advance(&mut self, _: Duration) -> Result<Update> {
@@ -87,7 +87,7 @@ impl Player {
 
     pub fn paint(&mut self, canvas: &mut Canvas) {
         canvas.pixels.copy_from_slice(&self.pixels);
-        super::captions::paint(canvas, &self.captions.text, &mut self.font, &mut self.vram);
+        super::captions::paint(canvas, self.captions.text(), &mut self.font, &mut self.vram);
     }
 }
 

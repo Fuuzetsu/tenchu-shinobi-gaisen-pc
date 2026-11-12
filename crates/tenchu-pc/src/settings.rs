@@ -70,6 +70,7 @@ pub struct Settings {
     pub vsync: bool,
     pub show_hud: bool,
     pub sharp_text: bool,
+    pub subtitle_language: Option<tenchu_assets::script::Language>,
     pub english_shuriken: bool,
     pub volume: u16,
     pub burning_sound: tenchu_core::audio::BurningSound,
@@ -126,6 +127,7 @@ impl Default for Settings {
             vsync: true,
             show_hud: true,
             sharp_text: false,
+            subtitle_language: None,
             english_shuriken: false,
             volume: 100,
             burning_sound: Default::default(),
@@ -520,6 +522,7 @@ mod tests {
             keep_enemies_active: true,
             sight_percent: 125,
             cutscene_speed: 4,
+            subtitle_language: Some(tenchu_assets::script::Language::English),
             volume: 25,
             player_model: "pack:custom".into(),
             model_moveset: true,
@@ -546,6 +549,7 @@ mod tests {
         assert_eq!(original.sight_percent, 125);
         assert!(original.keep_enemies_active);
         assert_eq!(original.cutscene_speed, 4);
+        assert_eq!(original.subtitle_language, selected.subtitle_language);
         assert_eq!(original.volume, 25);
         assert!(original.player_model.is_empty());
         assert_eq!(original.moveset_model, settings.moveset_model);
@@ -565,6 +569,9 @@ mod tests {
         settings.set_visual_preset(presets::MODERN_ULTRA);
         assert_eq!(settings.graphics.weather.mode, WeatherMode::Snow);
         assert_eq!(settings.sight_percent, 125);
+        assert_eq!(settings.subtitle_language, selected.subtitle_language);
+        assert!(menu::Item::SubtitleLanguage.reset_setting(&mut settings));
+        assert_eq!(settings.subtitle_language, None);
         assert_eq!(settings.alternate_death_chance, 50);
         assert!(menu::Item::AlternateDeathChance.reset_setting(&mut settings));
         assert_eq!(settings.alternate_death_chance, 0);
@@ -583,6 +590,7 @@ mod tests {
             show_fps: true,
             pause_on_defocus: false,
             volume: 25,
+            subtitle_language: Some(tenchu_assets::script::Language::Japanese),
             ..Settings::default()
         };
         store.write(&settings).unwrap();
@@ -591,6 +599,7 @@ mod tests {
         let loaded = store.load().unwrap();
         assert!(loaded.show_fps && loaded.pause_on_defocus);
         assert_eq!(loaded.volume, 100);
+        assert_eq!(loaded.subtitle_language, None);
         assert_eq!(loaded.graphics.lighting, Lighting::default());
         assert_eq!(loaded.reinforcement_call, Default::default());
         fs::write(

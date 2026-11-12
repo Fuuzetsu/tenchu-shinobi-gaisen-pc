@@ -37,6 +37,7 @@ impl Frontend {
         clean: bool,
         settings: &crate::settings::Settings,
     ) -> Option<Action> {
+        self.subtitle_language = settings.subtitle_language;
         let lighting = (self.page == Page::Shop)
             .then(|| {
                 room::Lighting::sample(

@@ -193,18 +193,18 @@ impl Runtime {
                 Some("Android manages the game window; fullscreen is a desktop setting.")
             }
             Fps | Performance | Focus | MenuPause | MusicWhilePaused | WaitAfterDeath
-            | LiveDeathScene | Volume | Fullscreen | Vsync | Hud | SharpText | Preset | Retro
-            | Fog | FogDistance | Textures | Shading | Exposure | Filtering | Interpolation
-            | Magnification | SurfaceDetail | SurfaceStrength | Antialiasing | AssetPack
-            | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion | OcclusionRadius
-            | Contrast | Saturation | Temperature | Gamma | Vignette | Sharpen | FogTint | Haze
-            | CutsceneSpeed | Pause | Step | Speed | FreeCamera | FlightSpeed | Fov
-            | FocusPlayer | FocusActor | Actor | Overhead | SaveCamera | RestoreCamera
-            | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Trail | Sight | SightStance
-            | Patrols | Events | Collision | CollisionOnly | Target(_) | PlayerPosition
-            | CameraPosition | SnapFloor | Teleport | PickTeleport | ClickTeleport | KillActor
-            | ClickKill | Screenshot | ActorPosition | PickActorPosition | MoveActor
-            | RemoveActor | SpawnActor => None,
+            | LiveDeathScene | Volume | Fullscreen | Vsync | Hud | SharpText | SubtitleLanguage
+            | Preset | Retro | Fog | FogDistance | Textures | Shading | Exposure | Filtering
+            | Interpolation | Magnification | SurfaceDetail | SurfaceStrength | Antialiasing
+            | AssetPack | Upscale | Post | Filmic | Bloom | BloomThreshold | Occlusion
+            | OcclusionRadius | Contrast | Saturation | Temperature | Gamma | Vignette
+            | Sharpen | FogTint | Haze | CutsceneSpeed | Pause | Step | Speed | FreeCamera
+            | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor | Overhead | SaveCamera
+            | RestoreCamera | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Trail
+            | Sight | SightStance | Patrols | Events | Collision | CollisionOnly | Target(_)
+            | PlayerPosition | CameraPosition | SnapFloor | Teleport | PickTeleport
+            | ClickTeleport | KillActor | ClickKill | Screenshot | ActorPosition
+            | PickActorPosition | MoveActor | RemoveActor | SpawnActor => None,
             CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,

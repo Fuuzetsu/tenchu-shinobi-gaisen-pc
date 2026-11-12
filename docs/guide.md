@@ -835,7 +835,8 @@ training. Each mission has layouts 1–3; `--layout random` selects one at the
 source construction boundary. `--difficulty easy|normal|hard` selects the source
 AI difficulty; otherwise the saved choice is used, or Normal for a new campaign.
 The original **Options → Language** and quick launcher's **Language** row select
-English, French, Italian or Japanese dialogue and subtitles. All four remain
+English, French, Italian or Japanese dialogue, scene/camera presentation and,
+by default, subtitles. All four remain
 available immediately. Character/map/results artwork follows that choice;
 the original release's options artwork is Japanese, with clear English
 descriptions and controls below it. The choice is saved with campaign progress;
@@ -843,6 +844,20 @@ descriptions and controls below it. The choice is saved with campaign progress;
 Japanese subtitles use a bundled
 [replacement font](../crates/tenchu-assets/data/japanese-font/README.md); no BIOS is
 needed. Latin subtitles retain the original disc font.
+
+**F1 → General → Subtitle language (T1)** lets you choose captions separately.
+For Japanese dialogue and scenes with English captions, select Japanese in the
+game's Language menu and English in F1. **Follow game language** is the default;
+R on the F1 row restores it. An alternate language uses readable outline text
+in scenes even when High-definition text is off, without changing the HUD.
+Movies keep their original caption font and original audio/narration cues.
+The choice is saved in PC preferences and survives graphical preset changes.
+
+Each language retains its authored caption timings and line breaks; these are
+not translated or resynchronized to another language's individual spoken words.
+The selected game language still controls scene duration and which scenes play.
+The setting also applies when playing T1 stages with T2 rules. Native T2 JP
+scenes have only Japanese captions on the supported disc and remain Japanese.
 
 Original options include records, difficulty, stereo/mono, music/effects volume,
 sound test, four controller layouts, vibration, load/save and automatic saving.

@@ -129,6 +129,7 @@ pub struct Frontend {
     artwork_enabled: bool,
     circle_confirm: bool,
     english_shuriken: bool,
+    subtitle_language: Option<Language>,
     dirty: bool,
     elapsed: f64,
     ticks: u32,
@@ -219,6 +220,7 @@ impl Frontend {
             artwork_enabled: false,
             circle_confirm: false,
             english_shuriken: false,
+            subtitle_language: None,
             dirty: true,
             elapsed: 0.0,
             ticks: 0,
@@ -420,6 +422,9 @@ impl Frontend {
         campaign: &mut Campaign,
         assets: &GameAssets<DiscSource>,
     ) -> Result<()> {
+        if let Some(movie) = &mut self.movie {
+            self.dirty |= movie.subtitles(assets, self.language, self.subtitle_language)?;
+        }
         if suspended {
             return Ok(());
         }

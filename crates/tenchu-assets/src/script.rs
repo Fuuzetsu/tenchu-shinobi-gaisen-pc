@@ -131,6 +131,66 @@ pub struct Scripts {
     pub language: Language,
     pub events: Vec<Event>,
     pub cutscenes: Cutscenes,
+    pub subtitles: [Subtitles; 4],
+}
+
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+pub struct Subtitles(std::collections::BTreeMap<i16, Vec<Subtitle>>);
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Subtitle {
+    frame: i16,
+    text: String,
+}
+
+impl Subtitles {
+    fn from_script(script: &Cutscenes, language: Language, poem: bool) -> Result<Self> {
+        let mut tracks = Self::default();
+        for (start, command) in script.commands.iter().enumerate() {
+            let Command::Sequence { id, .. } = *command else {
+                continue;
+            };
+            if tracks.0.contains_key(&id) {
+                continue;
+            }
+            let mut track = Vec::new();
+            let mut frame: i16 = 0;
+            for command in &script.commands[start + 1..] {
+                match *command {
+                    Command::Wait { until: 0 } => break,
+                    // Each wait yields a tick, including consecutive waits at the same time.
+                    Command::Wait { until } => frame = until.max(frame.saturating_add(1)),
+                    Command::Caption { offset } => {
+                        let bytes = offset
+                            .map(|offset| script.text(offset))
+                            .transpose()?
+                            .unwrap_or_default();
+                        let bytes = if language == Language::Japanese {
+                            &bytes[..bytes.len().min(32)]
+                        } else {
+                            bytes
+                        };
+                        let text = if poem && bytes.first().is_some_and(u8::is_ascii_digit) {
+                            String::new()
+                        } else {
+                            language.decode(bytes)
+                        };
+                        track.push(Subtitle { frame, text });
+                    }
+                    _ => {}
+                }
+            }
+            tracks.0.insert(id, track);
+        }
+        Ok(tracks)
+    }
+
+    pub fn text(&self, sequence: i16, frame: i16) -> &str {
+        self.0
+            .get(&sequence)
+            .and_then(|track| track.iter().rev().find(|cue| cue.frame <= frame))
+            .map_or("", |cue| cue.text.as_str())
+    }
 }
 
 impl Scripts {
@@ -146,13 +206,31 @@ impl Scripts {
             _ => return Err("Invalid script character".into()),
         };
         let number = stage + 1;
+        let load = |language: Language| {
+            Cutscenes::parse(game.asset(&format!(
+                "{}/STAGE{number}{suffix}.CAD",
+                language.directory()
+            ))?)
+        };
+        let cutscenes = load(language)?;
+        let mut subtitles = std::array::from_fn(|_| Subtitles::default());
+        for alternate in [
+            Language::English,
+            Language::French,
+            Language::Italian,
+            Language::Japanese,
+        ] {
+            subtitles[alternate as usize] = if alternate == language {
+                Subtitles::from_script(&cutscenes, alternate, stage == 10 && character == 0)?
+            } else {
+                Subtitles::from_script(&load(alternate)?, alternate, stage == 10 && character == 0)?
+            };
+        }
         Ok(Self {
             language,
             events: events(&game.asset(&format!("ANIM/STAGE{number}.ESD"))?)?,
-            cutscenes: Cutscenes::parse(game.asset(&format!(
-                "{}/STAGE{number}{suffix}.CAD",
-                language.directory()
-            ))?)?,
+            cutscenes,
+            subtitles,
         })
     }
 }

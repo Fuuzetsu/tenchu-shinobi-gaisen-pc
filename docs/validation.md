@@ -703,6 +703,29 @@ Mission 3 item-use and mixed-input scenarios. These comparisons import initial
 state once and apply no subsequent state corrections. This supports the
 unchanged default gameplay on those paths, not every possible route.
 
+## Independent subtitle language
+
+The subtitle regression compares four live Mission 1 scenes against their
+authored caption tracks, including Japanese's different line splits, its
+32-byte display limit and French's consecutive waits at the same timestamp.
+Caption lookup accounts for the original text-before-script-advance order.
+Changing the displayed language preserves the source scene and world geometry,
+including when outline HUD text is disabled. Optional captures use
+`TENCHU_FONT_CAPTURE_DIR`.
+
+The movie regression checks all 80 movie/audio/subtitle combinations frame by
+frame. Alternate caption commands cannot emit voice cues; switching languages
+at a held frame catches up the caption track without restarting narration.
+The imported T1 scene rendering check covers both subtitle modes and verifies
+the return to native T2 materials. The asset parser covers all 88 stage scripts.
+
+The default still links captions to game language. Alternate tracks retain
+their own authored timing; they are not resynchronized to each spoken word.
+Audio language controls scene selection and duration, so a locale-only scene
+is not synthesized for another language. Native T2 JP has no translated caption
+assets and remains Japanese. Campaign saves are unchanged; mid-mission states
+include the caption tracks and use format 41.
+
 ## Persistent mid-mission states
 
 The savestate regression compares every serialized simulation field before/after

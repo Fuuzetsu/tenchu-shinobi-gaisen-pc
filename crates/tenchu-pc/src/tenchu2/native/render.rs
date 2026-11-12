@@ -64,6 +64,7 @@ pub struct Drawing {
     pub alpha: f32,
     pub show_hud: bool,
     pub sharp_text: bool,
+    pub subtitle_language: Option<tenchu_assets::script::Language>,
     pub texts: Vec<crate::fonts::Text>,
     pub labels: Vec<crate::debug::Label>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -168,6 +169,7 @@ impl Drawing {
             view: session.world.camera.view,
             show_hud: true,
             sharp_text: false,
+            subtitle_language: None,
             texts: Vec::new(),
             camera: None,
             alpha: 1.0,
@@ -659,6 +661,7 @@ pub fn capture(
         let mut drawing = Drawing::new(session, graphics, renderer)?;
         drawing.show_hud = settings.show_hud;
         drawing.sharp_text = settings.sharp_text;
+        drawing.subtitle_language = settings.subtitle_language;
         drawing.update(session, renderer, None)?;
         let view = drawing.view;
         Ok((drawing.scene, view, drawing.texts))

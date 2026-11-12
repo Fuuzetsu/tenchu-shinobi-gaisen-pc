@@ -726,11 +726,19 @@ pub fn build_presented(
         .chain(game.hud.sprites.iter().rev().filter(|sprite| {
             show_hud && !(sharp_text && crate::fonts::digit(game, sprite).is_some())
         }))
-        .chain(game.cinematic.sprites.iter().skip(if sharp_text {
-            crate::fonts::caption_sprites(game)
-        } else {
-            0
-        }))
+        .chain(
+            game.cinematic.sprites.iter().skip(
+                if sharp_text
+                    || style
+                        .subtitle_language
+                        .is_some_and(|language| language != game.mission.scripts.language)
+                {
+                    crate::fonts::caption_sprites(game)
+                } else {
+                    0
+                },
+            ),
+        )
     {
         let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();
         let points = std::array::from_fn(|i| {

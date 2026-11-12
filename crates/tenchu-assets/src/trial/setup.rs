@@ -175,6 +175,7 @@ impl MissionAssets {
             random_layouts: None,
             scripts: Scripts {
                 language: Language::Japanese,
+                subtitles: Default::default(),
                 events: vec![],
                 cutscenes: Cutscenes::parse(vec![255, 255])?,
             },

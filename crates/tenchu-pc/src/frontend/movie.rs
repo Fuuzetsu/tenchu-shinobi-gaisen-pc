@@ -1,3 +1,4 @@
+use super::captions::Playback;
 use super::raster::Canvas;
 use crate::source::{DiscSource, open_disc};
 use std::{
@@ -16,12 +17,11 @@ use tenchu_assets::{
     Result,
     audio::stream::{Clip, Stream, Track},
     font::Font,
-    frontend::{Movie, movie_commands},
+    frontend::Movie,
     game::GameAssets,
     script::Language,
     texture::Vram,
 };
-use tenchu_core::frontend::Captions;
 
 struct Decoder {
     child: Option<Child>,
@@ -208,7 +208,7 @@ impl Drop for Decoder {
 pub struct Player {
     decoder: Decoder,
     movie: Movie,
-    captions: Captions,
+    captions: Playback,
     pixels: Vec<u8>,
     next: Option<Vec<u8>>,
     audio: Option<Arc<Clip>>,
@@ -234,17 +234,12 @@ impl Player {
         movie: Movie,
         language: Language,
     ) -> Result<Self> {
-        let captions = movie
-            .subtitles(language)
-            .map(|p| assets.asset(&p).and_then(|b| movie_commands(&b)))
-            .transpose()?
-            .unwrap_or_default();
         let mut vram = Vram::default();
         let font = Font::load(assets, &mut vram)?;
         Ok(Self {
             decoder: Decoder::new(path, movie)?,
             movie,
-            captions: Captions::new(captions),
+            captions: Playback::load(assets, movie, language)?,
             pixels: vec![0; 320 * 240 * 4],
             next: None,
             audio: None,
@@ -255,6 +250,16 @@ impl Player {
             vram,
         })
     }
+    pub fn subtitles(
+        &mut self,
+        assets: &GameAssets<DiscSource>,
+        audio: Language,
+        language: Option<Language>,
+    ) -> Result<bool> {
+        self.captions
+            .select(assets, self.movie, audio, language, self.frame)
+    }
+
     pub fn advance(&mut self, elapsed: Duration) -> Result<Update> {
         let mut update = Update::default();
         if self.next.is_none() && self.frame < self.movie.last_frame() - 1 {
@@ -305,7 +310,7 @@ impl Player {
     }
     pub fn paint(&mut self, canvas: &mut Canvas) {
         canvas.pixels.copy_from_slice(&self.pixels);
-        super::captions::paint(canvas, &self.captions.text, &mut self.font, &mut self.vram);
+        super::captions::paint(canvas, self.captions.text(), &mut self.font, &mut self.vram);
     }
 }
 
@@ -396,7 +401,12 @@ mod tests {
                     thread::sleep(Duration::from_millis(1));
                 }
             }
-            let result = (player.frame, voices, tracks, player.captions.text.clone());
+            let result = (
+                player.frame,
+                voices,
+                tracks,
+                player.captions.text().to_vec(),
+            );
             if let Some(reference) = &reference {
                 assert_eq!(&result, reference);
             } else {
