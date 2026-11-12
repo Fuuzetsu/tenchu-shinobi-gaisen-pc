@@ -10,6 +10,8 @@ struct Source {
     pose: Vertex,
     mask: u32,
     padding: u32,
+    joints: vec4<u32>,
+    weights: vec4<f32>,
 }
 struct Transform {
     r0: vec4<f32>, r1: vec4<f32>, r2: vec4<f32>,
@@ -41,6 +43,18 @@ fn main(@builtin(workgroup_id) group: vec3<u32>, @builtin(local_invocation_index
     let translation = vec3(t.r0.w, t.r1.w, t.r2.w);
     var position = t.r0.xyz * v.px + t.r1.xyz * v.py + t.r2.xyz * v.pz + translation;
     var normal = normalized(t.n0.xyz * v.nx + t.n1.xyz * v.ny + t.n2.xyz * v.nz);
+    if t.control.w > 0u {
+        position = vec3(0.0);
+        normal = vec3(0.0);
+        for (var i = 0u; i < 4u; i++) {
+            let weight = rest.weights[i];
+            if weight == 0.0 { continue; }
+            let bone = transforms[t.control.z + rest.joints[i]];
+            position += (bone.r0.xyz * v.px + bone.r1.xyz * v.py + bone.r2.xyz * v.pz + vec3(bone.r0.w, bone.r1.w, bone.r2.w)) * weight;
+            normal += (bone.n0.xyz * v.nx + bone.n1.xyz * v.ny + bone.n2.xyz * v.nz) * weight;
+        }
+        normal = normalized(normal);
+    }
     if t.control.y > 0u {
         let normal_matrix = mat3x3(t.n0.xyz, t.n1.xyz, t.n2.xyz);
         let local = transpose(normal_matrix) * (position - translation);

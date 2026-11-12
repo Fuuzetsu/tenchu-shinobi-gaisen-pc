@@ -83,7 +83,11 @@ impl Posing {
                 start
             });
             let transform = self.transforms.len() as u32;
-            self.transforms.push(part.transform);
+            let mut matrix = part.transform;
+            matrix.skin_at(transform + 1, part.skin.len() as u32);
+            self.transforms.push(matrix);
+            self.transforms
+                .extend(part.skin.iter().copied().map(Transform::skin));
             for offset in (0..part.source.vertices.len()).step_by(WORKGROUP_SIZE) {
                 self.jobs.push([
                     start + offset as u32,

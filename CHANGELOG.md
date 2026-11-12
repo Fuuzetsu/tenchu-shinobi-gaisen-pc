@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce frame preparation time in native T2 and T1 stages under T2 rules,
+  especially with detailed characters and all enemies active.
+
 - Fix native T2 sky and distant scenery layers flickering through one another,
   including the training stage. Backgrounds now compose in their original
   order without competing for the same depth value.

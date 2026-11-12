@@ -74,8 +74,8 @@ pub fn decode(bytes: &[u8]) -> Result<Vec<Influence>> {
 
 #[derive(Clone, Copy)]
 pub struct Transform {
-    point: Affine3A,
-    normal: Mat3,
+    pub(crate) point: Affine3A,
+    pub(crate) normal: Mat3,
 }
 
 impl Transform {

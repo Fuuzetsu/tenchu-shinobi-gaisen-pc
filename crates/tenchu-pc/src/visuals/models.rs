@@ -998,14 +998,38 @@ impl Meshes {
         if output.indices.len() != start {
             output.vertices.extend_from_slice(&mesh.vertices);
             let mut posed = false;
+            let skin_pose = self
+                .skin
+                .as_ref()
+                .filter(|pose| mesh.skin_joint.is_none_or(|joint| !pose.detached(joint)));
             if let Some(frame) = &mut output.poses
-                && mesh.skin.is_none()
+                && (mesh.skin.is_none() || skin_pose.is_some())
                 && !self.variants.contains_key(&key)
             {
-                let source = mesh
-                    .pose_source
-                    .get_or_init(|| Arc::new(super::posing::Source::new(&mesh.vertices, rules)));
-                posed = frame.push(source.clone(), matrix, deformation, base);
+                let source = mesh.pose_source.get_or_init(|| {
+                    Arc::new(if let Some(weights) = &mesh.skin {
+                        super::posing::Source::skinned(
+                            &mesh.vertices,
+                            rules,
+                            weights,
+                            mesh.bind_root,
+                        )
+                    } else {
+                        super::posing::Source::new(&mesh.vertices, rules)
+                    })
+                });
+                let transforms = mesh
+                    .skin
+                    .as_ref()
+                    .and(skin_pose)
+                    .map(skin::Pose::transforms);
+                posed = frame.push(
+                    source.clone(),
+                    matrix,
+                    deformation,
+                    base,
+                    transforms.as_deref(),
+                );
             }
             if posed {
                 for vertex in &mut output.vertices[base..] {

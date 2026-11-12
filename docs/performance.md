@@ -162,6 +162,38 @@ including a transparent-face variant. Imported cinematic handoff also checks
 restoration of previously cached terrain. Captures and raw local measurements
 remain outside Git in `private/t2-gaisen-performance-20261112`.
 
+## Weighted T2 characters (2026-11-13)
+
+Native T2 bodies use per-vertex joint weights, which previously kept them on the
+CPU even when the shared renderer could pose rigid T1 models on the GPU. The
+shared posing path now handles those weights too. Original palette-fog drawing,
+detached parts and devices without the required compute support retain their
+CPU path. No simulation updates or graphical preset values change.
+
+A release-build audit on GTX 1080 Ti / Vulkan at 1280×720 used 30 Hz logic and
+60 Hz presentation, with 60 warm-up frames and 120 measured frames per scene:
+
+| Scene | Modern High CPU preparation, before → after | Saved settings, before → after |
+| --- | ---: | ---: |
+| Native T2 training | 0.98 → 0.52 ms | 1.17 → 0.71 ms |
+| Native T2 Mission 1 | 0.70 → 0.35 ms | 1.24 → 0.74 ms |
+| Imported T1 Mission 1 | 0.76 → 0.29 ms | 1.99 → 1.21 ms |
+| Imported T1 Mission 10 | 1.88 → 1.55 ms | 4.15 → 3.33 ms |
+
+The saved configuration enables all enemies, detailed characters, Botanical
+foliage and eight 2048-pixel point-shadow lights. Mission 10 includes nearby
+combat. These preparation timings include geometry and uploads; they are not
+interactive FPS estimates. GPU execution is measured with timestamps separately
+from the serialized completion wait.
+
+CPU/GPU checks compare 2.4 million weighted vertices, conservative shadow bounds,
+secondary motion, constrained-buffer fallbacks and actual native/imported frames.
+The moving vertex comparison has maximum errors of 0.0078125 world units and
+0.0000066 in normals. The four fixed scene comparisons are pixel-identical;
+the moving imported-stage captures differ at 39–71 of 921,600 pixels. Original
+imported-stage captures remain identical. Native background corrections are
+verified separately. Evidence is in ignored `private/t2-performance-20261113`.
+
 ## Historical measurements
 
 The October 27–November 7 optimisation journal is preserved in

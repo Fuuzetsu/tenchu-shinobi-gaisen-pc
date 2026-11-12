@@ -9,6 +9,7 @@ fn indexed_actors_preserve_native_shading_and_fallbacks() {
     let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
     std::fs::create_dir_all(&output).unwrap();
     let mut posed = 0;
+    let mut skinned = 0;
     for imported in [false, true] {
         let mut session = if imported {
             let source = tenchu_assets::stage::MissionAssets::load(&gaisen, 0, 0, 1).unwrap();
@@ -104,6 +105,29 @@ fn indexed_actors_preserve_native_shading_and_fallbacks() {
                         },
                     )?;
                     posed += geometry.actors.poses.as_ref().map_or(0, |f| f.parts.len());
+                    if let Some(frame) = &geometry.actors.poses {
+                        skinned += frame
+                            .parts
+                            .iter()
+                            .filter(|part| !part.skin.is_empty())
+                            .count();
+                        for group in &geometry.actors.groups {
+                            if group.vertices.end > indexed.actors.vertices.len() {
+                                break;
+                            }
+                            let bounds =
+                                frame.bounds(&geometry.actors.vertices, group.vertices.clone());
+                            if let Some([min, max]) = bounds.shadow {
+                                for vertex in &indexed.actors.vertices[group.vertices.clone()] {
+                                    let position = glam::Vec3A::from(vertex.position);
+                                    assert!(
+                                        position.cmpge(min).all() && position.cmple(max).all(),
+                                        "weighted pose escaped its shadow bounds"
+                                    );
+                                }
+                            }
+                        }
+                    }
                     assert_eq!(state, postcard::to_allocvec(&session.world).unwrap());
                     Ok((
                         SceneDrawing::new(geometry, renderer, &session.assets.level),
@@ -131,4 +155,5 @@ fn indexed_actors_preserve_native_shading_and_fallbacks() {
         }
     }
     assert!(posed > 0, "fixture did not exercise shared GPU posing");
+    assert!(skinned > 0, "fixture did not exercise weighted GPU posing");
 }
