@@ -37,6 +37,8 @@ pub struct Storage {
 }
 
 pub enum UserFile {
+    #[cfg(not(target_arch = "wasm32"))]
+    Artwork,
     Progress,
     Settings,
     Presets,
@@ -76,6 +78,12 @@ impl UserFile {
     #[cfg(not(target_arch = "wasm32"))]
     fn native_path(self) -> Result<PathBuf> {
         let (name, override_env, xdg, fallback) = match self {
+            Self::Artwork => (
+                "artwork",
+                "TENCHU_ARTWORK_DOWNLOADS",
+                "XDG_DATA_HOME",
+                ".local/share",
+            ),
             Self::Progress => (
                 "progress.sav",
                 "TENCHU_SAVE",
@@ -254,7 +262,7 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn replace_file(source: &Path, destination: &Path) -> std::io::Result<()> {
+pub(crate) fn replace_file(source: &Path, destination: &Path) -> std::io::Result<()> {
     // Windows can briefly deny replacement while another writer finishes renaming.
     #[cfg(target_os = "windows")]
     for delay in [1, 2, 4, 8, 16] {

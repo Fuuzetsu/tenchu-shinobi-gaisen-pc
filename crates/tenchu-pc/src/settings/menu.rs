@@ -384,6 +384,7 @@ pub struct Menu {
     pub spawn_search: String,
     pub spawn_yaw: i16,
     pub artwork_status: String,
+    pub artwork_generation: u64,
 }
 
 fn on(value: bool) -> String {

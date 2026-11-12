@@ -1696,6 +1696,9 @@ pub fn run(
         audio.volume(settings.volume);
         audio.preferences(&settings.frontend);
     }
+    if startup.benchmark.is_none() && demo.is_none() {
+        crate::online::updates::UPDATES.start(settings.check_for_updates);
+    }
     let mut application = Application {
         disc: disc.to_owned(),
         assets,

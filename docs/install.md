@@ -31,6 +31,27 @@
 The game download and HD pack are separate. A graphics preset cannot supply a
 missing pack.
 
+On desktop or Android, open **F1 → Visual assets** (Settings on touch screens)
+and choose **Download and install** beside the corresponding game. Both packs
+can be installed for cross-game stages. The menu shows the version, download size
+and progress, and offers cancellation. The game verifies the archive's size,
+SHA-256 and contents before activating it, then reloads the artwork. If download
+or validation fails, the previous pack remains selected. Enable **Replacement
+artwork** to display it. Graphics presets, including Original and Modern High /
+Ultra, keep your existing artwork preference.
+
+Downloaded packs live in your user data directory under
+`tenchu-shinobi-gaisen-pc/artwork` and survive game upgrades. They take priority
+over packs bundled beside the executable. `TENCHU_ASSET_PACK` and
+`TENCHU2_ASSET_PACK` still take priority over downloads, including an empty value
+to disable the corresponding pack. `TENCHU_ARTWORK_DOWNLOADS` can move the download
+directory. **Use local pack** switches back to a bundled or manually imported
+pack without deleting the download. Manual installation and Android's local archive import still work.
+The browser build uses artwork prepared by its host; its download links save
+archives for desktop/Android use.
+
+For offline/manual installation:
+
 1. Download **`tenchu-hd.tar.zst`** from
    [artwork-v4](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v4).
    Keep this filename. **Do not extract it** for a normal installation.
@@ -56,22 +77,31 @@ it. Some artwork is reconstructed from your disc while loading a menu or mission
 no Python, external unpacker or image service is needed. Movie footage is unchanged.
 
 If the status says **No replacement textures or models loaded**, check the
-filename and placement, then restart. If you use `TENCHU_ASSET_PACK`, that path
-takes priority; an empty value disables pack loading. An old `assets/hd/` folder
-beside the game also takes priority over the archive. Keep custom artwork in its
+filename and placement, then reload from F1. An old `assets/hd/` folder beside the
+game takes priority over an adjacent archive when no downloaded pack is selected.
+Keep custom artwork in its
 own folder and select it explicitly. See [editing packs](../artwork/README.md).
 If loading fails, include the status message in a diagnostic report from
 **F1 → General → Save diagnostic report…**.
 
 ## Update
 
-For the optional Tenchu 2 sandbox, use its separate
-[disc and artwork setup](tenchu2-sandbox.md). Its `tenchu2-hd.tar.zst` can be
+The game checks GitHub for a newer stable version once per launch, in the
+background. A notice at the top of F1 links to its release notes and downloads.
+There is no automatic game installation. Disable **F1 → General → Check for game
+updates at startup** to stop future startup checks (or set `check_for_updates`
+to `false` in `settings.json` before launching). Failures do not interrupt play
+and are not retried until the next launch. Artwork and development tags are
+excluded from game-version comparisons.
+
+For Tenchu 2, use its separate [disc and artwork setup](tenchu2-sandbox.md).
+Its `tenchu2-hd.tar.zst` can be
 installed alongside the Gaisen pack and reused across game updates too.
 
 1. Close the game and extract the new platform archive into a **new folder**.
    Use all its files, including Linux's shared libraries.
-2. Copy your `tenchu-hd.tar.zst` beside the new executable/launcher. It does not
+2. Packs installed through F1 are already shared with the new installation. For
+   manual installations, copy your `tenchu-hd.tar.zst` beside the new executable/launcher. It does not
    need downloading again unless the release notes announce a new artwork pack.
    When updating the pack, replace the archive; its changed contents get a new
    cache automatically. Do not edit the disposable cache.

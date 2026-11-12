@@ -9,6 +9,7 @@ use crate::debug::Debug;
 use egui::{Color32, RichText, Ui};
 
 pub enum Edit {
+    CheckForUpdates(bool),
     Touch(crate::touch::Settings),
     Change(Item, i32),
     Preset(super::library::Choice),
@@ -61,6 +62,9 @@ pub fn show(
         samples,
     } = state;
     let mut edits = Vec::new();
+    if crate::online::ui::artwork_changed(&mut menu.artwork_generation) {
+        edits.push(Edit::Change(Item::ReloadAssets, 1));
+    }
     menu.hovered = None;
     if !menu.open {
         if runtime.unavailable(Item::Rewind).is_none() {
@@ -151,6 +155,7 @@ pub fn show(
                     ui.weak(if cfg!(target_os = "android") { "Settings / Back: close · Swipe lists to scroll" } else { "F1 / Esc: close · Tab / Shift+Tab: category" });
                 });
             });
+            crate::online::ui::update_notice(ui);
             if runtime == Runtime::Tenchu2 {
                 ui.weak("Native Tenchu 2 JP · Dimmed controls are unavailable here; hover or select one for details.");
             }
@@ -184,6 +189,7 @@ pub fn show(
                         .show(ui, |ui| {
                     ui.set_min_width(335.0);
                     if menu.page == 0 {
+                        crate::online::ui::update_settings(ui, settings.check_for_updates, &mut edits);
                         ui.horizontal_wrapped(|ui| {
                             action_button(ui, "Benchmarks…", Edit::Benchmark, runtime, &mut edits);
                             action_button(ui, "Presets / save as…", Edit::PresetLibrary, runtime, &mut edits);
@@ -205,14 +211,7 @@ pub fn show(
                     }
                     if menu.page == 7 {
                         ui.label(&menu.artwork_status);
-                        ui.horizontal_wrapped(|ui| {
-                            if runtime == Runtime::Tenchu2 {
-                                ui.hyperlink_to("Download Tenchu 2 HD artwork", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v2");
-                            } else {
-                                ui.hyperlink_to("Download HD artwork", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3");
-                            }
-                            ui.hyperlink_to("Installation / updates", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/blob/master/docs/install.md#add-hd-artwork");
-                        });
+                        crate::online::ui::artwork(ui, runtime == Runtime::Tenchu2);
                         ui.separator();
                     }
                     if menu.page == 10 {

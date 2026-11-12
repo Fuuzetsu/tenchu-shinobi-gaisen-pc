@@ -639,6 +639,10 @@ impl super::Application {
                     | Edit::ImportRewind
             );
             let result = match edit {
+                Edit::CheckForUpdates(enabled) => {
+                    self.settings.check_for_updates = enabled;
+                    Ok(())
+                }
                 Edit::Change(item, steps) => self.apply_item(item, steps),
                 Edit::SeekRewind(tick) => self.seek_rewind(tick),
                 Edit::SelectRewind(range) => {

@@ -290,7 +290,11 @@ impl Runtime {
         match edit {
             Edit::Change(item, _) | Edit::Reset(item) => self.unavailable(*item),
             _ if self == Self::Gaisen => None,
-            Edit::Touch(_) | Edit::Preset(_) | Edit::PresetLibrary | Edit::Controls => None,
+            Edit::CheckForUpdates(_)
+            | Edit::Touch(_)
+            | Edit::Preset(_)
+            | Edit::PresetLibrary
+            | Edit::Controls => None,
             Edit::PlayerModel(_)
             | Edit::MovesetModel(_)
             | Edit::WeaponModel(_)

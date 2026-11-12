@@ -17,6 +17,14 @@ fn configured(tenchu2: bool) -> Option<PathBuf> {
     if let Some(path) = std::env::var_os(variable) {
         return (!path.is_empty()).then(|| PathBuf::from(path));
     }
+    let artwork = if tenchu2 {
+        crate::online::artwork::Artwork::Tenchu2
+    } else {
+        crate::online::artwork::Artwork::Gaisen
+    };
+    if let Some(path) = artwork.installed() {
+        return Some(path);
+    }
     let executable = std::env::current_exe().ok();
     #[cfg(not(target_os = "android"))]
     let directory = std::env::current_dir().ok();

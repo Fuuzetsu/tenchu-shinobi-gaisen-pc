@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Download and install either HD artwork pack from **F1 → Visual assets** on
+  desktop and Android. Shows version, size, progress and cancellation; verifies
+  downloads before activation and preserves existing packs on failure. Installed
+  packs are shared across game updates; manual imports remain available.
+
+- Show newer stable releases at the top of F1. A background check runs once per
+  game launch and can be disabled in General. Updates are downloaded manually;
+  the game never replaces its executable.
+
 - Fix actor sounds using positions from later in the update, which could give
   footsteps the wrong volume and stereo position while using a speed scroll.
 

@@ -473,7 +473,7 @@ impl Menu {
         self.panel.actor_models.clone_from(&self.tools.actor_models);
         if self.panel.artwork_status.is_empty() {
             self.panel.artwork_status = crate::visuals::pack::configured_tenchu2_root().map_or_else(
-                || "Install tenchu2-hd.tar.zst beside the game, or import it in the Android launcher. The Gaisen pack does not contain Tenchu 2 artwork.".into(),
+                || "No Tenchu 2 artwork installed. Download it below, or import a local archive. The Gaisen pack does not contain Tenchu 2 artwork.".into(),
                 |path| format!("Tenchu 2 artwork: {}", path.display()),
             );
         }
@@ -592,6 +592,10 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::CheckForUpdates(enabled) => {
+                state.settings.check_for_updates = enabled;
+                Ok(())
+            }
             Edit::Benchmark => {
                 self.benchmarks.ui.open = true;
                 self.panel.open = false;
@@ -976,6 +980,7 @@ impl Menu {
                         }
                         Item::ReloadModels => self.reload_models(state.settings, action),
                         Item::ReloadAssets => {
+                            self.panel.artwork_status.clear();
                             action.reload_artwork = true;
                             Ok(())
                         }

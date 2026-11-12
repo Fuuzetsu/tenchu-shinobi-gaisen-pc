@@ -24,6 +24,7 @@ lz4_flex.workspace = true
 flate2 = "1"
 sha2.workspace = true
 web-time = "1.1"
+semver = "1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 cpal.workspace = true
@@ -32,6 +33,7 @@ tar = { version = "0.4", default-features = false }
 ruzstd = "0.9"
 zip = { version = "9.4.1", default-features = false, features = ["deflate-flate2"] }
 lzma-rust2 = { version = "0.25", default-features = false, features = ["std", "xz"] }
+ureq = { version = "3", default-features = false, features = ["rustls"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 pulseaudio = "=0.3.2"
@@ -49,6 +51,7 @@ web-sys = { version = "=0.3.98", features = [
     "HtmlVideoElement", "HtmlMediaElement", "CanvasRenderingContext2d", "ImageData",
     "AudioContext", "AudioBuffer", "AudioBufferSourceNode", "AudioDestinationNode",
     "GainNode", "AudioParam", "Blob", "Url", "console", "Performance", "Location",
+    "RequestInit", "AbortController", "AbortSignal",
 ] }
 
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]

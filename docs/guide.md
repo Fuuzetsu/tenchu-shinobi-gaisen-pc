@@ -177,6 +177,9 @@ TENCHU_ASSET_PACK=/tmp/tenchu-art ./dev.sh cargo run --release -- play '/path/to
 ```
 
 F1 → **Visual assets → Reload asset pack** applies edits without restarting.
+The same page offers verified HD-pack downloads on desktop and Android; see
+[installation and updates](install.md#add-hd-artwork). Downloads do not change
+the Replacement artwork switch or the Original preset.
 Unchanged exported textures are skipped, preserving the live original fallback.
 The **Replacement artwork** switch compares against the originals. A failed
 reload keeps the previous pack. `pack.json` maps content identities to relative

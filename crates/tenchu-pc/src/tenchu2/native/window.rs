@@ -1055,6 +1055,9 @@ fn run_options(
     settings: Settings,
     benchmark: Option<crate::window::benchmark::Options>,
 ) -> Result<()> {
+    if benchmark.is_none() {
+        crate::online::updates::UPDATES.start(settings.check_for_updates);
+    }
     let audio = Output::new()
         .map_err(|error| eprintln!("Audio unavailable: {error}"))
         .ok();

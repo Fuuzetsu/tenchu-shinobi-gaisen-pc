@@ -48,9 +48,14 @@ Cross-target linting uses `nix develop .#android --command cargo clippy
    handled automatically. For other renamed tracks, choose the corresponding
    BIN when prompted. Android restricts selecting the Downloads root itself,
    so use a subfolder. Import needs roughly 750 MB of free space.
-3. Optionally choose **Import HD artwork (.tar.zst)…** and select the existing
-   [HD pack](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3).
-   It is validated and unpacked during import. Allow about 450 MB more space.
+3. Optional HD artwork: after starting the game, open **Settings → Visual assets →
+   Download and install** for either game. Version, size, progress and cancellation
+   are shown; files are verified before activation. For an offline import, choose
+   **Import HD artwork (.tar.zst)…** in the launcher and select the existing
+   [HD pack](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v4).
+   It is validated and unpacked during import. Allow room for both the archive and
+   its extracted contents. **Use local pack** in Settings switches from a downloaded
+   pack back to the launcher import.
 4. Tap **Play**. Subsequent launches reuse the imported disc and artwork.
 
 Alternatively, import a **ZIP or TAR archive** from the same menu. TAR.GZ/TGZ,

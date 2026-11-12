@@ -12,6 +12,7 @@ mod fonts;
 mod frontend;
 mod lighting;
 mod navigation;
+mod online;
 mod performance;
 mod randomizer;
 mod recording;
