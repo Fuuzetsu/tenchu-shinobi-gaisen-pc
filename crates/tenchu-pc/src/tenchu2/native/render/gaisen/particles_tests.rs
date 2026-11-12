@@ -82,7 +82,7 @@ fn imported_particle_materials_keep_both_games_artwork() {
                         backgrounds: Vec::new(),
                         terrain: Vec::new(),
                         props: Vec::new(),
-                        actors: Vec::new(),
+                        actors: Default::default(),
                         effects: render_effects::surface_geometry(drawing.surfaces),
                     };
                     Ok((

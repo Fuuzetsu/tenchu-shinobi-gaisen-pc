@@ -919,7 +919,7 @@ impl Meshes {
         true
     }
 
-    fn append_indexed(
+    pub(crate) fn append_indexed(
         &self,
         output: &mut render_mesh::Indexed,
         geometry: &[Geometry],

@@ -3,6 +3,8 @@ use tenchu_core::game::Game;
 
 pub(super) struct Drawing {
     models: crate::visuals::models::Models,
+    pub(super) terrain: crate::renderer::Mesh,
+    vram_revision: Option<u64>,
     sprites: sprites::Sprites,
     ambient: sprites::Sprites,
 }
@@ -23,6 +25,11 @@ impl Drawing {
         renderer.set_asset_pack(&pack);
         renderer.update_vram(&game.mission.vram);
         models.bind(|material| renderer.bind_material(material));
+        let terrain = renderer.upload(&render_mesh::stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
         let sprites = sprites::Sprites::new(
             &assets.sprites.vram,
             assets
@@ -44,6 +51,8 @@ impl Drawing {
         );
         Ok(Self {
             models,
+            terrain,
+            vram_revision: None,
             sprites,
             ambient,
         })
@@ -97,7 +106,14 @@ impl super::Drawing {
             .gaisen
             .as_mut()
             .ok_or("Missing original cinematic models")?;
-        renderer.update_vram(&source.mission.vram);
+        if !self.cinematic {
+            std::mem::swap(&mut self.scene.terrain, &mut drawing.terrain);
+            drawing.vram_revision = None;
+        }
+        if drawing.vram_revision != Some(source.mission.vram.revision) {
+            renderer.update_vram(&source.mission.vram);
+            drawing.vram_revision = Some(source.mission.vram.revision);
+        }
         self.cinematic = true;
         let view = self
             .camera
@@ -154,20 +170,39 @@ impl super::Drawing {
             true,
         )?;
         drawing.sprites.retain(&mut native.surfaces, renderer)?;
-        let mut native_effects = render_effects::surface_geometry(native.surfaces);
+        let mut native_effects = render_effects::surface_geometry_into(
+            native.surfaces,
+            std::mem::take(&mut self.scene.effect_vertices),
+        );
         native_effects.append(effects);
         effects = native_effects;
-        let mut actors = render_mesh::characters_presented(
+        let mut actors = std::mem::take(&mut self.scene.actor_vertices);
+        render_mesh::update_indexed_characters(
+            &mut actors,
             source,
             Some(&drawing.models),
             self.camera.is_some(),
             None,
         );
-        actors.extend(native.actors);
+        let base = actors.vertices.len();
+        let start = actors.indices.len() as u32;
+        actors.extend_triangles(
+            native
+                .actors
+                .indices
+                .iter()
+                .map(|&i| native.actors.vertices[i as usize]),
+        );
+        if actors.indices.len() as u32 != start {
+            actors.groups.push(render_mesh::IndexedGroup {
+                vertices: base..actors.vertices.len(),
+                indices: start..actors.indices.len() as u32,
+            });
+        }
         let mut geometry = Geometry {
             lamps: Vec::new(),
             backgrounds: Vec::new(),
-            terrain: render_mesh::stage(&source.mission, &source.math, Some(&drawing.models)),
+            terrain: Vec::new(),
             props: native.props,
             actors,
             effects,
@@ -203,7 +238,7 @@ impl super::Drawing {
             },
             renderer,
         );
-        self.scene.update(geometry, renderer);
+        self.scene.update_dynamic(geometry, renderer);
         self.texts =
             crate::fonts::game_text(source, false, self.sharp_text, self.subtitle_language);
         self.view = source.rendered_view;
@@ -224,9 +259,13 @@ mod tests {
     }
 
     fn session_layout(character: i16, layout: usize) -> Session {
+        session_stage(0, character, layout)
+    }
+
+    pub(super) fn session_stage(stage: usize, character: i16, layout: usize) -> Session {
         let source = Source::open(
             std::env::var_os("TENCHU_DISC").unwrap().as_ref(),
-            0,
+            stage,
             character,
             layout,
             Language::English,
@@ -248,16 +287,18 @@ mod tests {
             )
             .unwrap();
         session.step(0).unwrap();
-        let scene = session.gaisen.as_ref().unwrap();
-        let (event, target) = scene.director.source.events.active().next().unwrap();
-        let event = &scene.director.source.mission.scripts.events[event];
-        assert_eq!(event.mode, 1);
-        let index = scene.director.native_actor(target).unwrap();
-        let position = event
-            .bounds
-            .map(|[low, high]| (i32::from(low) + i32::from(high)) / 2 * 1000)
-            .into();
-        session.world.actors[index].actor.position = position;
+        if !session.cinematic() {
+            let scene = session.gaisen.as_ref().unwrap();
+            let (event, target) = scene.director.source.events.active().next().unwrap();
+            let event = &scene.director.source.mission.scripts.events[event];
+            assert_eq!(event.mode, 1);
+            let index = scene.director.native_actor(target).unwrap();
+            let position = event
+                .bounds
+                .map(|[low, high]| (i32::from(low) + i32::from(high)) / 2 * 1000)
+                .into();
+            session.world.actors[index].actor.position = position;
+        }
         for _ in 0..2000 {
             session.step(0).unwrap();
             let game = &session.gaisen.as_ref().unwrap().director.source;
@@ -436,7 +477,7 @@ mod tests {
                             &mut output,
                         )?;
                     }
-                    assert!(!output.actors.is_empty());
+                    assert!(!output.actors.indices.is_empty());
                     assert_eq!(output.surfaces.len(), 1);
                     let geometry = Geometry {
                         lamps: Vec::new(),
@@ -497,8 +538,8 @@ mod tests {
     fn imported_host_draws_cinematics_and_restores_native_materials() {
         let output = std::path::PathBuf::from(std::env::var_os("TENCHU_GAISEN_REVIEW").unwrap());
         std::fs::create_dir_all(&output).unwrap();
-        for character in 0..2 {
-            let mut session = session(character);
+        for (stage, character) in [(0, 0), (0, 1), (9, 1)] {
+            let mut session = session_stage(stage, character, 1);
             let mut settings = crate::settings::Settings::default();
             settings.graphics.asset_pack = false;
             let world = postcard::to_allocvec(&session.world).unwrap();
@@ -511,7 +552,7 @@ mod tests {
                         &session,
                         &settings,
                         &output.join(format!(
-                            "source-{character}-caption-{sharp}-{subtitle:?}.png"
+                            "source-{stage}-{character}-caption-{sharp}-{subtitle:?}.png"
                         )),
                     )
                     .unwrap();
@@ -523,15 +564,20 @@ mod tests {
                 }
             }
             settings.graphics.fog = false;
-            let cached = output.join(format!("source-{character}-native-cached.png"));
-            let fresh = output.join(format!("source-{character}-native-fresh.png"));
+            let cached = output.join(format!("source-{stage}-{character}-native-cached.png"));
+            let fresh = output.join(format!("source-{stage}-{character}-native-fresh.png"));
             let vram = session.assets.sprites.vram.clone();
             capture_frame(&vram, &settings.graphics, &cached, |renderer| {
                 let mut drawing =
                     super::super::Drawing::new(&session, &settings.graphics, renderer)?;
                 drawing.terrain.prepare(
-                    &session,
-                    &drawing.models,
+                    scenery::Static {
+                        level: &session.assets.level,
+                        meshes: &drawing.models.scenery,
+                        math: &session.assets.resources.math,
+                        phases: Some(&session.world.environment.static_phases),
+                    },
+                    session.world.camera.view,
                     renderer,
                     &mut drawing.scene.terrain,
                 );

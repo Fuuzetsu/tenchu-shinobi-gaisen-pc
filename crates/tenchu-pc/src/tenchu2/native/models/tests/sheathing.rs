@@ -182,7 +182,7 @@ fn capture(session: &Session, donor: &Game, path: &std::path::Path) {
     let eye = center + Vec3::from(offset.map(f32::from)) - Vec3::Y * 300.0;
     let camera = Mat4::perspective_rh(50f32.to_radians(), 16.0 / 9.0, 10.0, 100000.0)
         * Mat4::look_at_rh(eye, center, Vec3::NEG_Y);
-    let actors = review.renderer.upload(&geometry.actors);
+    let actors = review.renderer.upload(&geometry.actors.expanded());
     let terrain = review.renderer.upload(&geometry.terrain);
     let props = review.renderer.upload(&geometry.props);
     review

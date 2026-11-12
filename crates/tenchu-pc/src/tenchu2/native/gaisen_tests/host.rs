@@ -186,12 +186,13 @@ fn imported_host_acceleration_stops_at_native_gameplay() {
     use std::time::Duration;
     let path = std::env::var_os("TENCHU_DISC").unwrap();
     let t2 = std::env::var_os("TENCHU2_DISC").unwrap();
-    let start = || {
-        let source = gaisen::Source::open(path.as_ref(), 0, 0, 1, Language::English).unwrap();
+    let start = |stage, character| {
+        let source =
+            gaisen::Source::open(path.as_ref(), stage, character, 1, Language::English).unwrap();
         let mut playback = Playback::gaisen(
             crate::source::open_disc(t2.as_ref()).unwrap(),
             source,
-            0,
+            character as usize,
             2,
             7,
             Some([0; 21]),
@@ -202,55 +203,62 @@ fn imported_host_acceleration_stops_at_native_gameplay() {
         let Content::Gameplay(session) = &mut playback.content else {
             unreachable!()
         };
-        director::force_next(
-            &session.gaisen.as_ref().unwrap().director,
-            &mut session.world,
-            &session.assets,
-        );
+        if !session.cinematic() {
+            director::force_next(
+                &session.gaisen.as_ref().unwrap().director,
+                &mut session.world,
+                &session.assets,
+            );
+        }
         playback.step(0).unwrap();
         assert!(playback.content.cutscene());
         playback
     };
-    let mut normal = start();
-    for _ in 0..6000 {
-        normal.step(0).unwrap();
-        if !normal.content.cutscene() {
-            break;
+    for (stage, character) in [(0, 0), (9, 1)] {
+        let mut normal = start(stage, character);
+        for _ in 0..6000 {
+            normal.step(0).unwrap();
+            if !normal.content.cutscene() {
+                break;
+            }
         }
-    }
-    assert!(!normal.content.cutscene());
-    let mut fast = start();
-    let mut transport = Transport::default();
-    for _ in 0..6000 {
-        let update = transport
-            .advance(
-                &mut fast,
-                Duration::from_millis(34),
-                Input {
-                    buttons: 0,
-                    cutscene_speed: 0,
-                    simulation_speed: 100,
-                    fast_forward: true,
-                    paused: false,
-                },
-                None,
-                |_, _| Ok(()),
-            )
-            .unwrap();
-        if update.changed {
-            break;
+        assert!(!normal.content.cutscene());
+        let mut fast = start(stage, character);
+        let mut transport = Transport::default();
+        let mut frames = 0;
+        for _ in 0..6000 {
+            frames += 1;
+            let update = transport
+                .advance(
+                    &mut fast,
+                    Duration::ZERO,
+                    Input {
+                        buttons: 0,
+                        cutscene_speed: 1,
+                        simulation_speed: 100,
+                        fast_forward: true,
+                        paused: false,
+                    },
+                    None,
+                    |_, _| Ok(()),
+                )
+                .unwrap();
+            if update.changed {
+                break;
+            }
         }
+        assert!(!fast.content.cutscene());
+        eprintln!("imported stage {stage}: Backspace completed in {frames} host frames");
+        let (Content::Gameplay(a), Content::Gameplay(b)) = (&normal.content, &fast.content) else {
+            panic!("Cinematic left imported mission");
+        };
+        assert_eq!(
+            postcard::to_allocvec(&a.world).unwrap(),
+            postcard::to_allocvec(&b.world).unwrap()
+        );
+        assert_eq!(
+            postcard::to_allocvec(&a.gaisen.as_ref().unwrap().director).unwrap(),
+            postcard::to_allocvec(&b.gaisen.as_ref().unwrap().director).unwrap()
+        );
     }
-    assert!(!fast.content.cutscene());
-    let (Content::Gameplay(a), Content::Gameplay(b)) = (&normal.content, &fast.content) else {
-        panic!("Cinematic left imported mission");
-    };
-    assert_eq!(
-        postcard::to_allocvec(&a.world).unwrap(),
-        postcard::to_allocvec(&b.world).unwrap()
-    );
-    assert_eq!(
-        postcard::to_allocvec(&a.gaisen.as_ref().unwrap().director).unwrap(),
-        postcard::to_allocvec(&b.gaisen.as_ref().unwrap().director).unwrap()
-    );
 }

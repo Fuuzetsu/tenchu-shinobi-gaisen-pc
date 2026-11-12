@@ -922,6 +922,13 @@ impl ApplicationHandler for Application {
                     }
                     if pressed && !event.repeat {
                         match code {
+                            KeyCode::Backspace
+                                if !self.menu.panel.open
+                                    && !self.menu.modal_open()
+                                    && self.session.content.cutscene() =>
+                            {
+                                self.controls.key(code, true);
+                            }
                             KeyCode::Escape
                                 if !self.menu.panel.open
                                     && (self.menu.tools.debug.click_teleport

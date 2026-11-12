@@ -31,20 +31,19 @@ impl Terrain {
 
     pub fn prepare(
         &mut self,
-        session: &super::super::Session,
-        models: &super::Models,
+        source: Static<'_>,
+        view: tenchu_core::math::Matrix,
         renderer: &mut crate::renderer::Renderer,
         mesh: &mut crate::renderer::Mesh,
     ) {
         let graphics = renderer.graphics();
         let key = TerrainKey {
-            phases: session
-                .assets
+            phases: source
                 .level
                 .scene
                 .statics
                 .iter()
-                .zip(&session.world.environment.static_phases)
+                .zip(source.phases.unwrap_or_default())
                 .filter_map(|(object, &phase)| {
                     matches!(
                         object.kind,
@@ -58,14 +57,41 @@ impl Terrain {
         if self.key.as_ref() == Some(&key) {
             return;
         }
-        // Without source fog, stationary geometry is independent of the camera.
-        // Transparent faces still need their depth recomputed and sorted each frame.
-        let mut output =
-            super::Builder::new(session.world.camera.view, &session.assets.level, graphics);
-        models.static_scenery(&mut output, &session.world, &session.assets, true);
+        // Source fog changes vertex colours with the camera; only fog-free terrain is retained.
+        // Transparent faces retain their geometry but are sorted at the current view depth.
+        let mut output = super::Builder::new(view, source.level, graphics);
+        source.draw(&mut output, true);
         *mesh = renderer.upload(&output.terrain);
         self.surfaces = output.surfaces;
         self.key = Some(key);
+    }
+}
+
+pub(super) struct Static<'a> {
+    pub level: &'a Level,
+    pub meshes: &'a crate::visuals::models::Meshes,
+    pub math: &'a tenchu_core::math::Math,
+    pub phases: Option<&'a [i16]>,
+}
+
+impl Static<'_> {
+    pub fn draw(&self, output: &mut super::Builder, props: bool) {
+        for part in &self.level.map {
+            output.model(
+                self.meshes,
+                part,
+                tenchu_core::math::Matrix {
+                    translation: part.position.map(|v| i32::from(v) * 10).into(),
+                    ..Default::default()
+                },
+                super::ModelStyle::Terrain,
+            );
+        }
+        if props {
+            for (part, matrix) in super::static_models(self.level, self.math, self.phases) {
+                output.model(self.meshes, part, matrix, super::ModelStyle::Terrain);
+            }
+        }
     }
 }
 

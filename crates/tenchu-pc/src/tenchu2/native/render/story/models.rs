@@ -260,10 +260,17 @@ impl Models {
         &mut self,
         story: &Story,
         renderer: &mut Renderer,
-        camera: Option<crate::debug::camera::Camera>,
-        pose: Option<&PoseFrame>,
-        motion: Option<&crate::visuals::motion::Frame>,
+        presentation: super::super::Presentation<'_>,
     ) -> Result<(Geometry, Vec<fonts::Text>)> {
+        let super::super::Presentation {
+            camera,
+            pose,
+            motion,
+            terrain,
+            mut actors,
+            effect_vertices,
+            ..
+        } = presentation;
         let resources = &story.resources;
         let level = &story.level;
         let math = &story.math;
@@ -279,22 +286,23 @@ impl Models {
         }
         let view = camera.map_or(story.state.view, |c| c.source_view());
         let mut output = Builder::new(view, level, renderer.graphics());
+        actors.clear(None);
+        output.actors = actors;
         if let Some(camera) = camera {
             output.distance = 120.0 / (camera.fov.to_radians() * 0.5).tan();
         }
-        for part in &level.map {
-            output.model(
-                &self.terrain,
-                part,
-                Matrix {
-                    translation: part.position.map(|v| i32::from(v) * 10).into(),
-                    ..Default::default()
-                },
-                ModelStyle::Terrain,
-            );
-        }
-        for (part, matrix) in super::super::static_models(level, math, None) {
-            output.model(&self.terrain, part, matrix, ModelStyle::Terrain);
+        if let Some(surfaces) = terrain {
+            for surface in surfaces {
+                output.surface(surface.vertices.clone(), surface.blend);
+            }
+        } else {
+            super::super::scenery::Static {
+                level,
+                meshes: &self.terrain,
+                math,
+                phases: None,
+            }
+            .draw(&mut output, true);
         }
         for object in &level.scene.dynamic {
             let Some(model) = object.model else { continue };
@@ -410,7 +418,7 @@ impl Models {
                 terrain: output.terrain,
                 props: output.props,
                 actors: output.actors,
-                effects: render_effects::surface_geometry(output.surfaces),
+                effects: render_effects::surface_geometry_into(output.surfaces, effect_vertices),
             },
             texts,
         ))

@@ -8,6 +8,8 @@ use std::{
 mod projected;
 pub(crate) use projected::{Projected, Source, SourceRange};
 
+pub(crate) const DECAL_LIFT: f32 = 0.5;
+
 #[derive(Clone, Copy)]
 struct Bounds {
     min: Vec3,
@@ -440,7 +442,7 @@ impl StampProjection<'_> {
                 v.opacity =
                     (margin / (stamp.radius * 0.3)).clamp(0.0, 1.0) * depth.clamp(0.0, 1.0) * 0.92;
             }
-            v.position = (Vec3::from(v.position) + stamp.normal * 0.5).to_array();
+            v.position = (Vec3::from(v.position) + stamp.normal * DECAL_LIFT).to_array();
             v.flags = (v.flags & !crate::render_mesh::EMITTER)
                 | crate::render_mesh::ALPHA
                 | crate::render_mesh::STAIN;

@@ -303,7 +303,7 @@ fn opening_scene_uses_its_own_distance_palette() {
         let path = output.join(format!("jp-opening-palette-fog-{fog}.png"));
         capture_frame(&story.level.vram, &graphics, &path, |renderer| {
             let mut models = models::Models::new(&story, &graphics, renderer)?;
-            let (geometry, texts) = models.geometry(&story, renderer, None, None, None)?;
+            let (geometry, texts) = models.geometry(&story, renderer, Default::default())?;
             assert!(
                 geometry
                     .terrain
@@ -348,6 +348,7 @@ fn animated_story_draw_matches_fresh_meshes() {
     std::fs::create_dir_all(&output).unwrap();
     for refined in [false, true] {
         let graphics = Graphics {
+            fog: !refined,
             smooth_models: refined,
             models: crate::settings::Models {
                 characters: if refined { 2 } else { 0 },
@@ -481,17 +482,23 @@ fn native_story_secondary_motion_tracks_authored_poses() {
                 drawing.tick(&story, &graphics)?;
                 let frame = drawing.motion.sample(1.0);
                 if tick % 10 == 0 {
-                    let (moving, _) =
+                    let (moving, _) = drawing.models.geometry(
+                        &story,
+                        renderer,
+                        crate::tenchu2::native::render::Presentation {
+                            motion: Some(&frame),
+                            ..Default::default()
+                        },
+                    )?;
+                    let (rigid, _) =
                         drawing
                             .models
-                            .geometry(&story, renderer, None, None, Some(&frame))?;
-                    let (rigid, _) = drawing
-                        .models
-                        .geometry(&story, renderer, None, None, None)?;
+                            .geometry(&story, renderer, Default::default())?;
                     changed |= moving
                         .actors
+                        .expanded()
                         .iter()
-                        .zip(&rigid.actors)
+                        .zip(&rigid.actors.expanded())
                         .any(|(a, b)| a.position != b.position);
                 }
                 assert_eq!(postcard::to_allocvec(&story.state).unwrap(), before);

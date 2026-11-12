@@ -137,7 +137,7 @@ fn native_story_replacements_retain_body_contact_height() {
                     camera.focus(center, false);
                     let state = postcard::to_allocvec(&story.state).unwrap();
                     let (geometry, _) =
-                        replacement.geometry(&story, renderer, Some(camera), None, None)?;
+                        replacement.geometry(&story, renderer, crate::tenchu2::native::render::Presentation {camera:Some(camera), ..Default::default()})?;
                     assert_eq!(state, postcard::to_allocvec(&story.state).unwrap());
                     Ok((
                         SceneDrawing::new(geometry, renderer, &story.level),

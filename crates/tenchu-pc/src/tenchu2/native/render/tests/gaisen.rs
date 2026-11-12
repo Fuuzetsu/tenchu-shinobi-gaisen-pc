@@ -73,11 +73,12 @@ fn imported_guards_do_not_inherit_the_resource_donor_palette() {
                     ..Default::default()
                 },
             )?;
-            assert!(geometry.actors.len() > 100);
+            assert!(geometry.actors.expanded().len() > 100);
             if label == "after" {
                 assert!(
                     geometry
                         .actors
+                        .expanded()
                         .iter()
                         .all(|v| { v.color[0] == v.color[1] && v.color[1] == v.color[2] })
                 );

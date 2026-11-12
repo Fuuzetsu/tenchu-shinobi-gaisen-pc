@@ -611,7 +611,7 @@ fn cross_game_models_move_attack_and_restore_in_native_t2() {
                     center,
                     Vec3::NEG_Y,
                 );
-            let mesh = review.renderer.upload(&geometry.actors);
+            let mesh = review.renderer.upload(&geometry.actors.expanded());
             review
                 .capture(camera, &[&mesh], None, false, &path)
                 .unwrap();

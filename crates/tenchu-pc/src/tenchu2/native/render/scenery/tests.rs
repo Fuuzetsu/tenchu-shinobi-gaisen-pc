@@ -129,7 +129,17 @@ fn cached_terrain_matches_rebuilt_frames() {
                 _ => {}
             }
             let state = postcard::to_allocvec(&session.world).unwrap();
-            terrain.prepare(&session, &models, &mut renderer, &mut cached.terrain);
+            terrain.prepare(
+                Static {
+                    level: &session.assets.level,
+                    meshes: &models.scenery,
+                    math: &session.assets.resources.math,
+                    phases: Some(&session.world.environment.static_phases),
+                },
+                session.world.camera.view,
+                &mut renderer,
+                &mut cached.terrain,
+            );
             transparent += terrain.surfaces.len();
             let geometry = models
                 .geometry(
@@ -139,6 +149,8 @@ fn cached_terrain_matches_rebuilt_frames() {
                     &graphics,
                     Presentation {
                         terrain: Some(terrain.surfaces()),
+                        actors: std::mem::take(&mut cached.actor_vertices),
+                        effect_vertices: std::mem::take(&mut cached.effect_vertices),
                         ..Default::default()
                     },
                 )

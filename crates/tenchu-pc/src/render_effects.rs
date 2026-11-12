@@ -828,10 +828,18 @@ pub(crate) fn retained_blood<'a>(
     surface_geometry(surfaces)
 }
 
-pub(crate) fn surface_geometry(mut surfaces: Vec<Surface>) -> Geometry {
+pub(crate) fn surface_geometry(surfaces: Vec<Surface>) -> Geometry {
+    surface_geometry_into(surfaces, Vec::new())
+}
+
+pub(crate) fn surface_geometry_into(
+    mut surfaces: Vec<Surface>,
+    mut vertices: Vec<Vertex>,
+) -> Geometry {
     surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));
+    vertices.clear();
     let mut out = Geometry {
-        vertices: Vec::new(),
+        vertices,
         batches: Vec::new(),
     };
     for surface in surfaces {

@@ -179,7 +179,7 @@ mod tests {
                             backgrounds: Vec::new(),
                             terrain: vertices,
                             props: Vec::new(),
-                            actors: Vec::new(),
+                            actors: Default::default(),
                             effects: crate::render_effects::Geometry {
                                 vertices: Vec::new(),
                                 batches: Vec::new(),

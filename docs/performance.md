@@ -171,3 +171,21 @@ next steps and pending-work lists are not the current development plan.
 The [per-control cost guide](graphics-performance.md) retains the useful comparison
 method and measured tradeoffs. File a current performance report with the build,
 hardware, settings, scene and benchmark JSON so it can be compared on that setup.
+
+### Shared character and cinematic rendering
+
+Imported T1 cinematics now use the same retained stage, indexed character meshes
+and eligible GPU poses as ordinary T1 rendering. VRAM uploads follow its revision
+instead of running on every presentation. Native T2 gameplay and story scenes
+share static scenery caching, indexed actors and reusable geometry buffers.
+T2 palette fog still uses its original triangle/depth rules; joint-weighted skins
+and unsupported compute backends retain the scalar CPU path.
+
+The first Ayame M10 scene (sequence 10) was measured at 1280×720 on the same
+GTX 1080 Ti / Vulkan setup, with 20 warm-up and 80 measured frames, one source
+tick every two presentations. Geometry and upload preparation fell from
+**29.10 ms to 1.82 ms** with the reported enhanced settings, and **2.18 ms to
+1.12 ms** in Original. These are CPU preparation times, not total frame times.
+The Original capture was byte-identical; enhanced captures differed in one
+pixel by one colour-channel unit after GPU posing. Raw timings and captures
+remain outside Git under `private/render-consolidation-20261112`.

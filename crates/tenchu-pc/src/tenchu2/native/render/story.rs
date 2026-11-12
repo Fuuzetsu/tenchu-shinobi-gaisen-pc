@@ -12,6 +12,7 @@ mod tests;
 
 pub(crate) struct Drawing {
     models: models::Models,
+    terrain: super::scenery::Terrain,
     motion: crate::visuals::motion::Motion,
     pub(super) scene: SceneDrawing,
     pub texts: Vec<fonts::Text>,
@@ -82,13 +83,14 @@ impl Drawing {
 
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         let mut models = models::Models::new(story, graphics, renderer)?;
-        let (geometry, texts) = models.geometry(story, renderer, None, None, None)?;
+        let (geometry, texts) = models.geometry(story, renderer, Default::default())?;
         let mut scene = SceneDrawing::new(geometry, renderer, &story.level);
         if SceneDrawing::needs_environment(graphics) {
             scene.environment(&story.level, &models.terrain, &story.math, renderer);
         }
         let mut drawing = Self {
             models,
+            terrain: Default::default(),
             motion: Default::default(),
             scene,
             texts,
@@ -127,9 +129,35 @@ impl Drawing {
             .as_ref()
             .filter(|_| renderer.graphics().interpolation)
             .and_then(|history| history.sample(story.state.frame.max(0) as u64, self.alpha));
-        let (mut geometry, texts) =
-            self.models
-                .geometry(story, renderer, self.camera, pose.as_ref(), Some(&motion))?;
+        let cached_terrain = !renderer.graphics().fog;
+        if cached_terrain {
+            self.terrain.prepare(
+                super::scenery::Static {
+                    level: &story.level,
+                    meshes: &self.models.terrain,
+                    math: &story.math,
+                    phases: None,
+                },
+                story.state.view,
+                renderer,
+                &mut self.scene.terrain,
+            );
+        } else {
+            self.terrain.invalidate();
+        }
+        let (mut geometry, texts) = self.models.geometry(
+            story,
+            renderer,
+            super::Presentation {
+                camera: self.camera,
+                pose: pose.as_ref(),
+                motion: Some(&motion),
+                terrain: cached_terrain.then_some(self.terrain.surfaces()),
+                actors: std::mem::take(&mut self.scene.actor_vertices),
+                effect_vertices: std::mem::take(&mut self.scene.effect_vertices),
+                ..Default::default()
+            },
+        )?;
         let camera = super::camera_matrix(story.state.view, self.camera, renderer.size());
         self.labels = self
             .scene
@@ -150,7 +178,11 @@ impl Drawing {
             },
             renderer,
         );
-        self.scene.update(geometry, renderer);
+        if cached_terrain {
+            self.scene.update_dynamic(geometry, renderer);
+        } else {
+            self.scene.update(geometry, renderer);
+        }
         self.texts = texts;
         self.view = story.state.view;
         Ok(())

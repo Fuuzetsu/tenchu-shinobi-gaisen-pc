@@ -53,6 +53,8 @@ impl SceneDrawing {
             terrain: _,
             props: _,
             actors: _,
+            actor_vertices: _,
+            effect_vertices: _,
             effects: _,
             environment,
             lighting: _,

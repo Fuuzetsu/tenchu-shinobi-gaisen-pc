@@ -974,6 +974,20 @@ impl Application {
                 }
                 if pressed {
                     match code {
+                        KeyCode::Backspace
+                            if !menu_open
+                                && !menu.modal_open()
+                                && self
+                                    .native_tenchu2
+                                    .as_ref()
+                                    .unwrap()
+                                    .playback
+                                    .content
+                                    .cutscene() =>
+                        {
+                            self.controls.key(code, true);
+                            return Ok(());
+                        }
                         KeyCode::Escape | KeyCode::BrowserBack => {
                             return self.native_tenchu2_touch(crate::touch::Action::Back);
                         }

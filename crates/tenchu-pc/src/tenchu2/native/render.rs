@@ -80,6 +80,8 @@ struct SceneDrawing {
     terrain: crate::renderer::Mesh,
     props: crate::renderer::Mesh,
     actors: crate::renderer::Mesh,
+    actor_vertices: render_mesh::Indexed,
+    effect_vertices: Vec<Vertex>,
     effects: crate::renderer::EffectMesh,
     environment: Option<environment::Environment>,
     lighting: lighting::Lighting,
@@ -249,10 +251,13 @@ impl Drawing {
         #[cfg(not(target_arch = "wasm32"))]
         {
             if session.cinematic() {
-                self.terrain.invalidate();
                 return self.update_gaisen(session, renderer, debug);
             }
             if self.cinematic {
+                std::mem::swap(
+                    &mut self.scene.terrain,
+                    &mut self.gaisen.as_mut().unwrap().terrain,
+                );
                 renderer.update_vram(&session.assets.sprites.vram);
                 self.motion.invalidate();
                 self.cinematic = false;
@@ -284,8 +289,17 @@ impl Drawing {
         let cached_terrain =
             !graphics.fog && !debug.is_some_and(|debug| debug.collision_only && !debug.photo_mode);
         if cached_terrain {
-            self.terrain
-                .prepare(session, &self.models, renderer, &mut self.scene.terrain);
+            self.terrain.prepare(
+                scenery::Static {
+                    level: &session.assets.level,
+                    meshes: &self.models.scenery,
+                    math: &session.assets.resources.math,
+                    phases: Some(&session.world.environment.static_phases),
+                },
+                session.world.camera.view,
+                renderer,
+                &mut self.scene.terrain,
+            );
         } else {
             self.terrain.invalidate();
         }
@@ -307,6 +321,8 @@ impl Drawing {
                 motion: Some(&motion),
                 ambient,
                 terrain: cached_terrain.then_some(self.terrain.surfaces()),
+                actors: std::mem::take(&mut self.scene.actor_vertices),
+                effect_vertices: std::mem::take(&mut self.scene.effect_vertices),
             },
         )?;
         self.texts = if self.show_hud && self.sharp_text {
@@ -386,7 +402,7 @@ impl Drawing {
             if debug.collision_only && !debug.photo_mode {
                 renderer.set_decals(std::iter::empty());
                 geometry.terrain.clear();
-                geometry.actors.clear();
+                geometry.actors.clear(None);
                 geometry.effects = render_effects::Geometry {
                     vertices: Vec::new(),
                     batches: Vec::new(),
@@ -587,7 +603,10 @@ impl SceneDrawing {
             .map_or_else(|| (Default::default(), None), |e| e.audio(settings))
     }
 
-    fn new(geometry: Geometry, renderer: &mut Renderer, level: &Level) -> Self {
+    fn new(mut geometry: Geometry, renderer: &mut Renderer, level: &Level) -> Self {
+        let mut actors = renderer.upload(&[]);
+        renderer.update_indexed_mesh(&mut actors, &mut geometry.actors);
+        geometry.actors.poses = renderer.pose_frame();
         Self {
             draw_distance: level.draw_distance,
             backgrounds: geometry
@@ -597,7 +616,9 @@ impl SceneDrawing {
                 .collect(),
             terrain: renderer.upload(&geometry.terrain),
             props: renderer.upload(&geometry.props),
-            actors: renderer.upload(&geometry.actors),
+            actors,
+            actor_vertices: geometry.actors,
+            effect_vertices: Vec::new(),
             effects: renderer.upload_effects(geometry.effects),
             environment: None,
             lighting: {
@@ -619,8 +640,9 @@ impl SceneDrawing {
             renderer.update_effects(mesh, geometry);
         }
         renderer.update_mesh(&mut self.props, &mut geometry.props);
-        renderer.update_mesh(&mut self.actors, &mut geometry.actors);
-        renderer.update_effects(&mut self.effects, geometry.effects);
+        renderer.update_indexed_mesh(&mut self.actors, &mut geometry.actors);
+        self.actor_vertices = geometry.actors;
+        self.effect_vertices = renderer.update_effects(&mut self.effects, geometry.effects);
     }
 
     pub fn draw(
@@ -752,7 +774,7 @@ pub struct Geometry {
     pub backgrounds: Vec<render_effects::Geometry>,
     pub terrain: Vec<Vertex>,
     pub props: Vec<Vertex>,
-    pub actors: Vec<Vertex>,
+    pub actors: render_mesh::Indexed,
     pub effects: render_effects::Geometry,
 }
 
@@ -765,6 +787,8 @@ pub struct Presentation<'a> {
     pub motion: Option<&'a crate::visuals::motion::Frame>,
     pub ambient: Vec<Surface>,
     pub terrain: Option<&'a [Surface]>,
+    pub actors: render_mesh::Indexed,
+    pub effect_vertices: Vec<Vertex>,
 }
 
 impl Default for Presentation<'_> {
@@ -778,6 +802,8 @@ impl Default for Presentation<'_> {
             motion: None,
             ambient: Vec::new(),
             terrain: None,
+            actors: Default::default(),
+            effect_vertices: Vec::new(),
         }
     }
 }
@@ -1021,12 +1047,16 @@ impl Models {
             motion,
             ambient,
             terrain,
+            mut actors,
+            effect_vertices,
         } = presentation;
         let view = camera.map_or_else(
             || pose.map_or(world.camera.view, |frame| frame.view),
             |c| c.source_view(),
         );
         let mut output = Builder::new(view, &assets.level, graphics);
+        actors.clear(None);
+        output.actors = actors;
         if let Some(camera) = camera {
             output.distance = 120.0 / (camera.fov.to_radians() * 0.5).tan();
         }
@@ -1037,7 +1067,13 @@ impl Models {
                 output.surface(surface.vertices.clone(), surface.blend);
             }
         } else {
-            self.static_scenery(&mut output, world, assets, distant_props);
+            scenery::Static {
+                level: &assets.level,
+                meshes: &self.scenery,
+                math,
+                phases: Some(&world.environment.static_phases),
+            }
+            .draw(&mut output, distant_props);
         }
         for model in &frame.scenery.models {
             if distant_props
@@ -1202,7 +1238,7 @@ impl Models {
             }
         }
         output.surfaces.extend(ambient);
-        let mut effects = render_effects::surface_geometry(output.surfaces);
+        let mut effects = render_effects::surface_geometry_into(output.surfaces, effect_vertices);
         if let Some(mut rope) = rope {
             rope.append(effects);
             effects = rope;
@@ -1222,35 +1258,6 @@ impl Models {
             actors: output.actors,
             effects,
         })
-    }
-
-    fn static_scenery(
-        &self,
-        output: &mut Builder,
-        world: &World,
-        assets: &Assets,
-        distant_props: bool,
-    ) {
-        for part in &assets.level.map {
-            output.model(
-                &self.scenery,
-                part,
-                Matrix {
-                    translation: part.position.map(|v| i32::from(v) * 10).into(),
-                    ..Default::default()
-                },
-                ModelStyle::Terrain,
-            );
-        }
-        if distant_props {
-            for (part, matrix) in static_models(
-                &assets.level,
-                &assets.resources.math,
-                Some(&world.environment.static_phases),
-            ) {
-                output.model(&self.scenery, part, matrix, ModelStyle::Terrain);
-            }
-        }
     }
 }
 
@@ -1291,7 +1298,7 @@ struct Builder {
     surfaces: Vec<Surface>,
     terrain: Vec<Vertex>,
     props: Vec<Vertex>,
-    actors: Vec<Vertex>,
+    actors: render_mesh::Indexed,
 }
 
 fn atmosphere(graphics: &Graphics) -> bool {
@@ -1351,7 +1358,7 @@ impl Builder {
             surfaces: Vec::new(),
             terrain: Vec::new(),
             props: Vec::new(),
-            actors: Vec::new(),
+            actors: Default::default(),
         }
     }
 
@@ -1415,63 +1422,106 @@ impl Builder {
         deformation: Option<&crate::visuals::motion::Deformation<'_>>,
     ) {
         let terrain = matches!(style, ModelStyle::Terrain | ModelStyle::Prop);
-        meshes.visit(&part.geometry, matrix, false, 0, deformation, |triangle| {
-            let mut triangle = triangle.map(|v| *v);
-            let depths = triangle.map(|v| self.depth(v.position).max(0.0) as i32 >> 4);
-            if self
-                .fog_start
-                .is_some_and(|start| depths.iter().all(|&z| z >= start + 256))
-            {
-                return;
-            }
-            let depth = if terrain {
-                *depths.iter().max().unwrap()
-            } else {
-                depths.iter().sum::<i32>() / 3
-            };
-            for (vertex, z) in triangle.iter_mut().zip(depths) {
-                let fade = self
-                    .fog_start
-                    .filter(|&start| depth > start)
-                    .map_or(0, |start| (z - start).max(0));
-                if matches!(style, ModelStyle::Imported { .. })
-                    || (self.rgb_scenery && matches!(style, ModelStyle::Terrain | ModelStyle::Prop))
-                {
-                    vertex.color = vertex.color.map(|c| (c - fade as f32 / 128.0).max(0.0));
-                } else {
-                    palette_color(vertex, &self.shading, fade);
+        let concealed = matches!(
+            style,
+            ModelStyle::Concealed | ModelStyle::Imported { concealed: true }
+        );
+        let base = self.actors.vertices.len();
+        let start = self.actors.indices.len() as u32;
+        let indexed = !terrain
+            && !concealed
+            && self.fog_start.is_none()
+            && meshes.append_indexed(
+                &mut self.actors,
+                &part.geometry,
+                matrix,
+                false,
+                deformation,
+                meshes
+                    .motion_rules(part.geometry.as_ptr() as usize)
+                    .unwrap_or(&[]),
+            );
+        if indexed {
+            for vertex in &mut self.actors.vertices[base..] {
+                if !matches!(style, ModelStyle::Imported { .. }) {
+                    palette_color(vertex, &self.shading, 0);
                 }
                 if self.atmosphere {
                     vertex.flags |= render_mesh::FOG | render_mesh::BAKED_FOG;
                 }
             }
-            if matches!(
-                style,
-                ModelStyle::Concealed | ModelStyle::Imported { concealed: true }
-            ) {
-                for vertex in &mut triangle {
-                    vertex.flags |= render_mesh::TRANSLUCENT;
-                    vertex.page |= 0x60;
+        }
+        meshes.visit(
+            &part.geometry,
+            matrix,
+            false,
+            if indexed { render_mesh::TRANSLUCENT } else { 0 },
+            deformation,
+            |triangle| {
+                let mut triangle = triangle.map(|v| *v);
+                let depths = triangle.map(|v| self.depth(v.position).max(0.0) as i32 >> 4);
+                if self
+                    .fog_start
+                    .is_some_and(|start| depths.iter().all(|&z| z >= start + 256))
+                {
+                    return;
                 }
-            }
-            if terrain {
-                for v in &mut triangle {
-                    v.flags |= render_mesh::SCENERY;
-                }
-            }
-            if triangle[0].flags & render_mesh::TRANSLUCENT == 0 {
-                if matches!(style, ModelStyle::Prop) {
-                    self.props.extend(triangle);
-                } else if terrain {
-                    self.terrain.extend(triangle);
+                let depth = if terrain {
+                    *depths.iter().max().unwrap()
                 } else {
-                    self.actors.extend(triangle);
+                    depths.iter().sum::<i32>() / 3
+                };
+                for (vertex, z) in triangle.iter_mut().zip(depths) {
+                    let fade = self
+                        .fog_start
+                        .filter(|&start| depth > start)
+                        .map_or(0, |start| (z - start).max(0));
+                    if matches!(style, ModelStyle::Imported { .. })
+                        || (self.rgb_scenery
+                            && matches!(style, ModelStyle::Terrain | ModelStyle::Prop))
+                    {
+                        vertex.color = vertex.color.map(|c| (c - fade as f32 / 128.0).max(0.0));
+                    } else {
+                        palette_color(vertex, &self.shading, fade);
+                    }
+                    if self.atmosphere {
+                        vertex.flags |= render_mesh::FOG | render_mesh::BAKED_FOG;
+                    }
                 }
-            } else {
-                let blend = ((triangle[0].page >> 5) & 3) as u8 + 1;
-                self.surface(triangle.to_vec(), blend);
-            }
-        });
+                if matches!(
+                    style,
+                    ModelStyle::Concealed | ModelStyle::Imported { concealed: true }
+                ) {
+                    for vertex in &mut triangle {
+                        vertex.flags |= render_mesh::TRANSLUCENT;
+                        vertex.page |= 0x60;
+                    }
+                }
+                if terrain {
+                    for v in &mut triangle {
+                        v.flags |= render_mesh::SCENERY;
+                    }
+                }
+                if triangle[0].flags & render_mesh::TRANSLUCENT == 0 {
+                    if matches!(style, ModelStyle::Prop) {
+                        self.props.extend(triangle);
+                    } else if terrain {
+                        self.terrain.extend(triangle);
+                    } else {
+                        self.actors.extend_triangles(triangle);
+                    }
+                } else {
+                    let blend = ((triangle[0].page >> 5) & 3) as u8 + 1;
+                    self.surface(triangle.to_vec(), blend);
+                }
+            },
+        );
+        if self.actors.indices.len() as u32 != start {
+            self.actors.groups.push(render_mesh::IndexedGroup {
+                vertices: base..self.actors.vertices.len(),
+                indices: start..self.actors.indices.len() as u32,
+            });
+        }
     }
 
     fn parts(

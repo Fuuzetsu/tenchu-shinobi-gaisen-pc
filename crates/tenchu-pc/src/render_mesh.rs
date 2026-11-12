@@ -95,6 +95,32 @@ pub struct IndexedGroup {
     pub indices: std::ops::Range<u32>,
 }
 
+impl Indexed {
+    #[cfg(test)]
+    pub(crate) fn expanded(&self) -> Vec<Vertex> {
+        self.indices
+            .iter()
+            .map(|&i| self.vertices[i as usize])
+            .collect()
+    }
+
+    pub fn clear(&mut self, generation: Option<&std::sync::Arc<()>>) {
+        self.vertices.clear();
+        self.indices.clear();
+        self.groups.clear();
+        if let Some(poses) = &mut self.poses {
+            poses.clear(generation);
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn extend_triangles(&mut self, vertices: impl IntoIterator<Item = Vertex>) {
+        let base = self.vertices.len();
+        self.vertices.extend(vertices);
+        self.indices.extend(base as u32..self.vertices.len() as u32);
+    }
+}
+
 pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face> {
     geometry.faces.iter().take_while(|face| face.flags & 1 != 0)
 }
@@ -481,12 +507,7 @@ pub fn update_indexed_characters(
     inspection: bool,
     frame: Option<&Frame>,
 ) {
-    mesh.vertices.clear();
-    mesh.indices.clear();
-    mesh.groups.clear();
-    if let Some(poses) = &mut mesh.poses {
-        poses.clear(models.map(|m| &m.pose_generation));
-    }
+    mesh.clear(models.map(|m| &m.pose_generation));
     let mut previous_root = None;
     crate::visuals::appearance::visit_parts(
         game,

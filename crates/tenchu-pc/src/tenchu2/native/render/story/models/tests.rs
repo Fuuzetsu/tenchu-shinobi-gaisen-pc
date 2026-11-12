@@ -56,7 +56,14 @@ fn cutscene_ground_shadows_preserve_playback_and_restore_exactly() {
                     pitch: (-forward.y).asin(),
                     fov: 45.0,
                 };
-                let (geometry, _) = models.geometry(&story, renderer, Some(camera), None, None)?;
+                let (geometry, _) = models.geometry(
+                    &story,
+                    renderer,
+                    crate::tenchu2::native::render::Presentation {
+                        camera: Some(camera),
+                        ..Default::default()
+                    },
+                )?;
                 Ok((
                     super::super::super::SceneDrawing::new(geometry, renderer, &story.level),
                     camera.source_view(),
@@ -281,8 +288,14 @@ fn native_story_model_override_preserves_cast_and_playback() {
                             assert!(triangles > 0, "replacement equipment is not drawable");
                         }
                     }
-                    let (geometry, texts) =
-                        models.geometry(scene, renderer, Some(camera), None, None)?;
+                    let (geometry, texts) = models.geometry(
+                        scene,
+                        renderer,
+                        crate::tenchu2::native::render::Presentation {
+                            camera: Some(camera),
+                            ..Default::default()
+                        },
+                    )?;
                     Ok((
                         super::super::super::SceneDrawing::new(geometry, renderer, &scene.level),
                         camera.source_view(),
@@ -311,7 +324,14 @@ fn native_story_model_override_preserves_cast_and_playback() {
         let path = output.join(format!("{label}-reset.png"));
         super::super::super::capture_frame(&story.level.vram, &graphics, &path, |renderer| {
             let mut models = Models::new(&story, &graphics, renderer)?;
-            let (geometry, texts) = models.geometry(&story, renderer, Some(camera), None, None)?;
+            let (geometry, texts) = models.geometry(
+                &story,
+                renderer,
+                crate::tenchu2::native::render::Presentation {
+                    camera: Some(camera),
+                    ..Default::default()
+                },
+            )?;
             Ok((
                 super::super::super::SceneDrawing::new(geometry, renderer, &story.level),
                 camera.source_view(),

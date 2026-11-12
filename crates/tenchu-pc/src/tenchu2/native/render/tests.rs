@@ -1,7 +1,9 @@
 use super::*;
 use glam::Vec3;
 mod gaisen;
+mod ground;
 mod heroes;
+mod indexed;
 
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; checks opaque night scenery independently of particles"]
@@ -98,7 +100,7 @@ fn native_backgrounds_stay_behind_the_scene() {
                 if mode == "background" {
                     geometry.terrain.clear();
                     geometry.props.clear();
-                    geometry.actors.clear();
+                    geometry.actors.clear(None);
                     geometry.effects.vertices.clear();
                     geometry.effects.batches.clear();
                 }
@@ -712,7 +714,7 @@ fn native_interpolated_geometry_matches_current_pose_at_endpoint() {
                         ..Default::default()
                     },
                 )?;
-                vertices.push(bytemuck::cast_slice::<_, u8>(&geometry.actors).to_vec());
+                vertices.push(bytemuck::cast_slice::<_, u8>(&geometry.actors.expanded()).to_vec());
                 if alpha == 1.0 {
                     let exact = models.geometry(
                         &session.world,
@@ -726,7 +728,7 @@ fn native_interpolated_geometry_matches_current_pose_at_endpoint() {
                     )?;
                     assert_eq!(
                         vertices.last().unwrap(),
-                        bytemuck::cast_slice::<_, u8>(&exact.actors)
+                        bytemuck::cast_slice::<_, u8>(&exact.actors.expanded())
                     );
                 }
                 Ok((
@@ -1078,6 +1080,7 @@ fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() 
                     assert!(
                         geometry
                             .actors
+                            .expanded()
                             .iter()
                             .all(|v| Vec3::from(v.position).is_finite()
                                 && Vec3::from(v.normal).is_finite())
@@ -1092,16 +1095,20 @@ fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() 
             .unwrap();
         }
         let baseline = &results[0];
-        assert_eq!(baseline.actors.len(), results[1].actors.len());
+        assert_eq!(
+            baseline.actors.expanded().len(),
+            results[1].actors.expanded().len()
+        );
         assert!(
             baseline
                 .actors
+                .expanded()
                 .iter()
-                .zip(&results[1].actors)
+                .zip(&results[1].actors.expanded())
                 .any(|(a, b)| a.normal != b.normal)
         );
         for refined in &results[2..5] {
-            assert!(refined.actors.len() > baseline.actors.len());
+            assert!(refined.actors.expanded().len() > baseline.actors.expanded().len());
             assert_eq!(refined.terrain.len(), baseline.terrain.len());
             assert!(
                 refined
@@ -1121,13 +1128,13 @@ fn native_model_refinement_uses_shared_skinning_and_keeps_original_reversible() 
                     },
                 )
             };
-            let (a, b) = bounds(&baseline.actors);
-            let (c, d) = bounds(&refined.actors);
+            let (a, b) = bounds(&baseline.actors.expanded());
+            let (c, d) = bounds(&refined.actors.expanded());
             assert!((a - c).length() < 1000.0 && (b - d).length() < 1000.0);
         }
         assert_eq!(
-            bytemuck::cast_slice::<_, u8>(&baseline.actors),
-            bytemuck::cast_slice::<_, u8>(&results[5].actors)
+            bytemuck::cast_slice::<_, u8>(&baseline.actors.expanded()),
+            bytemuck::cast_slice::<_, u8>(&results[5].actors.expanded())
         );
         assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
     }
@@ -1764,8 +1771,8 @@ fn native_blood_hit_styles_preserve_source_particles_and_ground_effects() {
                 bytemuck::cast_slice::<_, u8>(&without_hit.terrain)
             );
             assert_eq!(
-                bytemuck::cast_slice::<_, u8>(&before.actors),
-                bytemuck::cast_slice::<_, u8>(&without_hit.actors)
+                bytemuck::cast_slice::<_, u8>(&before.actors.expanded()),
+                bytemuck::cast_slice::<_, u8>(&without_hit.actors.expanded())
             );
             // All source surface blood survives independently of the airborne style.
             let floor = |geometry: &Geometry| {

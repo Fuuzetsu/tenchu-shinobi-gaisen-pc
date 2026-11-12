@@ -171,7 +171,7 @@ impl Builder {
             if let Some(parent) = quad.parent {
                 transform = scene.world(parent)?.compose(&transform);
             }
-            let points = quad.corners.map(|v| {
+            let mut points = quad.corners.map(|v| {
                 let v = if death_blood && graphics.blood.death_size != 100 {
                     v.map(|n| (i32::from(n) * i32::from(graphics.blood.death_size) / 100) as i16)
                 } else {
@@ -182,6 +182,19 @@ impl Builder {
                     .map(|v| v as f32)
                     .to_array()
             });
+            if ground_blood || death_blood {
+                let [a, b, c, _] = points.map(glam::Vec3::from);
+                let normal = (b - a).cross(c - a).normalize_or_zero();
+                if normal.y < 0.0 {
+                    // Source contacts lie on the collision plane. Give live floor stains
+                    // the same separation as retained decals, without moving simulation drops.
+                    for point in &mut points {
+                        *point = (glam::Vec3::from(*point)
+                            + normal * crate::visuals::surfaces::DECAL_LIFT)
+                            .to_array();
+                    }
+                }
+            }
             let mut vertices = render_effects::quad(
                 points,
                 [quad.color.map(|v| f32::from(v) / 128.0); 4],

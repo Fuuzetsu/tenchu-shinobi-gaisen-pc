@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix freshly landed T2 blood flickering against floors, including T1 stages
+  played with T2 rules. Live stains use the same surface separation as retained
+  decals; original drop physics and fade timing are unchanged.
+
+- Reduce geometry preparation and uploads in imported T1 cutscenes, including
+  Mission 10's Onikage encounter, and in native T2 scenes with fog disabled.
+
+- Keep Backspace cutscene fast-forward available when an overlay button has
+  keyboard focus. Open settings and modal dialogs still reserve their input.
+
 - Fix excessive geometry rebuilding and uploads in T2 gameplay with fog disabled,
   including T1 stages played with T2 rules. Stationary scenery stays on the GPU;
   moving objects, foliage animation and transparent face ordering remain live.

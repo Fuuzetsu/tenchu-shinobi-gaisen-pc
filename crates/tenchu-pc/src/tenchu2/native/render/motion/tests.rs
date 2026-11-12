@@ -67,20 +67,20 @@ fn native_secondary_motion_preserves_faces_weapons_and_source_state() {
             let moving = geometry(&drawing.models, Some(&frame))?;
             assert_eq!(bytemuck::cast_slice::<_, u8>(&original.terrain), bytemuck::cast_slice::<_, u8>(&moving.terrain));
             assert_eq!(bytemuck::cast_slice::<_, u8>(&original.props), bytemuck::cast_slice::<_, u8>(&moving.props));
-            assert_eq!(original.actors.len(), moving.actors.len());
-            let changes = original.actors.iter().zip(&moving.actors).filter(|(a,b)| a.position != b.position).count();
+            assert_eq!(original.actors.expanded().len(), moving.actors.expanded().len());
+            let changes = original.actors.expanded().iter().zip(&moving.actors.expanded()).filter(|(a,b)| a.position != b.position).count();
             assert!(changes > 0, "authored regions did not move: {sequence}");
             let face_ids = ["596ae678f33b71606cffa3a01cda6fde", "78ac732e16725627b500b119e69cfe91", "ea4b3e024f12217ba863c1049556a490"];
             let protected: Vec<_> = drawing.models.bodies.values().flat_map(|m| m.materials()).filter(|m| face_ids.contains(&m.id.as_str())).map(|m| renderer.bind_material(m)).collect();
             assert!(!protected.is_empty());
-            for (a,b) in original.actors.iter().zip(&moving.actors) {
+            for (a,b) in original.actors.expanded().iter().zip(&moving.actors.expanded()) {
                 assert_eq!((a.uv, a.material, a.page, a.palette), (b.uv, b.material, b.page, b.palette));
                 if protected.contains(&a.material) { assert_eq!(a.position,b.position,"face moved"); }
             }
             drawing.tick_motion(&session, &crate::settings::Motion::default())?;
             assert!(drawing.motion.sample(1.0).is_empty(), "paused disable retained deformation");
             let restored = geometry(&drawing.models, Some(&drawing.motion.sample(1.0)))?;
-            assert_eq!(bytemuck::cast_slice::<_,u8>(&original.actors), bytemuck::cast_slice::<_,u8>(&restored.actors));
+            assert_eq!(bytemuck::cast_slice::<_,u8>(&original.actors.expanded()), bytemuck::cast_slice::<_,u8>(&restored.actors.expanded()));
             eprintln!("sequence {sequence}: peak {peak:.2}, {changes} deformed corners");
             Ok((SceneDrawing::new(moving, renderer, &session.assets.level), view.source_view(), Vec::new()))
         }).unwrap();
