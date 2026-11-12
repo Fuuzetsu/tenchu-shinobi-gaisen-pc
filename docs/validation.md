@@ -475,11 +475,48 @@ through clock 3433, including the unscored red and the later real detection. At
 is a separate follow-up, not a full-tape parity pass. The trace and first
 differences are preserved under `watch/`. This video uses console footage only.
 
+The November 12 investigation isolates that remaining discrepancy to an ACM
+lookup at an inclusive row edge. Quadrant `(1,4)` reads the high half of the next
+table's list pointer. Retail reads the relocated value `0x801a` as a signed index
+and scans outside the terrain allocation; the port reads zero from the relative
+file offset and selects an extra slope. The recorded probe returns `-8000` in
+retail and no floor in the port. Preserving that source memory-layout dependency
+remains unresolved; clamping lookup coordinates would change original behavior.
+This does not establish the separately reported scored stealth-kill detection.
+
 No default gameplay change follows from these results. They establish matching
 corpse alarms for these routes and the inherited ray geometry, not every reported
 encounter. Both tickets remain open. A more natural corpse sight ray would be a
 separate optional gameplay change; silently substituting rendered-triangle
 visibility would also change which original scenery blocks sight.
+
+## Mission 6 cultist death cry (#52)
+
+The November 12 recording branches from the archived Ayame/Normal Mission 6
+entry and uses controller inputs to cancel a speed scroll near the first cultist,
+then kill him with a sword strike. It changes no in-mission memory. The native
+checker matches all 360 observed updates, including one recorded skipped draw;
+the final display return is pending, so the exported tape contains 359 finished
+updates. The entry checkpoint and the two observer runs' endpoint RAM agree.
+
+Read-only `PlaySE`/`SsUtKeyOnV` observations show the scream (`0x68`) starting at
+clock 65 in voice 16. The 24th subsequent sound, ambient cue `0x44`, reuses that
+voice at clock 149, about 2.818 seconds later. The isolated sample lasts about
+4.003 seconds. The original therefore also interrupts this cultist's scream;
+there is no voice-lifetime change to make for this reproduced case.
+
+The audio regression replays the captured draw cadence through `Audio::tick`
+and checks all 55 cue IDs and logic clocks against the retail observation, plus
+the scream and its channel-reuse event. Existing mixer checks cover 24-voice
+rotation. The cue order/count matches, but a preceding footstep at clock 38 has
+a small volume/pan difference from resolving its position after the update;
+this is not a claim of sample-exact audio parity. The reporter's original kill
+and comparison edition remain unspecified.
+
+Run `recorded_cultist_death_retains_retail_sound_sequence` with `TENCHU_DISC`
+and `TENCHU_CULTIST_REPLAY` pointing to the private verified replay. Captures,
+observer sources, sound-event comparison and checks are under
+`private/bug-fixes-20261112/52-cultist-*`; no game assets or RAM are in Git.
 
 ## Separate always-active-enemy audit
 

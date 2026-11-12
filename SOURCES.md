@@ -4005,3 +4005,19 @@ host movement override, and check sheathed poses, source attacks and checkpoint
 restoration. A replacement-mesh regression reproduces the hidden-blade failure
 and checks both ordinary and weapon-material rendering paths. Visual evidence
 is kept outside Git. These fixtures do not represent a full ordinary playthrough.
+
+## Recorded cultist audio comparison (2026-11-12)
+
+The Mission 6 audio regression uses a new controller-only branch from receipt
+`278a828df431aadc7e8550823e6cefd87830b9923c17fe7c0e2088167717218e` in the
+read-only `ayame-mission-6-full-stock-20261029/final` archive. The existing
+retail capture runner verifies the original entry RAM; a private observer adds
+instruction-entry reads at Gaisen `PlaySE` (`80018b64`) and `SsUtKeyOnV`
+(`800707f4`). The additional observer produces identical endpoint RAM.
+
+`tenchu-decomp/src/main.exe/AUDIO.C::PlaySE` explains the modulo-24 channel
+selection. No source algorithm was imported or modified. The test checks the
+recorded 55 cue/clock pairs and voice reuse after the cultist's death. Its
+expected digest comes from the original instruction observations, not the port.
+The source sample, RAM, replay and observer artifacts remain private; see
+`docs/validation.md` for coverage and the unrelated spatial-audio limitation.

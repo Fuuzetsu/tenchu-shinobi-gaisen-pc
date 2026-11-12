@@ -1,6 +1,8 @@
 use super::*;
 use tenchu_core::{actor::State, ids::MOT_DEAD, math::Position};
 
+mod cultist;
+
 #[test]
 #[ignore = "requires TENCHU_DISC; ordinary deaths retain music and boss failure cutscenes restore the last mission track"]
 fn death_observation_preserves_audio_until_confirmation() {
