@@ -360,6 +360,17 @@ pub fn build(game: &Game) -> Geometry {
     build_with_hud(game, true)
 }
 
+fn trial_timer_sprite(game: &Game, image: Image) -> bool {
+    game.mission.trial.as_ref().is_some_and(|trial| {
+        let digits = trial.digits;
+        image.page == digits.page
+            && image.palette == digits.palette
+            && image.uv[0] == digits.uv[0]
+            && image.size[0] == digits.size[0]
+            && u16::from(image.uv[1].wrapping_sub(digits.uv[1])) + image.size[1] <= digits.size[1]
+    })
+}
+
 pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
     build_for_camera(game, show_hud, None)
 }
@@ -724,7 +735,9 @@ pub fn build_presented(
         .iter()
         // Retail prepends HUD packets, so equal-depth sprites draw in reverse submission order.
         .chain(game.hud.sprites.iter().rev().filter(|sprite| {
-            show_hud && !(sharp_text && crate::fonts::digit(game, sprite).is_some())
+            show_hud
+                && (style.show_trial_timer || !trial_timer_sprite(game, sprite.image))
+                && !(sharp_text && crate::fonts::digit(game, sprite).is_some())
         }))
         .chain(
             game.cinematic.sprites.iter().skip(

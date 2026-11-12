@@ -180,6 +180,7 @@ pub enum Item {
     Fullscreen,
     Vsync,
     Hud,
+    TrialTimer,
     Volume,
     BurningSpatial,
     BurningVolume,
@@ -1779,6 +1780,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Gameplay HUD",
                 on(s.show_hud),
                 "Show health, inventory and proximity.",
+            ),
+            (
+                Item::TrialTimer,
+                "Custom map timer",
+                on(s.show_trial_timer),
+                "Show the clock and time-adjustment notices in Mission editor challenges and custom maps. Hiding them keeps time limits, scoring and records running normally.",
             ),
             (
                 Item::Volume,

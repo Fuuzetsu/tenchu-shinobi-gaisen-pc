@@ -343,7 +343,7 @@
   {
     "id": "interface",
     "title": "Keep useful information close",
-    "description": "The HUD, clear FPS display and compact F1 menu can be toggled independently. Menu/focus pause, audio, fullscreen and vsync remain host preferences.",
+    "description": "The HUD, FPS display and F1 menu can be toggled independently. F1 General also lets you hide the custom map timer. Menu/focus pause, audio, fullscreen and vsync remain host preferences.",
     "seconds": 12,
     "mission": 1,
     "character": 0,

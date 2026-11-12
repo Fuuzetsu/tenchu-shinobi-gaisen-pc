@@ -3,6 +3,7 @@ use tenchu_core::effects::Graphic;
 
 #[derive(Clone, Copy)]
 pub struct Style {
+    pub show_trial_timer: bool,
     pub sharp_text: bool,
     pub subtitle_language: Option<tenchu_assets::script::Language>,
     pub blood: Blood,
@@ -17,6 +18,7 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         Self {
+            show_trial_timer: true,
             sharp_text: false,
             subtitle_language: None,
             blood: Blood::default(),
@@ -33,6 +35,7 @@ impl Default for Style {
 impl From<&Settings> for Style {
     fn from(settings: &Settings) -> Self {
         Self {
+            show_trial_timer: settings.show_trial_timer,
             sharp_text: settings.sharp_text,
             subtitle_language: settings.subtitle_language,
             blood: settings.graphics.blood,

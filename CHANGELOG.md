@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Hide the timer and time-adjustment notices in custom maps and Mission editor
+  challenges with **F1 → General → Custom map timer**. Time limits, scoring and
+  records continue normally.
+
 - Choose **F1 → General → Subtitle language (T1)** independently of dialogue
   audio and scene/camera language. Supports English, French, Italian and Japanese
   in T1 scenes, movies and T1 scenes played with T2 rules. Follow game language

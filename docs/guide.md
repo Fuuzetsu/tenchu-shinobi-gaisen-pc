@@ -2199,6 +2199,10 @@ All sixteen original challenges are available immediately. Select one, choose
 Rikimaru or Ayame and press **F5 / Play**. Trials keep their own records and never
 change campaign progress. Their original voice bank is Japanese.
 
+Turn off **F1 → General → Custom map timer** to hide the clock and time-adjustment
+notices during play. This preference is saved across launches and graphical
+preset changes. Time limits, scoring and records continue normally.
+
 For a custom mission, choose a theme and objective on **Missions**, then **Create**.
 The six tabs provide the mission library, terrain, characters, patrols, rules and
 sharing. Paint the 32×32 map with the mouse; right-drag erases. Ground and ornaments

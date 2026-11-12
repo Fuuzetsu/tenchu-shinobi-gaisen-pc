@@ -356,7 +356,7 @@ impl Editor {
     }
 }
 
-pub fn status(ctx: &egui::Context, game: &Game, preview: bool) {
+pub fn status(ctx: &egui::Context, game: &Game, preview: bool, show_timer: bool) {
     let setup = game.mission.trial.as_ref().unwrap();
     let state = game.trial.as_ref().unwrap();
     egui::Area::new("trial-status".into()).anchor(egui::Align2::CENTER_TOP, [0.0, 8.0]).interactable(false).show(ctx, |ui| {
@@ -368,7 +368,7 @@ pub fn status(ctx: &egui::Context, game: &Game, preview: bool) {
                 Phase::Failure(reason, _) => { ui.colored_label(egui::Color32::LIGHT_RED, reason.label()); }
                 Phase::Playing => (),
             }
-            if let Some((text, _)) = &state.notice { ui.label(text); }
+            if show_timer && let Some((text, _)) = &state.notice { ui.label(text); }
         });
     });
 }

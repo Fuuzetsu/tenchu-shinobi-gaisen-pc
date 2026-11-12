@@ -202,7 +202,12 @@ impl Overlay {
             if let Some((editor, assets, game)) = &mut extras.trial {
                 trial_action = editor.show(ctx, assets);
                 if !editor.open && game.trial.is_some() {
-                    crate::trial::status(ctx, game, editor.preview);
+                    crate::trial::status(
+                        ctx,
+                        game,
+                        editor.preview,
+                        state.settings.show_trial_timer,
+                    );
                 }
             }
             if let Some((frontend, campaign)) = &mut extras.frontend {

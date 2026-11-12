@@ -149,6 +149,9 @@ impl Runtime {
             return None;
         }
         match item {
+            TrialTimer => Some(
+                "This controls the timer in T1's Mission editor challenges and custom maps. Native T2 does not use that timer.",
+            ),
             AlternateDeathChance => Some(
                 "Native T2 already randomly chooses among five ordinary collapse motions for all three heroes. This option varies T1's fixed player collapse; T2 retains its original death selection, special deaths and RNG.",
             ),
