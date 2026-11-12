@@ -1,6 +1,9 @@
 use super::*;
 use tenchu_core::game::Game;
 
+mod cast;
+#[cfg(test)]
+mod cast_tests;
 mod player;
 #[cfg(test)]
 mod player_tests;
@@ -28,7 +31,8 @@ impl Drawing {
         let assets = &session.assets;
         let mut models = crate::visuals::models::Models::build(&game.mission, &pack, graphics)?
             .with_appearance(player::appearance(session, graphics)?)
-            .with_equipment(player::equipment(session)?, graphics)?;
+            .with_equipment(player::equipment(session)?, graphics)?
+            .with_cast(cast::prepare(session, graphics)?, graphics)?;
         renderer.set_asset_pack(&pack);
         renderer.update_vram(&game.mission.vram);
         models.bind(|material| renderer.bind_material(material));
@@ -544,7 +548,7 @@ mod tests {
     fn imported_host_draws_cinematics_and_restores_native_materials() {
         let output = std::path::PathBuf::from(std::env::var_os("TENCHU_GAISEN_REVIEW").unwrap());
         std::fs::create_dir_all(&output).unwrap();
-        for (stage, character) in [(0, 0), (0, 1), (9, 1)] {
+        for (stage, character) in [(0, 0), (0, 1), (9, 1), (7, 1)] {
             let mut session = session_stage(stage, character, 1);
             let mut settings = crate::settings::Settings::default();
             settings.graphics.asset_pack = false;

@@ -41,6 +41,29 @@ No usable T2 debug-symbol release has been verified. The known demo `PSX.SYM`
 belongs to Tenchu 1 and is already used by `../tenchu-decomp`. This comparison does
 not depend on finding further symbols and commits no executable or captured data.
 
+## Imported T1 cinematic cast
+
+The cinematic bridge follows `Director::native_actor` and the bound native
+actor's current model and weapon definition. It reuses the player override's
+shared retargeting, material and equipment paths; original T1 scripts, visibility,
+camera and poses remain the scene source. Actors without a native binding or a
+compatible humanoid rig retain their original presentation.
+
+T2 costume joints outside the shared 15-part rig follow their nearest retained
+ancestor, preserving their geometry and bind positions. This is the same rule as
+`tenchu-assets/src/tenchu2/model.rs::parts`, verified against that parser's separate
+disc import, including Suzaku's extra joint. The source Onikage identifiers
+`NINJA_0`/`NINJA_1` (`0x87`/`0x8a`) come from the existing Gaisen decomp enum;
+the existing native mapping selects `0xf6` (`suzaku`). No gameplay mapping changes.
+
+Disc-backed checks cover M1 and the actual **Free the Princess** M10 encounter
+for both heroes, drawn/sheathed equipment, player overrides, source visibility,
+and unchanged serialized World/Director state. All 22 mission/hero combinations
+load their converted cast; 24 distinct bodies match the separate disc importer's
+geometry and joint attachments. Internal stage ID 7 is M10;
+stage ID 9 is M4, despite earlier fixture filenames. Before/after captures and
+measurements are outside Git in `private/t2-performance-20261113`.
+
 ## Native T2 title menu
 
 The title state follows JP `MENU.EXE` `8010fa3c`, called by `8010f87c`.

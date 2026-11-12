@@ -214,7 +214,7 @@ fn imported_host_acceleration_stops_at_native_gameplay() {
         assert!(playback.content.cutscene());
         playback
     };
-    for (stage, character) in [(0, 0), (9, 1)] {
+    for (stage, character) in [(0, 0), (9, 1), (7, 1)] {
         let mut normal = start(stage, character);
         for _ in 0..6000 {
             normal.step(0).unwrap();

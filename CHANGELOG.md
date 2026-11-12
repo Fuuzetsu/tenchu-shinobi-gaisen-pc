@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep mapped T2 enemies and their own equipment in T1 cutscenes played with
+  T2 rules, including Onikage's encounter in **Free the Princess** (Mission 10).
+
 - Reduce frame preparation time in native T2 and T1 stages under T2 rules,
   especially with detailed characters and all enemies active.
 

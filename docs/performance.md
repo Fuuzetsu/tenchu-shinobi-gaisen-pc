@@ -178,10 +178,10 @@ A release-build audit on GTX 1080 Ti / Vulkan at 1280×720 used 30 Hz logic and
 | Native T2 training | 0.98 → 0.52 ms | 1.17 → 0.71 ms |
 | Native T2 Mission 1 | 0.70 → 0.35 ms | 1.24 → 0.74 ms |
 | Imported T1 Mission 1 | 0.76 → 0.29 ms | 1.99 → 1.21 ms |
-| Imported T1 Mission 10 | 1.88 → 1.55 ms | 4.15 → 3.33 ms |
+| Imported T1 Mission 4 (Cross the Checkpoint) | 1.88 → 1.55 ms | 4.15 → 3.33 ms |
 
 The saved configuration enables all enemies, detailed characters, Botanical
-foliage and eight 2048-pixel point-shadow lights. Mission 10 includes nearby
+foliage and eight 2048-pixel point-shadow lights. Mission 4 includes nearby
 combat. These preparation timings include geometry and uploads; they are not
 interactive FPS estimates. GPU execution is measured with timestamps separately
 from the serialized completion wait.
@@ -213,7 +213,7 @@ share static scenery caching, indexed actors and reusable geometry buffers.
 T2 palette fog still uses its original triangle/depth rules; joint-weighted skins
 and unsupported compute backends retain the scalar CPU path.
 
-The first Ayame M10 scene (sequence 10) was measured at 1280×720 on the same
+The first Ayame Mission 4 scene (sequence 10) was measured at 1280×720 on the same
 GTX 1080 Ti / Vulkan setup, with 20 warm-up and 80 measured frames, one source
 tick every two presentations. Geometry and upload preparation fell from
 **29.10 ms to 1.82 ms** with the reported enhanced settings, and **2.18 ms to
@@ -221,3 +221,15 @@ tick every two presentations. Geometry and upload preparation fell from
 The Original capture was byte-identical; enhanced captures differed in one
 pixel by one colour-channel unit after GPU posing. Raw timings and captures
 remain outside Git under `private/render-consolidation-20261112`.
+
+The Mission 4 measurements above were originally labelled M10. Internal stage
+ID 9 is Cross the Checkpoint; Free the Princess (Mission 10) is internal ID 7.
+The archived fixture filenames retain their old labels.
+
+The corrected Mission 10 Onikage fixture (Free the Princess, Ayame, sequence 10,
+elapsed tick 31) was measured on November 13 with the same resolution, GPU and
+20/80-frame sampling. With the mapped T2 cast, preparation averaged **0.15 ms
+in Original** and **0.20 ms with the saved enhanced settings**. The original-cast
+comparison measured 0.18/0.22 ms; this small difference establishes no regression,
+not a separate performance gain. Captures and measurements are in ignored
+`private/t2-performance-20261113/onikage-profile`.

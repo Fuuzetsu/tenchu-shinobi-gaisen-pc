@@ -41,9 +41,22 @@ fn imported_cinematic_uses_selected_body_and_equipment() {
         ("pack:0000", "tenchu2-jp:tatu2", false),
         ("", unarmed, false),
     ] {
-        let mut session = tests::session_stage(9, 1, 1);
+        let mut session = tests::session_stage(7, 1, 1);
+        assert_eq!(
+            session
+                .gaisen
+                .as_ref()
+                .unwrap()
+                .director
+                .source
+                .mission
+                .stage
+                .order,
+            10
+        );
         let source_state =
             postcard::to_allocvec(&session.gaisen.as_ref().unwrap().director.source).unwrap();
+        let mut baseline_cast = None;
         for overridden in [false, true] {
             if overridden {
                 assert!(
@@ -75,12 +88,6 @@ fn imported_cinematic_uses_selected_body_and_equipment() {
             let world_state = postcard::to_allocvec(&session.world).unwrap();
             let source = &session.gaisen.as_ref().unwrap().director.source;
             let root = source.player().root_model;
-            let mut original_cast = Vec::new();
-            render_mesh::visit_character_parts(source, true, |key, geometry, matrix| {
-                if matches!(key, Part::Actor { root: r, .. } if r != root) {
-                    original_cast.push((key, geometry.to_vec(), matrix));
-                }
-            });
             let path = output.join(format!(
                 "m10-{}-{}-{overridden}.png",
                 selected.replace(':', "-"),
@@ -108,13 +115,26 @@ fn imported_cinematic_uses_selected_body_and_equipment() {
                                 );
                             }
                         }
-                        Part::Actor { .. } => cast.push((key, geometry.to_vec(), matrix)),
-                        Part::Equipment { attachment, .. } => attachments.push(attachment),
+                        Part::Equipment {
+                            root: r,
+                            attachment,
+                            ..
+                        } if r == root => attachments.push(attachment),
+                        Part::Actor { .. } | Part::Equipment { .. } => {
+                            cast.push((key, geometry.to_vec(), matrix))
+                        }
                         _ => {}
                     },
                 );
                 assert_eq!(body_parts, 15);
-                assert!(cast == original_cast, "non-player cast changed");
+                if overridden {
+                    assert!(
+                        baseline_cast.as_ref() == Some(&cast),
+                        "player selection changed the native cast"
+                    );
+                } else {
+                    baseline_cast = Some(cast);
+                }
                 if overridden {
                     verify_equipment(models, &session, &source_state);
                     if weapon == unarmed {
@@ -164,10 +184,26 @@ fn verify_equipment(
     session: &crate::tenchu2::native::Session,
     source: &[u8],
 ) {
+    verify_actor_equipment(
+        models,
+        session,
+        source,
+        session.gaisen.as_ref().unwrap().director.source.player_id,
+        session.world.player,
+    );
+}
+
+pub(super) fn verify_actor_equipment(
+    models: &crate::visuals::models::Models,
+    session: &crate::tenchu2::native::Session,
+    source: &[u8],
+    source_actor: usize,
+    player: usize,
+) {
     use tenchu_core::tenchu2::rig::WeaponMode;
     let mut game: tenchu_core::game::Game = postcard::from_bytes(source).unwrap();
     let mut world = session.world.clone();
-    let player = world.player;
+    let root = game.roster.get(source_actor).root_model;
     let names: std::collections::BTreeMap<_, _> = crate::tenchu2::native::interpolation::weapons(
         &world.actors[player].actor,
         &world.instances[player],
@@ -178,9 +214,9 @@ fn verify_equipment(
     .collect();
     for drawn in [false, true] {
         if drawn {
-            game.roster.get_mut(game.player_id).attribute |= tenchu_core::ids::ATTR_WEAPON_DRAWN;
+            game.roster.get_mut(source_actor).attribute |= tenchu_core::ids::ATTR_WEAPON_DRAWN;
         } else {
-            game.roster.get_mut(game.player_id).attribute &= !tenchu_core::ids::ATTR_WEAPON_DRAWN;
+            game.roster.get_mut(source_actor).attribute &= !tenchu_core::ids::ATTR_WEAPON_DRAWN;
         }
         world.actors[player]
             .actor
@@ -208,7 +244,7 @@ fn verify_equipment(
             .collect();
         let mut actual = Vec::new();
         appearance::visit_parts(&game, true, Some(models), None, |key, geometry, _| {
-            if matches!(key, Part::Equipment { .. }) {
+            if matches!(key, Part::Equipment { root: r, .. } if r == root) {
                 actual.push(postcard::to_allocvec(geometry).unwrap());
             }
         });

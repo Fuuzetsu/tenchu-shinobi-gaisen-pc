@@ -34,6 +34,8 @@ pub struct Models {
     imported_geometry: BTreeMap<usize, usize>,
     pub(super) player: Option<super::appearance::Appearance>,
     pub(super) equipment: Option<tenchu_assets::weapon::Equipment>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(super) cast: super::appearance::cast::Cast,
     pub replacements: usize,
     pub grapple: bool,
     pub motion: super::motion::Frame,
@@ -153,6 +155,8 @@ impl Models {
             imported_geometry,
             player: None,
             equipment: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            cast: Default::default(),
             motion: Default::default(),
         })
     }
@@ -186,21 +190,45 @@ impl Models {
         graphics: &Graphics,
     ) -> Result<Self> {
         if let Some(equipment) = &equipment {
-            for attachment in &equipment.attachments {
-                let source = &attachment.model;
-                let geometry = &source.geometry;
-                let key = geometry.as_ptr() as usize;
-                if self.imported_geometry.contains_key(&key) {
-                    continue;
-                }
-                let meshes = weapon_meshes(source, geometry, graphics)?;
-                self.imported_geometry.insert(key, self.imported.len());
-                self.imported.push(meshes);
-            }
+            self.import_equipment(equipment, graphics)?;
         }
         self.equipment = equipment;
         self.pose_generation = Arc::default();
         Ok(self)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn with_cast(
+        mut self,
+        cast: super::appearance::cast::Cast,
+        graphics: &Graphics,
+    ) -> Result<Self> {
+        for actor in cast.actors.values() {
+            self.import_equipment(&actor.equipment, graphics)?;
+        }
+        self.cast = cast;
+        self.pose_generation = Arc::default();
+        Ok(self)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn import_equipment(
+        &mut self,
+        equipment: &tenchu_assets::weapon::Equipment,
+        graphics: &Graphics,
+    ) -> Result<()> {
+        for attachment in &equipment.attachments {
+            let source = &attachment.model;
+            let geometry = &source.geometry;
+            let key = geometry.as_ptr() as usize;
+            if self.imported_geometry.contains_key(&key) {
+                continue;
+            }
+            let meshes = weapon_meshes(source, geometry, graphics)?;
+            self.imported_geometry.insert(key, self.imported.len());
+            self.imported.push(meshes);
+        }
+        Ok(())
     }
 
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
@@ -209,6 +237,10 @@ impl Models {
         self.weapons.bind(&mut bind);
         for meshes in &mut self.imported {
             meshes.bind(&mut bind);
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        for body in &mut self.cast.bodies {
+            body.meshes.bind(&mut bind);
         }
         if let Some(player) = &mut self.player {
             player.meshes.bind(bind);
@@ -251,6 +283,10 @@ impl Models {
 
     fn source(&self, geometry: &[Geometry]) -> &Meshes {
         let key = geometry.as_ptr() as usize;
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(meshes) = self.cast.source(key) {
+            return meshes;
+        }
         if let Some(player) = &self.player
             && player.meshes.meshes.contains_key(&key)
         {
@@ -288,6 +324,10 @@ impl Models {
     }
 
     pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(meshes) = self.cast.source(geometry) {
+            return meshes.motion.get(&geometry).map(Vec::as_slice);
+        }
         self.player
             .as_ref()
             .and_then(|p| p.meshes.motion.get(&geometry))

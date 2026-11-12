@@ -13,6 +13,8 @@ use tenchu_assets::stage::MissionAssets;
 use tenchu_assets::{Result, model};
 use tenchu_core::{game::Game, math::Matrix};
 
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod cast;
 pub mod library;
 pub mod picker;
 pub mod skin;
@@ -102,12 +104,20 @@ pub(crate) struct Appearance {
 }
 
 fn rendered_player(game: &Game, inspection: bool) -> Cow<'_, tenchu_core::actor::Actor> {
+    rendered_actor(game, game.player(), inspection)
+}
+
+fn rendered_actor<'a>(
+    game: &Game,
+    actor: &'a tenchu_core::actor::Actor,
+    inspection: bool,
+) -> Cow<'a, tenchu_core::actor::Actor> {
     if inspection || game.drawing.step != tenchu_core::drawing::Step::Normal {
-        let mut player = game.player().clone();
+        let mut player = actor.clone();
         player.initialize_rendered(&game.scene, &game.math);
         Cow::Owned(player)
     } else {
-        Cow::Borrowed(game.player())
+        Cow::Borrowed(actor)
     }
 }
 
@@ -480,7 +490,16 @@ pub(super) fn visit_parts_filtered(
     }
     let mut player_submitted = false;
     let mut posed_actor = None;
+    #[cfg(not(target_arch = "wasm32"))]
+    let mut cast = models.map(|m| m.cast.frame(game, inspection, frame));
     render_mesh::visit_character_parts(game, inspection, |key, geometry, matrix| {
+        #[cfg(not(target_arch = "wasm32"))]
+        if cast
+            .as_mut()
+            .is_some_and(|cast| cast.visit(key, &include, &mut visit))
+        {
+            return;
+        }
         if let Part::Actor { root, model, .. } = key
             && root == game.player().root_model
         {
@@ -568,29 +587,49 @@ pub(super) fn visit_parts_filtered(
         }
         visit(key, geometry, matrix);
     });
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(cast) = cast {
+        cast.equipment(&include, &mut visit);
+    }
     if let Some(equipment) = equipment.filter(|_| player_submitted) {
-        let player = game.player();
-        let matrices = player_matrices.as_ref().unwrap();
-        let mut slots = [0, 1, 2, 3, 4];
-        if player.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN != 0 {
-            equipment.draw.swap(&mut slots);
-        }
-        for (attachment, part) in equipment.attachments.iter().enumerate() {
-            let key = Part::Equipment {
-                root: player.root_model,
-                attachment,
-                inspection,
-            };
-            if [slots[0], slots[1], slots[4]].contains(&part.slot) && include(key) {
-                visit(
-                    key,
-                    &part.model.geometry,
-                    matrices[part.part].compose(&Matrix {
-                        translation: part.position.map(i32::from).into(),
-                        ..Default::default()
-                    }),
-                );
-            }
+        visit_equipment(
+            game.player(),
+            equipment,
+            player_matrices.as_ref().unwrap(),
+            inspection,
+            include,
+            visit,
+        );
+    }
+}
+
+fn visit_equipment(
+    player: &tenchu_core::actor::Actor,
+    equipment: &tenchu_assets::weapon::Equipment,
+    matrices: &[Matrix],
+    inspection: bool,
+    include: impl Fn(Part) -> bool,
+    mut visit: impl FnMut(Part, &[model::Geometry], Matrix),
+) {
+    let mut slots = [0, 1, 2, 3, 4];
+    if player.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN != 0 {
+        equipment.draw.swap(&mut slots);
+    }
+    for (attachment, part) in equipment.attachments.iter().enumerate() {
+        let key = Part::Equipment {
+            root: player.root_model,
+            attachment,
+            inspection,
+        };
+        if [slots[0], slots[1], slots[4]].contains(&part.slot) && include(key) {
+            visit(
+                key,
+                &part.model.geometry,
+                matrices[part.part].compose(&Matrix {
+                    translation: part.position.map(i32::from).into(),
+                    ..Default::default()
+                }),
+            );
         }
     }
 }
