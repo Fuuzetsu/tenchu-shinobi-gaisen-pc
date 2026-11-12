@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.31.0 — 2026-11-12
+
 - Switch between Shinobi Gaisen and the original Japanese Tenchu 2 title menu
   with Left/Right or the on-screen button. Importing the T2 disc opens its title
   directly; the menu leads to campaign selection and PC settings, with the
