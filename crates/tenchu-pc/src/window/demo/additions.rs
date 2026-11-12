@@ -17,7 +17,7 @@ impl Application {
         let frame = player.frame;
         let length = u64::from(player.clip().seconds) * 60;
         let start = player.scene.player_start;
-        self.menu.page = 17;
+        self.menu.page = crate::settings::menu::Page::Experiment;
         self.menu.open = frame < length * 3 / 8;
         self.menu.row = if frame < length / 8 {
             3

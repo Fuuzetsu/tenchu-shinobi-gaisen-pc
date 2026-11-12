@@ -107,7 +107,7 @@ fn actor_edits_move_remove_and_pick_without_advancing_play() {
     let mut menu = crate::tenchu2::native::preferences::Menu::default();
     menu.tools = tools;
     menu.apply_tools(&mut content, [800, 600]);
-    assert!(menu.panel.open && menu.panel.page == 4);
+    assert!(menu.panel.open && menu.panel.page == crate::settings::menu::Page::Actor);
     let Content::Gameplay(session) = &content else {
         unreachable!()
     };
@@ -415,7 +415,12 @@ fn experiment_edits_native_quantities_and_protection_without_refilling_health() 
     let mut content = Content::Gameplay(Box::new(session));
     let mut tools = Tools::default();
     tools.sync(&content, 0);
-    let rows = crate::settings::menu::rows(17, &Default::default(), &tools.debug, false);
+    let rows = crate::settings::menu::rows(
+        crate::settings::menu::Page::Experiment,
+        &Default::default(),
+        &tools.debug,
+        false,
+    );
     assert!(
         rows.iter()
             .any(|r| r.item == Item::Inventory(4) && r.label == "Shuriken")

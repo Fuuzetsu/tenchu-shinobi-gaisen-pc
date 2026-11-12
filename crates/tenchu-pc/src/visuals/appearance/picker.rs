@@ -1,4 +1,5 @@
 use super::{Appearance, library::Library};
+use crate::settings::overlay::Preference;
 use crate::{
     frontend::{
         draw::Frame,
@@ -350,7 +351,7 @@ impl State<'_> {
                             egui::Color32::WHITE,
                         );
                         if response.clicked() {
-                            edits.push(Edit::PlayerModel(id.clone()));
+                            edits.push(Edit::Preference(Preference::PlayerModel(id.clone())));
                         }
                         if response.hovered() {
                             menu.hovered = Some(Item::PlayerModel);
@@ -502,7 +503,7 @@ mod tests {
             let mut menu = Menu {
                 open: true,
                 model_picker: size.y < 560.0,
-                page: 10,
+                page: crate::settings::menu::Page::PlayerModel,
                 player_models: super::super::choices(&game, &bodies, Some(&library)),
                 ..Default::default()
             };

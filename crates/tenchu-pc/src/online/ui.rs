@@ -3,6 +3,7 @@ use super::{
     updates::{Status, UPDATES},
 };
 use crate::settings::overlay::Edit;
+use crate::settings::overlay::Preference;
 
 pub fn update_notice(ui: &mut egui::Ui) {
     if let Status::Available(release) = UPDATES.status() {
@@ -16,7 +17,7 @@ pub fn update_notice(ui: &mut egui::Ui) {
 pub fn update_settings(ui: &mut egui::Ui, enabled: bool, edits: &mut Vec<Edit>) {
     let mut value = enabled;
     if ui.checkbox(&mut value, "Check for game updates at startup").on_hover_text("One background request to GitHub per game launch. Checks stable releases only; never installs game updates.").changed() {
-        edits.push(Edit::CheckForUpdates(value));
+        edits.push(Edit::Preference(Preference::CheckForUpdates(value)));
         UPDATES.start(value);
     }
     match UPDATES.status() {

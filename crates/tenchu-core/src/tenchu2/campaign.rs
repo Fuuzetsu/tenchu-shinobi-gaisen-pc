@@ -6,6 +6,7 @@ use super::{
     rig::WeaponMode,
     world::{Assets, World},
 };
+use crate::tenchu2::actor::flags::POISONED;
 use crate::{Result, random::Random};
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::campaign::{Campaign, Kind, Objective, Sequence};
@@ -134,7 +135,7 @@ impl Run {
         if self.carry.health != 0 {
             actor.health = i16::from(self.carry.health);
             if self.carry.poisoned {
-                actor.flags |= 0x100;
+                actor.flags |= POISONED;
             }
             if self.carry.drawn || !allow_sheathed {
                 actor.state = State::Ready;
@@ -172,7 +173,7 @@ impl Run {
         self.carry.health = actor.health as u8;
         self.carry.breath = actor.breath;
         self.carry.drawn = actor.weapon_drawn();
-        self.carry.poisoned = actor.flags & 0x100 != 0;
+        self.carry.poisoned = actor.flags & POISONED != 0;
         self.carry.inventory = actor.inventory.amounts();
         self.carry.bleeding.clone_from(&actor.bleeding);
         let ticks = finished_at as i32;

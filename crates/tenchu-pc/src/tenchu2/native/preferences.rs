@@ -320,7 +320,7 @@ impl Menu {
         }
         if std::mem::take(&mut self.tools.open_actor_editor) {
             self.panel.open = true;
-            self.panel.page(4 - self.panel.page as i32);
+            self.panel.select_page(settings::menu::Page::Actor);
             self.panel.reveal_row = false;
         }
     }
@@ -592,8 +592,8 @@ impl Menu {
             return;
         }
         let result = match edit {
-            Edit::CheckForUpdates(enabled) => {
-                state.settings.check_for_updates = enabled;
+            Edit::Preference(change) => {
+                change.apply(state.settings);
                 Ok(())
             }
             Edit::Benchmark => {
@@ -640,27 +640,6 @@ impl Menu {
             }
             Edit::Diagnostics => {
                 action.save_diagnostics = true;
-                Ok(())
-            }
-            Edit::PlayerModel(id) => {
-                state.settings.player_model = id;
-                Ok(())
-            }
-            Edit::WeaponModel(id) => {
-                state.settings.weapon_model = id;
-                Ok(())
-            }
-            Edit::VoiceModel(id) => {
-                state.settings.voice_model = id;
-                Ok(())
-            }
-            Edit::MovesetModel(id) => {
-                state.settings.moveset_model = id;
-                state.settings.model_moveset = true;
-                Ok(())
-            }
-            Edit::Touch(value) => {
-                state.settings.touch = value;
                 Ok(())
             }
             Edit::Coordinate(axis, value) => {
@@ -1089,6 +1068,7 @@ impl Menu {
 mod tests {
     use super::*;
     use crate::debug::Debug;
+    use crate::settings::overlay::Preference;
 
     fn presets() -> Manager {
         Manager::new(std::env::temp_dir().join(format!(
@@ -1432,7 +1412,8 @@ mod tests {
             let mut presets = presets();
             let mut paused = false;
             for item in [Item::StateSlot, Item::SaveState, Item::LoadState] {
-                let (page, row) = (0..settings::menu::PAGES.len())
+                let (page, row) = settings::menu::Page::ALL
+                    .into_iter()
                     .find_map(|page| {
                         settings::menu::rows(page, &settings, &menu.tools.debug, paused)
                             .iter()
@@ -1557,7 +1538,8 @@ mod tests {
                     menu.tools.change(Item::GiveItems, 1).unwrap();
                 }
                 let item = if all { Item::Reset } else { Item::ResetTweaks };
-                let (page, row) = (0..settings::menu::PAGES.len())
+                let (page, row) = settings::menu::Page::ALL
+                    .into_iter()
                     .find_map(|page| {
                         settings::menu::rows(page, &settings, &menu.tools.debug, true)
                             .iter()
@@ -1679,7 +1661,7 @@ mod tests {
             samples: &[1, 4],
             models: None,
         };
-        for page in 0..settings::menu::PAGES.len() {
+        for page in settings::menu::Page::ALL {
             for row in settings::menu::rows(page, &original, &Debug::default(), false) {
                 if Runtime::Tenchu2.unavailable(row.item).is_some() {
                     for edit in [Edit::Change(row.item, 1), Edit::Reset(row.item)] {
@@ -1765,8 +1747,16 @@ mod tests {
         menu.apply(Edit::Reset(Item::WeaponModel), &mut state, &mut action);
         assert!(state.settings.weapon_model.is_empty());
         assert_eq!(state.settings.voice_model, "voice");
-        menu.apply(Edit::VoiceModel("second".into()), &mut state, &mut action);
-        menu.apply(Edit::WeaponModel("other".into()), &mut state, &mut action);
+        menu.apply(
+            Edit::Preference(Preference::VoiceModel("second".into())),
+            &mut state,
+            &mut action,
+        );
+        menu.apply(
+            Edit::Preference(Preference::WeaponModel("other".into())),
+            &mut state,
+            &mut action,
+        );
         assert_eq!(state.settings.voice_model, "second");
         assert_eq!(state.settings.weapon_model, "other");
         menu.apply(Edit::Reset(Item::VoiceModel), &mut state, &mut action);
@@ -1794,7 +1784,7 @@ mod tests {
             samples: &[1, 4],
             models: None,
         };
-        for page in 0..settings::menu::PAGES.len() {
+        for page in settings::menu::Page::ALL {
             for row in settings::menu::rows(page, &Settings::default(), &Debug::default(), false) {
                 if Runtime::Tenchu2.unavailable(row.item).is_none()
                     && !row.item.button()
@@ -1857,7 +1847,7 @@ mod tests {
             }
         }
         menu.navigate(Navigation::Page(-1), &mut state);
-        assert_eq!(menu.panel.page, settings::menu::PAGES.len() - 1);
+        assert_eq!(menu.panel.page, settings::menu::Page::Tenchu2);
         menu.apply(Edit::Controls, &mut state, &mut action);
         menu.navigate(Navigation::Action(MenuAction::Back), &mut state);
         assert!(!state.controls.editor.open && menu.panel.open);
@@ -1921,13 +1911,13 @@ mod tests {
                 menu.show(ctx, &mut state);
             },
         );
-        assert_eq!(menu.panel.page, settings::menu::PAGES.len() - 1);
+        assert_eq!(menu.panel.page, settings::menu::Page::Tenchu2);
         menu.controller(tenchu_core::input::R1, false);
         let _ = ctx.run(input(Vec::new()), |ctx| {
             menu.show(ctx, &mut state);
         });
-        assert_eq!(menu.panel.page, 0);
-        menu.panel.page = 10;
+        assert_eq!(menu.panel.page, settings::menu::Page::General);
+        menu.panel.page = settings::menu::Page::PlayerModel;
         menu.controller(tenchu_core::input::CROSS, false);
         let _ = ctx.run(input(Vec::new()), |ctx| {
             menu.show(ctx, &mut state);
@@ -1937,7 +1927,7 @@ mod tests {
         assert!(!menu.panel.notice.is_empty());
         for circle_confirm in [false, true] {
             state.settings.circle_confirm = circle_confirm;
-            menu.panel.page = 0;
+            menu.panel.page = settings::menu::Page::General;
             menu.panel.touch_controls = true;
             let back = if circle_confirm {
                 tenchu_core::input::CROSS
@@ -1955,10 +1945,15 @@ mod tests {
             });
             assert!(!menu.panel.open);
             menu.panel.open = true;
-            menu.panel.row = settings::menu::rows(0, state.settings, &menu.tools.debug, false)
-                .iter()
-                .position(|row| row.item == Item::CircleConfirm)
-                .unwrap();
+            menu.panel.row = settings::menu::rows(
+                settings::menu::Page::General,
+                state.settings,
+                &menu.tools.debug,
+                false,
+            )
+            .iter()
+            .position(|row| row.item == Item::CircleConfirm)
+            .unwrap();
             menu.controller(
                 if circle_confirm {
                     tenchu_core::input::CIRCLE

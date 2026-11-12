@@ -3,6 +3,7 @@ use super::{
     local_alert_only, perception,
     status::{AlertCause, Ki},
 };
+use crate::tenchu2::actor::flags::{CONFUSED, POISONED, SLEEPING};
 use crate::{Result, math::Position, tenchu2::actor::State, tenchu2::input};
 use serde::{Deserialize, Serialize};
 
@@ -123,7 +124,7 @@ pub fn update(
                 reactions.corpses(c, global)?;
             } else {
                 if global.perception.nearest_distance > 0 {
-                    let distance = if (c.actor.flags & 0x800 == 0 || c.actor.motion.loops >= 0)
+                    let distance = if (c.actor.flags & SLEEPING == 0 || c.actor.motion.loops >= 0)
                         && c.actor.motion.action != 0xa14
                     {
                         -32768
@@ -134,7 +135,7 @@ pub fn update(
                         global.perception.nearest_distance.min(distance);
                     global.radar = Ki::from_distance(global.perception.nearest_distance);
                 }
-                if c.actor.flags & 0x400 != 0 {
+                if c.actor.flags & CONFUSED != 0 {
                     reactions.reset(false);
                     reactions.recover_confusion();
                 }
@@ -142,7 +143,7 @@ pub fn update(
         }
         let mut held = 0;
         if c.actor.state == State::Hurt
-            && c.actor.flags & 0x400 == 0
+            && c.actor.flags & CONFUSED == 0
             && !player
             && matches!(c.actor.motion.action, 0xa26 | 0xa00..=0xa03)
         {
@@ -175,7 +176,7 @@ pub fn update(
         }
         return Ok(finish(c, global, held));
     }
-    if c.actor.flags & 0x400 != 0 {
+    if c.actor.flags & CONFUSED != 0 {
         if !player && c.actor.health > 0 && global.perception.nearest_distance > 0 {
             global.perception.nearest_distance = -32768;
             global.radar = Ki::Searching;
@@ -189,7 +190,7 @@ pub fn update(
         let held = reactions.confusion(c)?;
         return Ok(complete(c, held));
     }
-    if c.actor.flags & 0x100 != 0
+    if c.actor.flags & POISONED != 0
         && c.actor.inventory.counts[2] != 0
         && c.actor.health < c.actor.max_health >> 1
     {

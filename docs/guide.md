@@ -100,7 +100,7 @@ interface retain their resolution; depth/material boundaries use conservative
 fallbacks. WebGL2 and unsupported surfaces keep compatible paths. These are
 renderer implementation choices, so the old Rendering trials menu is gone.
 Original still disables the optional modern effects, and gameplay is unchanged.
-See [measured comparisons](performance.md#november-5-perceptual-rendering-trials).
+See [measured comparisons](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/blob/7b6c42cbe732af0f8b1e321fd92627e95fb21c81/docs/performance.md#november-5-perceptual-rendering-trials).
 
 **Model refinement → Vegetation volume** now includes Botanical and Botanical
 dense. These add folded leaf sprays and round bamboo stalks using existing

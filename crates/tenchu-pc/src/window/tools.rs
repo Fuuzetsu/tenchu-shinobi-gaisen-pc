@@ -24,7 +24,7 @@ impl Application {
                 if self.debug.pick_actor_position {
                     self.debug.pick_actor_position = false;
                     self.menu.open = true;
-                    self.menu.page(4 - self.menu.page as i32);
+                    self.menu.select_page(crate::settings::menu::Page::Actor);
                     self.menu.reveal_row = false;
                     self.release_pointer();
                     self.update_view();

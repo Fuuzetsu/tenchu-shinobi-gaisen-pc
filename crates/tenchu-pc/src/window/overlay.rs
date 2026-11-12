@@ -465,7 +465,7 @@ impl super::Application {
                 .unwrap_or(false);
         if view.model_library.is_none()
             && assets_ready
-            && ((self.menu.open && matches!(self.menu.page, 4 | 10))
+            && ((self.menu.open && self.menu.page.uses_models())
                 || !self.settings.player_model.is_empty()
                 || !self.settings.weapon_model.is_empty()
                 || !self.settings.voice_model.is_empty()
@@ -639,8 +639,8 @@ impl super::Application {
                     | Edit::ImportRewind
             );
             let result = match edit {
-                Edit::CheckForUpdates(enabled) => {
-                    self.settings.check_for_updates = enabled;
+                Edit::Preference(change) => {
+                    change.apply(&mut self.settings);
                     Ok(())
                 }
                 Edit::Change(item, steps) => self.apply_item(item, steps),
@@ -673,10 +673,6 @@ impl super::Application {
                     self.presets.open = true;
                     Ok(())
                 }
-                Edit::Touch(value) => {
-                    self.settings.touch = value;
-                    Ok(())
-                }
                 Edit::Controls => {
                     self.controls.editor.open = true;
                     self.controls.cancel_capture();
@@ -689,23 +685,6 @@ impl super::Application {
                 }
                 Edit::Diagnostics => self.save_diagnostics(),
                 Edit::Reset(item) => self.reset_item(item),
-                Edit::PlayerModel(id) => {
-                    self.settings.player_model = id;
-                    Ok(())
-                }
-                Edit::WeaponModel(id) => {
-                    self.settings.weapon_model = id;
-                    Ok(())
-                }
-                Edit::VoiceModel(id) => {
-                    self.settings.voice_model = id;
-                    Ok(())
-                }
-                Edit::MovesetModel(id) => {
-                    self.settings.moveset_model = id;
-                    self.settings.model_moveset = true;
-                    Ok(())
-                }
                 Edit::Coordinate(axis, value) => {
                     self.debug.target[axis] = value;
                     Ok(())

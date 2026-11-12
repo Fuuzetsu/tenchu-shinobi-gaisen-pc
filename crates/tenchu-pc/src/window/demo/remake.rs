@@ -210,7 +210,7 @@ impl Application {
                 if frame == 1 || frame.is_multiple_of(length / 5) {
                     self.set_gameplay_preset(index)?;
                 }
-                self.menu.page = 0;
+                self.menu.page = crate::settings::menu::Page::General;
                 self.menu.row = 0;
                 self.menu.open = true;
             }

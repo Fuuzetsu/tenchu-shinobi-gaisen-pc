@@ -384,7 +384,7 @@ impl Application {
         let native = self.native_tenchu2.as_mut().unwrap();
         let randomized = native.playback.randomized().is_some();
         let wants_models = !randomized
-            && ((native.menu.panel.open && matches!(native.menu.panel.page, 4 | 10))
+            && ((native.menu.panel.open && native.menu.panel.page.uses_models())
                 || !native
                     .playback
                     .content

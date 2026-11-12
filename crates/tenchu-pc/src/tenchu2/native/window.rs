@@ -486,7 +486,7 @@ impl Application {
         );
         let randomized = self.session.randomized().is_some();
         let wants_models = !randomized
-            && ((self.menu.panel.open && matches!(self.menu.panel.page, 4 | 10))
+            && ((self.menu.panel.open && self.menu.panel.page.uses_models())
                 || !self
                     .session
                     .content

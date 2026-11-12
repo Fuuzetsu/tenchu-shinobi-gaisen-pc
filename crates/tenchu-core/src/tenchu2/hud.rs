@@ -1,5 +1,6 @@
 use super::{actor::Actor, ai::status::Ki, inventory::Inventory};
 use crate::Result;
+use crate::tenchu2::actor::flags::POISONED;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,7 +58,7 @@ impl From<&Actor> for Health {
         Self {
             current: actor.health,
             maximum: actor.max_health,
-            poisoned: actor.flags & 0x100 != 0,
+            poisoned: actor.flags & POISONED != 0,
         }
     }
 }

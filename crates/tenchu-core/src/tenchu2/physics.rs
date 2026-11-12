@@ -6,15 +6,9 @@ use crate::{Result, math::Position};
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::collision::{Collision, Rules};
 
-pub const FALLING: u32 = 0x1000;
-pub const IN_WATER: u32 = 0x2000;
-pub const CEILING: u32 = 0x4000;
-pub const BLOCKED: u32 = 0x8000;
-pub const LANDED: u32 = 0x10000;
-pub const UNEVEN: u32 = 0x20000;
-pub const TOUCHING: u32 = 0x40000;
-pub const HIT: u32 = 0x80000;
-pub const TOUCHING_PLAYER: u32 = 0x400000;
+pub use super::actor::flags::{
+    BLOCKED, CEILING, FALLING, HIT, IN_WATER, LANDED, TOUCHING, TOUCHING_PLAYER, UNEVEN,
+};
 
 mod contacts;
 pub use contacts::ContactActor;

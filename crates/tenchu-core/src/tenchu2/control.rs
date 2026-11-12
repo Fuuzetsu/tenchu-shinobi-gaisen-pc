@@ -1,4 +1,5 @@
 use super::actor::{Actor, State, Velocity};
+use crate::tenchu2::actor::flags::{BURNING, CONFUSED, POISONED};
 use crate::{math::Math, random::Random};
 
 mod attack;
@@ -67,16 +68,16 @@ impl Actor {
             return result;
         }
         let previous = request.action;
-        if self.flags & 0x200 != 0 {
+        if self.flags & BURNING != 0 {
             request.action = 0xa10;
             request.velocity = Velocity::Motion;
             result.effect = Some(Affliction::Burning);
-        } else if self.flags & 0x100 != 0 && self.motion.frame == 1 {
+        } else if self.flags & POISONED != 0 && self.motion.frame == 1 {
             if self.motion.loops < 1 && self.state != State::Attack {
                 return result;
             }
             if random.next15() % 10 <= i32::from(self.skill) {
-                self.flags &= !0x100;
+                self.flags &= !POISONED;
             }
             if !self.invulnerable {
                 self.health = self.health.wrapping_sub(5);
@@ -91,9 +92,9 @@ impl Actor {
             request.velocity = Velocity::Motion;
             result.effect = Some(Affliction::Poison);
             result.show_health = !is_player;
-        } else if self.flags & 0x400 != 0 && random.next15() % 3 == 0 {
+        } else if self.flags & CONFUSED != 0 && random.next15() % 3 == 0 {
             if random.next15() & 1 == 0 {
-                self.flags &= !0x400;
+                self.flags &= !CONFUSED;
             } else {
                 result.effect = Some(Affliction::Confusion);
             }

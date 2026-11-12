@@ -1,4 +1,5 @@
 use super::super::{GrappleStatus, Request};
+use crate::tenchu2::actor::flags::POISONED;
 use crate::{
     Result,
     math::{Math, Position},
@@ -251,7 +252,7 @@ impl Actor {
                         input.story_triggered = true;
                         self.max_health = 150;
                         self.health = 150;
-                        self.flags &= !0x100;
+                        self.flags &= !POISONED;
                         cue(self, request, input, random, ItemCue::Medicine(0))?;
                         cue(
                             self,
@@ -314,7 +315,7 @@ impl Actor {
                         }
                         2 => {
                             self.health = self.health.wrapping_add(20).min(self.max_health);
-                            self.flags &= !0x100;
+                            self.flags &= !POISONED;
                             Some(1)
                         }
                         15 => {

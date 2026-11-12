@@ -1,4 +1,5 @@
 use super::{Sentry, SentryInput};
+use crate::tenchu2::actor::flags::POISONED;
 use crate::{
     Result,
     math::Position,
@@ -32,7 +33,7 @@ impl Sleep {
         random: &mut Random,
         mut apply: impl FnMut(&mut Actor, i16) -> Result<()>,
     ) -> Result<SleepOutput> {
-        let poisoned = actor.flags & 0x100 != 0;
+        let poisoned = actor.flags & POISONED != 0;
         let resting = matches!(actor.motion.action, 0 | 0x100);
         let near_home = actor.position.x.wrapping_sub(input.home.x).wrapping_abs() < 5000
             && actor.position.z.wrapping_sub(input.home.z).wrapping_abs() < 5000;

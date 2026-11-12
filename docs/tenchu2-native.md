@@ -1,4 +1,4 @@
-# Japanese Tenchu 2 integration preview
+# Japanese Tenchu 2 native play
 
 Connect your Japanese disc through **F6 → Connect another disc…**, select
 **Tenchu 2 Japan**, an area and a sequence, then **Start mission**. JP selections
@@ -179,7 +179,8 @@ or a new mission starts a fresh supply. Changing the configured loadout does not
 refill current stock, and bandages never consume the campaign's item stock.
 Original stays unchanged, and Modern High/Ultra retain the separate gameplay
 choice. Savestates preserve wounds and supplies. The existing `bleeding-bandages`
-demo exercises Gaisen; native demo and rewind adapters remain pending.
+demo exercises Gaisen; native demo playback remains separate work. Native
+rewind retains wounds and supplies.
 
 **F1 → Persistent effects → Stain wounded models** attaches soft stains to the
 body at native blood-emission positions after damage. It uses Gaisen's projector
@@ -486,10 +487,11 @@ is never consumed). Armour has its own checkbox; unused item slots are omitted.
 **F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
 wind-directed shelter on terrain and static props, accumulation, runoff, tracks,
 and synthesized ambience/thunder. Weather remains optional in every preset.
-Original leaves native weather unchanged. Baked-snow recognition on T2 artwork
-and moving-prop shelter are still pending; the disabled baked-snow control does
-not enable footprints on original snowy textures. Replacing artwork retains
-wetness/snow, footprint decals and the visual sky clock while rebuilding the surface cache.
+Original leaves native weather unchanged. **Tracks on original snow** supports
+recognized snowy surfaces, including imported T1 stages, without generated snowfall.
+Native T2 artwork recognition and moving-prop shelter remain separate work.
+Replacing artwork retains wetness/snow, footprint decals and the visual sky clock
+while rebuilding the surface cache.
 
 **F1 → Camera** supports free flight (F2), speed/FOV, player or actor focus,
 overhead views and a camera bookmark. WASD/QE move, Shift boosts and RMB looks;
@@ -508,8 +510,9 @@ models used in either game. These options also apply to 3D cutscene characters.
 **Weapon reflections** uses the shared metal shader. Modern presets select their
 usual quality levels; Original retains the source geometry. Live changes rebuild
 only when mesh preparation settings change and preserve weather/footprints.
-High-detail hero rebuilding and vegetation adapters remain
-separate pending work; their controls stay disabled.
+High-detail hero rebuilding, foliage refinement and vegetation variation use
+the shared mesh pipeline. The native environment supplies foliage emitters for
+leaves and contact scatter; these follow the corresponding F1 controls.
 
 **Smooth model motion** blends actor and weapon poses between the original 30 Hz
 updates, including held equipment and cutscene characters. Gameplay and follow
@@ -601,10 +604,10 @@ ranks, best records, supply rewards and unlocks. Chapter titles, narrated text,
 movies, story camera/actors/faces and dialogue load from the user's disc.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
-for voices and ambience. Its minimal renderer does not yet expose all of the
-port's visual enhancements. The original HUD now shows health/enemy bars, Ki,
-breath, the aiming reticle, item selection and pickup notices. Timed 3D story
-effects remain integration work.
+for voices and ambience. It uses the shared renderer and the F1 features described
+above. The HUD includes health/enemy bars, Ki, breath, the aiming reticle, item
+selection and pickup notices, with optional HD text. Scripted story blood is
+supported; other timed 3D story effects and distortion remain integration work.
 The native renderer also loads the original sky layers and distant scenery,
 including the story sequences' alternate evening palettes.
 The existing BizHawk observer/replay checker now compares bounded native JP

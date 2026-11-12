@@ -1,4 +1,5 @@
 use super::{Context, ItemChoices, Melee};
+use crate::tenchu2::actor::flags::BURNING;
 use crate::{
     Result,
     tenchu2::{
@@ -37,7 +38,7 @@ impl Melee {
             i32::from(c.rules.close[category])
         };
         let mut decision = Decision::default();
-        if c.target()?.flags & 0x200 == 0 {
+        if c.target()?.flags & BURNING == 0 {
             self.engaged = false;
         } else if !self.engaged {
             decision = c.approach(&mut self.offset, reach - 200)?;

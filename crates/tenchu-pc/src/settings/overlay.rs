@@ -2,24 +2,21 @@ mod actors;
 mod rewind;
 use super::{
     Settings,
-    menu::{self, Item, Menu, Row},
+    menu::{self, Item, Menu, Page, Row},
     runtime::Runtime,
 };
 use crate::debug::Debug;
 use egui::{Color32, RichText, Ui};
 
+pub use super::edit::Preference;
+
 pub enum Edit {
-    CheckForUpdates(bool),
-    Touch(crate::touch::Settings),
+    Preference(Preference),
     Change(Item, i32),
     Preset(super::library::Choice),
     GameplayPreset(usize),
     Reset(Item),
     Coordinate(usize, i32),
-    PlayerModel(String),
-    MovesetModel(String),
-    WeaponModel(String),
-    VoiceModel(String),
     Benchmark,
     PresetLibrary,
     Controls,
@@ -109,7 +106,7 @@ pub fn show(
             if ui.button("Done").clicked() { menu.touch_controls = false; }
         });
         if value != settings.touch {
-            edits.push(Edit::Touch(value));
+            edits.push(Edit::Preference(Preference::Touch(value)));
         }
     }
     let mut open = true;
@@ -167,13 +164,13 @@ pub fn show(
                 ui.vertical(|ui| {
                     ui.set_width(if compact { 110.0 } else { 126.0 });
                     egui::ScrollArea::vertical().id_salt("settings-categories").max_height(if compact { body_height } else { (screen.height() - 235.0).max(100.0) }).show(ui, |ui| {
-                    for (page, title) in menu::PAGES.iter().enumerate() {
-                        let response = ui.selectable_label(menu.page == page, *title);
+                    for page in Page::ALL {
+                        let response = ui.selectable_label(menu.page == page, page.title());
                         if menu.page == page && menu.reveal_row {
                             response.scroll_to_me(Some(egui::Align::Center));
                         }
                         if response.clicked() {
-                            menu.page(page as i32 - menu.page as i32);
+                            menu.select_page(page);
                             ctx.memory_mut(|m| m.surrender_focus(ui.id()));
                         }
                     }
@@ -188,7 +185,7 @@ pub fn show(
                         .auto_shrink([false, true])
                         .show(ui, |ui| {
                     ui.set_min_width(335.0);
-                    if menu.page == 0 {
+                    if menu.page == Page::General {
                         crate::online::ui::update_settings(ui, settings.check_for_updates, &mut edits);
                         ui.horizontal_wrapped(|ui| {
                             action_button(ui, "Benchmarks…", Edit::Benchmark, runtime, &mut edits);
@@ -205,16 +202,16 @@ pub fn show(
                         }
                         ui.separator();
                     }
-                    if menu.page == 23 {
+                    if menu.page == Page::Tenchu2 {
                         ui.label("Native JP mission selection and integration tools.");
                         ui.weak("Cutscene speed is in Simulation. Display, artwork, post-processing and controls use the shared categories.");
                     }
-                    if menu.page == 7 {
+                    if menu.page == Page::Assets {
                         ui.label(&menu.artwork_status);
                         crate::online::ui::artwork(ui, runtime == Runtime::Tenchu2);
                         ui.separator();
                     }
-                    if menu.page == 10 {
+                    if menu.page == Page::PlayerModel {
                         available_ui(ui, runtime, Item::PlayerModel, |ui| {
                             if ui.button("Choose player model…").clicked() {
                                 menu.model_picker = true;
@@ -234,7 +231,7 @@ pub fn show(
                         });
                         ui.separator();
                     }
-                    if menu.page == 20 {
+                    if menu.page == Page::Movement {
                         ui.horizontal_wrapped(|ui| {
                             action_button(ui, "Import Tatsumaru moves…", Edit::ImportUnarmed, runtime, &mut edits);
                             action_button(ui, if runtime == Runtime::Tenchu2 { "Export Tatsumaru moves…" } else { "Export imported moves…" }, Edit::ExportUnarmed, runtime, &mut edits);
@@ -249,7 +246,7 @@ pub fn show(
                         ui.separator();
                     }
                     let rows = menu::rows(menu.page, settings, debug, paused);
-                    if menu.page == 6 && runtime.unavailable(Item::Lighting).is_none() {
+                    if menu.page == Page::Lighting && runtime.unavailable(Item::Lighting).is_none() {
                         let light = &settings.graphics.lighting;
                         let shadowed = if light.enabled && light.shadows {
                             lights.min(light.shadow_count as usize)
@@ -272,7 +269,7 @@ pub fn show(
                         .auto_shrink([false, true])
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
-                                if menu.page == 4 {
+                                if menu.page == Page::Actor {
                                     actors::show(ui, menu, models.as_deref(), runtime, &mut edits);
                                 }
                                 for (index, row) in rows.iter().enumerate() {
@@ -336,7 +333,7 @@ pub fn show(
                             .small()
                             .color(Color32::from_rgb(167, 188, 204))).wrap(),
                     );
-                    if menu.page == 5 && runtime.unavailable(Item::Rewind).is_none() && (settings.rewind_seconds > 0 || debug.rewind.is_some()) {
+                    if menu.page == Page::Simulation && runtime.unavailable(Item::Rewind).is_none() && (settings.rewind_seconds > 0 || debug.rewind.is_some()) {
                         if let Some(timeline) = debug.rewind {
                             rewind::timeline(ui, timeline, &mut edits);
                         } else {
@@ -344,7 +341,7 @@ pub fn show(
                         }
                         ui.weak(format!("{:.1} MiB stored", debug.rewind_bytes as f64 / 1048576.0));
                     }
-                    if menu.page == 10 && !compact && runtime.unavailable(Item::PlayerModel).is_none() {
+                    if menu.page == Page::PlayerModel && !compact && runtime.unavailable(Item::PlayerModel).is_none() {
                         ui.separator();
                         if let Some(models) = &mut models {
                             models.show(ui, menu, settings, &mut edits);
@@ -473,9 +470,13 @@ fn widget(
                         && ui.selectable_label(id == &row.value, name).clicked()
                     {
                         edits.push(match item {
-                            Item::WeaponModel => Edit::WeaponModel(id.clone()),
-                            Item::VoiceModel => Edit::VoiceModel(id.clone()),
-                            _ => Edit::MovesetModel(id.clone()),
+                            Item::WeaponModel => {
+                                Edit::Preference(Preference::WeaponModel(id.clone()))
+                            }
+                            Item::VoiceModel => {
+                                Edit::Preference(Preference::VoiceModel(id.clone()))
+                            }
+                            _ => Edit::Preference(Preference::MovesetModel(id.clone())),
                         });
                         ui.memory_mut(|memory| memory.close_popup());
                     }
@@ -789,9 +790,9 @@ mod tests {
             ..Default::default()
         };
         for size in [egui::vec2(1280.0, 720.0), egui::vec2(640.0, 360.0)] {
-            for page in 0..menu::PAGES.len() {
+            for page in Page::ALL {
                 menu.page = page;
-                let _ = ctx.run(input(page as f64, size, Vec::new()), |ctx| {
+                let _ = ctx.run(input(page as usize as f64, size, Vec::new()), |ctx| {
                     let edits = show(
                         ctx,
                         &mut menu,
@@ -809,7 +810,7 @@ mod tests {
                     assert!(
                         edits.is_empty(),
                         "Opening {} changed a setting",
-                        menu::PAGES[page]
+                        page.title()
                     );
                 });
             }

@@ -42,9 +42,26 @@ pub(super) fn template(resources: &Resources) -> Actor {
 }
 
 pub(super) fn cases<T: serde::de::DeserializeOwned>(variable: &str) -> impl Iterator<Item = T> {
-    std::io::BufReader::new(std::fs::File::open(std::env::var_os(variable).unwrap()).unwrap())
+    let path = std::path::PathBuf::from(
+        std::env::var_os(variable)
+            .unwrap_or_else(|| panic!("Set {variable} to its source oracle JSONL")),
+    );
+    let file = std::fs::File::open(&path)
+        .unwrap_or_else(|error| panic!("{variable}: {}: {error}", path.display()));
+    std::io::BufReader::new(file)
         .lines()
-        .map(|line| serde_json::from_str(&line.unwrap()).unwrap())
+        .enumerate()
+        .map(move |(index, line)| {
+            let line =
+                line.unwrap_or_else(|error| panic!("{}:{}: {error}", path.display(), index + 1));
+            serde_json::from_str(&line).unwrap_or_else(|error| {
+                panic!(
+                    "{}:{}: incompatible oracle record: {error}",
+                    path.display(),
+                    index + 1
+                )
+            })
+        })
 }
 
 pub(super) fn velocity(value: i16) -> Velocity {
@@ -87,12 +104,12 @@ struct StatusCase {
 }
 
 #[test]
-#[ignore = "requires TENCHU2_DISC and TENCHU2_STATUS_ORACLE from original status controllers"]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_CONTROL_STATUS_ORACLE from original status controllers"]
 fn native_afflictions_preserve_interrupts_damage_and_rng() {
     let resources = resources();
     let template = template(&resources);
     let mut checked = 0;
-    for (index, case) in cases::<StatusCase>("TENCHU2_STATUS_ORACLE").enumerate() {
+    for (index, case) in cases::<StatusCase>("TENCHU2_CONTROL_STATUS_ORACLE").enumerate() {
         let mut actor = template.clone();
         actor.kind = case.kind;
         actor.flags = case.flags;

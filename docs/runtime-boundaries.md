@@ -65,7 +65,8 @@ as specified by `tenchu-decomp/src/main.exe/APPEAR.C`, with the additional T2
 accessory slot used only by imports. `tenchu-viewer/src/weapons.rs` also provides
 the Gaisen attachment reference. No original assets are bundled.
 
-Character-local audio follows the selected moveset. The library extracts the
+Character-local audio follows the selected moveset unless an independent voice
+set is selected. Weapons likewise support an independent equipment selection. The library extracts the
 character program from its source disc into an owned VoiceSet; edition and cast
 selection happen at load time, never in the audio thread. Both hosts translate
 local cue meanings and retain their own spatialization, voice allocation and
@@ -76,10 +77,10 @@ Gaisen stores selected voice resources with its shared mission assets so rewind
 checkpoints do not serialize PCM every tick, and saves restore them independently
 of the currently selected model. No additional gameplay RNG is consumed.
 
-Remaining work includes further checked gameplay commands, more effect adapters,
-and complete source motion-event timing. The existing cross-game melee bridge still converts
-motion data through Gaisen's representation; this refactor does not make every
-move, item or weapon interchangeable. Preserve original action semantics at that
+The cross-game melee bridge converts motion data through Gaisen's representation.
+Paired kills, item use and unsupported scripted attacks retain the host game's
+behavior; body, moveset, equipment and voice selection do not make every action
+interchangeable. Preserve original action semantics at that
 boundary rather than making a universal AI/controller or silently substituting
 host-game effects. The existing disc-backed tests verify state preservation;
 interactive and rendered checks are also needed for each connected feature.
@@ -88,3 +89,10 @@ Light placement, camera-follow/freeze, marker drawing and shadow-preview setting
 are shared too. Native JP supplies its authored flame positions; the renderer
 owns flicker, heat shimmer and shadow budgeting for both games. Native texture-panel
 lamp discovery uses the same rules with original material fingerprints.
+
+Release checks and HD-pack downloads live in `online/`, at the platform boundary.
+The shared F1 UI reads process-wide task state; neither simulation performs network
+or filesystem work. Updates are checked once per process. Pack installation uses
+committed release metadata and the existing validated importer, then requests the
+host's normal artwork reload. Graphics/gameplay presets and rewind do not change
+the update-check preference.

@@ -1,4 +1,5 @@
 use super::Request;
+use crate::tenchu2::actor::flags::{BURNING, SLEEPING};
 use crate::{
     Result,
     math::Position,
@@ -84,7 +85,7 @@ impl Actor {
             }
             0xa10 if self.motion.frame == 1 => {
                 cue(self, request, random, HurtCue::Voice(13))?;
-                self.flags &= !0x200;
+                self.flags &= !BURNING;
             }
             0xa11 if self.motion.frame == 1 => {
                 cue(self, request, random, HurtCue::Voice(14))?;
@@ -109,7 +110,7 @@ impl Actor {
                     if self.motion.loops <= -201 {
                         request.action = 0xa14;
                         request.velocity = Velocity::Motion;
-                        self.flags &= !0x800;
+                        self.flags &= !SLEEPING;
                     }
                     return Ok(());
                 }
@@ -236,7 +237,7 @@ impl Actor {
                 }
                 let delay = if self.kind as u8 & 0xf0 >= 0xe0 {
                     0
-                } else if self.flags & 0x800 != 0 {
+                } else if self.flags & SLEEPING != 0 {
                     -60
                 } else {
                     (-(i32::from(self.max_health) - i32::from(self.health)) / 2) as i16
@@ -255,7 +256,7 @@ impl Actor {
                     if self.motion.loops < delay {
                         request.action = 0xa26;
                         request.velocity = Velocity::Motion;
-                        self.flags &= !0x800;
+                        self.flags &= !SLEEPING;
                     }
                 }
                 return Ok(());

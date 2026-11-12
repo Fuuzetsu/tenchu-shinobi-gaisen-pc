@@ -1,3 +1,5 @@
+pub mod flags;
+
 use super::{input::Pad, inventory::Inventory, motion::Motion, terrain::Probe};
 use crate::{
     Result,

@@ -1,3 +1,6 @@
+mod page;
+pub use page::Page;
+
 use super::Settings;
 use crate::{campaign::Action, debug::Debug};
 use tenchu_core::effects::RumbleAction;
@@ -367,7 +370,7 @@ pub struct Menu {
     pub open: bool,
     pub row: usize,
     pub hovered: Option<Item>,
-    pub page: usize,
+    pub page: Page,
     pub notice: String,
     pub edit: Option<(Item, String)>,
     pub reveal_row: bool,
@@ -391,41 +394,14 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 24] = [
-    "General",
-    "Graphics",
-    "Overlays",
-    "Camera",
-    "Teleport / actor",
-    "Simulation",
-    "Lighting",
-    "Visual assets",
-    "Sky lighting",
-    "Image effects",
-    "Player model",
-    "Persistent effects",
-    "Time of day",
-    "Weather",
-    "Water",
-    "Model refinement",
-    "Secondary motion",
-    "Experiment",
-    "Contact effects",
-    "Vibration",
-    "Movement",
-    "Enemy behavior",
-    "Bleeding",
-    "Tenchu 2",
-];
-
-pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
+pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let gameplay = || {
         let preset = super::gameplay::current(s, d).map(|i| &super::gameplay::PRESETS[i]);
         (Item::GameplayPreset, "Gameplay preset", preset.map_or("Custom", |p| p.name).into(),
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
-        23 => vec![
+        Page::Tenchu2 => vec![
             (
                 Item::Tenchu2Missions,
                 "JP mission selection",
@@ -445,7 +421,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Leave native JP play and return to the quick launcher. Closes the standalone JP player.",
             ),
         ],
-        22 => vec![
+        Page::Bleeding => vec![
             (
                 Item::Bleeding,
                 "Player bleeding",
@@ -500,7 +476,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Stops bleeding without healing; consumes one only when bleeding. Select Bandage with L2/R2 and use Triangle, or quick-use with B (rebind in Controls). Must be grounded and free to act. From here, treatment happens on the next gameplay tick.",
             ),
         ],
-        21 => vec![
+        Page::EnemyBehavior => vec![
             (
                 Item::BehaviorProfiles,
                 "Enemy behavior profiles",
@@ -580,7 +556,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Move the inspection camera to the selected guard. F2 returns to the game camera.",
             ),
         ],
-        20 => vec![
+        Page::Movement => vec![
             (
                 Item::AnalogWalking,
                 "Analog / modifier walking",
@@ -708,7 +684,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Face the player's direction again. Shortcut: middle-click or click the right stick. Aim, grappling and cinematic cameras retain their original behavior; either stick can aim.",
             ),
         ],
-        19 => {
+        Page::Vibration => {
             let mut rows = vec![
                 (
                     Item::Vibration,
@@ -734,7 +710,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             }));
             rows
         }
-        18 => vec![
+        Page::ContactEffects => vec![
             (
                 Item::GrappleDetail,
                 "Detailed rope / hook",
@@ -790,7 +766,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "0-200%; airborne and ground litter have bounded budgets.",
             ),
         ],
-        17 => {
+        Page::Experiment => {
             let mut rows = vec![
                 (
                     Item::GodMode,
@@ -846,7 +822,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             rows
         }
 
-        16 => {
+        Page::SecondaryMotion => {
             let motion = &s.graphics.motion;
             vec![
                 (
@@ -887,7 +863,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
             ]
         }
-        15 => vec![
+        Page::ModelRefinement => vec![
             (
                 Item::HeroModels,
                 "High-detail heroes",
@@ -920,7 +896,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Botanical adds folded leaf sprays around the original canopy and refines shrubs/trunks. Collision and AI visibility remain original.",
             ),
         ],
-        14 => {
+        Page::Water => {
             let water = &s.graphics.water;
             vec![
                 (
@@ -974,7 +950,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ]
         }
 
-        13 => {
+        Page::Weather => {
             let weather = &s.graphics.weather;
             vec![
                 (
@@ -1154,7 +1130,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ]
         }
 
-        12 => {
+        Page::Time => {
             let sky = &s.graphics.sky;
             vec![
                 (
@@ -1231,7 +1207,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
             ]
         }
-        11 => vec![
+        Page::PersistentEffects => vec![
             (
                 Item::Dismemberment,
                 "Stealth Assassins dismemberment",
@@ -1455,7 +1431,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Remove cosmetic stains and stop current bleeding without changing health.",
             ),
         ],
-        10 => vec![
+        Page::PlayerModel => vec![
             (
                 Item::AlternateDeathChance,
                 "Alternate player deaths",
@@ -1511,7 +1487,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Load pack.json from the folder above. Failed reloads keep the previous models.",
             ),
         ],
-        9 => {
+        Page::ImageEffects => {
             let post = &s.graphics.post;
             vec![
                 (
@@ -1588,7 +1564,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
             ]
         }
-        8 => {
+        Page::Sky => {
             let sun = &s.graphics.lighting.directional;
             vec![
                 (
@@ -1655,7 +1631,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
             ]
         }
-        7 => vec![
+        Page::Assets => vec![
             (
                 Item::SharpText,
                 "High-definition text",
@@ -1698,7 +1674,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Curve original actors; keep joints in place.",
             ),
         ],
-        0 => vec![
+        Page::General => vec![
             (
                 Item::CircleConfirm,
                 "Circle confirms in menus",
@@ -1827,7 +1803,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Reset settings to the original experience.",
             ),
         ],
-        1 => vec![
+        Page::Graphics => vec![
             (
                 Item::Retro,
                 "Retro comparison (F8)",
@@ -1926,7 +1902,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "MSAA: only modes supported by this GPU.",
             ),
         ],
-        2 => vec![
+        Page::Overlays => vec![
             (
                 Item::Hitboxes,
                 "Body / attack hitboxes",
@@ -1988,7 +1964,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Last 1800 sampled updates; about 60 sec.",
             ),
         ],
-        3 => vec![
+        Page::Camera => vec![
             (
                 Item::FreeCamera,
                 "Free camera / F2",
@@ -2066,7 +2042,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Hide HUD/helpers; F2 camera, F3 pause, F9 shot.",
             ),
         ],
-        4 => vec![
+        Page::Actor => vec![
             (
                 Item::Actor,
                 "Selected actor",
@@ -2140,7 +2116,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Close menu and click a collision surface.",
             ),
         ],
-        5 => vec![
+        Page::Simulation => vec![
             gameplay(),
             (
                 Item::Pause,
@@ -2309,7 +2285,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Restore original speed, enemy sight, activation and attack coordination.",
             ),
         ],
-        _ => {
+        Page::Lighting => {
             let light = &s.graphics.lighting;
             let position = d.light.unwrap_or_default().to_array();
             vec![
@@ -2479,7 +2455,11 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
 
 impl Menu {
     pub fn page(&mut self, direction: i32) {
-        self.page = (self.page as i32 + direction).rem_euclid(PAGES.len() as i32) as usize;
+        self.select_page(self.page.offset(direction));
+    }
+
+    pub fn select_page(&mut self, page: Page) {
+        self.page = page;
         self.row = 0;
         self.hovered = None;
         self.reveal_row = true;

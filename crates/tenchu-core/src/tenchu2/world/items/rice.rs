@@ -1,4 +1,5 @@
 use super::*;
+use crate::tenchu2::actor::flags::{BURNING, POISONED};
 use crate::tenchu2::{
     ai::bait::Bait,
     items::rice,
@@ -119,7 +120,7 @@ impl World {
                     .select_item(&mut actor.inventory, available, taker == self.player);
                 recovered.push(taker);
             } else {
-                actor.flags |= if self.map == 12 { 0x200 } else { 0x100 };
+                actor.flags |= if self.map == 12 { BURNING } else { POISONED };
             }
             alive = false;
         }

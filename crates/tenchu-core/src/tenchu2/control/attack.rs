@@ -1,4 +1,5 @@
 use super::{Request, StatusResult};
+use crate::tenchu2::actor::flags::{CONFUSED, POISONED};
 use crate::{
     Result,
     math::Position,
@@ -51,7 +52,7 @@ impl Actor {
             .ok_or("Missing Tenchu 2 attack motion")?;
         let mut result = AttackPreparation::default();
         if self.motion.loops == 0 && i32::from(self.motion.frame) == 1 - i32::from(clip.blend) {
-            if self.flags & 0x100 != 0 && request.action != 0x916 && random.next15() & 1 != 0 {
+            if self.flags & POISONED != 0 && request.action != 0x916 && random.next15() & 1 != 0 {
                 result.status = self.update_status(request, random, is_player, controls_enabled);
                 if result.status.effect.is_some() {
                     result.interrupted = true;
@@ -190,7 +191,7 @@ impl Actor {
                 },
             )?;
             if request.action != 0x912 {
-                let voice = if self.flags & 0x400 == 0 {
+                let voice = if self.flags & CONFUSED == 0 {
                     2
                 } else if context.random.next15() & 1 != 0 {
                     13

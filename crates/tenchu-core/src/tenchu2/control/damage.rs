@@ -1,4 +1,5 @@
 use super::Request;
+use crate::tenchu2::actor::flags::{BURNING, CONFUSED, POISONED, SLEEPING};
 use crate::{
     Result,
     math::{Position, Vector3},
@@ -425,7 +426,7 @@ impl Damage<'_, '_> {
                 }
             }
             8 => {
-                self.actor.flags |= 0x100;
+                self.actor.flags |= POISONED;
                 if self.actor.is_stealth_vulnerable() {
                     power = -1;
                 } else {
@@ -436,16 +437,16 @@ impl Damage<'_, '_> {
             10 | 25 | 28 => {
                 effect_only = true;
                 self.request(0xa10, Velocity::Motion);
-                self.actor.flags |= if kind == 28 { 0x100 } else { 0x200 };
+                self.actor.flags |= if kind == 28 { POISONED } else { BURNING };
             }
             14 => {
                 if self.request.action == 0x70c {
                     return Ok(None);
                 }
                 effect_only = true;
-                if self.actor.flags & 0x800 == 0 {
+                if self.actor.flags & SLEEPING == 0 {
                     self.request(0xa15, Velocity::Motion);
-                    self.actor.flags |= 0x400;
+                    self.actor.flags |= CONFUSED;
                 }
             }
             18 => {
@@ -454,13 +455,13 @@ impl Damage<'_, '_> {
                 }
                 effect_only = true;
                 self.request(0xa13, Velocity::Motion);
-                self.actor.flags = self.actor.flags & !0x400 | 0x800;
+                self.actor.flags = self.actor.flags & !CONFUSED | SLEEPING;
             }
             22 => power = 5,
             24 => power = 10,
             26 | 33 => {
                 if kind == 26 {
-                    self.actor.flags |= 0x100;
+                    self.actor.flags |= POISONED;
                 }
                 knockdown = true;
                 if !self.input.player && self.actor.flags & 0x100040 != 0x100040 {
@@ -469,7 +470,7 @@ impl Damage<'_, '_> {
                 power = 5;
             }
             27 => {
-                self.actor.flags |= 0x100;
+                self.actor.flags |= POISONED;
                 power = 10;
             }
             29 => power = 20,
@@ -503,7 +504,7 @@ impl Damage<'_, '_> {
             .rotation
             .y
             .wrapping_add(self.actor.motion.pose.rotation[0][1]);
-        self.actor.flags &= !0x200;
+        self.actor.flags &= !BURNING;
         if power > 0 && self.actor.skill != 0 {
             power /= 2;
         }

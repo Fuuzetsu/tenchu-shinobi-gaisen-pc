@@ -670,7 +670,7 @@ impl Application {
                 self.settings.graphics.interpolation,
             );
             if player.clip().feature == Feature::Interface {
-                self.menu.page = 0;
+                self.menu.page = crate::settings::menu::Page::General;
                 self.menu.open = player.progress() >= 2.0 / 3.0;
             }
             if self.settings != previous

@@ -1,5 +1,11 @@
 # Source provenance
 
+This is a historical implementation and verification record. Statements about
+pending work describe the boundary at that entry's revision; current usage and
+limits are in [the guide](docs/guide.md), [native T2](docs/tenchu2-native.md) and
+[validation coverage](docs/validation.md). Preserve the recorded addresses,
+source hashes and comparison evidence when updating current documentation.
+
 No retail assets are included. The supported executable is identified at runtime
 by SHA-256 `0690a5c14ff3e975ebcb3de26e196a4dbb6afc992677d0de2cbcf86af9993558`.
 
@@ -2336,11 +2342,12 @@ Native status interrupts follow EU `8001f914` / JP `8001fd24`; target selection
 follows EU `8001c364` / JP `8001c4c8`. Both preserve source actor filtering,
 target order, signed distance arithmetic, poison damage and RNG consumption,
 and animal/boss reaction overrides. Original instruction checks match 18,000
-status updates and 6,000 target queries per edition (`TENCHU2_STATUS_ORACLE`,
+status updates and 6,000 target queries per edition (`TENCHU2_CONTROL_STATUS_ORACLE`,
 `TENCHU2_TARGET_ORACLE`). Scoring, audio, health-bar and vibration calls are
 captured at their boundaries; the SDK square-root instructions run with supplied
 COP2 leading-bit arithmetic. These components do not constitute a complete
-native combat controller or campaign.
+native combat controller or campaign. The controller fixture has its own variable;
+`TENCHU2_STATUS_ORACLE` selects the separate AI alert/radar fixture below.
 
 Jump entry follows EU `800226f0` / JP `80022de4`; attack entry follows EU
 `80022950` / JP `80023010`. These retain motion fallback, directional/airborne

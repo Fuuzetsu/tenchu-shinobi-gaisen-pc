@@ -1,5 +1,40 @@
 use super::{Settings, menu::Item};
 
+pub enum Preference {
+    CheckForUpdates(bool),
+    Touch(crate::touch::Settings),
+    PlayerModel(String),
+    MovesetModel(String),
+    WeaponModel(String),
+    VoiceModel(String),
+}
+
+impl Preference {
+    pub fn apply(self, settings: &mut Settings) {
+        match self {
+            Self::CheckForUpdates(enabled) => settings.check_for_updates = enabled,
+            Self::Touch(value) => settings.touch = value,
+            Self::PlayerModel(id) => settings.player_model = id,
+            Self::MovesetModel(id) => {
+                settings.moveset_model = id;
+                settings.model_moveset = true;
+            }
+            Self::WeaponModel(id) => settings.weapon_model = id,
+            Self::VoiceModel(id) => settings.voice_model = id,
+        }
+    }
+
+    pub fn capability(&self) -> Option<Item> {
+        match self {
+            Self::CheckForUpdates(_) | Self::Touch(_) => None,
+            Self::PlayerModel(_)
+            | Self::MovesetModel(_)
+            | Self::WeaponModel(_)
+            | Self::VoiceModel(_) => Some(Item::PlayerModel),
+        }
+    }
+}
+
 pub struct Slider {
     pub min: i32,
     pub max: i32,
