@@ -82,6 +82,24 @@ pub struct ActionContext<'a> {
     pub clock: i32,
 }
 
+impl ActionContext<'_> {
+    fn voice(&mut self, current: &Actor, ctx: &Context, actor: usize, id: i16) {
+        let actor = if actor == current.id {
+            current
+        } else {
+            self.roster.get(actor)
+        };
+        let player = if self.player == current.id {
+            current
+        } else {
+            self.roster.get(self.player)
+        };
+        self.intelligence
+            .voices
+            .push(crate::audio::Voice::new(actor, player, ctx.camera, id));
+    }
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Actor {
     pub id: usize,

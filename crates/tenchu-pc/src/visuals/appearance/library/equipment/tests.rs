@@ -97,7 +97,10 @@ fn independent_equipment_and_voice_in_gaisen() {
                     &game.mission.moveset_voices[&SELECTED_WEAPON_VOICE],
                     source.moveset_voice().unwrap()
                 ));
-                game.intelligence.voices = vec![(game.player_id, 2), (game.player_id, 9)];
+                game.intelligence.voices = vec![
+                    game.voice_event(game.player_id, 2),
+                    game.voice_event(game.player_id, 9),
+                ];
                 let sounds = game.audio_with_burning([], None).unwrap();
                 assert_eq!(sounds.len(), 2);
                 assert!(Arc::ptr_eq(

@@ -78,7 +78,8 @@ impl Actor {
             rotation: ctx.math.rotate_yxz(part.rotation),
         };
         let floor = supported_height(ctx, self.mesh_kind, part.index, matrix)?;
-        if floor.is_some_and(|floor| position.y >= floor) {
+        let impact = floor.is_some_and(|floor| position.y >= floor);
+        if impact {
             let probe = terrain::vector(
                 &ctx.mission.terrain,
                 ctx.cursor,
@@ -118,7 +119,6 @@ impl Actor {
                     clock: world.clock,
                 },
             )?;
-            world.intelligence.voices.push((self.id, 0x1b));
         } else {
             part.velocity[1] = part.velocity[1].wrapping_add(20);
         }
@@ -143,6 +143,9 @@ impl Actor {
             };
         }
         ctx.scene.update(id, matrix);
+        if impact {
+            world.voice(self, ctx, self.id, 0x1b);
+        }
         Ok(())
     }
 

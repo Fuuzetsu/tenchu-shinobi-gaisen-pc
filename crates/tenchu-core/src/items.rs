@@ -414,7 +414,9 @@ impl Items {
             }
             Behavior::Caltrops(used) => self.caltrops(id, used, actors, ctx)?,
             Behavior::Grapple { owner } => self.grapple(id, owner, actors, ctx)?,
-            Behavior::Smoke(used) => self.smoke(id, used, actors, intelligence, clock, ctx)?,
+            Behavior::Smoke(used) => {
+                self.smoke(id, used, actors, intelligence, (player, clock), ctx)?
+            }
             Behavior::Fire(used) => self.fire(id, used, actors, intelligence, ctx)?,
             Behavior::Mine(used) => self.mine(id, used, actors, intelligence, ctx)?,
             Behavior::Poison(used) => {
@@ -424,7 +426,7 @@ impl Items {
             Behavior::Breath(used) => {
                 self.breath(id, used, actors, intelligence.action_halt, clock, ctx)?
             }
-            Behavior::Sleep(used) => self.sleep(id, used, actors, intelligence, ctx)?,
+            Behavior::Sleep(used) => self.sleep(id, used, actors, intelligence, player, ctx)?,
             Behavior::Flute(used) => self.flute(id, used, actors, intelligence, ctx)?,
             Behavior::Resurrection(used) => self.resurrection(id, used, actors, ctx)?,
             Behavior::Rice(used) => {

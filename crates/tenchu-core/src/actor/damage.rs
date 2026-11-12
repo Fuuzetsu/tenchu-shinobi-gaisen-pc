@@ -29,7 +29,7 @@ impl Actor {
         self.hit = None;
         self.pad = Pad::default();
         world.combat.death_sound = Some(self.id);
-        world.intelligence.voices.push((self.id, 8));
+        world.voice(self, ctx, self.id, 8);
         self.score_death(ctx, world)
     }
 
@@ -170,7 +170,7 @@ impl Actor {
         if self.kind & 0xf0 == 0xa0 {
             let source = ctx.collision.slots[hit].actor();
             if let Some(id) = source {
-                world.intelligence.voices.push((id, 4));
+                world.voice(self, ctx, id, 4);
                 self.consume_hit(ctx, hit);
                 let enemy = if id == self.id {
                     &*self
@@ -199,7 +199,7 @@ impl Actor {
             }
             world.combat.request_life(self);
             let motion = if self.health != 0 {
-                world.intelligence.voices.push((self.id, 6));
+                world.voice(self, ctx, self.id, 6);
                 world.intelligence.reset_alert();
                 MOT_DAMAGE
             } else {
@@ -207,7 +207,7 @@ impl Actor {
                     self.score_death(ctx, world)?;
                 }
                 if self.attribute & (ATTR_WEAPON_DRAWN | 2) != 0 {
-                    world.intelligence.voices.push((self.id, 8));
+                    world.voice(self, ctx, self.id, 8);
                     world.intelligence.reset_alert();
                 }
                 MOT_DEAD
@@ -332,10 +332,10 @@ impl Actor {
                 sprite: 1,
             });
             if ctx.random.next15() & 1 != 0 {
-                world.intelligence.voices.push((self.id, 10));
+                world.voice(self, ctx, self.id, 10);
             }
             if enemy_kind & 0xf0 != 0xa0 {
-                world.intelligence.voices.push((self.id, 3));
+                world.voice(self, ctx, self.id, 3);
             }
             return Ok(None);
         }
@@ -423,7 +423,7 @@ impl Actor {
                 self.score_death(ctx, world)?;
             }
             if self.attribute & (ATTR_WEAPON_DRAWN | 2) != 0 {
-                world.intelligence.voices.push((self.id, 8));
+                world.voice(self, ctx, self.id, 8);
                 world.intelligence.reset_alert();
             }
         } else {
@@ -457,13 +457,13 @@ impl Actor {
         ctx.effects.impact(position, 24576, 2, ctx.random);
         self.feedback(world, ctx, source, RumbleAction::Damage, 30);
         let voice = if ctx.random.next15() & 1 != 0 { 6 } else { 7 };
-        world.intelligence.voices.push((self.id, voice));
+        world.voice(self, ctx, self.id, voice);
         let sound = if ctx.random.next15() & 1 == 0 && self.health == 0 {
             5
         } else {
             4
         };
-        world.intelligence.voices.push((source, sound));
+        world.voice(self, ctx, source, sound);
         self.finish_damage(ctx, world, next, movement)
     }
 
@@ -607,7 +607,7 @@ impl Actor {
         } else {
             7
         };
-        world.intelligence.voices.push((self.id, voice));
+        world.voice(self, ctx, self.id, voice);
         if self.id != world.player {
             world.combat.request_life(self);
         } else {
@@ -622,7 +622,7 @@ impl Actor {
         if ctx.mission.characters[self.definition].weapon == KATANAL && self.weapons[3].is_some() {
             self.weapons[2] = self.weapons[0].take();
             self.weapons[0] = self.weapons[3].take();
-            world.intelligence.voices.push((self.id, 1));
+            world.voice(self, ctx, self.id, 1);
         }
     }
 
@@ -662,7 +662,7 @@ impl Actor {
             }
             MOT_DAMAGE_SLAM_BACK | MOT_DAMAGE_SLAM_FORE => {
                 if count == 1 {
-                    world.intelligence.voices.push((self.id, 0x1d));
+                    world.voice(self, ctx, self.id, 0x1d);
                     ctx.effects
                         .smoke_burst(self.position, 500, 30, 30, ctx.random);
                     ctx.effects

@@ -54,7 +54,9 @@ fn localized_voices_override_imported_movesets_and_follow_language() {
             library.apply_player(&mut game, &settings).unwrap();
             assert!(!library.apply_player(&mut game, &settings).unwrap());
             let rng = game.random;
-            game.intelligence.voices = [9, 6, 8, 15, 0].map(|cue| (game.player_id, cue)).to_vec();
+            game.intelligence.voices = [9, 6, 8, 15, 0]
+                .map(|cue| game.voice_event(game.player_id, cue))
+                .to_vec();
             let sounds = game.audio_with_burning([], None).unwrap();
             assert_eq!(sounds.len(), 5);
             for sound in &sounds[..4] {
@@ -80,7 +82,7 @@ fn localized_voices_override_imported_movesets_and_follow_language() {
     }
     settings.voice_model.clear();
     library.apply_player(&mut game, &settings).unwrap();
-    game.intelligence.voices = vec![(game.player_id, 9)];
+    game.intelligence.voices = vec![game.voice_event(game.player_id, 9)];
     assert!(Arc::ptr_eq(
         game.audio_with_burning([], None).unwrap()[0]
             .bank
@@ -92,7 +94,7 @@ fn localized_voices_override_imported_movesets_and_follow_language() {
     for language in [Language::English, Language::Japanese, Language::English] {
         game.mission.scripts.language = language;
         library.apply_player(&mut game, &settings).unwrap();
-        game.intelligence.voices = vec![(game.player_id, 9)];
+        game.intelligence.voices = vec![game.voice_event(game.player_id, 9)];
         assert!(Arc::ptr_eq(
             game.audio_with_burning([], None).unwrap()[0]
                 .bank

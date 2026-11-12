@@ -67,7 +67,7 @@ impl Sound {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Listener {
     pub position: Position,
     pub yaw: i16,
@@ -75,6 +75,14 @@ pub struct Listener {
 }
 
 impl Listener {
+    pub(crate) fn new(position: Position, yaw: i16, camera: &crate::camera::Camera) -> Self {
+        Self {
+            position,
+            yaw,
+            direction: (camera.mode == Mode::Direction).then_some(camera.direction[1]),
+        }
+    }
+
     pub fn sound(&self, math: &Math, position: Option<Position>, id: i16) -> Result<Option<Sound>> {
         let Some(position) = position else {
             return Ok(Some(Sound::local(id)));
@@ -118,7 +126,35 @@ impl Listener {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Voice {
+    pub actor: usize,
+    pub id: i16,
+    pub position: Position,
+    pub listener: Listener,
+}
+
+impl Voice {
+    pub(crate) fn new(
+        actor: &crate::actor::Actor,
+        player: &crate::actor::Actor,
+        camera: &crate::camera::Camera,
+        id: i16,
+    ) -> Self {
+        Self {
+            actor: actor.id,
+            id,
+            position: actor.position,
+            listener: Listener::new(player.position, player.rotation[1], camera),
+        }
+    }
+}
+
 impl Game {
+    pub fn voice_event(&self, actor: usize, id: i16) -> Voice {
+        Voice::new(self.roster.get(actor), self.player(), &self.camera, id)
+    }
+
     pub fn sounds(&self) -> Result<Vec<Sound>> {
         self.sounds_with_effects(self.effects.sounds.iter().copied())
     }
@@ -147,12 +183,7 @@ impl Game {
         effects: impl IntoIterator<Item = (Position, i16)>,
         burning: Option<BurningSound>,
     ) -> Result<Vec<Sourced<Sound>>> {
-        let listener = Listener {
-            position: self.player().position,
-            yaw: self.player().rotation[1],
-            direction: (self.camera.mode == Mode::Direction).then_some(self.camera.direction[1]),
-        };
-        self.audio_with_listener(listener, effects, burning)
+        self.audio(None, effects, burning)
     }
 
     pub fn audio_with_listener(
@@ -161,8 +192,19 @@ impl Game {
         effects: impl IntoIterator<Item = (Position, i16)>,
         burning: Option<BurningSound>,
     ) -> Result<Vec<Sourced<Sound>>> {
+        self.audio(Some(listener), effects, burning)
+    }
+
+    fn audio(
+        &self,
+        override_listener: Option<Listener>,
+        effects: impl IntoIterator<Item = (Position, i16)>,
+        burning: Option<BurningSound>,
+    ) -> Result<Vec<Sourced<Sound>>> {
         let mut sounds = Vec::new();
-        for &(id, mut sound) in &self.intelligence.voices {
+        for event in &self.intelligence.voices {
+            let id = event.actor;
+            let mut sound = event.id;
             let Some(actor) = self.roster.actors.get(id).and_then(Option::as_ref) else {
                 continue;
             };
@@ -212,9 +254,9 @@ impl Game {
                     sound | program << 4
                 };
             }
-            if let Some(sound) = listener.sound(
+            if let Some(sound) = override_listener.unwrap_or(event.listener).sound(
                 &self.math,
-                (id != self.player_id).then_some(actor.position),
+                (id != self.player_id).then_some(event.position),
                 sound,
             )? {
                 sounds.push(Sourced {
@@ -223,6 +265,13 @@ impl Game {
                 });
             }
         }
+        let listener = override_listener.unwrap_or_else(|| {
+            Listener::new(
+                self.player().position,
+                self.player().rotation[1],
+                &self.camera,
+            )
+        });
         for (position, sound) in effects {
             let position =
                 (!matches!(sound, 0x0b | 0x0e | 0x27 | 0x39 | 0x41 | 0x43)).then_some(position);

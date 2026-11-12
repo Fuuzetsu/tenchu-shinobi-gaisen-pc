@@ -29,7 +29,7 @@ impl Items {
         used: Used<state::Smoke>,
         actors: &mut Actors,
         intelligence: &mut crate::ai::Intelligence,
-        clock: i32,
+        (player, clock): (usize, i32),
         ctx: &mut Context,
     ) -> Result<()> {
         let Some(position) = self.roll_icon(id, actors, ctx)? else {
@@ -68,7 +68,12 @@ impl Items {
                         actor.clear_attack(ctx, 3)?;
                         Self::item_motion(actor, MOT_DAMAGE_CHOKE, ctx);
                     }
-                    intelligence.voices.push((target, 6));
+                    intelligence.voices.push(crate::audio::Voice::new(
+                        actors.get(target),
+                        actors.get(player),
+                        ctx.camera,
+                        6,
+                    ));
                 }
             }
         }

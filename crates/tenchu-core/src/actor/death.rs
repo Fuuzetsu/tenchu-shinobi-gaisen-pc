@@ -80,7 +80,7 @@ impl Actor {
             witness.brain.chase = [self.position.x, self.position.z];
             witness.brain.timer = 2;
             witness.brain.count = 0;
-            world.intelligence.voices.push((id, 14));
+            world.voice(self, ctx, id, 14);
         }
         Ok(())
     }
@@ -134,8 +134,8 @@ impl Actor {
             if self.motion.count < 10 {
                 ctx.effects
                     .rumble(world.player, RumbleAction::StealthInterrupted, 255, 10, 10);
-                world.intelligence.voices.push((self.id, 8));
-                world.intelligence.voices.push((world.player, 5));
+                world.voice(self, ctx, self.id, 8);
+                world.voice(self, ctx, world.player, 5);
             }
             return Ok(Some((MOT_DEAD, true)));
         }
@@ -163,7 +163,7 @@ impl Actor {
         match self.motion.action {
             MOT_DEAD_DROWN => {
                 if ctx.random.next15() % 20 == 0 {
-                    world.intelligence.voices.push((self.id, 0x16));
+                    world.voice(self, ctx, self.id, 0x16);
                 }
                 if ctx.random.next15() & 5 == 0 {
                     let width = i32::from(ctx.mission.characters[self.definition].width);
@@ -197,11 +197,8 @@ impl Actor {
                     return Ok(None);
                 }
                 match event.action {
-                    0 => world
-                        .intelligence
-                        .voices
-                        .push((world.player, event.payload[0])),
-                    1 => world.intelligence.voices.push((self.id, event.payload[0])),
+                    0 => world.voice(self, ctx, world.player, event.payload[0]),
+                    1 => world.voice(self, ctx, self.id, event.payload[0]),
                     2 => ctx.effects.rumble(
                         world.player,
                         RumbleAction::StealthKill,
@@ -248,7 +245,7 @@ impl Actor {
                         sever = Some(2);
                     }
                     if self.motion.count == 5 && world.combat.death_sound == Some(self.id) {
-                        world.intelligence.voices.push((self.id, 0x38));
+                        world.voice(self, ctx, self.id, 0x38);
                         if dismemberment.enabled
                             && !(self.id == world.player && dismemberment.player)
                         {
@@ -447,7 +444,7 @@ impl Actor {
             {
                 world.intelligence.reset_alert();
             }
-            world.intelligence.voices.push((id, 12));
+            world.voice(self, ctx, id, 12);
             let witness = world.roster.get_mut(id);
             witness.enter(ctx, MOT_STATE_DRAW, true);
             self.attribute |= ATTR_SEARCH;

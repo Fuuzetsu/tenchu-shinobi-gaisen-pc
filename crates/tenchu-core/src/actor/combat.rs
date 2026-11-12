@@ -309,17 +309,17 @@ impl Actor {
         Ok(Some((action, true)))
     }
 
-    fn twin_blade(&mut self, world: &mut ActionContext, draw: i16, stow: i16) {
+    fn twin_blade(&mut self, ctx: &Context, world: &mut ActionContext, draw: i16, stow: i16) {
         if self.motion.count == draw {
             if self.weapons[3].is_some() {
                 self.weapons[2] = self.weapons[0].take();
                 self.weapons[0] = self.weapons[3].take();
-                world.intelligence.voices.push((self.id, 1));
+                world.voice(self, ctx, self.id, 1);
             }
         } else if self.motion.count == stow && self.weapons[2].is_some() {
             self.weapons[3] = self.weapons[0].take();
             self.weapons[0] = self.weapons[2].take();
-            world.intelligence.voices.push((self.id, 0));
+            world.voice(self, ctx, self.id, 0);
         }
     }
 
@@ -366,7 +366,7 @@ impl Actor {
                 .get(attack)
                 .ok_or("Clash collision index exceeds loaded BattleDB")?;
             self.motion.loops = battle.power / -3 - 1;
-            world.intelligence.voices.push((self.id, 0x36));
+            world.voice(self, ctx, self.id, 0x36);
             ctx.effects
                 .rumble(self.id, RumbleAction::WeaponClash, 255, 10, 0);
             break;
@@ -385,7 +385,9 @@ impl Actor {
                 return Ok(Some((MOT_DEAD, true)));
             }
             self.attack = self.attack_id(ctx, self.motion.action);
-            world.intelligence.voices.push((
+            world.voice(
+                self,
+                ctx,
                 self.id,
                 if self.motion.action == MOT_ATTACK_TAUNT {
                     11
@@ -394,7 +396,7 @@ impl Actor {
                 } else {
                     10
                 },
-            ));
+            );
         }
         let battle = ctx.mission.weapons.attacks[self.attack].clone();
         let assisted = self.id == world.player
@@ -430,7 +432,7 @@ impl Actor {
         let mut pending = None;
         match action {
             MOT_ATTACK => match self.motion_id(ctx, MOT_ATTACK) {
-                0xf1 => self.twin_blade(world, 42, 6),
+                0xf1 => self.twin_blade(ctx, world, 42, 6),
                 0xaa | 0x1a4 => self.bow_control(ctx, world, false)?,
                 0xab => self.gun_control(ctx, world, 20, 100)?,
                 0xac => self.gun_control(ctx, world, 22, 700)?,
@@ -440,7 +442,7 @@ impl Actor {
             },
             MOT_ATTACK_SLASH2 => {
                 if kind == KATANAL {
-                    self.twin_blade(world, 52, 1);
+                    self.twin_blade(ctx, world, 52, 1);
                 }
                 if kind == KATAYUMI {
                     self.bow_control(ctx, world, true)?;
@@ -453,8 +455,8 @@ impl Actor {
             MOT_ATTACK_SLASH3 | MOT_ATTACK_SLASH4 if kind == SEVEN => {
                 self.lightning_control(ctx, world)?;
             }
-            MOT_ATTACK_RIGHT1 if kind == KATANAL => self.twin_blade(world, 52, 16),
-            MOT_ATTACK_LEFT1 if kind == KATANAL => self.twin_blade(world, 43, 13),
+            MOT_ATTACK_RIGHT1 if kind == KATANAL => self.twin_blade(ctx, world, 52, 16),
+            MOT_ATTACK_LEFT1 if kind == KATANAL => self.twin_blade(ctx, world, 43, 13),
             MOT_ATTACK_DIVE => {
                 if self.motion.count == 1 && self.map.height > 3000 {
                     ctx.camera.mode = crate::camera::Mode::Fall;
@@ -479,7 +481,7 @@ impl Actor {
                 }
                 if self.attribute & ATTR_NOFLOOR != 0 {
                     pending = Some((MOT_ATTACK_DIVE_LAND, false));
-                    world.intelligence.voices.push((self.id, 0x1a));
+                    world.voice(self, ctx, self.id, 0x1a);
                     ctx.effects
                         .smoke_burst(self.position, 300, 12, 10, ctx.random);
                 }
@@ -683,7 +685,7 @@ impl Actor {
                     ctx.collision.slots[slot].hit_targets.clear();
                 }
             }
-            world.intelligence.voices.push((self.id, 2));
+            world.voice(self, ctx, self.id, 2);
             ctx.effects.rumble(self.id, RumbleAction::Attack, 255, 5, 0);
         } else if self.motion.count == battle.end {
             self.clear_attack(ctx, 1)?;

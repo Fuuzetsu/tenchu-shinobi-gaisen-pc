@@ -140,7 +140,7 @@ pub struct Intelligence {
     pub probe_attribute: [u16; 2],
     pub action_halt: Halt,
     pub cinematic: bool,
-    pub voices: Vec<(usize, i16)>,
+    pub voices: Vec<crate::audio::Voice>,
     pub population_delta: [i16; 2],
 }
 
@@ -304,7 +304,25 @@ impl<'a, 'b> Controller<'a, 'b> {
     }
 
     fn voice(&mut self, id: i16) {
-        self.state.voices.push((self.actor.id, id));
+        self.voice_for(self.actor.id, id);
+    }
+
+    fn voice_for(&mut self, actor: usize, id: i16) {
+        let actor = if actor == self.actor.id {
+            &*self.actor
+        } else {
+            self.roster.get(actor)
+        };
+        self.state.voices.push(crate::audio::Voice {
+            actor: actor.id,
+            id,
+            position: actor.position,
+            listener: crate::audio::Listener::new(
+                self.player.position,
+                self.player.facing,
+                self.ctx.camera,
+            ),
+        });
     }
 
     fn alert(&mut self) {

@@ -48,7 +48,7 @@ impl Actor {
         world.intelligence.action_halt = crate::ai::Halt::Running;
         self.hide_body(ctx.scene, true);
         let action = if !self.registered(ctx, MOT_SWIM) || self.health == 0 {
-            world.intelligence.voices.push((self.id, 8));
+            world.voice(self, ctx, self.id, 8);
             self.health = 0;
             world.combat.request_life(self);
             MOT_DEAD_DROWN

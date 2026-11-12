@@ -549,12 +549,27 @@ voice at clock 149, about 2.818 seconds later. The isolated sample lasts about
 there is no voice-lifetime change to make for this reproduced case.
 
 The audio regression replays the captured draw cadence through `Audio::tick`
-and checks all 55 cue IDs and logic clocks against the retail observation, plus
-the scream and its channel-reuse event. Existing mixer checks cover 24-voice
-rotation. The cue order/count matches, but a preceding footstep at clock 38 has
-a small volume/pan difference from resolving its position after the update;
-this is not a claim of sample-exact audio parity. The reporter's original kill
-and comparison edition remain unspecified.
+and checks all 55 cue IDs, logic clocks, volumes and stereo positions against
+the retail observation, plus the scream and its channel-reuse event. Existing
+mixer checks cover 24-voice rotation. This is not a claim of sample-exact audio
+parity. The reporter's original kill and comparison edition remain unspecified.
+
+A separate sound-position bug preceded the kill. At clock 38, the cultist's
+footstep uses emitter `(-792,4830,-35202)` and listener `(2698,7300,-44583)`,
+with yaw 2221. Read-only instruction observations show the player's ordinary
+control moving it to that listener position before the footstep. The speed
+scroll then moves the player to `(2829,7060,-44101)` during item control.
+Resolving the queued footstep after that movement produced volume/pan 44/38
+instead of the original 41/39. Capturing emitter and listener coordinates at the
+actor sound call corrects all 55 events without changing movement or audio math.
+Both instrumented recaptures reproduce the entry checkpoint and final RAM.
+
+The regression also restores the in-flight event through both savestate and
+rewind paths, verifies that later actor/camera movement cannot change it, and
+checks explicit listener overrides used by native T2 scenes. These counterfactual
+checks operate on restored copies; the recorded playthrough receives no state
+corrections. Positional-effect listener timing and sub-tick SPU playback remain
+outside this fix.
 
 Run `recorded_cultist_death_retains_retail_sound_sequence` with `TENCHU_DISC`
 and `TENCHU_CULTIST_REPLAY` pointing to the private verified replay. Captures,

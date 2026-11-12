@@ -8,6 +8,7 @@ impl Items {
         used: Used<state::Sleep>,
         actors: &mut Actors,
         intelligence: &mut Intelligence,
+        player: usize,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
@@ -88,7 +89,12 @@ impl Items {
                     actor.attribute &= !ATTR_PHASE;
                 }
                 actor.enter(ctx, MOT_ACTION, true);
-                intelligence.voices.push((target, 6));
+                intelligence.voices.push(crate::audio::Voice::new(
+                    actors.get(target),
+                    actors.get(player),
+                    ctx.camera,
+                    6,
+                ));
             }
             return self.dispose(id, actors, ctx);
         }

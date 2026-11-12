@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix actor sounds using positions from later in the update, which could give
+  footsteps the wrong volume and stereo position while using a speed scroll.
+
+- Update the mid-mission savestate format to retain pending sound positions.
+  Older snapshots require the build that created them; campaign saves are unchanged.
+
 ## 0.30.1 — 2026-11-12
 
 - Restore Android builds after the native T2 randomizer integration.

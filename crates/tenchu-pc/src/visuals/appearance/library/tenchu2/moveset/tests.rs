@@ -300,8 +300,8 @@ fn imported_sheathing_uses_source_motions_and_weapon_frames() {
                             .intelligence
                             .voices
                             .iter()
-                            .filter(|&&(actor, cue)| {
-                                actor == game.player_id && cue == i16::from(!drawing)
+                            .filter(|event| {
+                                event.actor == game.player_id && event.id == i16::from(!drawing)
                             })
                             .count();
                         for event in game.audio_with_burning([], None).unwrap() {
@@ -994,7 +994,7 @@ fn imported_voices_follow_the_moveset_and_survive_restore() {
         assert!(audible, "hero {kind}: silent source");
         let bytes = postcard::to_allocvec(&game).unwrap();
         let mut restored: tenchu_core::game::Game = postcard::from_bytes(&bytes).unwrap();
-        restored.intelligence.voices = vec![(restored.player_id, 9)];
+        restored.intelligence.voices = vec![restored.voice_event(restored.player_id, 9)];
         let events = restored.audio_with_burning([], None).unwrap();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].sound.id, 10);

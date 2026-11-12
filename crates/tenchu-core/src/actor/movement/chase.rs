@@ -49,7 +49,7 @@ impl Actor {
                 let turn = ctx.mission.characters[self.definition].turn;
                 self.rotation[1] = self.rotation[1].wrapping_add(if right { turn } else { -turn });
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 0x10));
+                    world.voice(self, ctx, self.id, 0x10);
                 }
                 if held & if right { RIGHT } else { LEFT } == 0 {
                     pending = Some((MOT_ENGAGE_STANCE, true));
@@ -151,7 +151,9 @@ impl Actor {
                         .walking
                         .is_some_and(|walk| self.motion.clip == Some(walk.clip));
                 if self.motion.count == i16::from(walking) || self.motion.count == duration / 2 {
-                    world.intelligence.voices.push((
+                    world.voice(
+                        self,
+                        ctx,
                         self.id,
                         if self.map.attribute & 8 != 0 {
                             0x14
@@ -160,7 +162,7 @@ impl Actor {
                         } else {
                             0x12
                         },
-                    ));
+                    );
                 }
                 if held & UP == 0 {
                     pending = Some((MOT_ENGAGE_STANCE, true));
@@ -191,7 +193,7 @@ impl Actor {
             }
             MOT_CHASE_BACK => {
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 0x11));
+                    world.voice(self, ctx, self.id, 0x11);
                 }
                 if held & DOWN == 0 {
                     pending = Some((MOT_ENGAGE_STANCE, true));
@@ -225,7 +227,7 @@ impl Actor {
                     }
                 }
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 0x13));
+                    world.voice(self, ctx, self.id, 0x13);
                 }
                 if self.motion.count < 7 {
                     ctx.effects

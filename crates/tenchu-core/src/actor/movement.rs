@@ -209,7 +209,7 @@ impl Actor {
             }
             MOT_NORMAL_TURN_R | MOT_NORMAL_TURN_L => {
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 0x10));
+                    world.voice(self, ctx, self.id, 0x10);
                 }
                 let right = self.motion.action == MOT_NORMAL_TURN_R;
                 if held & if right { RIGHT } else { LEFT } != 0 {
@@ -277,7 +277,7 @@ impl Actor {
                     pending = Some((self.return_normal(ctx, world.player)?, true));
                 }
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 15));
+                    world.voice(self, ctx, self.id, 15);
                 } else if complete {
                     pending = Some((self.return_normal(ctx, world.player)?, true));
                 }
@@ -301,7 +301,7 @@ impl Actor {
             }
             MOT_ACTION_NOTICE => {
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 6));
+                    world.voice(self, ctx, self.id, 6);
                 } else if complete {
                     pending = Some((MOT_STATE_DRAW, true));
                 }
@@ -333,7 +333,7 @@ impl Actor {
             MOT_MOVE => {
                 let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
                 if self.motion.count == 1 || self.motion.count == duration / 2 {
-                    world.intelligence.voices.push((self.id, 0x11));
+                    world.voice(self, ctx, self.id, 0x11);
                 }
                 if held & UP == 0 {
                     pending = Some((MOT_NORMAL, true));
@@ -354,7 +354,7 @@ impl Actor {
             }
             MOT_MOVE_BACK => {
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 0x11));
+                    world.voice(self, ctx, self.id, 0x11);
                 }
                 if held & DOWN == 0 {
                     pending = Some((MOT_NORMAL, true));
@@ -369,7 +369,7 @@ impl Actor {
             }
             MOT_MOVE_DASH_FWD..=MOT_MOVE_DASH_LEFT => {
                 if self.motion.count == 1 {
-                    world.intelligence.voices.push((self.id, 0x13));
+                    world.voice(self, ctx, self.id, 0x13);
                 }
                 if self.motion.count == 0 && self.motion.loops != 0 {
                     pending = Some((MOT_NORMAL, true));
@@ -409,9 +409,9 @@ impl Actor {
             if (guard_step || self.motion.count < 11) && self.registered(ctx, MOT_JUMP_RUN) {
                 self.move_at(ctx.math, if guard_step { 150 } else { 127 }, 0);
                 if self.id == world.player {
-                    world.intelligence.voices.push((self.id, 0x48));
+                    world.voice(self, ctx, self.id, 0x48);
                 }
-                world.intelligence.voices.push((self.id, 0x17));
+                world.voice(self, ctx, self.id, 0x17);
                 return Some((MOT_JUMP_RUN, false));
             }
             return None;
@@ -469,14 +469,14 @@ impl Actor {
                 self.rotation[1] = yaw.wrapping_add(2048);
                 self.move_at(ctx.math, -100, 0);
             }
-            world.intelligence.voices.push((self.id, 0x48));
+            world.voice(self, ctx, self.id, 0x48);
             return Ok(None);
         }
         if self.attribute & (ATTR_NOFLOOR | ATTR_BUOYANT) != 0 && self.motion.count >= 2 {
             let level = terrain::level(&ctx.mission.terrain, ctx.cursor, self.position, 0)?;
             if self.position.y < level {
                 self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
-                world.intelligence.voices.push((self.id, 6));
+                world.voice(self, ctx, self.id, 6);
                 self.motion.count >>= 2;
                 ctx.effects
                     .rumble(self.id, RumbleAction::JumpCollision, 255, 10, 0);
@@ -554,10 +554,7 @@ impl Actor {
                         self.clear_attack(ctx, 3)?;
                         self.equip(ctx, drawing);
                         if event.sound {
-                            world
-                                .intelligence
-                                .voices
-                                .push((self.id, i16::from(!drawing)));
+                            world.voice(self, ctx, self.id, i16::from(!drawing));
                         }
                     }
                     return Ok((self.motion.loops != 0).then_some((
@@ -585,10 +582,7 @@ impl Actor {
                         )));
                     }
                 } else if count == duration / 2 {
-                    world
-                        .intelligence
-                        .voices
-                        .push((self.id, if drawing { 0 } else { 1 }));
+                    world.voice(self, ctx, self.id, if drawing { 0 } else { 1 });
                     self.equip(ctx, drawing);
                 } else if count == 0 && self.motion.loops != 0 {
                     if drawing
@@ -618,7 +612,7 @@ impl Actor {
             MOT_STATE_CLIMB => {
                 let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
                 if count == duration / 2 || (count == 0 && self.motion.loops != 0) {
-                    world.intelligence.voices.push((self.id, 0x13));
+                    world.voice(self, ctx, self.id, 0x13);
                 }
                 Ok(
                     (count == duration / 2 || (count == 0 && self.motion.loops != 0))
@@ -633,7 +627,7 @@ impl Actor {
                     .then_some((MOT_ATTACK_DIVE, false));
                 if self.attribute & ATTR_NOFLOOR != 0 || self.map.height <= 0 {
                     pending = Some(if self.motion.count < -40 {
-                        world.intelligence.voices.push((self.id, 0x19));
+                        world.voice(self, ctx, self.id, 0x19);
                         (self.return_normal(ctx, world.player)?, true)
                     } else if self.motion.count > -21 {
                         if self.kind & 0xf0 == 0x10 {
@@ -645,7 +639,7 @@ impl Actor {
                             if !self.invulnerable {
                                 self.health = self.health.wrapping_sub(10).max(0);
                             }
-                            world.intelligence.voices.push((self.id, 8));
+                            world.voice(self, ctx, self.id, 8);
                             world.combat.request_life(self);
                             (action, false)
                         } else {
@@ -686,10 +680,12 @@ impl Actor {
                 }
                 if count == 1 {
                     let action = pending.map_or(self.motion.action, |p| p.0);
-                    world
-                        .intelligence
-                        .voices
-                        .push((self.id, if action == MOT_STATE_LAND { 0x19 } else { 0x1a }));
+                    world.voice(
+                        self,
+                        ctx,
+                        self.id,
+                        if action == MOT_STATE_LAND { 0x19 } else { 0x1a },
+                    );
                     ctx.effects
                         .smoke_burst(self.position, 300, 12, 10, ctx.random);
                     let (attack, release) = if action == MOT_STATE_LAND_HEAVY {

@@ -242,7 +242,7 @@ impl Controller<'_, '_> {
                             self.actor.brain.chase[1].wrapping_add((self.random() % 5 - 2) * 500);
                         self.roster.get_mut(id).brain.chase = [x, z];
                         let voice = if self.random() & 1 != 0 { 9 } else { 10 };
-                        self.state.voices.push((id, voice));
+                        self.voice_for(id, voice);
                         self.state.population_delta[0] =
                             self.state.population_delta[0].wrapping_add(1);
                     }

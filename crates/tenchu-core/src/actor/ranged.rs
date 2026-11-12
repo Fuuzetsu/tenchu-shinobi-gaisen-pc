@@ -24,7 +24,7 @@ impl Actor {
         world: &mut ActionContext,
     ) -> Result<()> {
         if self.motion.count == 13 {
-            world.intelligence.voices.push((self.id, 5));
+            world.voice(self, ctx, self.id, 5);
             let start = ctx.scene.world(self.parts[13])?.transform([0, 0, -700]);
             let speed = (ctx.random.next15() % 5 * 1000 + 4000) as i16;
             let velocity = ctx.math.velocity(self.rotation[1], speed, 0);
@@ -56,7 +56,7 @@ impl Actor {
     ) -> Result<()> {
         if (36..=65).contains(&self.motion.count) {
             if self.motion.count == 36 {
-                world.intelligence.voices.push((self.id, 0x28));
+                world.voice(self, ctx, self.id, 0x28);
             }
             let start = ctx.scene.world(self.parts[2])?.transform([0, -100, -300]);
             let velocity = ctx.math.velocity(self.rotation[1], 100, 0);
@@ -130,7 +130,7 @@ impl Actor {
                 .world(self.parts[13])?
                 .transform([0, length, -100]);
             self.shoot(ctx, world, Kind::Gun, start)?;
-            world.intelligence.voices.push((self.id, 2));
+            world.voice(self, ctx, self.id, 2);
         }
         Ok(())
     }
@@ -143,7 +143,7 @@ impl Actor {
     ) -> Result<()> {
         let [min, max] = ctx.mission.weapons.bow_timing[usize::from(combo)];
         if self.motion.count == 1 {
-            world.intelligence.voices.push((self.id, 2));
+            world.voice(self, ctx, self.id, 2);
         } else if min <= self.motion.count && self.motion.count < max {
             let weapon = self.weapons[2]
                 .as_ref()
@@ -164,7 +164,7 @@ impl Actor {
         if self.motion.count == max {
             let start = ctx.scene.world(self.parts[13])?.translation;
             self.shoot(ctx, world, Kind::Arrow, start)?;
-            world.intelligence.voices.push((self.id, 3));
+            world.voice(self, ctx, self.id, 3);
         }
         Ok(())
     }

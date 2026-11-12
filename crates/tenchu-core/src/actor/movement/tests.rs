@@ -102,7 +102,7 @@ fall();printf("%d %d %d %d %d %d %d %d %d %d\n",motID,motMODE,motion.count,human
                     .intelligence
                     .voices
                     .last()
-                    .map_or(-1, |(_, id)| i32::from(*id)),
+                    .map_or(-1, |voice| i32::from(voice.id)),
                 world.combat.life_bars.len() as i32,
             ]);
         });

@@ -202,7 +202,12 @@ impl Items {
                     Self::item_motion(actor, action, ctx);
                     actor.status = ActorState::UseItem;
                 }
-                intelligence.voices.push((eater, 6));
+                intelligence.voices.push(crate::audio::Voice::new(
+                    actors.get(eater),
+                    actors.get(player),
+                    ctx.camera,
+                    6,
+                ));
             }
         }
         Ok(())

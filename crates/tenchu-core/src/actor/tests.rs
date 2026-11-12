@@ -190,7 +190,14 @@ fn weapon_clash_uses_collision_index_for_stun_and_keeps_the_slot() {
         assert_eq!(game.scene.models[hand].conflict, Some(own_slot));
         assert_eq!(game.scene.models[hand].attribute & crate::scene::COLLIDE, 0);
         assert_eq!(game.collision.slots[own_slot].results[hit], 0xc1);
-        assert_eq!(game.intelligence.voices, [(player, 0x36)]);
+        assert_eq!(
+            game.intelligence
+                .voices
+                .iter()
+                .map(|v| (v.actor, v.id))
+                .collect::<Vec<_>>(),
+            [(player, 0x36)]
+        );
         assert_eq!(
             game.effects.rumble.last().unwrap().action,
             RumbleAction::WeaponClash
@@ -581,7 +588,7 @@ fn human_and_item_damage_match_original_c() {
             game.intelligence
                 .voices
                 .iter()
-                .map(|&(who, sound)| which(Some(who)) * 256 + i32::from(sound)),
+                .map(|voice| which(Some(voice.actor)) * 256 + i32::from(voice.id)),
         );
         row.extend(
             game.effects

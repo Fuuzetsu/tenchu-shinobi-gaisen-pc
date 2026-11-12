@@ -547,7 +547,9 @@ impl Game {
         } else if let Phase::Failure(reason, _) = state.phase {
             match reason {
                 Failure::Spotted => {
-                    self.intelligence.voices.push((self.player_id, 6));
+                    self.intelligence
+                        .voices
+                        .push(self.voice_event(self.player_id, 6));
                     self.intelligence.action_halt = Halt::Running;
                     self.music.push(Some(10));
                 }

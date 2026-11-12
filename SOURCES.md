@@ -1101,10 +1101,11 @@ The spatial conversion follows `SEMNG.C::SoundEx` and `AUDIO.C::PlaySE`, includi
 the player run-step attenuation, original angle folding and packed direction/pan
 arithmetic. Program selection follows `APPEAR.C`'s stage appearance table.
 `MOTION.C` supplies restored walk/run/wood/turn/crouch footsteps, dashes, landing,
-ledge and jump sounds. Actor requests and position requests are currently
-presented after each completed logic tick; their listener position is sampled at
-that boundary and actor requests precede positional effects. Sub-tick SPU ordering
-is not claimed. Voice categories are suppressed during cinematics and suspension.
+ledge and jump sounds. Actor requests retain emitter position and listener pose
+at their source call. Positional effects still sample the listener after the
+completed logic tick, when both queues are presented with actor requests first.
+Sub-tick SPU ordering is not claimed. Voice categories are suppressed during
+cinematics and suspension.
 
 The host dispatches every completed tick, including catch-up ticks. XA decoding
 runs on a separate file-owning worker with cancellation and a 64 MiB cache; it
@@ -4017,10 +4018,21 @@ instruction-entry reads at Gaisen `PlaySE` (`80018b64`) and `SsUtKeyOnV`
 
 `tenchu-decomp/src/main.exe/AUDIO.C::PlaySE` explains the modulo-24 channel
 selection. No source algorithm was imported or modified. The test checks the
-recorded 55 cue/clock pairs and voice reuse after the cultist's death. Its
+recorded 55 cue/clock/volume/pan events and voice reuse after the cultist's death. Its
 expected digest comes from the original instruction observations, not the port.
 The source sample, RAM, replay and observer artifacts remain private; see
-`docs/validation.md` for coverage and the unrelated spatial-audio limitation.
+`docs/validation.md` for coverage and remaining audio boundaries.
+
+An additional read-only observer at `ControlHumanoid` (`80027ae0`), `Sound`
+(`8004ff10`) and `SoundEx` (`8004fc70`) establishes the clock-38 footstep's
+emitter and listener coordinates before the speed scroll's later movement.
+Both recaptures retain the original inputs and identical endpoint RAM.
+`SEMNG.C`, `HUMAN.C`, `MOTION.C` and `ITEM.C::ProcItemShinsoku` explain this
+call order. Actor events now retain those coordinates and listener orientation
+instead of resolving final actor positions during playback. Source arithmetic,
+cue ordering and channel reuse remain unchanged. Save/rewind and explicit
+listener overrides are covered by the recorded regression. No sibling repository
+was modified or algorithm imported.
 
 ## Indexed terrain boundary audit (2026-11-12)
 

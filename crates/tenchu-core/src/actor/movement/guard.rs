@@ -76,7 +76,7 @@ impl Actor {
             ));
         }
         if self.motion.count == 1 {
-            world.intelligence.voices.push((self.id, 0x13));
+            world.voice(self, ctx, self.id, 0x13);
             ctx.effects
                 .smoke_burst(self.position, 150, 12, 1, ctx.random);
         }
