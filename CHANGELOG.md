@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep the selected player body and weapon set during T1 cutscenes played with
+  T2 rules, including Mission 10. Custom bodies and independent weapon choices
+  follow the authored poses and drawn/sheathed state.
+
 - Fix freshly landed T2 blood flickering against floors, including T1 stages
   played with T2 rules. Live stains use the same surface separation as retained
   decals; original drop physics and fade timing are unchanged.

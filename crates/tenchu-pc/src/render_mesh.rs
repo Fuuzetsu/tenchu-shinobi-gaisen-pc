@@ -536,7 +536,7 @@ pub fn update_indexed_characters(
                 return;
             }
             let root = match key {
-                Part::Actor { root, .. } => Some(root),
+                Part::Actor { root, .. } | Part::Equipment { root, .. } => Some(root),
                 _ => None,
             };
             if root.is_some() && root == previous_root {

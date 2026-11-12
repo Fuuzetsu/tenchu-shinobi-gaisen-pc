@@ -135,6 +135,13 @@ struct Original {
 }
 
 impl Override {
+    pub(crate) fn has_player_override(&self) -> bool {
+        !self.applied.body.is_empty()
+            || !self.applied.moveset.is_empty()
+            || !self.applied.weapon.is_empty()
+            || self.custom.is_some()
+    }
+
     pub(super) fn same_body(&self, other: &Self) -> Result<bool> {
         Ok(self.applied == other.applied
             && Custom::same_resources(self.custom.as_ref(), other.custom.as_ref())?)

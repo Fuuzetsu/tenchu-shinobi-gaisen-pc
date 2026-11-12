@@ -442,6 +442,7 @@ pub(super) fn visit_parts_filtered(
     mut visit: impl FnMut(Part, &[model::Geometry], Matrix),
 ) {
     let appearance = models.and_then(|m| m.player.as_ref());
+    let equipment = models.and_then(|m| m.equipment.as_ref());
     let compatible = appearance.is_none_or(|a| {
         a.parents == parents(&game.mission.models[&game.player().rendered_mesh_kind])
     });
@@ -454,30 +455,40 @@ pub(super) fn visit_parts_filtered(
     let posed_player = transforms
         .as_ref()
         .map(|_| rendered_player(game, inspection));
-    if let Some(appearance) = appearance.filter(|a| a.meshes.has_skin()) {
-        if let Some(matrices) = &transforms {
-            appearance.meshes.pose_skin(
-                matrices,
-                attached_severed_pose(game, game.player(), &appearance.parts, matrices),
-            );
-        } else {
-            let player = rendered_player(game, inspection);
-            let mut matrices = rendered_matrices(&player, inspection, frame);
-            for (matrix, model) in matrices.iter_mut().zip(&player.parts) {
-                if let Some(offset) = offsets.as_ref().and_then(|o| o.get(model)) {
-                    for (value, offset) in matrix.translation.iter_mut().zip(offset.to_array()) {
-                        *value += offset.round() as i32;
+    let player_matrices = (equipment.is_some() || appearance.is_some_and(|a| a.meshes.has_skin()))
+        .then(|| {
+            transforms.clone().unwrap_or_else(|| {
+                let player = rendered_player(game, inspection);
+                let mut matrices = rendered_matrices(&player, inspection, frame);
+                for (matrix, model) in matrices.iter_mut().zip(&player.parts) {
+                    if let Some(offset) = offsets.as_ref().and_then(|o| o.get(model)) {
+                        for (value, offset) in matrix.translation.iter_mut().zip(offset.to_array())
+                        {
+                            *value += offset.round() as i32;
+                        }
                     }
                 }
-            }
-            appearance.meshes.pose_skin(
-                &matrices,
-                attached_severed_pose(game, &player, &appearance.parts, &matrices),
-            );
-        }
+                matrices
+            })
+        });
+    if let Some(appearance) = appearance.filter(|a| a.meshes.has_skin()) {
+        let matrices = player_matrices.as_ref().unwrap();
+        appearance.meshes.pose_skin(
+            matrices,
+            attached_severed_pose(game, game.player(), &appearance.parts, matrices),
+        );
     }
+    let mut player_submitted = false;
     let mut posed_actor = None;
     render_mesh::visit_character_parts(game, inspection, |key, geometry, matrix| {
+        if let Part::Actor { root, model, .. } = key
+            && root == game.player().root_model
+        {
+            player_submitted = true;
+            if equipment.is_some() && !game.player().parts.contains(&model) {
+                return;
+            }
+        }
         if !include(key) {
             return;
         }
@@ -557,6 +568,31 @@ pub(super) fn visit_parts_filtered(
         }
         visit(key, geometry, matrix);
     });
+    if let Some(equipment) = equipment.filter(|_| player_submitted) {
+        let player = game.player();
+        let matrices = player_matrices.as_ref().unwrap();
+        let mut slots = [0, 1, 2, 3, 4];
+        if player.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN != 0 {
+            equipment.draw.swap(&mut slots);
+        }
+        for (attachment, part) in equipment.attachments.iter().enumerate() {
+            let key = Part::Equipment {
+                root: player.root_model,
+                attachment,
+                inspection,
+            };
+            if [slots[0], slots[1], slots[4]].contains(&part.slot) && include(key) {
+                visit(
+                    key,
+                    &part.model.geometry,
+                    matrices[part.part].compose(&Matrix {
+                        translation: part.position.map(i32::from).into(),
+                        ..Default::default()
+                    }),
+                );
+            }
+        }
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]

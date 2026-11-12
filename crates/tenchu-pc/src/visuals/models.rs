@@ -33,6 +33,7 @@ pub struct Models {
     imported: Vec<Meshes>,
     imported_geometry: BTreeMap<usize, usize>,
     pub(super) player: Option<super::appearance::Appearance>,
+    pub(super) equipment: Option<tenchu_assets::weapon::Equipment>,
     pub replacements: usize,
     pub grapple: bool,
     pub motion: super::motion::Frame,
@@ -136,24 +137,7 @@ impl Models {
         }
         for (&kind, source) in mission.weapons.imported_models.iter() {
             let geometry = &mission.weapons.models[&kind];
-            let sources = vec![catalog::ModelSource {
-                id: source.source_id.clone(),
-                role: catalog::Role::Other,
-                hero_part: None,
-                label: source.id.clone(),
-                geometry,
-            }];
-            let pack = if graphics.asset_pack {
-                Pack::for_models(&source.vram, &sources)?
-            } else {
-                Pack::default()
-            };
-            let mut meshes = Meshes::build(&source.vram, &pack, graphics, sources, true)?;
-            meshes.inherit_palette_blending(&source.vram);
-            meshes.detach_textures();
-            if graphics.asset_pack {
-                meshes.replace_textures(&pack);
-            }
+            let meshes = weapon_meshes(source, geometry, graphics)?;
             imported_geometry.insert(geometry.as_ptr() as usize, imported.len());
             imported.push(meshes);
         }
@@ -168,6 +152,7 @@ impl Models {
             imported,
             imported_geometry,
             player: None,
+            equipment: None,
             motion: Default::default(),
         })
     }
@@ -183,6 +168,37 @@ impl Models {
     ) -> Result<Self> {
         self.player =
             super::appearance::Appearance::build(game, selection, pack, bodies, graphics, library)?;
+        self.pose_generation = Arc::default();
+        Ok(self)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn with_appearance(mut self, player: Option<super::appearance::Appearance>) -> Self {
+        self.player = player;
+        self.pose_generation = Arc::default();
+        self
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn with_equipment(
+        mut self,
+        equipment: Option<tenchu_assets::weapon::Equipment>,
+        graphics: &Graphics,
+    ) -> Result<Self> {
+        if let Some(equipment) = &equipment {
+            for attachment in &equipment.attachments {
+                let source = &attachment.model;
+                let geometry = &source.geometry;
+                let key = geometry.as_ptr() as usize;
+                if self.imported_geometry.contains_key(&key) {
+                    continue;
+                }
+                let meshes = weapon_meshes(source, geometry, graphics)?;
+                self.imported_geometry.insert(key, self.imported.len());
+                self.imported.push(meshes);
+            }
+        }
+        self.equipment = equipment;
         self.pose_generation = Arc::default();
         Ok(self)
     }
@@ -312,6 +328,32 @@ impl Models {
             visit,
         )
     }
+}
+
+fn weapon_meshes(
+    source: &tenchu_assets::weapon::ImportedModel,
+    geometry: &[Geometry],
+    graphics: &Graphics,
+) -> Result<Meshes> {
+    let sources = vec![catalog::ModelSource {
+        id: source.source_id.clone(),
+        role: catalog::Role::Other,
+        hero_part: None,
+        label: source.id.clone(),
+        geometry,
+    }];
+    let pack = if graphics.asset_pack {
+        Pack::for_models(&source.vram, &sources)?
+    } else {
+        Pack::default()
+    };
+    let mut meshes = Meshes::build(&source.vram, &pack, graphics, sources, true)?;
+    meshes.inherit_palette_blending(&source.vram);
+    meshes.detach_textures();
+    if graphics.asset_pack {
+        meshes.replace_textures(&pack);
+    }
+    Ok(meshes)
 }
 
 struct Mesh {

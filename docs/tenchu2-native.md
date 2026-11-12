@@ -416,6 +416,11 @@ locomotion with the chosen attacks; **Disable idle taunts** suppresses fidgets.
 Changes apply while alive and standing/crouching outside cutscenes. Disable the
 moveset override and select **Original** to return to the native hero.
 
+Selected bodies and the equipped weapon set also carry into imported T1
+cutscenes, including custom bodies and independent weapon choices. Attachments
+follow the displayed body and the scene's authored draw/sheath state. The
+original script, other actors and gameplay state are unchanged.
+
 Movement and melee use source registrations, timing, combos and contacts. The
 host still supplies collision, damage rules, mission identity, inventory,
 paired stealth kills and unmapped actions. Character-local voice/weapon cues use

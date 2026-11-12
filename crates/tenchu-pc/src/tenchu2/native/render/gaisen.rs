@@ -1,6 +1,10 @@
 use super::*;
 use tenchu_core::game::Game;
 
+mod player;
+#[cfg(test)]
+mod player_tests;
+
 pub(super) struct Drawing {
     models: crate::visuals::models::Models,
     pub(super) terrain: crate::renderer::Mesh,
@@ -12,7 +16,7 @@ pub(super) struct Drawing {
 impl Drawing {
     pub fn new(
         game: &Game,
-        assets: &Assets,
+        session: &super::super::Session,
         graphics: &Graphics,
         renderer: &mut Renderer,
     ) -> Result<Self> {
@@ -21,7 +25,10 @@ impl Drawing {
         } else {
             Pack::default()
         };
-        let mut models = crate::visuals::models::Models::build(&game.mission, &pack, graphics)?;
+        let assets = &session.assets;
+        let mut models = crate::visuals::models::Models::build(&game.mission, &pack, graphics)?
+            .with_appearance(player::appearance(session, graphics)?)
+            .with_equipment(player::equipment(session)?, graphics)?;
         renderer.set_asset_pack(&pack);
         renderer.update_vram(&game.mission.vram);
         models.bind(|material| renderer.bind_material(material));
@@ -454,8 +461,7 @@ mod tests {
                 ));
                 capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
                     let models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
-                    let mut cinematic_models =
-                        Drawing::new(source, &session.assets, &graphics, renderer)?;
+                    let mut cinematic_models = Drawing::new(source, &session, &graphics, renderer)?;
                     let mut output =
                         Builder::new(Matrix::default(), &session.assets.level, &graphics);
                     if cinematic {

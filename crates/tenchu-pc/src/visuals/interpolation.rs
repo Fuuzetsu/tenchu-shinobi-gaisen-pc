@@ -18,6 +18,11 @@ pub enum Part {
         part: usize,
         mesh: usize,
     },
+    Equipment {
+        root: usize,
+        attachment: usize,
+        inspection: bool,
+    },
 }
 
 impl Part {
@@ -29,6 +34,13 @@ impl Part {
                 root,
                 model,
                 kind,
+                inspection: false,
+            },
+            Self::Equipment {
+                root, attachment, ..
+            } => Self::Equipment {
+                root,
+                attachment,
                 inspection: false,
             },
             other => other,
@@ -118,7 +130,7 @@ impl History {
                     previous_parts.next();
                 }
                 let continuous = match key {
-                    Part::Actor { root, .. } => previous
+                    Part::Actor { root, .. } | Part::Equipment { root, .. } => previous
                         .roots
                         .get(&root)
                         .zip(current.roots.get(&root))

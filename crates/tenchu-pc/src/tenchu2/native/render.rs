@@ -182,9 +182,7 @@ impl Drawing {
             gaisen: session
                 .gaisen
                 .as_ref()
-                .map(|s| {
-                    gaisen::Drawing::new(&s.director.source, &session.assets, graphics, renderer)
-                })
+                .map(|s| gaisen::Drawing::new(&s.director.source, session, graphics, renderer))
                 .transpose()?,
             #[cfg(not(target_arch = "wasm32"))]
             cinematic: false,
