@@ -4021,3 +4021,31 @@ recorded 55 cue/clock pairs and voice reuse after the cultist's death. Its
 expected digest comes from the original instruction observations, not the port.
 The source sample, RAM, replay and observer artifacts remain private; see
 `docs/validation.md` for coverage and the unrelated spatial-audio limitation.
+
+## Indexed terrain boundary audit (2026-11-12)
+
+The Mission 4 guard-contact regression comes from the existing BizHawk watch
+recording, rooted at receipt
+`d2542abfb69f02cb987105fc5293bfedb60c69293834a03bb6fadf5550b8bc79` in the
+read-only `ayame-mission-4-full-stock-20261028/final` archive. A private observer
+adds instruction-entry reads at `80019cb4`, `80019cd4`, `80019ce0` and `80019e6c`
+without changing recorded inputs, RAM or registers. Its final RAM matches the
+previous capture; node visits and break decisions also match isolated original
+MIPS execution in captured RAM. The last hook precedes the return-value move;
+its V0 field is not a captured return value.
+
+`tenchu-decomp/src/main.exe/CONFLICT.C::GetAreaMapLevel`, `LoadAreaMap`,
+`VALLOC.C` and `vmemory.h` explain the signed lookup and allocation boundaries.
+Read-only `voldump.py` from `tenchu-decomp-glitch-research` and the verified user
+volume identify the stray reads in `AYAME.AMD` and `NINKEN.MAD`. The TAS terrain
+code also reads relative file offsets; the viewer visualizes terrain nodes.
+Neither supplies an independent reproduction of this out-of-bounds behavior.
+No algorithm or assets were imported from those repositories.
+
+The bounded lookup treats entries outside the sixteen-short table
+as empty and continues the existing row search. It preserves flattened aliases
+that stay inside the table. This is an explicit boundary policy, not an attempt
+to reproduce original PS1 heap contents. The original-C sight-passage harness
+pads those extra entries with the same empty policy and therefore does not claim
+original out-of-bounds memory parity. See `docs/validation.md` for exact addresses,
+source-data provenance, the recorded consequence and coverage.

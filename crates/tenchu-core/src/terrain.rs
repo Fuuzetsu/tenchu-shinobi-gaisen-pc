@@ -315,6 +315,31 @@ mod tests {
     mod vector;
 
     #[test]
+    #[ignore = "requires TENCHU_DISC; Mission 4 guard contact from the recorded watch route"]
+    fn checkpoint_map_edge_retains_recorded_guard_contact() {
+        let game = crate::oracle::game(9, 1);
+        let map = &game.mission.terrain;
+        let mut cursor = Cursor::new(map);
+        let contact = vector(
+            map,
+            &mut cursor,
+            Position::new(-37338, -7000, 151880),
+            500,
+            STEP_DOWN | REUSE_CACHED,
+        )
+        .unwrap();
+        assert_eq!(
+            (
+                contact.level,
+                contact.vector,
+                contact.angle_low,
+                contact.angle_high,
+            ),
+            (-7000, 0, 0, 2)
+        );
+    }
+
+    #[test]
     fn spatial_grid_queries_keep_the_nearest_surface_and_change_cells() {
         let node = Node {
             y: 0,

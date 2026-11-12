@@ -469,25 +469,68 @@ debugger callbacks and matches the instrumented capture's RAM exactly. The
 stocked menu setup is retained from the archived search. Tape instructions,
 hashes, the raw console recording and the verification logs remain private.
 
-Native comparison with the recorded draw cadence matches the first 4,743 updates,
-through clock 3433, including the unscored red and the later real detection. At
-3434 another spearguard's terrain/contact state diverges; that later discrepancy
-is a separate follow-up, not a full-tape parity pass. The trace and first
-differences are preserved under `watch/`. This video uses console footage only.
+Before the November 12 terrain correction, native comparison matched the first
+4,743 updates through clock 3433, including the unscored red and later real
+detection. Another spearguard's contact state diverged at 3434. The corrected
+bounded lookup now matches **all 4,912 observed updates**, including eight
+recorded skipped draws, through the end of this recording with no state
+corrections or pending display return. The earlier differences remain under
+`watch/`; this video uses console footage only.
 
-The November 12 investigation isolates that remaining discrepancy to an ACM
-lookup at an inclusive row edge. Quadrant `(1,4)` reads the high half of the next
-table's list pointer. Retail reads the relocated value `0x801a` as a signed index
-and scans outside the terrain allocation; the port reads zero from the relative
-file offset and selects an extra slope. The recorded probe returns `-8000` in
-retail and no floor in the port. Preserving that source memory-layout dependency
-remains unresolved; clamping lookup coordinates would change original behavior.
-This does not establish the separately reported scored stealth-kill detection.
+The November 12 investigation identifies an original out-of-bounds **read** in
+that terrain query. Read-only BizHawk instruction observations reproduce the
+same 11,523-field input sequence and match all four archived checkpoints. Their
+final 2 MiB RAM is identical to the earlier capture. All 1,910 visited node
+addresses and Z-boundary decisions match an isolated execution of the original
+MIPS routine using the captured RAM.
 
-No default gameplay change follows from these results. They establish matching
-corpse alarms for these routes and the inherited ray geometry, not every reported
-encounter. Both tickets remain open. A more natural corpse sight ray would be a
-separate optional gameplay change; silently substituting rendered-triangle
+At clock 3434, the guard's corner probe is `(-36838, -7000, 151380)`. Integer
+conversion gives ACM coordinates `(-3683, 15138)`. Row 42 includes its maximum Z,
+15138, but divides the span into four buckets without clamping: the resulting
+quadrant `(1,4)` produces flat index 17, beyond its sixteen-entry lookup table.
+
+- The table starts at `801a6410`; the short read at `801a6436` is the high half
+  of row 51's relocated list pointer, `801a7b68`.
+- The original signed `LH` at `80019cac` interprets `801a` as **-32742**. Adding
+  that index times 16 to row 42's list `801a75d8` points to `80127778`, inside
+  Ayame's animation allocation (`AYAME.AMD`, offset 48392).
+- The routine examines 1,844 unrelated node-shaped locations, making 3,897
+  halfword loads. None contains the query. It stops at `8012eaa8` when the
+  supposed node's Z minimum is read as 31064, greater than the query's 15138.
+  That value is actually the `7958` texture-palette word in `NINKEN.MAD`, part 0,
+  object 0, primitive 3, at file offset 354. The allocator links and disc bytes
+  independently identify these unrelated allocations.
+- The routine then finds the valid slope in row 51 and returns **-8000**. Its
+  writes are confined to its stack and normal terrain-query cache globals;
+  this case establishes a stray read, not corruption of those allocations.
+
+The port's unrelocated file offset has a zero high half, so it starts at row 42's
+node zero instead. It finds a different slope at **-8080**, then rejects that
+height because the drop exceeds 1000 units. This sets the guard's wall bit and
+changes its turn/input. Substituting zero for the original lookup reproduces
+that result. Clamping the quadrant to `(1,3)` also rejects the floor; substituting
+an empty lookup instead continues to row 51 and returns -8000.
+
+The port now treats flat lookup indices outside `0..16` as empty and continues
+the existing row search. Flattened X-edge aliases that remain inside that table
+retain their source behavior. This explicit bounded policy removes dependence
+on neighboring pointer bytes; it does not reproduce arbitrary PS1 heap reads or
+promise their result in every possible case.
+
+The recorded guard-contact regression fails before the correction and passes
+after it. The whole watch recording, the new 360-update cultist recording and
+seven earlier Mission 1–7 recordings (19,075 updates) all match their captured
+states/draw cadence. Source-C movement probes, sight-passage checks and the
+ordinary core tests pass. The sight harness explicitly supplies empty padding
+past the valid lookup table; it does not claim original out-of-bounds parity.
+Evidence and private observer sources are under
+`private/bug-fixes-20261112/17-*`; no RAM or game data is committed.
+
+The terrain correction does not establish the separately reported scored
+stealth-kill detection. The sight checks establish matching corpse alarms for
+these routes and the inherited ray geometry, not every reported encounter.
+The scored-detection report (#17) remains open. A more natural corpse sight ray
+would be a separate optional gameplay change; substituting rendered-triangle
 visibility would also change which original scenery blocks sight.
 
 ## Mission 6 cultist death cry (#52)

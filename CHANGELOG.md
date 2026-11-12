@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix a Mission 4 guard treating valid ground as a wall at an indexed terrain
+  boundary. Out-of-range lookup entries are skipped safely instead of reading
+  neighboring pointer data.
+
 - Fix replacement player bodies sinking into the ground in native T2 cutscenes,
   especially while kneeling. T1, T2 and custom bodies now follow the authored
   body's contact height, including during jumps and falls.

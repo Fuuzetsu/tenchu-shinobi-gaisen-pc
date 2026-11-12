@@ -196,8 +196,13 @@ impl AreaMap {
         }
         let qx = ((x - x1) * 4 / (x2 - x1)) as i16;
         let qz = ((z - z1) * 4 / (z2 - z1)) as i16;
-        let at = lookup as i64 + 4 + (i64::from(qz) * 4 + i64::from(qx)) * 2;
-        // Inclusive row edges can read past the nominal 4×4 lookup table.
+        let index = i64::from(qz) * 4 + i64::from(qx);
+        // Retail can read neighboring pointers at inclusive row edges. Treat
+        // entries outside the table as empty instead of using pointer bits.
+        if !(0..16).contains(&index) {
+            return Ok(row.count);
+        }
+        let at = lookup as i64 + 4 + index * 2;
         Ok(u16_le(
             &self.data,
             usize::try_from(at).map_err(|_| "ACM lookup before file")?,
@@ -208,6 +213,38 @@ impl AreaMap {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn indexed_edge_ignores_bytes_after_the_lookup_table() {
+        let row = Row {
+            height: 0,
+            bounds: [0, 0, 400, 400],
+            count: 64,
+            list: 128,
+            lookup: Some(0),
+        };
+        let mut map = AreaMap {
+            data: vec![0; 36],
+            rows: vec![row.clone()],
+            grid: None,
+        };
+        for index in 0..16u16 {
+            let at = 4 + usize::from(index) * 2;
+            map.data[at..at + 2].copy_from_slice(&index.to_le_bytes());
+        }
+        assert_eq!(map.first_node(&row, 399, 399).unwrap(), 15);
+        // The original flattened lookup also permits an X-edge alias within
+        // the same table; only reads beyond that table are rejected.
+        assert_eq!(map.first_node(&row, 400, 0).unwrap(), 4);
+        for tail in [Vec::new(), vec![0; 10], vec![0x1a, 0x80, 0xff, 0xff, 0, 0]] {
+            map.data.truncate(36);
+            map.data.extend(tail);
+            for x in [0, 100, 200, 300, 400] {
+                assert_eq!(map.first_node(&row, x, 400).unwrap(), row.count);
+            }
+            assert_eq!(map.first_node(&row, 400, 399).unwrap(), row.count);
+        }
+    }
 
     #[test]
     fn unaligned_nodes_preserve_signed_fields_and_surface_edits() {

@@ -98,8 +98,8 @@ int main(void) {{
             )
             .unwrap();
             if row.lookup.is_some() {
-                // Inclusive row edges also read entries 16..20 beyond the 4x4 table.
-                // Preserve those disc values in the host C harness's padded array.
+                // Padded entries 16..20 represent the port's empty-edge policy.
+                // This harness does not reproduce retail's out-of-bounds reads.
                 let [x1, z1, x2, z2] = row.bounds.map(i32::from);
                 let coordinate = |a, b, q| {
                     if q == 4 {
