@@ -1384,8 +1384,12 @@ rules, but also wait for terrain cover from the player. Each placed guard gets
 one call per alert, and summoned guards cannot call reinforcements themselves.
 The caller becomes eligible again only after returning to calm with no active
 alert. **Guards per reinforcement call** defaults to **1** and accepts 0–32;
-0 disables these calls. **Random reinforcement count** chooses 1–N instead of
-always N. Both settings persist across missions, and changing them does not
+0 disables these calls. Larger groups use separate nearby spaces with clear
+ground and a clear approach from the caller, behind terrain cover. Available
+space and the population limit can reduce the requested count. The default
+single-guard call keeps its original placement.
+**Random reinforcement count** chooses a requested size of 1–N instead of always
+N. Both settings persist across missions, and changing them does not
 give an already-spent caller another call. Summoned guards still investigate
 and fight normally. Civilian-to-guard replacements do not increase population
 and remain available, but the replacement guard cannot recruit again.

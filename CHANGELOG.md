@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix large reinforcement groups stacking at one point and pushing guards out
+  of bounds. Optional T1 group calls now use separate nearby spaces on clear,
+  covered ground connected to the caller. Single-guard source placement remains.
+
 - Fix stationary guards in the T2 scenery sandbox turning toward an unseen
   player. Guards without a route now use Gaisen lookout AI; guards with a route
   retain patrol AI. Applies to Europe and JP sandbox mode.

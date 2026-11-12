@@ -2235,7 +2235,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::ReinforcementsPerCall,
                 "Guards per reinforcement call",
                 s.reinforcement_call.count.to_string(),
-                "All-active mode only: each placed guard can call this many guards once per alert. Resets after returning to calm with no alert. Recruits never call. 0 disables extra guards; civilian replacements still work. Ends recording.",
+                "For all-active mode or behavior profiles: each placed guard can call up to this many guards once per alert, limited by nearby clear, covered ground and population capacity. Resets after returning to calm with no alert. Recruits never call. 0 disables extra guards; civilian replacements still work. Ends recording.",
             ),
             (
                 Item::RandomReinforcements,

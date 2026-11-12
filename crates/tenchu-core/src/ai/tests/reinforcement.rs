@@ -156,10 +156,252 @@ fn alarm(game: &mut Game, id: usize, timer: u8) {
     call_at(game, id, timer, Position::new(0, 0, 18000), false);
 }
 
+#[test]
+#[ignore = "requires TENCHU_DISC; bulk calls cannot place guards through solid doors or across missing ground"]
+fn reinforcement_groups_require_clear_ground_connected_to_the_caller() {
+    let mut game = corner();
+    let caller = game.roster.order[1];
+    game.roster.reinforcement_call.count = 4;
+    let initial = game.roster.order.len();
+    let mut walls = Vec::new();
+    for (position, size) in [
+        ([0, -1000, 17500], [1000, 1000, 100]),
+        ([0, -1000, 18500], [1000, 1000, 100]),
+        ([-500, -1000, 18000], [100, 1000, 1000]),
+        ([500, -1000, 18000], [100, 1000, 1000]),
+    ] {
+        let model = game.scene.add(
+            Some(0),
+            crate::math::Matrix {
+                translation: position.into(),
+                ..Default::default()
+            },
+        );
+        let slot = game.collision.insert(&mut game.scene, model).unwrap();
+        game.collision.slots[slot].owner = Some(crate::collision::Owner::Door);
+        game.collision.slots[slot].size = size;
+        walls.push(model);
+    }
+    game.collision.compute(&mut game.scene).unwrap();
+    alarm(&mut game, caller, 2);
+    assert_eq!(
+        game.roster.order.len(),
+        initial,
+        "enclosed caller has no space for a group"
+    );
+    for model in walls {
+        game.scene.models[model].attribute &= !crate::scene::COLLIDE;
+    }
+    alarm(&mut game, caller, 2);
+    assert_eq!(
+        game.roster.order.len(),
+        initial + 4,
+        "opened doors must allow the call"
+    );
+
+    let mut game = corner();
+    let caller = game.roster.order[1];
+    game.mission.terrain = AreaMap::from_nodes(vec![(
+        0,
+        [
+            [-3000, -3000, 3000, 800],
+            [-50, 1700, 50, 1850],
+            [-3000, 1900, 3000, 3000],
+        ]
+        .map(|bounds| Node {
+            y: 0,
+            dy: 0,
+            bounds,
+            attributes: 0x2000,
+            division: u16::MAX,
+        })
+        .to_vec(),
+    )])
+    .unwrap();
+    game.cursor = terrain::Cursor::new(&game.mission.terrain);
+    game.roster.reinforcement_call.count = 4;
+    alarm(&mut game, caller, 2);
+    assert_eq!(
+        game.roster.order.len(),
+        2,
+        "other floor patch is disconnected"
+    );
+    game.roster.reinforcement_call.count = 1;
+    alarm(&mut game, caller, 2);
+    assert_eq!(
+        game.roster.order.len(),
+        3,
+        "single-guard source placement is retained"
+    );
+    assert_eq!(
+        game.roster.get(game.roster.order[2]).position,
+        Position::new(0, 0, 18000)
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; three maximum-size Mission 2 calls must not pile up or strand recruits"]
+fn mission2_large_reinforcement_groups_have_room_to_move() {
+    for layout in 1..=3 {
+        for count in [1, 4, ReinforcementCall::MAX_COUNT] {
+            for hero in 0..2 {
+                let mut game = oracle::game_layout(1, hero, layout);
+                game.roster.keep_all_active = true;
+                game.roster.reinforcement_call.count = count;
+                game.roster.reinforcement_limit = None;
+                game.roster.get_mut(game.player_id).invulnerable = true;
+                game.intelligence.difficulty = Difficulty::Hard;
+                game.collision.compute(&mut game.scene).unwrap();
+                let initial = game.roster.order.len();
+                let initial_enemies = game.statistics.enemies;
+                let mut calls = Vec::new();
+                for id in game.roster.order.clone() {
+                    let actor = game.roster.get(id);
+                    if id == game.player_id || !(0x10..0x80).contains(&actor.kind) {
+                        continue;
+                    }
+                    let position = actor.position;
+                    if game
+                        .math
+                        .length_wide(position.wrapping_sub(game.player().position))
+                        <= 16500
+                    {
+                        continue;
+                    }
+                    let previous = game.roster.order.len();
+                    let target = game.player().position;
+                    call_at_target(&mut game, id, 2, position, false, target);
+                    if game.roster.order.len() > previous {
+                        calls.push((id, position.to_array(), game.roster.order.len() - previous));
+                    }
+                    if calls.len() == 3 {
+                        break;
+                    }
+                }
+                println!(
+                    "layout {layout}, count {count}, hero {hero}, initial {initial}, calls {calls:?}, population {}",
+                    game.roster.order.len()
+                );
+                assert_eq!(calls.len(), 3);
+                assert!(calls.iter().all(|c| c.2 == usize::from(count)));
+                assert_eq!(game.roster.order.len(), initial + 3 * usize::from(count));
+                if count > 1 {
+                    for &id in &game.roster.order[initial..] {
+                        let actor = game.roster.get(id);
+                        let definition = &game.mission.characters[actor.definition];
+                        for &other_id in &game.roster.order {
+                            if other_id == id {
+                                continue;
+                            }
+                            let other = game.roster.get(other_id);
+                            let other_definition = &game.mission.characters[other.definition];
+                            let width = i32::from(definition.width + other_definition.width) / 2;
+                            assert!(
+                                (actor.position.x - other.position.x).abs() >= width
+                                    || (actor.position.z - other.position.z).abs() >= width
+                                    || actor.position.y
+                                        <= other.position.y - i32::from(other_definition.height)
+                                    || other.position.y
+                                        <= actor.position.y - i32::from(definition.height),
+                                "recruits overlap at creation: {id}/{other_id}"
+                            );
+                        }
+                    }
+                }
+                let mut missing = std::collections::BTreeMap::<usize, usize>::new();
+                let mut largest_push = (0, 0, 0, [0; 3], [0; 3]);
+                for tick in 0..2400 {
+                    let before: Vec<_> = game
+                        .roster
+                        .order
+                        .iter()
+                        .map(|&id| (id, game.roster.get(id).position))
+                        .collect();
+                    game.step(0).unwrap();
+                    for (id, old) in before {
+                        let actor = game.roster.get(id);
+                        if actor.recruitment != Recruitment::Reinforcement || actor.health <= 0 {
+                            continue;
+                        }
+                        let delta = actor.position.wrapping_sub(old);
+                        let length = delta.x.abs().max(delta.z.abs());
+                        if length > largest_push.0 {
+                            largest_push =
+                                (length, id, tick, old.to_array(), actor.position.to_array());
+                        }
+                        let floor = terrain::level(
+                            &game.mission.terrain,
+                            &mut terrain::Cursor::new(&game.mission.terrain),
+                            actor.position.wrapping_sub(Position::new(0, 1500, 0)),
+                            0,
+                        )
+                        .unwrap();
+                        if floor == terrain::NONE {
+                            *missing.entry(id).or_default() += 1;
+                        }
+                    }
+                }
+                println!(
+                    "layout {layout}, count {count}, hero {hero}, largest displacement {largest_push:?}, missing floor ticks {missing:?}"
+                );
+                assert_eq!(game.statistics.enemies, initial_enemies + 3 * count as i16);
+                println!(
+                    "layout {layout}, count {count}, hero {hero}: {initial_enemies} -> {} scored enemies",
+                    game.statistics.enemies
+                );
+                for &id in &game.roster.order {
+                    let actor = game.roster.get(id);
+                    if actor.recruitment != Recruitment::Reinforcement || actor.health <= 0 {
+                        continue;
+                    }
+                    let floor = terrain::level(
+                        &game.mission.terrain,
+                        &mut terrain::Cursor::new(&game.mission.terrain),
+                        actor.position.wrapping_sub(Position::new(0, 1500, 0)),
+                        0,
+                    )
+                    .unwrap();
+                    assert_ne!(
+                        floor,
+                        terrain::NONE,
+                        "recruit {id} stranded at {:?}",
+                        actor.position
+                    );
+                }
+                let rows: Vec<_> = game.roster.order.iter().map(|&id| {
+            let actor = game.roster.get(id);
+            serde_json::json!({"id":id,"kind":actor.kind,"health":actor.health,"position":actor.position.to_array(),"home":actor.home,"attribute":actor.attribute,"reinforcement":actor.recruitment == Recruitment::Reinforcement})
+        }).collect();
+                if let Some(directory) = std::env::var_os("TENCHU_REINFORCEMENT_REVIEW") {
+                    std::fs::create_dir_all(&directory).unwrap();
+                    std::fs::write(
+                        std::path::Path::new(&directory).join(format!(
+                            "mission2-layout{layout}-count{count}-hero{hero}.json"
+                        )),
+                        serde_json::to_vec_pretty(&rows).unwrap(),
+                    )
+                    .unwrap();
+                }
+            }
+        }
+    }
+}
+
 fn call_at(game: &mut Game, id: usize, timer: u8, position: Position, civilian: bool) {
+    call_at_target(game, id, timer, position, civilian, position);
+}
+
+fn call_at_target(
+    game: &mut Game,
+    id: usize,
+    timer: u8,
+    position: Position,
+    civilian: bool,
+    chase: Position,
+) {
     let mut actor = game.roster.take(id);
     actor.position = position;
-    actor.brain.chase = [position.x, position.z];
+    actor.brain.chase = [chase.x, chase.z];
     actor.brain.timer = timer;
     let mut ctx = Context {
         mission: &mut game.mission,

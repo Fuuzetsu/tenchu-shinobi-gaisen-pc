@@ -69,6 +69,10 @@ pub fn run(harness: &str, input: &str) -> Vec<Vec<i32>> {
 }
 
 pub fn game(stage: usize, character: i16) -> crate::game::Game {
+    game_layout(stage, character, 1)
+}
+
+pub fn game_layout(stage: usize, character: i16, layout: usize) -> crate::game::Game {
     use std::{
         cell::RefCell,
         io::{Read, Seek, SeekFrom},
@@ -106,7 +110,7 @@ pub fn game(stage: usize, character: i16) -> crate::game::Game {
     }
     .unwrap();
     let assets = GameAssets::open(disc).unwrap();
-    let mission = MissionAssets::load(&assets, stage, character, 1).unwrap();
+    let mission = MissionAssets::load(&assets, stage, character, layout).unwrap();
     let mut game = crate::game::Game::new(
         mission,
         &Executable::new(&assets.executable).unwrap(),

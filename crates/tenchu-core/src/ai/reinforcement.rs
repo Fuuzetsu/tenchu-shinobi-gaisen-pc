@@ -1,3 +1,4 @@
+mod placement;
 use super::*;
 
 impl Controller<'_, '_> {
@@ -25,12 +26,24 @@ impl Controller<'_, '_> {
     }
 
     fn reinforcement_spawn_allowed(&self, bounded: bool) -> Result<bool> {
+        self.reinforcement_spawn_allowed_at(
+            self.actor.position,
+            i32::from(self.ctx.mission.characters[self.actor.definition].height),
+            bounded,
+        )
+    }
+
+    fn reinforcement_spawn_allowed_at(
+        &self,
+        mut position: Position,
+        height: i32,
+        bounded: bool,
+    ) -> Result<bool> {
         if !bounded {
             return Ok(true);
         }
         let terrain = &self.ctx.mission.terrain;
         let mut cursor = terrain::Cursor::new(terrain);
-        let mut position = self.actor.position;
         position.y = terrain::level(terrain, &mut cursor, position, terrain::STEP_DOWN)?;
         if position.y == terrain::NONE {
             return Ok(false);
@@ -40,7 +53,6 @@ impl Controller<'_, '_> {
             self.player
                 .position
                 .wrapping_sub(Position::new(0, i32::from(self.player.height), 0));
-        let height = i32::from(self.ctx.mission.characters[self.actor.definition].height);
         for y in [0, height / 2, height] {
             let to = position.wrapping_sub(Position::new(0, y, 0));
             let mut step = to.wrapping_sub(from);
@@ -199,13 +211,20 @@ impl Controller<'_, '_> {
                         }
                         // The type RNG precedes the caller's raw rotation write.
                         let choice = self.random() as usize % 2;
+                        let position = if bounded && count > 1 {
+                            let Some(position) =
+                                self.reinforcement_group_position(choice, count)?
+                            else {
+                                break;
+                            };
+                            position
+                        } else {
+                            self.actor.position
+                        };
                         self.actor.rotation[1] = yaw;
-                        let id = self.roster.spawn_reinforcement(
-                            choice,
-                            self.actor.position,
-                            yaw,
-                            self.ctx,
-                        )?;
+                        let id = self
+                            .roster
+                            .spawn_reinforcement(choice, position, yaw, self.ctx)?;
                         if matches!(
                             self.actor.recruitment,
                             Recruitment::Available | Recruitment::Requested

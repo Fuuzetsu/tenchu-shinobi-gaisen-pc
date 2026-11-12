@@ -718,6 +718,17 @@ Research code clarified the freed-caller continuation and test-oracle boundary;
 no batched actor storage or source-C runtime code was imported. The combat oracle
 extracts actual decision bodies and supplies native test structs/side effects.
 
+Optional bulk-call placement (#77, 2026-11-12) is a PC extension. Original
+`HUMAN.C` pushes by width/8 for each overlapping body, after terrain contact;
+creating 32 guards at one position amplified those source pushes and stranded
+recruits beyond collision ground. The fix leaves source collision, AI and
+single-guard placement intact. Larger optional groups search separate nearby
+positions using the existing source floor/vector probes, terrain cover rays and
+solid-object collision boxes. A clear ground approach connects each position to
+the caller; bodies cannot overlap at creation. Search consumes no additional RNG,
+and stops when nearby covered space or population capacity runs out. This is
+not a replacement pathfinder or a change to native T2 reinforcement code.
+
 | Repository | File | Working-tree SHA-256 |
 | --- | --- | --- |
 | `tenchu-decomp` | `src/main.exe/item.h` | `99109f2c30cc5b661e52225d14d14da287dc48045246e8657b9d29eefee0017c` |

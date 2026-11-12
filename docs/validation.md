@@ -46,6 +46,22 @@ armed guards survive the first strike and unalerted guards retain source kills.
 Gaisen's existing `DamageControl` comparison against original C provides the
 damage-rule reference. No health increase or native T2 combat change is implied.
 
+The large-group reinforcement regression (#77) uses all three Mission 2 layouts, both
+heroes, Hard difficulty, whole-level activation and no population cap. Three
+authored callers request groups of 1, 4 or 32. The maximum cases retain all 96
+recruits (115, 121 and 117 total actors by layout), check separate starting body
+bounds and run 2,400 updates; surviving recruits must finish on collision ground.
+The scored enemy total also receives every recruit. Before correction,
+stacking 32 guards at each caller pushed many out of bounds within the first few
+updates. Calls are triggered directly at the original queued-call boundary;
+subsequent movement, collisions and combat use normal updates. This is a
+controlled stress fixture, not a recorded ordinary-play route or a guarantee
+that source movement can never clip. Separate fixtures cover closed/open solid
+barriers, disconnected ground, cover, capacity, random counts, nonrecursive
+recruitment and the original single-guard placement.
+Layout 1 produces 110 scored enemies, matching the report's results-screen total;
+the actor roster also contains the player and non-enemy actors.
+
 Native T2 vegetation and snow tracks have separate presentation fixtures. All
 23 available Japanese maps are checked for classified vegetation, bounded
 geometry and unchanged displayed texture pixels. An autumn-map fixture compares
