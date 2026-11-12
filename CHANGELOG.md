@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.32.0 — 2026-11-12
+
 - Fix T2 blood flickering on floors and walls as the camera moves, including
   overlapping stains and HD blood.
 
