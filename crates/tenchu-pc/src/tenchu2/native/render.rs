@@ -56,6 +56,7 @@ pub(super) use story::capture as capture_story;
 
 pub struct Drawing {
     models: Models,
+    terrain: scenery::Terrain,
     motion: crate::visuals::motion::Motion,
     wounds: wounds::Wounds,
     scene: SceneDrawing,
@@ -163,6 +164,7 @@ impl Drawing {
         )?;
         let mut drawing = Self {
             models,
+            terrain: Default::default(),
             motion: Default::default(),
             wounds: Default::default(),
             scene: SceneDrawing::new(geometry, renderer, &session.assets.level),
@@ -247,6 +249,7 @@ impl Drawing {
         #[cfg(not(target_arch = "wasm32"))]
         {
             if session.cinematic() {
+                self.terrain.invalidate();
                 return self.update_gaisen(session, renderer, debug);
             }
             if self.cinematic {
@@ -278,6 +281,14 @@ impl Drawing {
         let ambient = self.ambient(session, renderer, view)?;
         #[cfg(target_arch = "wasm32")]
         let ambient = Vec::new();
+        let cached_terrain =
+            !graphics.fog && !debug.is_some_and(|debug| debug.collision_only && !debug.photo_mode);
+        if cached_terrain {
+            self.terrain
+                .prepare(session, &self.models, renderer, &mut self.scene.terrain);
+        } else {
+            self.terrain.invalidate();
+        }
         let mut geometry = self.models.geometry(
             &session.world,
             &session.assets,
@@ -295,6 +306,7 @@ impl Drawing {
                 pose: pose.as_ref(),
                 motion: Some(&motion),
                 ambient,
+                terrain: cached_terrain.then_some(self.terrain.surfaces()),
             },
         )?;
         self.texts = if self.show_hud && self.sharp_text {
@@ -390,7 +402,11 @@ impl Drawing {
             geometry.effects.append(overlay.geometry);
             self.labels.extend(overlay.labels);
         }
-        self.scene.update(geometry, renderer);
+        if cached_terrain {
+            self.scene.update_dynamic(geometry, renderer);
+        } else {
+            self.scene.update(geometry, renderer);
+        }
         renderer.visual_time = session.presentation_tick() as f32 / 30.0;
         self.view = view;
         Ok(())
@@ -594,10 +610,14 @@ impl SceneDrawing {
     }
 
     fn update(&mut self, mut geometry: Geometry, renderer: &mut Renderer) {
+        renderer.update_mesh(&mut self.terrain, &mut geometry.terrain);
+        self.update_dynamic(geometry, renderer);
+    }
+
+    fn update_dynamic(&mut self, mut geometry: Geometry, renderer: &mut Renderer) {
         for (mesh, geometry) in self.backgrounds.iter_mut().zip(geometry.backgrounds) {
             renderer.update_effects(mesh, geometry);
         }
-        renderer.update_mesh(&mut self.terrain, &mut geometry.terrain);
         renderer.update_mesh(&mut self.props, &mut geometry.props);
         renderer.update_mesh(&mut self.actors, &mut geometry.actors);
         renderer.update_effects(&mut self.effects, geometry.effects);
@@ -744,6 +764,7 @@ pub struct Presentation<'a> {
     pub pose: Option<&'a PoseFrame>,
     pub motion: Option<&'a crate::visuals::motion::Frame>,
     pub ambient: Vec<Surface>,
+    pub terrain: Option<&'a [Surface]>,
 }
 
 impl Default for Presentation<'_> {
@@ -756,6 +777,7 @@ impl Default for Presentation<'_> {
             pose: None,
             motion: None,
             ambient: Vec::new(),
+            terrain: None,
         }
     }
 }
@@ -998,6 +1020,7 @@ impl Models {
             pose,
             motion,
             ambient,
+            terrain,
         } = presentation;
         let view = camera.map_or_else(
             || pose.map_or(world.camera.view, |frame| frame.view),
@@ -1008,24 +1031,13 @@ impl Models {
             output.distance = 120.0 / (camera.fov.to_radians() * 0.5).tan();
         }
         let math = &assets.resources.math;
-        for part in &assets.level.map {
-            output.model(
-                &self.scenery,
-                part,
-                Matrix {
-                    translation: part.position.map(|v| i32::from(v) * 10).into(),
-                    ..Default::default()
-                },
-                ModelStyle::Terrain,
-            );
-        }
         let distant_props = !graphics.fog || camera.is_some();
-        if distant_props {
-            for (part, matrix) in
-                static_models(&assets.level, math, Some(&world.environment.static_phases))
-            {
-                output.model(&self.scenery, part, matrix, ModelStyle::Terrain);
+        if let Some(surfaces) = terrain {
+            for surface in surfaces {
+                output.surface(surface.vertices.clone(), surface.blend);
             }
+        } else {
+            self.static_scenery(&mut output, world, assets, distant_props);
         }
         for model in &frame.scenery.models {
             if distant_props
@@ -1210,6 +1222,35 @@ impl Models {
             actors: output.actors,
             effects,
         })
+    }
+
+    fn static_scenery(
+        &self,
+        output: &mut Builder,
+        world: &World,
+        assets: &Assets,
+        distant_props: bool,
+    ) {
+        for part in &assets.level.map {
+            output.model(
+                &self.scenery,
+                part,
+                Matrix {
+                    translation: part.position.map(|v| i32::from(v) * 10).into(),
+                    ..Default::default()
+                },
+                ModelStyle::Terrain,
+            );
+        }
+        if distant_props {
+            for (part, matrix) in static_models(
+                &assets.level,
+                &assets.resources.math,
+                Some(&world.environment.static_phases),
+            ) {
+                output.model(&self.scenery, part, matrix, ModelStyle::Terrain);
+            }
+        }
     }
 }
 

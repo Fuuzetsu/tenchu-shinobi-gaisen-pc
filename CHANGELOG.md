@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix excessive geometry rebuilding and uploads in T2 gameplay with fog disabled,
+  including T1 stages played with T2 rules. Stationary scenery stays on the GPU;
+  moving objects, foliage animation and transparent face ordering remain live.
+
 - Hide the timer and time-adjustment notices in custom maps and Mission editor
   challenges with **F1 → General → Custom map timer**. Time limits, scoring and
   records continue normally.

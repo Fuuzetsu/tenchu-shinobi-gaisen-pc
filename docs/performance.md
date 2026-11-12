@@ -136,6 +136,32 @@ serialized CPU/GPU work and **is not a prediction of interactive FPS**. Compare
 the phase timings on the same machine, backend, resolution, artwork and build.
 Do not run simultaneous benchmarks or compare a release build with a debug one.
 
+## T1 stages under T2 rules (2026-11-12)
+
+The T2 renderer rebuilt stationary terrain, recomputed foliage variants and
+uploaded its vertex poses every frame, even with fog disabled. At the start of
+Shinobi Gaisen Mission 1 this processed 319,887 terrain vertices with the reported
+settings (fog off, Botanical foliage). The renderer now retains that scenery on
+the GPU. Transparent faces still sort for the current camera, and doors and
+actors remain dynamic. Fogged terrain keeps its original per-vertex shading path.
+
+An isolated starting-area fixture measured the release build at 1280×720 on a
+GTX 1080 Ti / Vulkan, with 20 warm-up frames and 80 measured frames:
+
+| Graphics | Geometry + uploads before, mean | After, mean |
+| --- | ---: | ---: |
+| Original | 0.52 ms | 0.46 ms |
+| Modern High | 11.44 ms | 2.14 ms |
+| Reported settings | 13.78 ms | 0.87 ms |
+
+These are CPU preparation measurements, not interactive FPS predictions. The
+before/after captures match exactly for all three configurations. The disc-backed
+`cached_terrain_matches_rebuilt_frames` check compares cached rendering with full
+rebuilds through camera, scenery phase, atmosphere and cache invalidation changes,
+including a transparent-face variant. Imported cinematic handoff also checks
+restoration of previously cached terrain. Captures and raw local measurements
+remain outside Git in `private/t2-gaisen-performance-20261112`.
+
 ## Historical measurements
 
 The October 27–November 7 optimisation journal is preserved in

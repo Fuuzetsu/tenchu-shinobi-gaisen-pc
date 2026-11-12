@@ -522,12 +522,19 @@ mod tests {
                     );
                 }
             }
+            settings.graphics.fog = false;
             let cached = output.join(format!("source-{character}-native-cached.png"));
             let fresh = output.join(format!("source-{character}-native-fresh.png"));
             let vram = session.assets.sprites.vram.clone();
             capture_frame(&vram, &settings.graphics, &cached, |renderer| {
                 let mut drawing =
                     super::super::Drawing::new(&session, &settings.graphics, renderer)?;
+                drawing.terrain.prepare(
+                    &session,
+                    &drawing.models,
+                    renderer,
+                    &mut drawing.scene.terrain,
+                );
                 drawing.sharp_text = true;
                 drawing.subtitle_language = settings.subtitle_language;
                 drawing.update(&session, renderer, None)?;
