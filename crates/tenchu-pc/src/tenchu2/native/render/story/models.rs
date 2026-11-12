@@ -415,13 +415,22 @@ impl Models {
             })
             .collect::<Vec<_>>();
         if let Some(player) = self.overrides.get(&animation.model) {
-            let target = player.pose(
+            let mut target = player.pose(
                 &matrices,
                 Matrix {
                     translation: model.parts[0].position.map(i32::from).into(),
                     rotation: matrices[0].rotation,
                 },
             );
+            if let (Some(source), Some(replacement)) = (
+                pose_bottom(&self.actors[&animation.model], &model.parts, &matrices),
+                pose_bottom(&player.appearance.meshes, &player.appearance.parts, &target),
+            ) {
+                let offset = (source - replacement).round() as i32;
+                for matrix in &mut target {
+                    matrix.translation.y = matrix.translation.y.wrapping_add(offset);
+                }
+            }
             Ok(Some(Actor {
                 id: animation.model,
                 parts: &player.appearance.parts,
@@ -474,6 +483,23 @@ impl Models {
         }
         Ok(inputs)
     }
+}
+
+fn pose_bottom(
+    meshes: &Meshes,
+    parts: &[tenchu_assets::model::Part],
+    matrices: &[Matrix],
+) -> Option<f32> {
+    meshes.pose_skin(matrices, None);
+    let mut bottom = f32::NEG_INFINITY;
+    for (part, &matrix) in parts.iter().zip(matrices) {
+        meshes.visit(&part.geometry, matrix, false, 0, None, |triangle| {
+            for vertex in triangle {
+                bottom = bottom.max(vertex.position[1]);
+            }
+        });
+    }
+    bottom.is_finite().then_some(bottom)
 }
 
 struct Actor<'a> {

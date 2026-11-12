@@ -3,6 +3,8 @@ use crate::tenchu2::native::models;
 use crate::visuals::{appearance::library::Library, pack::Pack};
 use tenchu_assets::tenchu2::campaign::{Campaign, Kind};
 
+mod contact;
+
 #[test]
 #[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; cutscene ground shadows use authored feet and restore without advancing playback"]
 fn cutscene_ground_shadows_preserve_playback_and_restore_exactly() {

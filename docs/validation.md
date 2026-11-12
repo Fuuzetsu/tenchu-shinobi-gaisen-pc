@@ -126,6 +126,25 @@ restore. Review captures use a plain receiver floor and live under
 `private/two-releases-20261110/native-dismemberment`. These are controlled optional
 feature tests, not additional ordinary-play or campaign coverage.
 
+## Native T2 cutscene replacement contact
+
+The #116 regression reproduces replacement knees/feet below the courtyard in
+the three protagonists' opening scenes (events 201, 2011 and 102). Across 600
+updates per scene, the previous renderer differed from the authored body's lower
+edge by up to 167.3 source units. Matching captures show the replacement boots
+and knees emerging from the ground after correction; all three Original-body
+controls remain pixel-identical.
+
+The expanded check covers those intros and both training trapdoor falls (2021
+and 2031), with Original, T1 Rikimaru/Ayame, T2 Rikimaru/Ayame and an exported
+custom body. Both refinement settings and current/half-interpolated poses pass
+in all 60 combinations, with at most one source unit of contact-height error.
+The fall fixtures require actual vertical motion exceeding 1,000 units, and
+rendering preserves the serialized story state. The existing body/weapon override
+check also retains the cast, attachments, playback and reset behavior. This is
+controlled presentation verification, not an additional ordinary-play recording.
+Captures and logs stay in `private/bug-fixes-20261112/116-*` outside Git.
+
 ## Emulator comparisons
 
 The combat/item searches under `~/tenchu-searches/ayame-mission-*` provide

@@ -18,6 +18,24 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Native T2 cutscene replacement contact (2026-11-12)
+
+The optional story-body renderer previously changed limb lengths while retaining
+the original character's joint angles and a fixed rest-height correction. This
+placed replacement knees and feet below the authored contact plane. The renderer
+now measures the lower edges of the posed original and replacement meshes and
+applies their vertical difference to the replacement matrices. It reuses the
+existing native bone mapping, inverse-bind skinning and model refinement; weapon
+attachments and shadows consume the corrected matrices too. Custom OBJ bodies
+use their rendered mesh, including skin weights.
+
+This is new presentation code, not a change to native story motion, terrain or
+collision. It performs no floor query: the original pose supplies the reference
+height, so scripted jumps, trapdoor falls and existing source penetration remain
+authored. Original bodies bypass the correction. No sibling code or retail data
+was imported; the existing source-derived story playback and part hierarchy
+remain the behavioral reference.
+
 ## Native T2 starting-actor replacements (2026-11-12)
 
 The optional replacement path reuses this port's source-verified native actor,

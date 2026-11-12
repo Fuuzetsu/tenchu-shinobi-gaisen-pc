@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix replacement player bodies sinking into the ground in native T2 cutscenes,
+  especially while kneeling. T1, T2 and custom bodies now follow the authored
+  body's contact height, including during jumps and falls.
+
 - Fix large reinforcement groups stacking at one point and pushing guards out
   of bounds. Optional T1 group calls now use separate nearby spaces on clear,
   covered ground connected to the caller. Single-guard source placement remains.
