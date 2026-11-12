@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore Android and packaged desktop/browser builds after adding HTTPS support
+  for artwork downloads and release checks.
+
 - Download and install either HD artwork pack from **F1 → Visual assets** on
   desktop and Android. Shows version, size, progress and cancellation; verifies
   downloads before activation and preserves existing packs on failure. Installed

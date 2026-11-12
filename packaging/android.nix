@@ -48,6 +48,8 @@ let
     includeEmulator = architecture == "x86_64";
   };
   upper = pkgs.lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] target);
+  targetEnv = builtins.replaceStrings [ "-" ] [ "_" ] target;
+  compiler = "${cross.stdenv.cc}/bin/${cross.stdenv.cc.targetPrefix}clang";
 in
 pkgs.mkShell {
   TENCHU_DEV_SHELL = "1";
@@ -58,7 +60,9 @@ pkgs.mkShell {
   RUSTC = "${cross.buildPackages.rustc}/bin/rustc";
   RUSTDOC = "${cross.buildPackages.rustc}/bin/rustdoc";
   SYSROOT = "${cross.buildPackages.rustc-unwrapped}";
-  "CARGO_TARGET_${upper}_LINKER" = "${cross.stdenv.cc}/bin/${cross.stdenv.cc.targetPrefix}clang";
+  "CARGO_TARGET_${upper}_LINKER" = compiler;
+  "CC_${targetEnv}" = compiler;
+  "AR_${targetEnv}" = "${cross.stdenv.cc.bintools}/bin/${cross.stdenv.cc.targetPrefix}ar";
   "CARGO_TARGET_${upper}_RUSTFLAGS" = "-C link-arg=-Wl,-z,max-page-size=16384";
   packages = [
     sdk.androidsdk
