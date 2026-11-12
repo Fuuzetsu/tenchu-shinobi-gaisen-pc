@@ -1647,6 +1647,30 @@ cutscenes, muting audio and yielding periodically for input/rendering. Every
 logic tick runs; cutscene-only accelerated backlog is discarded
 when control returns. Fast-forward mutes sound and resumes background music at
 ordinary speed; releasing it mid-dialogue resumes speech at the next cue.
+**Campaign saves** on either title screen, or at the top of **F1**, keeps named
+campaigns for Shinobi Gaisen and native T2 JP. Each entry shows its progress:
+T1's furthest mission cleared per hero, or T2's recorded results and Grand Master
+ranks per hero. T2's unlocked but unplayed missions are not counted as results.
+The active campaign receives automatic records and supply updates. Enter a name
+and choose **New campaign**, **Duplicate selected**, or **Rename selected**.
+**Use selected campaign** returns to that game's title with its saved progress;
+the current mission ends at its last campaign checkpoint.
+
+Existing saves become **Campaign 1** and stay in their original files. Additional
+saves and the active selection are in `progress.sav.campaigns/` for T1 and
+`tenchu2-jp-progress.json.campaigns/` for T2, next to the corresponding save
+(`TENCHU_SAVE` / `TENCHU_T2_SAVE` overrides still apply). Back up the original
+file and its `.campaigns` directory together. Browser **Export save** includes
+all T1 campaigns and preferences; importing restores that collection. Older
+single-campaign browser backups still load into the first campaign and leave
+other campaigns available. T1 stages played with T2 rules remain separate from
+native campaign progression.
+
+Each named campaign has its own five F11/F12 snapshot slots. The first campaign
+keeps the existing slot files; other campaigns use subdirectories of `states/`.
+Rewind history is cleared when switching. Explicitly imported recordings remain
+separate from campaign backups.
+
 **F1 → Simulation → Savestate slot** selects one of five persistent mid-mission
 slots. **Save state / F11** overwrites that slot; **Load state / F12** restores it
 and pauses until **F3**. You can load from the title or launcher after restarting.

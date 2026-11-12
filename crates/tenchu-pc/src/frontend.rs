@@ -79,6 +79,7 @@ pub enum Page {
 }
 
 pub enum Event {
+    CampaignSaves,
     Bank(Arc<Bank>),
     Music(Option<usize>),
     MovieAudio(Arc<Clip>),

@@ -327,6 +327,13 @@ pub fn write_saved(path: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 #[wasm_bindgen]
+pub fn validate_campaign_index(bytes: &[u8]) -> std::result::Result<String, JsValue> {
+    let files =
+        crate::campaign_saves::Catalog::backup_files(bytes).map_err(|e| JsValue::from_str(&e))?;
+    serde_json::to_string(&files).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
 pub fn validate_save(progress: &[u8], settings: &[u8]) -> std::result::Result<(), JsValue> {
     if !progress.is_empty() {
         tenchu_core::progress::save::Save::decode(progress).map_err(|e| JsValue::from_str(&e))?;

@@ -11,6 +11,7 @@ use egui::{Color32, RichText, Ui};
 pub use super::edit::Preference;
 
 pub enum Edit {
+    Campaign(u64),
     Preference(Preference),
     Change(Item, i32),
     Preset(super::library::Choice),
@@ -59,6 +60,12 @@ pub fn show(
         samples,
     } = state;
     let mut edits = Vec::new();
+    if menu.campaigns.open {
+        if let Some(id) = menu.campaigns.show(ctx, &menu.notice) {
+            edits.push(Edit::Campaign(id));
+        }
+        return edits;
+    }
     if crate::online::ui::artwork_changed(&mut menu.artwork_generation) {
         edits.push(Edit::Change(Item::ReloadAssets, 1));
     }
@@ -153,6 +160,13 @@ pub fn show(
                 });
             });
             crate::online::ui::update_notice(ui);
+            if ui.button("Campaign saves…").clicked() {
+                menu.notice.clear();
+                let game = crate::campaign_saves::Game::Tenchu1;
+                #[cfg(not(target_arch = "wasm32"))]
+                let game = if runtime == Runtime::Tenchu2 { crate::campaign_saves::Game::Tenchu2 } else { game };
+                if let Err(error) = menu.campaigns.open(game) { menu.notice = error; }
+            }
             if runtime == Runtime::Tenchu2 {
                 ui.weak("Native Tenchu 2 JP · Dimmed controls are unavailable here; hover or select one for details.");
             }

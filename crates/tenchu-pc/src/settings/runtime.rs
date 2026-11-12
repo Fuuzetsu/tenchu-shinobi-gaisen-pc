@@ -294,7 +294,7 @@ impl Runtime {
             Edit::Change(item, _) | Edit::Reset(item) => self.unavailable(*item),
             _ if self == Self::Gaisen => None,
             Edit::Preference(change) => change.capability().and_then(|item| self.unavailable(item)),
-            Edit::Preset(_) | Edit::PresetLibrary | Edit::Controls => None,
+            Edit::Preset(_) | Edit::PresetLibrary | Edit::Controls | Edit::Campaign(_) => None,
             Edit::Coordinate(axis, _) => self.unavailable(Item::Target(*axis)),
             Edit::Benchmark => None,
             Edit::Diagnostics => None,

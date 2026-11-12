@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep multiple named campaign saves for Shinobi Gaisen and native T2 JP. Open
+  **Campaign saves** from either title or the top of F1 to see each character's
+  progress, create or duplicate a campaign, rename it, or switch back to it.
+  Existing saves remain the first campaign; autosaves and F11/F12 slots stay
+  separate for each campaign. Browser save exports include every T1 campaign.
+
 ## 0.31.1 — 2026-11-12
 
 - Match the original T2 title's selection colors while fading into its idle

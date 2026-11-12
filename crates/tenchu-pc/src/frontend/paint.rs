@@ -180,15 +180,20 @@ impl Frontend {
             return None;
         }
         let mut action = None;
-        #[cfg(not(target_arch = "wasm32"))]
         if self.page == Page::Title {
             egui::Area::new("frontend game switch".into())
                 .anchor(Align2::CENTER_BOTTOM, [0.0, -6.0])
                 .show(ctx, |ui| {
                     ui.spacing_mut().interact_size.y = 36.0;
-                    if ui.button("◀ Tenchu 2 · Left / Right ▶").clicked() {
-                        self.events.push(Event::Tenchu2Title);
-                    }
+                    ui.horizontal_wrapped(|ui| {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        if ui.button("◀ Tenchu 2 · Left / Right ▶").clicked() {
+                            self.events.push(Event::Tenchu2Title);
+                        }
+                        if ui.button("Campaign saves…").clicked() {
+                            self.events.push(Event::CampaignSaves);
+                        }
+                    });
                 });
         }
         egui::Area::new("frontend mouse".into())

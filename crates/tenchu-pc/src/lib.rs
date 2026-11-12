@@ -2,6 +2,7 @@
 mod android;
 mod audio;
 mod campaign;
+mod campaign_saves;
 #[cfg(not(target_arch = "wasm32"))]
 mod capture;
 mod controls;

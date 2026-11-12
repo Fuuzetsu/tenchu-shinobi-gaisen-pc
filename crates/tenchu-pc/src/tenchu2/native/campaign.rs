@@ -167,6 +167,40 @@ impl<S: ReadAt> Playback<S> {
         Ok(())
     }
 
+    pub fn select_campaign(
+        &mut self,
+        catalog: &mut crate::campaign_saves::Catalog,
+        id: u64,
+    ) -> Result<()> {
+        let save = super::save::SaveFile::at(catalog.path(id)?);
+        let progress = save.load()?;
+        let title = super::title::Title::load(&self.disc)?;
+        let campaign = Campaign::load(&self.disc)?;
+        let sequence = campaign.starts[0][0].ok_or("Missing Japanese training mission")?;
+        let mut run = Run::new(
+            &campaign,
+            0,
+            sequence,
+            self.run.difficulty,
+            self.run.random.seed,
+        )?;
+        run.progress = progress;
+        catalog.select(id)?;
+        self.campaign = campaign;
+        self.run = run;
+        self.save = Some(save);
+        self.gaisen = None;
+        self.randomizer = Default::default();
+        self.content = Content::Title(Box::new(title));
+        self.generation += 1;
+        self.action = None;
+        self.loadout = None;
+        self.previous_buttons = 0;
+        self.from_menu = false;
+        self.death.clear();
+        Ok(())
+    }
+
     pub fn gaisen(
         disc: Disc<S>,
         source: super::gaisen::Source,

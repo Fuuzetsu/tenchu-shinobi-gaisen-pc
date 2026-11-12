@@ -4,9 +4,12 @@ use std::cell::Cell;
 #[wasm_bindgen(module = "/web/state-store.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
-    async fn state_write(slot: u8, bytes: js_sys::Uint8Array) -> std::result::Result<(), JsValue>;
+    async fn state_write(
+        slot: JsValue,
+        bytes: js_sys::Uint8Array,
+    ) -> std::result::Result<(), JsValue>;
     #[wasm_bindgen(catch)]
-    async fn state_read(slot: u8) -> std::result::Result<js_sys::Uint8Array, JsValue>;
+    async fn state_read(slot: JsValue) -> std::result::Result<js_sys::Uint8Array, JsValue>;
 }
 
 pub enum Completed {
@@ -20,17 +23,28 @@ thread_local! {
     static COMPLETED: RefCell<Option<Completed>> = const { RefCell::new(None) };
 }
 
+pub fn busy() -> bool {
+    BUSY.get()
+}
+
 pub fn start(slot: u8, bytes: Option<Vec<u8>>) -> Result<()> {
+    let active =
+        crate::campaign_saves::Catalog::active(crate::storage::UserFile::Progress.path()?)?;
+    let key = if active == 0 {
+        JsValue::from_f64(f64::from(slot))
+    } else {
+        JsValue::from_str(&format!("campaign-{active}-slot-{slot}"))
+    };
     if BUSY.replace(true) {
         return Err("A savestate operation is already in progress".into());
     }
     wasm_bindgen_futures::spawn_local(async move {
         let result = if let Some(bytes) = bytes {
-            state_write(slot, js_sys::Uint8Array::from(bytes.as_slice()))
+            state_write(key, js_sys::Uint8Array::from(bytes.as_slice()))
                 .await
                 .map(|()| Completed::Saved(slot))
         } else {
-            state_read(slot)
+            state_read(key)
                 .await
                 .map(|bytes| Completed::Loaded(slot, bytes.to_vec()))
         };

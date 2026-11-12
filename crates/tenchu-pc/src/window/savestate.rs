@@ -292,8 +292,7 @@ impl Application {
     #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn state_action(&mut self, save: bool) -> Result<()> {
         let slot = self.debug.state_slot;
-        let path = crate::storage::UserFile::States
-            .path()?
+        let path = crate::campaign_saves::state_directory(crate::campaign_saves::Game::Tenchu1)?
             .join(format!("slot-{}.tstate", slot + 1));
         let message = if save {
             let bytes = self.capture_state()?;

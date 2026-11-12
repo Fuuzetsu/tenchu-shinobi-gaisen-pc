@@ -183,6 +183,7 @@ impl Overlay {
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
         if !self.editing()
             && menu.edit.is_none()
+            && !menu.campaigns.open
             && !extras.trial.as_ref().is_some_and(|(e, _, _)| e.open)
             && !extras.controls.as_ref().is_some_and(|c| c.editor.open)
             && !extras.randomizer.as_ref().is_some_and(|r| r.editor.open)
@@ -430,6 +431,7 @@ impl super::Application {
             return;
         }
         let was_open = self.menu.open;
+        let campaigns_were_open = self.menu.campaigns.open;
         let randomizer_was_open = self.randomizer.open;
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
         let frontend_visible = self.frontend_visible();
@@ -629,7 +631,10 @@ impl super::Application {
             self.sync_pause();
         }
         let edits = updates.edits;
-        if edits.is_empty() && was_open == self.menu.open {
+        if edits.is_empty()
+            && was_open == self.menu.open
+            && campaigns_were_open == self.menu.campaigns.open
+        {
             return;
         }
         let mut previous = self.settings.clone();
@@ -644,6 +649,7 @@ impl super::Application {
                     | Edit::ImportRewind
             );
             let result = match edit {
+                Edit::Campaign(id) => self.select_campaign(id),
                 Edit::Preference(change) => {
                     change.apply(&mut self.settings);
                     Ok(())
@@ -708,6 +714,9 @@ impl super::Application {
             self.controls.close_editor();
         }
         self.release_pointer();
+        if campaigns_were_open != self.menu.campaigns.open {
+            self.controls.clear();
+        }
         self.sync_pause();
         self.update_view();
     }

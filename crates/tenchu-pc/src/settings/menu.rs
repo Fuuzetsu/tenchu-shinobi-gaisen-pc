@@ -367,6 +367,7 @@ pub struct Row {
 
 #[derive(Default)]
 pub struct Menu {
+    pub campaigns: crate::campaign_saves::Manager,
     pub touch_controls: bool,
     pub model_picker: bool,
     pub open: bool,
@@ -2489,6 +2490,12 @@ impl Menu {
     }
 
     pub fn action(&mut self, action: Action, count: usize) -> Option<i32> {
+        if self.campaigns.open {
+            if matches!(action, Action::Back) {
+                self.campaigns.open = false;
+            }
+            return None;
+        }
         match action {
             Action::Back => self.open = false,
             Action::Up => self.row = (self.row + count - 1) % count,

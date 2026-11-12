@@ -5,6 +5,7 @@ mod actors;
 mod behavior;
 mod bleeding;
 mod camera;
+mod campaign_saves;
 mod death;
 mod rewind;
 mod savestate;

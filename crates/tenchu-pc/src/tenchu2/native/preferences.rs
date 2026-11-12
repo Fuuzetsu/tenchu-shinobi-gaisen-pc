@@ -93,6 +93,7 @@ pub struct State<'a> {
 
 #[derive(Default)]
 pub struct Action {
+    pub campaign: Option<u64>,
     pub spawn: Option<super::spawning::Request>,
     pub leave: bool,
     pub select_mission: bool,
@@ -113,7 +114,43 @@ pub struct Action {
 
 impl Menu {
     pub fn modal_open(&self) -> bool {
-        self.randomizer_open() || self.benchmarks.open() || self.benchmarks.running()
+        self.panel.campaigns.open
+            || self.randomizer_open()
+            || self.benchmarks.open()
+            || self.benchmarks.running()
+    }
+
+    pub fn campaign_button(&mut self, ctx: &egui::Context, title: bool) {
+        if title && !self.panel.open && !self.modal_open() {
+            egui::Area::new("native-campaign-saves".into())
+                .anchor(egui::Align2::LEFT_TOP, [12.0, 12.0])
+                .show(ctx, |ui| {
+                    if ui.button("Campaign saves…").clicked() {
+                        self.panel.open = true;
+                        if let Err(error) = self
+                            .panel
+                            .campaigns
+                            .open(crate::campaign_saves::Game::Tenchu2)
+                        {
+                            self.panel.notice = error;
+                        }
+                    }
+                });
+        }
+    }
+
+    pub fn select_campaign(
+        &mut self,
+        playback: &mut super::campaign::Playback<impl tenchu_assets::ReadAt>,
+        id: u64,
+    ) -> tenchu_assets::Result<()> {
+        playback.select_campaign(self.panel.campaigns.catalog()?, id)?;
+        self.panel.campaigns.open = false;
+        self.panel.open = false;
+        self.fast_forward = false;
+        self.tools = Default::default();
+        self.randomizer = None;
+        Ok(())
     }
 
     pub fn randomizer_open(&self) -> bool {
@@ -340,6 +377,11 @@ impl Menu {
     }
 
     pub fn back(&mut self, controls: &mut Controls, presets: &mut Manager) {
+        if self.panel.campaigns.open {
+            self.panel.campaigns.open = false;
+            controls.clear();
+            return;
+        }
         if self.benchmarks.open() || self.benchmarks.running() {
             self.benchmarks.ui.open = false;
             if self.benchmarks.running() {
@@ -440,7 +482,7 @@ impl Menu {
 
     pub fn show(&mut self, ctx: &egui::Context, state: &mut State<'_>) -> Action {
         let mut action = Action::default();
-        if self.modal_open() {
+        if self.modal_open() && !self.panel.campaigns.open {
             if matches!(
                 self.pending.take(),
                 Some(Navigation::Action(MenuAction::Back))
@@ -498,6 +540,7 @@ impl Menu {
             && !state.controls.editor.open
             && !state.presets.open
             && !self.panel.touch_controls
+            && !self.panel.campaigns.open
         {
             ctx.input_mut(|input| {
                 if input.consume_key(egui::Modifiers::SHIFT, egui::Key::Tab) {
@@ -592,6 +635,10 @@ impl Menu {
             return;
         }
         let result = match edit {
+            Edit::Campaign(id) => {
+                action.campaign = Some(id);
+                Ok(())
+            }
             Edit::Preference(change) => {
                 change.apply(state.settings);
                 Ok(())

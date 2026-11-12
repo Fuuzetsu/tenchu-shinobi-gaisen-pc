@@ -144,6 +144,7 @@ impl View {
         let output = self
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
+                menu.campaign_button(ctx, matches!(session.content, Content::Title(_)));
                 self.drawing.paint(&session.content, ctx);
                 if !menu.panel.open && !menu.modal_open() {
                     session.action = session
@@ -568,6 +569,7 @@ impl Application {
         let mut rewind_action = None;
         let mut open_randomizer = false;
         let mut randomizer_action = None;
+        let mut campaign_action = None;
         let previous = self.settings.clone();
         let graphics = preferences::graphics(&self.settings);
         if let Some(view) = &mut self.view {
@@ -677,6 +679,7 @@ impl Application {
             rewind_action = action.rewind;
             open_randomizer = action.open_randomizer;
             randomizer_action = action.randomizer;
+            campaign_action = action.campaign;
             if let Some(bodies) = action.models
                 && let Some(gallery) = &mut self.gallery
             {
@@ -746,6 +749,20 @@ impl Application {
         }
         if open_randomizer {
             self.toggle_randomizer()?;
+        }
+        if let Some(id) = campaign_action {
+            match self.menu.select_campaign(&mut self.session, id) {
+                Ok(()) => {
+                    self.error = None;
+                    self.rewind.clear();
+                    self.controls.clear();
+                    self.transport
+                        .restored(&mut self.session, self.audio.as_ref());
+                    self.paused = false;
+                    self.last = Instant::now();
+                }
+                Err(error) => self.menu.panel.notice = error,
+            }
         }
         if let Some(event) = randomizer_action {
             if let Err(error) = self.menu.randomizer_action(&mut self.session, event) {

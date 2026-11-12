@@ -40,9 +40,10 @@ pub fn path(slot: u8) -> Result<std::path::PathBuf> {
     if slot >= 5 {
         return Err("Invalid native T2 savestate slot".into());
     }
-    Ok(crate::storage::UserFile::States
-        .path()?
-        .join(format!("t2-jp-slot-{}.tstate", slot + 1)))
+    Ok(
+        crate::campaign_saves::state_directory(crate::campaign_saves::Game::Tenchu2)?
+            .join(format!("t2-jp-slot-{}.tstate", slot + 1)),
+    )
 }
 
 pub fn capture(

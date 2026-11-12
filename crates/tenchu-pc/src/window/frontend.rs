@@ -3,6 +3,56 @@ use crate::frontend::{Event, Page};
 use tenchu_assets::frontend::Movie;
 
 impl Application {
+    pub(super) fn select_campaign(&mut self, id: u64) -> Result<()> {
+        if self.demo.is_some() || self.benchmarks.run.is_some() {
+            return Err("Finish the demo or benchmark before switching campaigns".into());
+        }
+        #[cfg(target_arch = "wasm32")]
+        if crate::web::savestate::busy() {
+            return Err("Wait for the savestate operation to finish".into());
+        }
+        self.save();
+        let storage = Storage::at(self.menu.campaigns.path(id)?);
+        let saved = storage.load()?;
+        let mut campaign = Campaign::new(&self.assets, self.campaign.options, saved)?;
+        if let Some(save) = &campaign.saved {
+            campaign.progress = save.progress.clone();
+            campaign.seed = save.seed;
+        }
+        let mut frontend = crate::frontend::Frontend::new(
+            &self.assets,
+            &self.disc,
+            &campaign,
+            self.settings.frontend.clone(),
+        )?;
+        frontend.enter_title(&self.assets)?;
+        let debug = crate::debug::Debug::new(&campaign.game)?;
+        self.menu.campaigns.activate(id)?;
+        self.finish_recording();
+        self.clear_rewind();
+        campaign.frontend = true;
+        campaign.quick_launcher = false;
+        campaign.screen = Screen::Frontend;
+        self.campaign = campaign;
+        self.storage = storage;
+        self.debug = debug;
+        self.frontend = Some(frontend);
+        self.trial.open = false;
+        self.trial.preview = false;
+        self.trial_previous = None;
+        self.randomizer.open = false;
+        self.tenchu2.open = false;
+        self.presets.open = false;
+        self.controls.close_editor();
+        self.menu.open = false;
+        self.controls.clear();
+        self.paused = false;
+        self.faulted = false;
+        self.fault = None;
+        self.sync_pause();
+        self.update_view();
+        Ok(())
+    }
     #[cfg(target_arch = "wasm32")]
     pub(super) fn browser_ready(&mut self) -> bool {
         match crate::web::mission_ready(self.campaign.options.language.unwrap_or_default()) {
@@ -135,6 +185,18 @@ impl Application {
         let pending = std::mem::take(&mut frontend.events);
         for event in pending {
             match event {
+                Event::CampaignSaves => {
+                    self.menu.open = true;
+                    if let Err(error) = self
+                        .menu
+                        .campaigns
+                        .open(crate::campaign_saves::Game::Tenchu1)
+                    {
+                        self.menu.notice = error;
+                    }
+                    self.controls.clear();
+                    self.sync_pause();
+                }
                 #[cfg(not(target_arch = "wasm32"))]
                 Event::Tenchu2Title => self.tenchu2_action(crate::tenchu2::menu::Event::Title),
                 Event::Quit => events.exit(),

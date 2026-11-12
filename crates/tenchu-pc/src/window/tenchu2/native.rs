@@ -565,10 +565,15 @@ impl Application {
         let mut rewind_action = None;
         let mut open_randomizer = false;
         let mut randomizer_action = None;
+        let mut campaign_action = None;
         let was_open = native.menu.panel.open || native.menu.modal_open();
+        let campaigns_were_open = native.menu.panel.campaigns.open;
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
         view.overlay.custom(&view.window, &view.renderer, |ctx| {
+            native
+                .menu
+                .campaign_button(ctx, matches!(native.playback.content, Content::Title(_)));
             native
                 .drawing
                 .as_mut()
@@ -653,6 +658,7 @@ impl Application {
             state_action = actions.state;
             rewind_action = actions.rewind;
             open_randomizer = actions.open_randomizer;
+            campaign_action = actions.campaign;
             randomizer_action = native.menu.show_randomizer(ctx, &native.playback);
             if actions.clear_blood {
                 native.drawing.as_mut().unwrap().clear_blood();
@@ -768,6 +774,7 @@ impl Application {
             view.renderer.timings.as_ref().and_then(|t| t.latest),
         );
         if was_open != (native.menu.panel.open || native.menu.modal_open())
+            || campaigns_were_open != native.menu.panel.campaigns.open
             || was_paused != self.paused
             || previous_settings.pause_in_menu != self.settings.pause_in_menu
             || previous_settings.pause_on_defocus != self.settings.pause_on_defocus
@@ -776,6 +783,9 @@ impl Application {
             if !native.menu.panel.open {
                 self.controls.close_editor();
                 self.presets.open = false;
+            }
+            if campaigns_were_open != native.menu.panel.campaigns.open {
+                self.controls.clear();
             }
             self.sync_pause();
         }
@@ -787,6 +797,23 @@ impl Application {
         }
         if open_randomizer {
             self.native_toggle_randomizer()?;
+        }
+        if let Some(id) = campaign_action {
+            let native = self.native_tenchu2.as_mut().unwrap();
+            match native.menu.select_campaign(&mut native.playback, id) {
+                Ok(()) => {
+                    native.error = None;
+                    native.rewind.clear();
+                    native.transport.restored(
+                        &mut native.playback,
+                        self.audio.as_ref().map(|a| a.output()),
+                    );
+                    self.controls.clear();
+                    self.paused = false;
+                }
+                Err(error) => native.menu.panel.notice = error,
+            }
+            self.sync_pause();
         }
         if let Some(event) = randomizer_action {
             let native = self.native_tenchu2.as_mut().unwrap();

@@ -198,8 +198,12 @@ impl Storage {
 
     pub fn new() -> Result<Self> {
         Ok(Self {
-            path: UserFile::Progress.path()?,
+            path: crate::campaign_saves::Catalog::active_path(UserFile::Progress.path()?)?,
         })
+    }
+
+    pub fn at(path: PathBuf) -> Self {
+        Self { path }
     }
 
     pub fn load(&self) -> Result<Option<Save>> {

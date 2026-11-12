@@ -16,12 +16,11 @@ struct Save {
 impl SaveFile {
     pub fn new() -> Result<Self> {
         Ok(Self {
-            path: UserFile::Tenchu2Progress.path()?,
+            path: crate::campaign_saves::Catalog::active_path(UserFile::Tenchu2Progress.path()?)?,
         })
     }
 
-    #[cfg(test)]
-    pub(super) fn at(path: PathBuf) -> Self {
+    pub(crate) fn at(path: PathBuf) -> Self {
         Self { path }
     }
 
@@ -36,7 +35,7 @@ impl SaveFile {
         Self::decode(&bytes).map_err(|error| format!("{}: {error}", self.path.display()))
     }
 
-    fn decode(bytes: &[u8]) -> Result<Progress> {
+    pub(crate) fn decode(bytes: &[u8]) -> Result<Progress> {
         let save: Save = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
         if save.version != 1 {
             return Err(format!(

@@ -287,6 +287,7 @@ impl Application {
             || (self.randomizer.open && self.demo.is_none())
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
             || (self.menu.open && self.settings.pause_in_menu)
+            || self.menu.campaigns.open
             || (!self.focused && self.settings.pause_on_defocus)
     }
 
@@ -341,6 +342,7 @@ impl Application {
     }
 
     fn toggle_menu(&mut self) {
+        self.menu.campaigns.open = false;
         self.release_pointer();
         self.menu.edit = None;
         self.menu.hovered = None;
