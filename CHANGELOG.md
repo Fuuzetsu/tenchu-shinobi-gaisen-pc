@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore Android builds after the native T2 randomizer integration.
+
 - Fix a Mission 4 guard treating valid ground as a wall at an indexed terrain
   boundary. Out-of-range lookup entries are skipped safely instead of reading
   neighboring pointer data.

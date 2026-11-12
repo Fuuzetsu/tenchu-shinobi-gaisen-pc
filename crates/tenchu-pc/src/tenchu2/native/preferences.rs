@@ -107,6 +107,7 @@ pub struct Action {
     pub state: Option<bool>,
     pub rewind: Option<super::rewind::Action>,
     pub open_randomizer: bool,
+    #[cfg(not(target_os = "android"))]
     pub randomizer: Option<crate::randomizer::Event>,
 }
 
