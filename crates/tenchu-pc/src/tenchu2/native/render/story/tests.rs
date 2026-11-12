@@ -1,6 +1,89 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; authored effects, sprite textures and checkpoint continuation"]
+fn completed_story_effects_render_and_resume() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(&disc).unwrap();
+    for (event, tick) in [
+        (10, 553),
+        (103, 338),
+        (134, 60),
+        (78, 2760),
+        (113, 0),
+        (35, 0),
+    ] {
+        let sequence = campaign
+            .sequences
+            .iter()
+            .position(|s| {
+                s.kind == tenchu_assets::tenchu2::campaign::Kind::Event && s.resource == event
+            })
+            .unwrap();
+        let mut story = Story::load(&disc, sequence, event, 17).unwrap();
+        for _ in 0..=tick {
+            story.step(true).unwrap();
+        }
+        if tick == 0 {
+            while !story.state.effects.sprites.iter().any(|(model, sprite)| {
+                let (point, _) = tenchu_core::visibility::project(
+                    &story.state.view.compose(&tenchu_core::math::Matrix {
+                        translation: sprite.position,
+                        ..Default::default()
+                    }),
+                    [0; 3],
+                );
+                *model != 286
+                    && sprite.color[0] > 32
+                    && sprite.scale[0] > 150
+                    && point[0].abs() < 140
+                    && point[1].abs() < 90
+            }) {
+                assert!(
+                    !story.state.finished(&story.resources.script),
+                    "event {event}: no visible sprite track"
+                );
+                story.step(true).unwrap();
+            }
+            eprintln!(
+                "Event {event}: visible animated sprite at {}",
+                story.state.frame
+            );
+        }
+        let checkpoint = story.capture_state().unwrap();
+        for draw in [true, false, true, true] {
+            story.step(draw).unwrap();
+        }
+        let expected = postcard::to_allocvec(&story.state).unwrap();
+        story.restore_state(&disc, &checkpoint).unwrap();
+        for draw in [true, false, true, true] {
+            story.step(draw).unwrap();
+        }
+        assert_eq!(postcard::to_allocvec(&story.state).unwrap(), expected);
+        let mut graphics = Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        for modern in [false, true] {
+            if modern {
+                graphics.set_preset(crate::settings::presets::MODERN_HIGH);
+                graphics.asset_pack = false;
+            }
+            let path = output.join(format!("story-effects-{event}-{modern}.png"));
+            capture_frame(&story.sprites.vram, &graphics, &path, |renderer| {
+                let mut drawing = Drawing::new(&story, &graphics, renderer)?;
+                drawing.update(&story, renderer, None)?;
+                Ok((drawing.scene, story.state.view, drawing.texts))
+            })
+            .unwrap();
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; F1 clears paused story stains through renderer rebuilds"]
 fn cutscene_retained_blood_clears_without_advancing_playback() {
     let disc =

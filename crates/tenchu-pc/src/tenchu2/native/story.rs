@@ -10,7 +10,6 @@ use tenchu_assets::{
 };
 use tenchu_core::{
     math::{Math, Matrix},
-    motion::Pose,
     tenchu2::story::{Playback, TextureChange},
 };
 
@@ -57,7 +56,7 @@ impl Story {
 
     pub fn step(&mut self, draw: bool) -> Result<()> {
         let changes = self.state.step(
-            &self.resources.script,
+            &self.resources,
             &self.basis,
             &self.math,
             &self.rules,
@@ -107,12 +106,11 @@ impl Story {
             return Ok(None);
         };
         let motion = &self.state.actors[slot];
-        let mut pose = Pose::new(&model.parts)?;
-        pose.translation[0] = motion.position;
-        for (rotation, &value) in pose.rotation.iter_mut().zip(&motion.rotation) {
-            *rotation = value;
-        }
-        Ok(Some(pose.matrices(&self.math, Matrix::default())))
+        Ok(Some(
+            motion
+                .pose(&model.parts)?
+                .matrices(&self.math, Matrix::default()),
+        ))
     }
 
     #[cfg(test)]

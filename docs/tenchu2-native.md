@@ -316,7 +316,11 @@ keeps source timing, growth and artwork.
 Scripted native T2 cutscene bursts, droplets and pools use these same styles.
 Their original timing and surface contact continue through fast-forward; camera
 movement, pausing and graphics changes do not advance the particle simulation.
-Other timed cutscene effects and distortion remain unfinished.
+Authored sparks, water spray, dust, leaves, smoke, explosions, animated sprite
+tracks and joint-attached fire also run through the original effect routines.
+The two frame-feedback commands blend preceding frames; they do not distort
+geometry. Paused redraws do not accumulate that blend. Seeking, resizing or
+changing scenes discards presentation history.
 
 **Detailed rope / hook** in Contact effects uses the shared round woven rope and
 hook refinement. T2 supplies its original flight/pull path; interpolation and
@@ -606,8 +610,8 @@ Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. It uses the shared renderer and the F1 features described
 above. The HUD includes health/enemy bars, Ki, breath, the aiming reticle, item
-selection and pickup notices, with optional HD text. Scripted story blood is
-supported; other timed 3D story effects and distortion remain integration work.
+selection and pickup notices, with optional HD text. Story playback includes scripted blood and other timed particles, animated
+sprites, joint-attached fire and the original frame-feedback overlays.
 The native renderer also loads the original sky layers and distant scenery,
 including the story sequences' alternate evening palettes.
 The existing BizHawk observer/replay checker now compares bounded native JP

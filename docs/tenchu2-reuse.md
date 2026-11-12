@@ -40,3 +40,34 @@ order, branches and RNG calls before sharing an implementation.
 No usable T2 debug-symbol release has been verified. The known demo `PSX.SYM`
 belongs to Tenchu 1 and is already used by `../tenchu-decomp`. This comparison does
 not depend on finding further symbols and commits no executable or captured data.
+
+## Native T2 story effects
+
+The 2026-11-12 completion uses JP `EVENT.BIN` command dispatch `800d42b4`,
+actor/sprite drawing `800d2e6c`, sprite motion `800d3794`, resource loading
+`800d6178` / `800d67e8`, and per-joint ignition `800d66bc`. `GAME.EXE` supplies
+story sparks `80041e60`, water spray `80045008`, dust `8003db48`, dispersing
+smoke `80046630`, explosion `8003ec74`, smoke `8003ddec`, leaves `80046cfc` /
+`8004711c`, ripple/splash `80044f98` / `8004518c`, and sprite projection
+`80046b94`. Common particle updates reuse the already checked native routines.
+Leaf quads share the paper renderer, retaining their distinct source motion.
+SPR files are ordinary TIMs with the same palette blending normalization;
+models 285 and 289 intentionally have no drawable resource.
+
+Frame feedback (`8003b3dc`, invoked by `800d4c20`) blends the preceding
+frame using either half-current/half-previous or current + 3/4 previous, then
+draws the closer overlays. The authored phase word is not a geometric warp.
+The PC renderer retains a fixed previous frame for repeated draws of a logic
+tick and clears history after scene changes, seeks, resize or long gaps.
+Source cutscene initialization `800d1150` clears the positional-audio listener;
+the explosion's call to `8001ecb4` therefore produces no sound in that mode.
+
+The local original-instruction fixture has 180 timed-command cases and 30
+per-bone ignition cases, including RNG and particle lifetime comparisons.
+The disc-backed event audit runs all 141 reachable resources (146 sequence
+placements, 178,133 updates). This is scripted-cutscene validation, not a new
+ordinary-play recording. Executables, extracted data, fixture outputs and
+review captures remain outside Git under `private/story-completion-20261112`.
+The sibling Gaisen research repositories were consulted read-only; these T2
+behaviors were checked directly against the JP executable instead of inferred
+from the related T1 routines.

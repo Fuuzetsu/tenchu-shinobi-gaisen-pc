@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore the remaining native T2 cutscene particles, animated fire/light sprites,
+  burning actors and original frame-feedback effects. Pausing keeps effects still;
+  Original and Modern presets share the authored timing and random-number order.
+
 - Restore Android and packaged desktop/browser builds after adding HTTPS support
   for artwork downloads and release checks.
 

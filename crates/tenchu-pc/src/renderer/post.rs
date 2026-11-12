@@ -377,7 +377,11 @@ fn attachment(view: &wgpu::TextureView) -> wgpu::RenderPassColorAttachment<'_> {
     }
 }
 
-fn target(device: &wgpu::Device, size: [u32; 2], format: wgpu::TextureFormat) -> wgpu::TextureView {
+pub(super) fn target(
+    device: &wgpu::Device,
+    size: [u32; 2],
+    format: wgpu::TextureFormat,
+) -> wgpu::TextureView {
     device
         .create_texture(&wgpu::TextureDescriptor {
             label: Some("Post-processing target"),
@@ -396,7 +400,7 @@ fn target(device: &wgpu::Device, size: [u32; 2], format: wgpu::TextureFormat) ->
         .create_view(&Default::default())
 }
 
-fn buffer(device: &wgpu::Device, size: u64) -> wgpu::Buffer {
+pub(super) fn buffer(device: &wgpu::Device, size: u64) -> wgpu::Buffer {
     device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Post-processing parameters"),
         size,
@@ -405,7 +409,11 @@ fn buffer(device: &wgpu::Device, size: u64) -> wgpu::Buffer {
     })
 }
 
-fn texture_entry(binding: u32, depth: bool, multisampled: bool) -> wgpu::BindGroupLayoutEntry {
+pub(super) fn texture_entry(
+    binding: u32,
+    depth: bool,
+    multisampled: bool,
+) -> wgpu::BindGroupLayoutEntry {
     wgpu::BindGroupLayoutEntry {
         binding,
         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -422,7 +430,7 @@ fn texture_entry(binding: u32, depth: bool, multisampled: bool) -> wgpu::BindGro
     }
 }
 
-fn sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+pub(super) fn sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
     wgpu::BindGroupLayoutEntry {
         binding,
         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -431,7 +439,7 @@ fn sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
     }
 }
 
-fn uniform_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+pub(super) fn uniform_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
     wgpu::BindGroupLayoutEntry {
         binding,
         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -444,7 +452,7 @@ fn uniform_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
     }
 }
 
-fn pipeline(
+pub(super) fn pipeline(
     device: &wgpu::Device,
     layout: &wgpu::BindGroupLayout,
     shader: &wgpu::ShaderModule,

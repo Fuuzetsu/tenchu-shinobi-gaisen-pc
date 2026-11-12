@@ -29,6 +29,7 @@ pub(super) struct Models {
     textures: Vec<AnimatedTextures>,
     overrides: BTreeMap<i16, super::super::custom::Player>,
     equipment: BTreeMap<usize, Vec<Equipment>>,
+    sprites: BTreeMap<i16, super::super::sprites::Sprites>,
 }
 
 struct Equipment {
@@ -61,6 +62,18 @@ impl Models {
 
     pub fn new(story: &Story, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         renderer.update_vram(&story.sprites.vram);
+        let sprites = story
+            .resources
+            .effects
+            .iter()
+            .filter_map(|(&id, sprite)| {
+                let (vram, image) = sprite.as_ref()?.texture.as_ref()?;
+                Some((
+                    id,
+                    super::super::sprites::Sprites::new(vram, std::iter::once(*image), renderer),
+                ))
+            })
+            .collect();
         let level = &story.level;
         let resources = &story.resources;
         let mut terrain_sources = sources(
@@ -231,6 +244,7 @@ impl Models {
             equipment.insert(slot, parts);
         }
         Ok(Self {
+            sprites,
             terrain,
             lamps,
             actors,
@@ -350,6 +364,18 @@ impl Models {
                         false,
                     )?;
                 }
+            }
+        }
+        for (model, sprite) in &story.state.effects.sprites {
+            let resource = resources.effects[model].as_ref().unwrap();
+            let image = resource
+                .texture
+                .as_ref()
+                .map_or(story.sprites.effects[15], |(_, image)| *image);
+            let start = output.surfaces.len();
+            output.particle_sprite(sprite, image, story.state.view, camera.is_some());
+            if let Some(binding) = self.sprites.get_mut(model) {
+                binding.retain(&mut output.surfaces[start..], renderer)?;
             }
         }
         output.particles(

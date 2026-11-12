@@ -19,6 +19,7 @@ pub(crate) struct Drawing {
     view: Matrix,
     pub camera: Option<crate::debug::camera::Camera>,
     pub alpha: f32,
+    feedback: crate::renderer::feedback::Request,
 }
 
 impl Drawing {
@@ -44,6 +45,7 @@ impl Drawing {
         self.motion = state.motion;
         self.motion.rebind_inputs(&inputs);
         self.models.invalidate_textures();
+        renderer.clear_feedback();
         self.scene.restore_state(
             state.scene,
             &story.level,
@@ -94,6 +96,11 @@ impl Drawing {
             view: story.state.view,
             camera: None,
             alpha: 1.0,
+            feedback: crate::renderer::feedback::Request {
+                scene: (story.sequence as u32) << 16 | u32::from(story.event),
+                tick: story.state.effects.tick,
+                additive: story.state.presentation.warp.map(|warp| warp.variant),
+            },
         };
         drawing.tick(story, graphics)?;
         Ok(drawing)
@@ -150,6 +157,8 @@ impl Drawing {
     }
 
     pub fn tick(&mut self, story: &Story, graphics: &Graphics) -> Result<()> {
+        self.feedback.tick = story.state.effects.tick;
+        self.feedback.additive = story.state.presentation.warp.map(|warp| warp.variant);
         if let Some(environment) = &mut self.scene.environment {
             environment.advance(
                 &super::environment::Frame {
@@ -181,13 +190,16 @@ impl Drawing {
     }
 
     pub fn draw(&self, target: &wgpu::TextureView, renderer: &mut Renderer) -> Result<()> {
-        if let Some(camera) = self.camera {
+        let previous = renderer.feedback.replace(self.feedback);
+        let result = if let Some(camera) = self.camera {
             let [w, h] = renderer.size();
             self.scene
                 .draw_camera(camera.matrix(w as f32 / h as f32), target, renderer)
         } else {
             self.scene.draw(self.view, target, renderer)
-        }
+        };
+        renderer.feedback = previous;
+        result
     }
 }
 
@@ -210,7 +222,7 @@ pub(in crate::tenchu2::native) fn capture(
         Ok((drawing.scene, story.state.view, drawing.texts))
     })?;
     eprintln!(
-        "Native JP event {event}, sequence {sequence}, frame {}: {} actor tracks. Other timed 3D effects and distortion remain pending; this still capture has no audio.",
+        "Native JP event {event}, sequence {sequence}, frame {}: {} actor tracks. Authored effects are active; this still capture omits framebuffer history and audio.",
         story.state.frame,
         story.state.actors.len()
     );

@@ -108,13 +108,14 @@ impl Playback {
 
     pub fn step(
         &mut self,
-        script: &Script,
+        resources: &Resources,
         basis: &[[i16; 4]; 33],
         math: &Math,
         rules: &Rules,
         level: &Level,
         draw: bool,
     ) -> Result<Vec<TextureChange>> {
+        let script = &resources.script;
         if self.ending.is_some_and(|e| e.complete)
             || (self.ending.is_none() && self.finished(script))
         {
@@ -136,6 +137,7 @@ impl Playback {
                 rules,
                 &level.collision,
                 &mut self.random,
+                self.camera.camera_direction(math)?,
             )?;
         }
         let changes = self
@@ -149,19 +151,44 @@ impl Playback {
         for (motion, animation) in self.actors.iter_mut().zip(&script.actors) {
             motion.update(animation, self.frame, basis)?;
         }
+        let mut scene = crate::scene::Scene::default();
+        let attached = changes
+            .iter()
+            .any(|change| matches!(change, TextureChange::Ignite { .. }))
+            || self.effects.particles.entries.iter().any(|effect| {
+                matches!(effect,
+                crate::tenchu2::effects::Effect::Sprites(sprite) if sprite.parent.is_some())
+            });
+        if attached {
+            for (slot, (motion, animation)) in self.actors.iter().zip(&script.actors).enumerate() {
+                let Some(model) = resources.models.get(&animation.model) else {
+                    continue;
+                };
+                let bones = motion.pose(&model.parts)?.bind(&mut scene, 0, math);
+                for _ in changes
+                    .iter()
+                    .filter(|change| **change == TextureChange::Ignite { slot })
+                {
+                    self.effects.ignite(&bones)?;
+                }
+            }
+        }
+        let view = crate::tenchu2::visibility::View {
+            eye: self.camera.position,
+            look: self
+                .camera
+                .position
+                .wrapping_add(self.camera.camera_direction(math)?),
+            focus: self.camera.position,
+            matrix: self.view,
+            distance: (level.draw_distance >> 4) * 16,
+        };
+        self.effects
+            .animate_sprites(resources, &self.actors, view, self.ending.is_none(), draw);
         if draw {
             self.effects.frame = self.effects.particles.update(
-                &mut crate::scene::Scene::default(),
-                crate::tenchu2::visibility::View {
-                    eye: self.camera.position,
-                    look: self
-                        .camera
-                        .position
-                        .wrapping_add(self.camera.camera_direction(math)?),
-                    focus: self.camera.position,
-                    matrix: self.view,
-                    distance: (level.draw_distance >> 4) * 16,
-                },
+                &mut scene,
+                view,
                 &level.collision,
                 &mut self.effects.cursor,
                 math,

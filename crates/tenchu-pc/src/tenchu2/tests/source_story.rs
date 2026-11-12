@@ -72,7 +72,7 @@ fn native_story_exit_matches_original_outer_loop() {
                 "ended early: {case}:{tick}"
             );
             state
-                .step(&resources.script, &basis, &math, &rules, &level, true)
+                .step(&resources, &basis, &math, &rules, &level, true)
                 .unwrap();
             if state.ending.is_none()
                 && (state.finished(&resources.script) || (button != 0 && tick == 2))
@@ -171,6 +171,7 @@ fn native_story_faces_match_original_expression_and_draw_updates() {
 #[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_BLOOD_FACES_ORACLE; blood dispatch precedes source facial RNG"]
 fn native_story_blood_and_faces_preserve_source_order() {
+    use tenchu_assets::tenchu2::story::EffectKind;
     use tenchu_assets::tenchu2::{
         effects::Rules,
         level::Level,
@@ -206,7 +207,13 @@ fn native_story_blood_and_faces_preserve_source_order() {
             matches!(
                 timed.command,
                 Command::Effect {
-                    id: 2 | 3 | 4 | 25 | 26 | 29 | 34,
+                    kind: EffectKind::Blood
+                        | EffectKind::Pool
+                        | EffectKind::BloodBurst
+                        | EffectKind::RadialBlood
+                        | EffectKind::GreenBlood
+                        | EffectKind::SlowBlood
+                        | EffectKind::PaleBlood,
                     ..
                 }
             )
@@ -220,14 +227,7 @@ fn native_story_blood_and_faces_preserve_source_order() {
         let mut state = Playback::new(&resources, case.seed);
         for expected in case.states {
             let changes = state
-                .step(
-                    &resources.script,
-                    &basis,
-                    &math,
-                    &rules,
-                    &level,
-                    expected.draw,
-                )
+                .step(&resources, &basis, &math, &rules, &level, expected.draw)
                 .unwrap();
             assert_eq!(
                 changes, expected.changes,
@@ -311,7 +311,7 @@ fn native_story_models_load_from_their_event_bundles() {
         let mut playback = tenchu_core::tenchu2::story::Playback::new(&resources, 17);
         while !playback.finished(&resources.script) {
             playback
-                .step(&resources.script, &basis, &math, &rules, &level, true)
+                .step(&resources, &basis, &math, &rules, &level, true)
                 .unwrap_or_else(|e| {
                     panic!(
                         "sequence {sequence}, event {event}, frame {}: {e}",

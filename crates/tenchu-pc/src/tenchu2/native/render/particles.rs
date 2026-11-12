@@ -8,6 +8,37 @@ pub(super) struct Particles<'a> {
 }
 
 impl Builder {
+    pub(super) fn particle_sprite(
+        &mut self,
+        sprite: &tenchu_core::tenchu2::effects::sprites::Drawing,
+        image: Image,
+        view: Matrix,
+        reproject: bool,
+    ) {
+        let blend = blend(sprite.blend, sprite.image);
+        let projected = self.project(sprite.position);
+        if projected[2] <= 0.0 {
+            return;
+        }
+        let adjustment = if reproject {
+            let source_depth =
+                (view.apply_large(sprite.position).z + view.translation.z).max(0) as f32;
+            source_depth / projected[2] * self.distance / 300.0
+        } else {
+            1.0
+        };
+        let scale = sprite.scale.map(|v| f32::from(v) / 4096.0 * adjustment);
+        self.screen_sprite(
+            projected,
+            image.size.map(f32::from),
+            scale,
+            sprite.rotation,
+            sprite.color.map(|v| f32::from(v) / 128.0),
+            Some(image),
+            blend,
+        );
+    }
+
     pub(super) fn particles(
         &mut self,
         source: Particles<'_>,
@@ -30,28 +61,7 @@ impl Builder {
                 continue;
             }
             let image = sprites.effects[usize::from(sprite.image)];
-            let blend = blend(sprite.blend, sprite.image);
-            let projected = self.project(sprite.position);
-            if projected[2] <= 0.0 {
-                continue;
-            }
-            let adjustment = if reproject {
-                let source_depth =
-                    (view.apply_large(sprite.position).z + view.translation.z).max(0) as f32;
-                source_depth / projected[2] * self.distance / 300.0
-            } else {
-                1.0
-            };
-            let scale = sprite.scale.map(|v| f32::from(v) / 4096.0 * adjustment);
-            self.screen_sprite(
-                projected,
-                image.size.map(f32::from),
-                scale,
-                sprite.rotation,
-                sprite.color.map(|v| f32::from(v) / 128.0),
-                Some(image),
-                blend,
-            );
+            self.particle_sprite(sprite, image, view, reproject);
             if sprite.blood.is_some()
                 && graphics.blood.hit == crate::settings::BloodStyle::OriginalHd
             {

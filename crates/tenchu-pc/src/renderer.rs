@@ -8,6 +8,7 @@ mod configuration;
 mod culling;
 pub(crate) use culling::Frustum;
 mod decals;
+pub mod feedback;
 mod geometry;
 mod light_grid;
 mod materials;
@@ -140,6 +141,8 @@ pub struct Renderer {
     skip_prepass: bool,
     overlay_effects: [wgpu::RenderPipeline; 6],
     post: Option<post::Post>,
+    pub feedback: Option<feedback::Request>,
+    feedback_pass: Option<feedback::Feedback>,
     composite: Option<decals::composite::Composite>,
     blood_cache: Option<decals::cache::Cache>,
     composite_supported: bool,
@@ -169,6 +172,10 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    pub(crate) fn clear_feedback(&mut self) {
+        self.feedback_pass = None;
+    }
+
     pub async fn new(
         adapter: &wgpu::Adapter,
         format: wgpu::TextureFormat,
@@ -361,6 +368,8 @@ impl Renderer {
             skip_prepass: false,
             overlay_effects,
             post: None,
+            feedback: None,
+            feedback_pass: None,
             composite: None,
             composite_supported,
             size,
@@ -664,6 +673,27 @@ impl Renderer {
         lights: &[crate::lighting::Light],
         casters: &[&Mesh],
     ) -> Result<()> {
+        if let Some(request) = self.feedback {
+            if self
+                .feedback_pass
+                .as_ref()
+                .is_none_or(|pass| pass.size != self.size)
+            {
+                self.feedback_pass = Some(feedback::Feedback::new(
+                    &self.device,
+                    self.format,
+                    self.size,
+                ));
+            }
+            self.feedback_pass
+                .as_mut()
+                .unwrap()
+                .prepare(&self.queue, request);
+        } else {
+            self.feedback_pass = None;
+        }
+        let feedback_scene = self.feedback_pass.as_ref().map(|pass| pass.scene.clone());
+        let scene_target = feedback_scene.as_ref().unwrap_or(target);
         if self
             .materials
             .flush(&self.device, &self.queue, self.visual_time)?
@@ -896,7 +926,7 @@ impl Renderer {
             timer.mark_scene_boundary(&mut encoder, timing::SceneStage::Visibility);
         }
         {
-            let world_target = self.post.as_ref().map_or(target, |post| &post.scene);
+            let world_target = self.post.as_ref().map_or(scene_target, |post| &post.scene);
             let blood_pass =
                 composite || self.blood_cache.as_ref().is_some_and(|cache| cache.dirty());
             let clear = fog_color.map(f64::from);
@@ -1064,6 +1094,7 @@ impl Renderer {
             }
             mark(&mut pass, timing::SceneStage::Effects);
             if self.post.is_none()
+                && self.feedback_pass.is_none()
                 && let Some(effects) = effects.filter(|e| e.mesh.count != 0)
             {
                 draw_effects(
@@ -1080,18 +1111,30 @@ impl Renderer {
             timer.mark(&mut encoder, 2);
         }
         if let Some(post) = &self.post {
-            post.draw(&mut encoder, target, self.graphics.post.bloom > 0);
+            post.draw(&mut encoder, scene_target, self.graphics.post.bloom > 0);
         }
         if let Some(timer) = &self.timings {
             timer.mark(&mut encoder, 3);
         }
-        if let Some(post) = &self.post
+        if let Some(feedback) = &self.feedback_pass {
+            feedback.combine(&mut encoder);
+        }
+        let overlay_target = self
+            .feedback_pass
+            .as_ref()
+            .map_or(target, |pass| pass.target());
+        let overlay_depth = self
+            .post
+            .as_ref()
+            .map(|p| &p.depth)
+            .or_else(|| self.feedback_pass.as_ref().map(|p| &p.depth));
+        if let Some(depth) = overlay_depth
             && let Some(effects) = effects.filter(|e| !e.ranges[1].is_empty())
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Unprocessed HUD and inspection overlays"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: target,
+                    view: overlay_target,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
@@ -1099,9 +1142,13 @@ impl Renderer {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &post.depth,
+                    view: depth,
                     depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
+                        load: if self.post.is_some() {
+                            wgpu::LoadOp::Load
+                        } else {
+                            wgpu::LoadOp::Clear(1.0)
+                        },
                         store: wgpu::StoreOp::Store,
                     }),
                     stencil_ops: None,
@@ -1119,6 +1166,9 @@ impl Renderer {
                 Some(true),
                 EffectPass::All,
             );
+        }
+        if let Some(feedback) = &self.feedback_pass {
+            feedback.present(&mut encoder, target);
         }
         if let Some(timer) = &self.timings {
             timer.resolve(&mut encoder);

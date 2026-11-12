@@ -20,13 +20,19 @@ pub struct Resources {
     pub results_fade: i16,
     pub script: Script,
     pub models: BTreeMap<i16, Model>,
-    pub effects: BTreeMap<i16, String>,
+    pub effects: BTreeMap<i16, Option<Sprite>>,
     pub weapons: BTreeMap<String, Model>,
     pub attachments: Vec<Attachment>,
     pub faces: BTreeMap<i16, Vec<Patch>>,
     pub audio: Option<crate::audio::stream::Track>,
     pub portraits: Vec<Picture>,
     pub pictures: Vec<Picture>,
+}
+
+pub struct Sprite {
+    pub name: String,
+    pub size: i16,
+    pub texture: Option<(Vram, crate::texture::Image)>,
 }
 
 pub struct Picture {
@@ -216,7 +222,25 @@ impl Resources {
                 );
             }
             if (285..=289).contains(&id) {
-                effects.insert(id, name);
+                let sprite = match id {
+                    286 => Some(Sprite {
+                        name,
+                        size: 32,
+                        texture: None,
+                    }),
+                    287 | 288 => {
+                        let bytes = files.read(r"o:\cdimage\game\event", &format!("{name}.spr"))?;
+                        let mut vram = Vram::default();
+                        let image = super::super::texture::upload(&mut vram, &bytes)?;
+                        Some(Sprite {
+                            name,
+                            size: if id == 287 { 8 } else { 192 },
+                            texture: Some((vram, image)),
+                        })
+                    }
+                    _ => None,
+                };
+                effects.insert(id, sprite);
                 continue;
             }
             let directory = match id {

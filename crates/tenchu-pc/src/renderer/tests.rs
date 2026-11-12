@@ -5,6 +5,7 @@ use tenchu_core::math::Matrix;
 
 mod blood_composite;
 mod contact;
+mod feedback;
 mod flames;
 mod light_grid;
 mod models;

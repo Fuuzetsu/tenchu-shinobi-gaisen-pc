@@ -9,7 +9,7 @@ pub struct TimedCommand {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Command {
     Effect {
-        id: u8,
+        kind: EffectKind,
         position: [i32; 3],
         heading: i16,
         value: i32,
@@ -45,6 +45,50 @@ pub enum Command {
         duration: i16,
     },
     ClearCaption,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EffectKind {
+    Sparks,
+    Blood,
+    Pool,
+    BloodBurst,
+    WaterSpray,
+    Dust,
+    Leaves,
+    DispersingSmoke,
+    Explosion,
+    Smoke,
+    Splash,
+    RadialBlood,
+    GreenBlood,
+    SlowBlood,
+    PaleBlood,
+}
+
+impl TryFrom<u8> for EffectKind {
+    type Error = String;
+
+    fn try_from(id: u8) -> Result<Self> {
+        Ok(match id {
+            1 => Self::Sparks,
+            2 => Self::Blood,
+            3 => Self::Pool,
+            4 => Self::BloodBurst,
+            11 | 13 => Self::WaterSpray,
+            12 => Self::Dust,
+            17 => Self::Leaves,
+            18 => Self::DispersingSmoke,
+            19 => Self::Explosion,
+            20 => Self::Smoke,
+            24 => Self::Splash,
+            25 => Self::RadialBlood,
+            26 => Self::GreenBlood,
+            29 => Self::SlowBlood,
+            34 => Self::PaleBlood,
+            _ => return Err(format!("Unknown Tenchu 2 story effect {id}")),
+        })
+    }
 }
 
 pub(super) fn parse(data: &[u8]) -> Result<Vec<TimedCommand>> {
@@ -132,7 +176,7 @@ pub(super) fn parse(data: &[u8]) -> Result<Vec<TimedCommand>> {
             }
             38 => Command::ClearCaption,
             1..=4 | 11..=13 | 17..=20 | 24..=26 | 29 | 34 => Command::Effect {
-                id: id as u8,
+                kind: EffectKind::try_from(id as u8)?,
                 position: [
                     u32_le(row, 4)? as i32,
                     u32_le(row, 8)? as i32,

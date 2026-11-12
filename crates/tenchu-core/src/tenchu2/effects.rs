@@ -26,6 +26,7 @@ pub enum Effect {
     Ripple(water::Ripple),
     Ribbon(ribbon::Ribbon),
     Paper(paper::Paper),
+    Leaves(paper::Leaves),
 }
 
 impl Effect {
@@ -37,7 +38,7 @@ impl Effect {
             Self::Blood(_) => 8,
             Self::Pool(_) => 9,
             Self::Ripple(_) => 12,
-            Self::Paper(_) => 11,
+            Self::Paper(_) | Self::Leaves(_) => 11,
         }
     }
 }
@@ -115,6 +116,7 @@ impl Effects {
         let mut index = 0;
         while index < self.entries.len() {
             let alive = match &mut self.entries[index] {
+                Effect::Leaves(leaves) => leaves.update(math, &mut frame.quads),
                 Effect::Paper(paper) => paper.update(math, &mut frame.quads),
                 Effect::Ribbon(ribbon) => ribbon.update(&mut frame.ribbons),
                 Effect::Sprites(sprites) => {

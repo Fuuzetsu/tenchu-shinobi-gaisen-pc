@@ -124,40 +124,14 @@ impl Effects {
         }
         self.insert(Effect::Sprites(effect))?;
         for i in 0..4 {
-            let particles: [Particle; 12] = std::array::from_fn(|_| {
-                let mut position = Vector3::new((random.next15() & 63) as i16 + 64, 0, 0);
-                if random.next15() & 1 != 0 {
-                    position.x = -position.x;
-                }
-                position.y = (random.next15() & 511) as i16;
-                position.z = (random.next15() & 63) as i16 + 64;
-                if random.next15() & 1 != 0 {
-                    position.z = -position.z;
-                }
-                Particle {
-                    velocity: Vector3::new(position.x >> 2, -80, position.z >> 2),
-                    position,
-                }
-            });
+            let spray = Self::spray(position, size, 20, random);
+            let particles = &spray.particles;
             let ripple = position.wrapping_add(Position::new(
                 i32::from(particles[0].position.x) * 8,
                 0,
                 i32::from(particles[0].position.z) * 8,
             ));
-            self.insert(Effect::Points(Points {
-                blood: false,
-                contact: Some(super::ContactKind::Water),
-                position: position.wrapping_sub(Position::new(0, size >> 2, 0)),
-                parent: None,
-                particles,
-                color: [127, 127, 143],
-                color_step: Vector3::default(),
-                age: 0,
-                lifetime: 20,
-                gravity: 8,
-                blend: 1,
-                size: None,
-            }))?;
+            self.insert(Effect::Points(spray))?;
             self.insert(Effect::Ripple(Ripple {
                 position: ripple,
                 parent: None,
@@ -168,5 +142,49 @@ impl Effects {
             }))?;
         }
         Ok(())
+    }
+
+    pub fn water_spray(
+        &mut self,
+        position: Position,
+        size: i32,
+        random: &mut Random,
+    ) -> Result<()> {
+        for _ in 0..4 {
+            self.insert(Effect::Points(Self::spray(position, size, 32, random)))?;
+        }
+        Ok(())
+    }
+
+    fn spray(position: Position, size: i32, lifetime: i16, random: &mut Random) -> Points {
+        let particles = std::array::from_fn(|_| {
+            let mut position = Vector3::new((random.next15() & 63) as i16 + 64, 0, 0);
+            if random.next15() & 1 != 0 {
+                position.x = -position.x;
+            }
+            position.y = (random.next15() & 511) as i16;
+            position.z = (random.next15() & 63) as i16 + 64;
+            if random.next15() & 1 != 0 {
+                position.z = -position.z;
+            }
+            Particle {
+                velocity: Vector3::new(position.x >> 2, -80, position.z >> 2),
+                position,
+            }
+        });
+        Points {
+            blood: false,
+            contact: Some(super::ContactKind::Water),
+            position: position.wrapping_sub(Position::new(0, size >> 2, 0)),
+            parent: None,
+            particles,
+            color: [127, 127, 143],
+            color_step: Vector3::default(),
+            age: 0,
+            lifetime,
+            gravity: 8,
+            blend: 1,
+            size: None,
+        }
     }
 }

@@ -57,6 +57,15 @@ impl Motion {
         .transform([0, 0, 4096]))
     }
 
+    pub fn pose(&self, parts: &[tenchu_assets::model::Part]) -> Result<crate::motion::Pose> {
+        let mut pose = crate::motion::Pose::new(parts)?;
+        pose.translation[0] = self.position;
+        for (rotation, &value) in pose.rotation.iter_mut().zip(&self.rotation) {
+            *rotation = value;
+        }
+        Ok(pose)
+    }
+
     pub fn new(animation: &Animation) -> Self {
         Self {
             position: animation.origin.into(),

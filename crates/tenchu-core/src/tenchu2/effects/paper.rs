@@ -89,22 +89,14 @@ impl Paper {
             return false;
         }
         if previous >= 0 {
-            for particle in &self.particles {
-                let transform = Matrix {
-                    rotation: math.rotate_yxz(particle.rotation.to_array()),
-                    ..Default::default()
-                };
-                drawings.push(Quad {
-                    blood: None,
-                    image: Image::Item(64),
-                    position: self.position.wrapping_add(particle.offset.map(i32::from)),
-                    parent: None,
-                    corners: [[-80, -80, 0], [80, -80, 0], [-80, 80, 0], [80, 80, 0]]
-                        .map(|p| transform.transform(p).map(|v| v as i16)),
-                    color: [64, 96, 64],
-                    blend: Blend::Add,
-                });
-            }
+            draw(
+                math,
+                self.position,
+                &self.particles,
+                Image::Item(64),
+                [64, 96, 64],
+                drawings,
+            );
         }
         true
     }
@@ -171,5 +163,104 @@ impl Paper {
                 _ => {}
             }
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Leaves {
+    pub position: Position,
+    pub particles: [Particle; 8],
+    pub age: i32,
+    pub lifetime: i32,
+}
+
+impl Leaves {
+    pub fn new(position: Position, wind: Position, random: &mut Random) -> Self {
+        let particles = std::array::from_fn(|_| {
+            let offset = Vector3::new(
+                (random.next15() & 16383) as i16 - 8192,
+                -((random.next15() & 8191) as i16),
+                (random.next15() & 16383) as i16 - 8192,
+            );
+            let yaw = (random.next15() & 4095) as i16;
+            let x = ((wind.x >> 3) + (random.next15() & 127) - 64) as i16;
+            let z = ((wind.z >> 3) + (random.next15() & 127) - 64) as i16;
+            let y = ((wind.y >> 3) + (random.next15() & 63)) as i16;
+            Particle {
+                offset,
+                radius: 0,
+                rotation: Vector3::new(
+                    (random.next15() & 4095) as i16,
+                    yaw,
+                    (random.next15() & 4095) as i16,
+                ),
+                velocity: Vector3::new(x, y, z),
+            }
+        });
+        Self {
+            position,
+            particles,
+            age: -8,
+            lifetime: 120,
+        }
+    }
+
+    pub fn update(&mut self, math: &Math, drawings: &mut Vec<Quad>) -> bool {
+        let previous = self.age;
+        if previous >= 0 {
+            for p in &mut self.particles {
+                p.rotation.x = p
+                    .rotation
+                    .x
+                    .wrapping_add((i32::from(p.velocity.x).abs() * 4) as i16);
+                p.rotation.z = p.rotation.z.wrapping_add(113);
+                for axis in 0..3 {
+                    p.offset[axis] = p.offset[axis].wrapping_add(p.velocity[axis] >> 2);
+                }
+                p.velocity.x = p.velocity.x.wrapping_add(p.velocity.x >> 7);
+                p.velocity.z = p.velocity.z.wrapping_add(p.velocity.z >> 7);
+            }
+        }
+        self.age = self.age.wrapping_add(1);
+        if self.age >= self.lifetime {
+            return false;
+        }
+        if previous >= 0 {
+            draw(
+                math,
+                self.position,
+                &self.particles,
+                Image::Effect(35),
+                [128; 3],
+                drawings,
+            );
+        }
+        true
+    }
+}
+
+fn draw(
+    math: &Math,
+    position: Position,
+    particles: &[Particle; 8],
+    image: Image,
+    color: [u8; 3],
+    drawings: &mut Vec<Quad>,
+) {
+    for particle in particles {
+        let transform = Matrix {
+            rotation: math.rotate_yxz(particle.rotation.to_array()),
+            ..Default::default()
+        };
+        drawings.push(Quad {
+            blood: None,
+            image,
+            position: position.wrapping_add(particle.offset.map(i32::from)),
+            parent: None,
+            corners: [[-80, -80, 0], [80, -80, 0], [-80, 80, 0], [80, 80, 0]]
+                .map(|p| transform.transform(p).map(|v| v as i16)),
+            color,
+            blend: Blend::Add,
+        });
     }
 }

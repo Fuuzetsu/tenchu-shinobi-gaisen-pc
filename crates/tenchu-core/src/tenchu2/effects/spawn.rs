@@ -102,6 +102,29 @@ impl Effects {
         self.insert(Effect::Points(points))
     }
 
+    pub fn story_sparks(
+        &mut self,
+        position: Position,
+        direction: Position,
+        math: &Math,
+        rules: &Rules,
+    ) -> Result<()> {
+        let direction = math.normalize_vector(direction).map(|v| v as i16);
+        let controls = std::array::from_fn(|i| {
+            let side = if i & 1 == 0 { 2 } else { -2 };
+            Vector3::new(
+                ((i32::from(direction.x) + side * i32::from(direction.z)) >> 9) as i16,
+                [-10, -20, 20, 10][i],
+                ((i32::from(direction.z) + side * i32::from(direction.x)) >> 9) as i16,
+            )
+        });
+        let mut points = Points::burst(position, controls, 0, rules);
+        points.contact = Some(super::ContactKind::Metal);
+        points.color = [128, 128, 64];
+        points.blend = 1;
+        self.insert(Effect::Points(points))
+    }
+
     pub fn trail(
         &mut self,
         position: Position,

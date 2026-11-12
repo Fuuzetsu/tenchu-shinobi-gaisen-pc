@@ -8,6 +8,82 @@ use tenchu_core::{
 };
 
 #[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_EFFECTS_ORACLE; original event dispatch, particles and RNG"]
+fn native_story_effect_commands_match_original_dispatch_and_updates() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let math = Math {
+        tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
+    };
+    let rules = Rules::load(&disc).unwrap();
+    let level = Level::load(&disc, 0).unwrap();
+    let mut count = 0;
+    for row in super::source_control::cases::<Value>("TENCHU2_STORY_EFFECTS_ORACLE") {
+        let mut effects = tenchu_core::tenchu2::story::Effects::default();
+        let mut random = Random::new(row["seed"].as_u64().unwrap() as u32);
+        let mut scene = Scene::default();
+        if let Some(bones) = row["bones"].as_u64() {
+            let bones: Vec<_> = (0..bones)
+                .map(|_| scene.add(Some(0), Matrix::default()))
+                .collect();
+            effects.ignite(&bones).unwrap();
+        } else {
+            let command = tenchu_assets::tenchu2::story::Command::Effect {
+                kind: (row["id"].as_u64().unwrap() as u8).try_into().unwrap(),
+                position: serde_json::from_value(row["position"].clone()).unwrap(),
+                heading: row["heading"].as_i64().unwrap() as i16,
+                value: 0,
+            };
+            effects
+                .dispatch(
+                    &command,
+                    &math,
+                    &rules,
+                    &level.collision,
+                    &mut random,
+                    super::source_physics::vector(&row["direction"]),
+                )
+                .unwrap();
+        }
+        assert_eq!(
+            random.seed,
+            row["seed_after"].as_u64().unwrap() as u32,
+            "case {count} RNG"
+        );
+        compare(
+            &serde_json::to_value(&effects.particles.entries).unwrap(),
+            &row["before"],
+            &format!("dispatch {count}"),
+        );
+        for _ in 0..row["ticks"].as_u64().unwrap() {
+            effects
+                .particles
+                .update(
+                    &mut scene,
+                    View {
+                        eye: Position::ZERO,
+                        look: Position::ZERO,
+                        focus: Position::ZERO,
+                        matrix: Matrix::default(),
+                        distance: 0,
+                    },
+                    &level.collision,
+                    &mut effects.cursor,
+                    &math,
+                )
+                .unwrap();
+        }
+        compare(
+            &serde_json::to_value(&effects.particles.entries).unwrap(),
+            &row["after"],
+            &format!("update {count}"),
+        );
+        count += 1;
+    }
+    assert_eq!(count, 210);
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_AMBIENT_RIPPLE_ORACLE from JP 80047208"]
 fn native_ambient_water_ripples_match_source_queries_and_rng() {
     use serde_json::json;
@@ -226,7 +302,7 @@ fn native_story_blood_commands_match_source() {
             state
                 .dispatch(
                     &tenchu_assets::tenchu2::story::Command::Effect {
-                        id,
+                        kind: id.try_into().unwrap(),
                         position: serde_json::from_value(command["position"].clone()).unwrap(),
                         heading: command["heading"].as_i64().unwrap() as i16,
                         value: command["value"].as_i64().unwrap() as i32,
@@ -235,6 +311,7 @@ fn native_story_blood_commands_match_source() {
                     &rules,
                     &level.collision,
                     &mut random,
+                    Position::new(0, 0, 4096),
                 )
                 .unwrap();
         }

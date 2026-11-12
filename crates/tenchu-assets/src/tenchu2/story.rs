@@ -2,11 +2,11 @@ use super::{Edition, cab_member, volume::Volume};
 use crate::{ReadAt, Result, disc::Disc, i16_le, short3, slice, u16_le, u32_le};
 
 mod resources;
-pub use resources::{Attachment, Model, Picture, Resources};
+pub use resources::{Attachment, Model, Picture, Resources, Sprite};
 mod faces;
 pub use faces::Patch;
 mod commands;
-pub use commands::{Command, TimedCommand};
+pub use commands::{Command, EffectKind, TimedCommand};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Key {
