@@ -10,6 +10,7 @@ fn state(content: &Content) -> Vec<u8> {
             value.state.color,
             value.state.tick,
             value.state.active,
+            value.state.attract,
             value.state.idle,
             value.state.finished,
         )),
@@ -62,9 +63,17 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
         active_title.step(0, None);
     }
     active_title.step(0x2000, None);
+    let mut attract_title = native::title::Title::load(&disc).unwrap();
+    for _ in 0..75 {
+        attract_title.step(0, None);
+    }
+    attract_title.step(0x2000, None);
+    attract_title.state.idle = 1801;
+    attract_title.step(0, None);
     let cases = [
         ("title", Content::Title(Box::new(title))),
         ("title-menu", Content::Title(Box::new(active_title))),
+        ("title-attract", Content::Title(Box::new(attract_title))),
         ("selection", Content::MissionSelection(Box::new(selection))),
         ("equipment", Content::Equipment(Box::new(equipment))),
         ("results", Content::Results(Box::new(results))),

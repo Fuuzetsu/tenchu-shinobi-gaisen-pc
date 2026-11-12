@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Match the original T2 title's selection colors while fading into its idle
+  movie: all three choices turn red instead of keeping one highlighted.
+
 ## 0.31.0 — 2026-11-12
 
 - Switch between Shinobi Gaisen and the original Japanese Tenchu 2 title menu

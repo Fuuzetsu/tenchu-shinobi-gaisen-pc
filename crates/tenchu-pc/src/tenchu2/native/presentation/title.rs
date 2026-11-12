@@ -43,7 +43,7 @@ fn build(title: &Title) -> Arc<Frame> {
         );
         if i >= 3 {
             sprite = sprite.row(descriptor.selected, descriptor.slices);
-            if i - 3 != state.choice.index() {
+            if state.attract || i - 3 != state.choice.index() {
                 sprite = sprite.color([128, 0, 0]).blend(Blend::Add);
             }
         } else if i != 0 {
