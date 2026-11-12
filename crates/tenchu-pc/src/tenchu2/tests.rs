@@ -3,6 +3,7 @@ use super::*;
 mod ai_options;
 mod experiments;
 pub(super) mod native_world;
+mod sandbox_guards;
 mod source_actor;
 mod source_ai;
 mod source_ai_entry;

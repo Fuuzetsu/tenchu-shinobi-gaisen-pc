@@ -1960,6 +1960,20 @@ storage. It does not reproduce T2 AI, scripts, water, hazards or mission outcome
 Source-formula collision tests and native play checks are not emulator parity.
 See [usage and boundaries](docs/tenchu2-sandbox.md).
 
+The route-less guard correction (#98, 2026-11-12) changes only this adapter's
+choice of existing Gaisen AI. `main.exe/THINK.C::Think1trace` turns toward the
+target for the first 29 updates of its counter cycle even without detection;
+assigning it to every imported slot caused stationary guards to follow an unseen
+player's bearing. Slots without a route now select `Think1watch`, as Gaisen's
+existing actor-placement tool already does. Patrollers retain `Think1trace`, and
+body replacement retains this distinction. Both source routines are unchanged.
+The read-only TAS `environment.rs` survey identifies the corresponding live
+actor/brain fields; the viewer retains authored placements and has no live AI.
+No code was imported from either project for this correction.
+The health audit (#99) reads the Gaisen descriptor table at `0x80088a8c` and
+checks the imported actors and real damage/HUD path; imported bodies do not
+replace the selected controller's health or Gaisen's unalerted kill rule.
+
 ### Tenchu 2 character models (2026-11-07)
 
 The optional importer reads the user's SLES-02452 disc. Its `datamng.bin`

@@ -79,13 +79,22 @@ placeholder. By default the first gameplay layout for a map supplies its start;
 has no layout and starts on a visible open floor. An explicit mismatched map and
 sequence is rejected. `--guards sword|spear|archer` replaces imported actor slots
 with that Gaisen guard type, omitting placements without a nearby collision floor.
-The guards follow the source X/Z patrol points using Gaisen's AI; Tenchu 2 waits,
-route actions and behavior are not reproduced. **Use Tenchu 2 character models
+The guards follow the source X/Z patrol points using Gaisen's AI. Guards without
+a route use Gaisen's stationary lookout routine, which looks around independently
+of an unseen player's position. Tenchu 2 waits, route actions and behavior are
+not reproduced. **Use Tenchu 2 character models
 for guards** gives them their source bodies; all still use the selected Gaisen
 guard's weapon, moves and AI, including source civilian/animal slots. Female
 bodies use female Gaisen combat voices, and imported Ayame/Rikimaru use their
 Gaisen voice banks. Other bodies retain the selected guard's voice; original
 Tenchu 2 voice events are not implemented.
+
+Health and damage also come from the selected Gaisen controller: sword and spear
+guards have 35 HP, archers 30 HP. Difficulty changes damage and reactions, not
+their starting HP. Changing the displayed body does not change those values.
+Gaisen's unalerted one-hit kill rule still applies, including when the displayed
+body belongs to a T2 boss. Native Japanese T2 uses its own actor definitions and
+combat rules.
 
 Connecting a disc adds its **Tenchu 2 (EU)** or **Tenchu 2 (JP)** tab to
 **F1 → Player model** in any Gaisen mission or sandbox. Both can coexist with

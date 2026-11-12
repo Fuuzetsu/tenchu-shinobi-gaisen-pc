@@ -30,6 +30,22 @@ producers are not yet covered by this comparer. Campaign progression has separat
 controlled fixtures. T2 requires `--scenario` or an update limit; the video tape
 export path remains T1-only.
 
+T2 scenery-sandbox guard checks (#98/#99) run separately on Europe and Japan.
+An authored route-less slot from sequence 4 is placed on a flat arena to compare
+640 updates with the unseen player on opposite sides. Sword, spear and archer
+controllers, Gaisen/T2 bodies and both activation settings yield identical idle
+turns and brain state; moving into view still triggers detection. The existing
+sequence-4 patrol/combat fixture exercises authored routes. This is controlled
+adapter coverage, not original T2 AI parity or an ordinary-play recording.
+
+The health check loads sequence 4 with all three sandbox guard choices, both
+heroes, all three difficulties and both body settings. Starting/max HP must match
+the selected Gaisen definition. A separate 72-encounter fixture checks actual
+melee contacts: T2 bodies retain the same damage, HUD bars report the real HP,
+armed guards survive the first strike and unalerted guards retain source kills.
+Gaisen's existing `DamageControl` comparison against original C provides the
+damage-rule reference. No health increase or native T2 combat change is implied.
+
 Native T2 vegetation and snow tracks have separate presentation fixtures. All
 23 available Japanese maps are checked for classified vegetation, bounded
 geometry and unchanged displayed texture pixels. An autumn-map fixture compares

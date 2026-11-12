@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix stationary guards in the T2 scenery sandbox turning toward an unseen
+  player. Guards without a route now use Gaisen lookout AI; guards with a route
+  retain patrol AI. Applies to Europe and JP sandbox mode.
+
 - Fix limbs disappearing behind the wooden backdrop in T2's mission selector.
   Character previews now use the original model position and camera projection.
 

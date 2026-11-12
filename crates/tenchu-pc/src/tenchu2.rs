@@ -226,7 +226,11 @@ impl Sandbox {
                     mission.enemies.push(Enemy {
                         slot: mission.enemies.len(),
                         kind,
-                        think: 0x3453,
+                        think: if actor.route.is_empty() {
+                            0x3454
+                        } else {
+                            0x3453
+                        },
                         position,
                         facing: actor.facing,
                         patrol: actor
@@ -292,7 +296,7 @@ impl Sandbox {
                     imported.insert(body.name.clone(), (source, voice));
                     (source, voice)
                 };
-                game.replace_actor(id, source, 0x3453)?;
+                game.replace_actor(id, source, 0x3454)?;
                 game.roster.get_mut(id).voice_program = voice;
             }
         }
