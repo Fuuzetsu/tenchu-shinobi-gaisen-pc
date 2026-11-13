@@ -125,6 +125,7 @@ pub struct Editor {
     campaign_prop: Option<usize>,
     campaign_pickup: Option<usize>,
     campaign_follow_terrain: bool,
+    flight_keys: std::collections::HashSet<egui::Key>,
     pub(crate) campaign_slots: Vec<usize>,
 }
 
@@ -199,6 +200,7 @@ impl Editor {
             campaign_prop: None,
             campaign_pickup: None,
             campaign_follow_terrain: true,
+            flight_keys: Default::default(),
             campaign_slots: vec![],
         }
     }

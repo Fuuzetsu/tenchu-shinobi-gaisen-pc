@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Use physical WASD/QE positions for Studio camera movement, matching in-game
+  free camera and default playtest controls on Dvorak and other keyboard layouts.
+  Text entry and editor shortcuts continue to follow the keyboard layout.
+
 - Open T1 campaign layouts and connected T2 map/sequences as Level Studio projects.
   Edit source terrain elevation, ramps and holes with matching visible geometry
   and collision, plus characters, patrols, static props and pickups. Campaign

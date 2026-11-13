@@ -68,11 +68,6 @@ impl Camera {
         let buttons = controls.touch_buttons();
         let rise = f32::from(buttons & tenchu_core::input::CROSS != 0)
             - f32::from(buttons & tenchu_core::input::L1 != 0);
-        let forward = self.forward();
-        let right = forward.cross(Vec3::NEG_Y).normalize();
-        let movement = forward * (axis(KeyCode::KeyW, KeyCode::KeyS) as f32 + movement_stick.y)
-            + right * (axis(KeyCode::KeyD, KeyCode::KeyA) as f32 + movement_stick.x)
-            + Vec3::NEG_Y * (axis(KeyCode::KeyE, KeyCode::KeyQ) as f32 + rise);
         let boost = if controls.held(KeyCode::ShiftLeft)
             || controls.held(KeyCode::ShiftRight)
             || buttons & tenchu_core::input::CIRCLE != 0
@@ -81,7 +76,22 @@ impl Camera {
         } else {
             1.0
         };
-        self.position += movement.clamp_length_max(1.0) * speed * elapsed.min(0.1) * boost;
+        self.fly(
+            [
+                axis(KeyCode::KeyW, KeyCode::KeyS) as f32 + movement_stick.y,
+                axis(KeyCode::KeyD, KeyCode::KeyA) as f32 + movement_stick.x,
+                axis(KeyCode::KeyE, KeyCode::KeyQ) as f32 + rise,
+            ],
+            elapsed,
+            speed * boost,
+        );
+    }
+
+    pub(crate) fn fly(&mut self, axes: [f32; 3], elapsed: f32, speed: f32) {
+        let forward = self.forward();
+        let right = forward.cross(Vec3::NEG_Y).normalize();
+        let movement = forward * axes[0] + right * axes[1] + Vec3::NEG_Y * axes[2];
+        self.position += movement.clamp_length_max(1.0) * speed * elapsed.min(0.1);
         self.position = self
             .position
             .clamp(Vec3::splat(-320_000.0), Vec3::splat(320_000.0));

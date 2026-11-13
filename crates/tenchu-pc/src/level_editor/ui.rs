@@ -8,6 +8,7 @@ impl Editor {
         ctx: &egui::Context,
         assets: &GameAssets<DiscSource>,
     ) -> Option<Command> {
+        self.update_flight_keys(ctx);
         if !self.open {
             return None;
         }

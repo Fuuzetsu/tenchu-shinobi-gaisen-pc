@@ -457,6 +457,41 @@ impl Editor {
         }
     }
 
+    pub(super) fn update_flight_keys(&mut self, ctx: &egui::Context) {
+        ctx.input(|input| {
+            if !self.open || !input.focused {
+                self.flight_keys.clear();
+                return;
+            }
+            for event in &input.events {
+                if let egui::Event::Key {
+                    key,
+                    physical_key,
+                    pressed,
+                    ..
+                } = event
+                {
+                    let key = physical_key.unwrap_or(*key);
+                    if matches!(
+                        key,
+                        egui::Key::W
+                            | egui::Key::A
+                            | egui::Key::S
+                            | egui::Key::D
+                            | egui::Key::Q
+                            | egui::Key::E
+                    ) {
+                        if *pressed {
+                            self.flight_keys.insert(key);
+                        } else {
+                            self.flight_keys.remove(&key);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     pub(super) fn navigate(&mut self, ui: &egui::Ui, response: &egui::Response) {
         let input = ui.input(Clone::clone);
         {
@@ -467,20 +502,22 @@ impl Editor {
                 self.camera.look(f64::from(delta.x), f64::from(delta.y));
                 if !ui.ctx().wants_keyboard_input() {
                     let axis = |positive, negative| {
-                        f32::from(input.key_down(positive)) - f32::from(input.key_down(negative))
+                        f32::from(self.flight_keys.contains(&positive))
+                            - f32::from(self.flight_keys.contains(&negative))
                     };
-                    let forward = self.camera.forward();
-                    let right = forward.cross(Vec3::NEG_Y).normalize();
-                    let direction = forward * axis(egui::Key::W, egui::Key::S)
-                        + right * axis(egui::Key::D, egui::Key::A)
-                        + Vec3::NEG_Y * axis(egui::Key::E, egui::Key::Q);
-                    self.camera.position += direction.clamp_length_max(1.0)
-                        * input.stable_dt.min(0.1)
-                        * if input.modifiers.shift {
+                    self.camera.fly(
+                        [
+                            axis(egui::Key::W, egui::Key::S),
+                            axis(egui::Key::D, egui::Key::A),
+                            axis(egui::Key::E, egui::Key::Q),
+                        ],
+                        input.stable_dt,
+                        if input.modifiers.shift {
                             48_000.0
                         } else {
                             12_000.0
-                        };
+                        },
+                    );
                 }
             }
             if response.dragged_by(egui::PointerButton::Middle) {
@@ -527,8 +564,122 @@ mod tests {
     use super::*;
 
     #[test]
+    fn camera_uses_physical_positions_on_dvorak_and_releases_on_focus_loss() {
+        use winit::keyboard::KeyCode;
+        let mut editor = Editor::new(std::path::PathBuf::new());
+        editor.open = true;
+        let context = egui::Context::default();
+        let mut game_camera = editor.camera;
+        let mut controls = crate::controls::Controls::default();
+        let key = |logical, physical, pressed| egui::Event::Key {
+            key: logical,
+            physical_key: physical,
+            pressed,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        };
+        let mut frame = |events, focused: bool, game_key: Option<(KeyCode, bool)>| {
+            if let Some((code, pressed)) = game_key {
+                controls.key(code, pressed);
+            }
+            if !focused {
+                controls.clear();
+            }
+            let _ = context.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, egui::vec2(800., 600.))),
+                    focused,
+                    events,
+                    ..Default::default()
+                },
+                |ctx| {
+                    editor.update_flight_keys(ctx);
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        let (_, response) =
+                            ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
+                        editor.navigate(ui, &response);
+                        game_camera.advance(&controls, ui.input(|i| i.stable_dt), 12_000.);
+                    });
+                },
+            );
+            assert_eq!(editor.camera.position, game_camera.position);
+            editor.camera.position
+        };
+        let point = egui::pos2(400., 300.);
+        frame(vec![egui::Event::PointerMoved(point)], true, None);
+        frame(
+            vec![egui::Event::PointerButton {
+                pos: point,
+                button: egui::PointerButton::Secondary,
+                pressed: true,
+                modifiers: egui::Modifiers::NONE,
+            }],
+            true,
+            None,
+        );
+        for (logical, physical, code) in [
+            (egui::Key::Comma, egui::Key::W, KeyCode::KeyW),
+            (egui::Key::A, egui::Key::A, KeyCode::KeyA),
+            (egui::Key::O, egui::Key::S, KeyCode::KeyS),
+            (egui::Key::E, egui::Key::D, KeyCode::KeyD),
+            (egui::Key::Quote, egui::Key::Q, KeyCode::KeyQ),
+            (egui::Key::Period, egui::Key::E, KeyCode::KeyE),
+        ] {
+            let before = frame(vec![], true, None);
+            let pressed = frame(
+                vec![key(logical, Some(physical), true)],
+                true,
+                Some((code, true)),
+            );
+            assert_ne!(before, pressed);
+            let held = frame(vec![], true, None);
+            assert_ne!(held, pressed);
+            assert_eq!(
+                frame(
+                    vec![key(logical, Some(physical), false)],
+                    true,
+                    Some((code, false))
+                ),
+                held
+            );
+        }
+        let before = frame(vec![], true, None);
+        assert_eq!(
+            frame(
+                vec![key(egui::Key::W, Some(egui::Key::Comma), true)],
+                true,
+                None
+            ),
+            before
+        );
+        frame(
+            vec![key(egui::Key::W, Some(egui::Key::Comma), false)],
+            true,
+            None,
+        );
+        frame(
+            vec![key(egui::Key::Comma, Some(egui::Key::W), true)],
+            true,
+            Some((KeyCode::KeyW, true)),
+        );
+        let blurred = frame(vec![], false, None);
+        assert_eq!(frame(vec![], true, None), blurred);
+        frame(
+            vec![key(egui::Key::W, None, true)],
+            true,
+            Some((KeyCode::KeyW, true)),
+        );
+        frame(
+            vec![key(egui::Key::W, None, false)],
+            true,
+            Some((KeyCode::KeyW, false)),
+        );
+    }
+
+    #[test]
     fn pointer_navigation_releases_input_before_querying_response() {
         let mut editor = Editor::new(std::path::PathBuf::new());
+        editor.open = true;
         let context = egui::Context::default();
         let mut frame = |events| {
             let _ = context.run(
@@ -538,6 +689,7 @@ mod tests {
                     ..Default::default()
                 },
                 |ctx| {
+                    editor.update_flight_keys(ctx);
                     egui::CentralPanel::default().show(ctx, |ui| {
                         let (_, response) =
                             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());

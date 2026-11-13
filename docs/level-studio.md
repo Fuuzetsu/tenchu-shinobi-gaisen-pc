@@ -68,7 +68,7 @@ without changing global preferences.
 | Control | Action |
 | --- | --- |
 | Right drag | Look around the scene |
-| Hold right mouse + WASD / Q / E | Fly, descend and rise; Shift moves faster |
+| Hold right mouse + WASD / Q / E | Fly, descend and rise; Shift moves faster. Uses physical QWERTY positions, like the game's free camera and default playtest controls, on every keyboard layout. |
 | Middle drag | Pan the scene or map |
 | Wheel | Dolly in 3D, zoom around the pointer in Map view |
 | F | Frame the selected character/scenery, or current terrain cell |
