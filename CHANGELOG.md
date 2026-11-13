@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.1 — 2026-11-13
+
 - Fix Android release compilation for Level Studio's bundled-asset support.
   Individual asset import remains available on desktop and in the browser;
   Android opens maps with their assets already bundled.
