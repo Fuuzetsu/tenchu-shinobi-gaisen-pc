@@ -630,6 +630,14 @@ Use `--loadout 4:20,5:5,6:10,7:5,8:10,9:10,10:5,11:5,12:5,13:5,14:5,16:5,17:5,18
 arrows (9), smoke bombs (10), poisoned rice (11), coloured rice (12), invisibility (13), confusion powder (14), teleport (16), fire breath (17) sleeping bombs (18) and one passive resurrection leaf (20). Other inventory entries accept comma-separated
 `ID:COUNT` pairs, but their effects are still being connected.
 
+The invisibility item intentionally raises a bright white cloth before making
+the player's body translucent; the sword remains visible in retail. Concealment
+lasts about 30 seconds and prevents ordinary guard detection and further item
+use while active. The teleport scroll selects a nearby eligible enemy, shows
+leaves, and relocates behind that enemy after a delay. A hit can interrupt it;
+without an eligible target or valid destination, the scroll is still consumed.
+These rules also apply on imported T1 stages.
+
 For a repeatable capture:
 
 ```sh

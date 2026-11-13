@@ -49,6 +49,23 @@ and the v0.32.0 quickstate menu-flag encoding. Logs remain outside Git in
 `private/t2-campaign-audit-20261113`; source provenance is in
 [T2 reuse notes](tenchu2-reuse.md#native-t2-campaign-return).
 
+The November 13 item audit uses private BizHawk demonstrations for invisibility
+and teleport, plus the original-instruction checks: 1,200 invisibility boundary
+cases, 1,600 teleport targeting cases, 600 placement/cancellation cases, 240 leaf
+sequences and 1,200 ribbon sequences. Disc-backed GPU fixtures cover activation,
+expiry, failed use without a target and successful placement on a native T2
+stage and a Gaisen stage under T2 rules. The success fixtures keep guard AI idle
+to avoid combat interruption, and explicitly activate actors after their setup
+teleport skips the source's distant activation band. Existing world tests cover
+moving targets, guard perception, item restrictions and snapshot continuation.
+
+Captured rendering leaves the complete serialized world unchanged. Before/after
+item observations match across 5,700 ticks, including an interrupted scroll on
+the imported stage. Reviewed captures confirm the cloth's source depth placement
+and textured trails. Videos, exact retail setup writes, source disassembly and
+logs remain in `private/t2-item-review-20261113`; they are controlled item evidence,
+not a new ordinary-play route or a claim of pixel-perfect PS1 rendering.
+
 The imported-moveset attack-window check compares a basic swing for all three
 T2 heroes on both original T1 bodies with native JP T2. The active updates,
 motion frames, local contact offsets and sizes match exactly: Rikimaru has

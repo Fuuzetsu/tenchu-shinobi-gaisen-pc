@@ -1,5 +1,7 @@
 use super::*;
 
+const TRAIL_IMAGE: u8 = 0;
+
 pub(super) struct Particles<'a> {
     pub scene: &'a tenchu_core::scene::Scene,
     pub view: Matrix,
@@ -127,8 +129,8 @@ impl Builder {
                 blend: 2,
                 vertices: render_effects::quad(
                     points,
-                    ribbon.colors.map(|c| c.map(|v| f32::from(v) / 255.0)),
-                    None,
+                    ribbon.colors.map(|c| c.map(|v| f32::from(v) / 128.0)),
+                    Some(sprites.effects[usize::from(TRAIL_IMAGE)]),
                     2,
                 ),
             });
@@ -182,6 +184,26 @@ impl Builder {
                     .map(|v| v as f32)
                     .to_array()
             });
+            if quad.image == SurfaceImage::Effect(TRAIL_IMAGE) {
+                let projected = points.map(|p| self.project(p.map(|v| v as i32).into()));
+                if projected.iter().any(|p| p[2] <= 0.0) {
+                    continue;
+                }
+                // GAME.EXE 80058858 submits the cloth at half the first joint's
+                // ordering depth, in front of the body, with the same screen shape.
+                let depth = f32::from((projected[0][2].clamp(0.0, 65535.0) as u16) >> 5) * 16.0;
+                self.surfaces.push(Surface {
+                    depth,
+                    blend,
+                    vertices: render_effects::quad(
+                        projected.map(|p| [p[0], p[1], render_effects::depth(depth)]),
+                        [quad.color.map(|v| f32::from(v) / 128.0); 4],
+                        Some(image),
+                        blend,
+                    ),
+                });
+                continue;
+            }
             if ground_blood || death_blood {
                 let [a, b, c, _] = points.map(glam::Vec3::from);
                 let mut normal = (b - a).cross(c - a).normalize_or_zero();

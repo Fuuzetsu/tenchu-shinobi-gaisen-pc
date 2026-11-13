@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore T2's textured transformation, weapon and projectile trails, and draw
+  the invisibility cloth in front of the character as in retail. Applies to
+  native T2 stages and T1 stages played with T2 rules.
+
 ## 0.33.0 — 2026-11-13
 
 - Add optional HD artwork to T2's title, mission selection, equipment, results,

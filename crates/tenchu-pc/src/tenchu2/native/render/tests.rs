@@ -4,6 +4,7 @@ mod gaisen;
 mod ground;
 mod heroes;
 mod indexed;
+mod items;
 
 #[test]
 #[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; sound marker geometry, labels and photo-mode suppression"]

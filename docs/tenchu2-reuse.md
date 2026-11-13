@@ -162,3 +162,24 @@ T1 item IDs and viewer alpha simplification are not imported into T2. Existing
 T2 asset/HUD source comparisons remain authoritative. No sibling code or retail
 art was copied. Artwork provenance is tracked in `artwork/tenchu2/`; generated
 paintings and authored type are separate from runtime disc-derived lettering.
+
+## Invisibility and teleport presentation
+
+JP `GAME.EXE` initializes the shared trail GT4 template at `800c5410` from
+`EFFECT.ARC` image 0 (`8003a810`–`8003a828`). Both the ribbon renderer
+`8003c90c` and invisibility handler `800584b0` submit that textured primitive
+through `80043a68`; textured RGB uses 128 as unity. At `80058858`, the cloth
+uses half the first joint's ordering depth, preserving its screen coordinates
+while placing it in front of the body. The PC renderer retains that deliberate
+depth placement rather than treating the cloth as an ordinary world surface.
+Imported-stage sprite retention uses the existing independent T2 material cache.
+
+Retail BizHawk captures confirm the white cloth, subsequent translucent body
+with visible sword, and teleport's leaf burst, delayed relocation and failed
+use without a target. Controlled capture setup supplied inventory; one teleport
+fixture placed the player near an existing guard. Exact writes, controller
+fields, original states, audio and video remain private under
+`private/t2-item-review-20261113`. These captures are demonstrations, not a full
+ordinary-play or pixel-for-pixel rendering comparison. The existing instruction
+oracles cover item timing, cancellation, targeting, placement and leaf motion.
+Sibling repositories were consulted read-only; no sibling code was imported.
