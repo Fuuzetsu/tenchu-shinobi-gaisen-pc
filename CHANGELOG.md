@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.32.1 — 2026-11-13
+
 - Follow original mission and Tatsumaru unlock progression from the T2 title's
   **Campaign** entry. F6's original mission-selection shortcut still exposes all
   missions. Existing campaign progress and v0.32.0 quickstates remain compatible.
