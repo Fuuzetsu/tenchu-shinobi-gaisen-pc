@@ -15,6 +15,7 @@ pub mod retail;
 mod rewind;
 mod savestate;
 mod settings_reset;
+mod studio;
 mod tenchu2;
 #[cfg(test)]
 mod tests;
@@ -88,6 +89,8 @@ struct Application {
     presets: settings::library::Manager,
     randomizer: crate::randomizer::Editor,
     trial: crate::trial::Editor,
+    studio: crate::level_editor::Editor,
+    studio_previous: Option<Box<studio::Session>>,
     tenchu2: crate::tenchu2::menu::Menu,
     #[cfg(not(target_arch = "wasm32"))]
     native_tenchu2: Option<tenchu2::Native>,
@@ -287,6 +290,7 @@ impl Application {
             || self.view.as_ref().is_some_and(View::preparing)
             || self.paused
             || self.trial.open
+            || self.studio.open
             || self.tenchu2.open
             || (self.randomizer.open && self.demo.is_none())
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
@@ -411,6 +415,17 @@ impl Application {
     }
 
     fn campaign_action(&mut self, action: Action) {
+        if self.studio.open {
+            return;
+        }
+        if self.studio.testing {
+            match action {
+                Action::Back => self.studio_action(crate::level_editor::Command::Return),
+                Action::Replay => self.studio_action(crate::level_editor::Command::Play),
+                _ => (),
+            }
+            return;
+        }
         if self.tenchu2.open {
             return;
         }
@@ -570,6 +585,9 @@ impl Application {
     }
 
     fn command(&mut self, command: Command, events: &ActiveEventLoop) {
+        if self.studio.open {
+            return;
+        }
         if matches!(command, Command::Menu(Action::Back))
             && self.view.as_mut().is_some_and(|v| v.overlay.close_popup())
         {
@@ -730,6 +748,9 @@ impl ApplicationHandler for Application {
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
+        if let Err(error) = self.studio.persist() {
+            eprintln!("Level Studio save: {error}");
+        }
         if self.trial.tables.is_some()
             && let Err(e) = self.trial.persist()
         {
@@ -899,6 +920,7 @@ impl ApplicationHandler for Application {
             return;
         }
         if let WindowEvent::Touch(touch) = &event
+            && !self.studio.open
             && let Some(view) = &self.view
         {
             let point = view.overlay.touch_point(touch.location);
@@ -972,6 +994,7 @@ impl ApplicationHandler for Application {
                 if touch.phase == winit::event::TouchPhase::Ended
                     && !self.menu.open
                     && !self.trial.open
+                    && !self.studio.open
                     && !self.randomizer.open
                     && self.demo.is_none()
                     && self.focused
@@ -996,6 +1019,7 @@ impl ApplicationHandler for Application {
             WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. }
                 if self.menu.open
                     || self.trial.open
+                    || self.studio.open
                     || self.randomizer.open
                     || self
                         .view
@@ -1078,6 +1102,12 @@ impl ApplicationHandler for Application {
                     }
                     return;
                 }
+                if self.studio.open {
+                    if event.state == ElementState::Pressed && code == KeyCode::F9 {
+                        self.screenshot = true;
+                    }
+                    return;
+                }
                 if self.tenchu2.open {
                     if event.state == ElementState::Pressed
                         && (code == KeyCode::Escape
@@ -1093,7 +1123,11 @@ impl ApplicationHandler for Application {
                     && code == KeyCode::F10
                     && !self.campaign.playing()
                 {
-                    self.open_trial();
+                    if self.modifiers.shift_key() {
+                        self.studio_action(crate::level_editor::Command::Open);
+                    } else {
+                        self.open_trial();
+                    }
                     return;
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F7 {
@@ -1109,6 +1143,9 @@ impl ApplicationHandler for Application {
                     return;
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F1 {
+                    if self.studio.testing {
+                        return;
+                    }
                     self.controls.close_editor();
                     self.toggle_menu();
                     return;
@@ -1130,6 +1167,10 @@ impl ApplicationHandler for Application {
                 if event.state == ElementState::Pressed
                     && matches!(code, KeyCode::F11 | KeyCode::F12)
                 {
+                    if self.studio.testing {
+                        self.studio.notice = "Save the Studio project to keep this mission; playtests restart from that project".into();
+                        return;
+                    }
                     let result = if code == KeyCode::F12 && self.modifiers.control_key() {
                         self.toggle_rewind()
                     } else {
@@ -1142,6 +1183,9 @@ impl ApplicationHandler for Application {
                     return;
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F8 {
+                    if self.studio.testing {
+                        return;
+                    }
                     let previous = self.settings.clone();
                     self.settings.retro = !self.settings.retro;
                     self.apply_settings(&previous);
@@ -1363,9 +1407,11 @@ impl ApplicationHandler for Application {
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
+                self.advance_studio_preview(elapsed.as_secs_f64());
                 self.advance_navigation(elapsed.as_secs_f32());
                 if self.focused
                     && self.demo.is_none()
+                    && !self.studio.open
                     && !self.menu.open
                     && !self.randomizer.open
                     && let Some(camera) = &mut self.debug.camera
@@ -1755,6 +1801,8 @@ pub fn run(
         #[cfg(not(target_arch = "wasm32"))]
         native_tenchu2: None,
         trial_previous: None,
+        studio: crate::level_editor::Editor::new(crate::storage::UserFile::Studio.path()?),
+        studio_previous: None,
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

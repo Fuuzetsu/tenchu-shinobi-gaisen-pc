@@ -85,6 +85,32 @@ fn source_banks_share_voice_slots_and_work_without_a_default_bank() {
 }
 
 #[test]
+fn source_audition_plays_while_paused_without_advancing_or_replacing_game_voices() {
+    let host = bank(Some(14));
+    let mut source = bank(Some(0));
+    Arc::get_mut(&mut source).unwrap().samples[0].frames = vec![8000; 17];
+    let mut mixer = Mixer::new(48000);
+    let mut expected = Mixer::new(48000);
+    for m in [&mut mixer, &mut expected] {
+        m.set_bank(host.clone());
+        m.play(0, 80, 64);
+    }
+    mixer.paused = true;
+    mixer.preview_from(&source, 0, 70, 0);
+    let mut audition = Mixer::new(48000);
+    audition.set_bank(source);
+    audition.play(0, 70, 0);
+    for _ in 0..300 {
+        assert_eq!(mixer.frame(), audition.frame());
+    }
+    mixer.preview(None);
+    mixer.paused = false;
+    for _ in 0..300 {
+        assert_eq!(mixer.frame(), expected.frame());
+    }
+}
+
+#[test]
 fn fixed_voice_replacement_keeps_independent_stereo_levels() {
     for rate in [44100, 48000] {
         let mut mixer = Mixer::new(rate);

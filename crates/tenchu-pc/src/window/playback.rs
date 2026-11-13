@@ -128,6 +128,14 @@ impl Application {
             }
             sound.weather(self.view.as_ref().and_then(View::thunder), storm, ambience);
         }
+        if let Err(error) = self.studio_tick() {
+            self.pause_error(error);
+            return false;
+        }
+        if self.studio.open {
+            self.clock.discard_host_backlog();
+            return false;
+        }
         self.trial_record_check();
         self.record_rewind(recorded_input);
         if !self.campaign.playing() && !observing {

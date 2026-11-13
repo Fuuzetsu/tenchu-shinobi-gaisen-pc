@@ -49,6 +49,30 @@ pub struct State {
 }
 
 impl Audio {
+    pub(crate) fn studio_sound(&self, bank: Arc<Bank>, sound: Sound, preview: bool) {
+        let event = tenchu_assets::audio::voice::Sourced {
+            bank: Some(bank),
+            sound,
+        };
+        self.output.send(if preview {
+            Command::PreviewFrom(event)
+        } else {
+            Command::Effect(event)
+        });
+    }
+
+    pub(crate) fn studio_music(
+        &mut self,
+        clip: Option<Arc<tenchu_assets::audio::stream::Clip>>,
+        preview: bool,
+    ) {
+        if preview {
+            self.output.send(Command::Preview(clip));
+        } else {
+            self.track(None);
+            self.output.send(Command::Music(clip, true));
+        }
+    }
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn begin_tenchu2(&mut self) {
         self.fast_forward(false);

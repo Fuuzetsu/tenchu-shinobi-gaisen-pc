@@ -1,5 +1,5 @@
 mod grid;
-mod library;
+pub(crate) mod library;
 mod menu;
 
 use crate::{source::DiscSource, storage};

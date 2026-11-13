@@ -10,6 +10,14 @@ pub fn menu(disc: &Disc<impl ReadAt>) -> Result<Bank> {
     Bank::parse(&Volume::open(disc)?.read(r"o:\cdimage\menu\sound", "menu.vab")?)
 }
 
+pub fn sound_bank(disc: &Disc<impl ReadAt>, hero: usize, map: usize) -> Result<Bank> {
+    if hero >= 3 || map >= 24 {
+        return Err("Invalid Tenchu 2 sound bank".into());
+    }
+    let name = format!("{}_E_{map:02}.vab", ['R', 'A', 'T'][hero]);
+    Bank::parse(&Volume::open(disc)?.read(r"o:\cdimage\game\sound", &name)?)
+}
+
 pub fn interval(disc: &Disc<impl ReadAt>, map: usize) -> Result<i16> {
     if map >= 24 {
         return Err("Invalid Tenchu 2 ambience map".into());

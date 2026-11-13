@@ -23,6 +23,17 @@ pub(in crate::window) struct Native {
     donor: Option<Game>,
 }
 
+impl Native {
+    pub(in crate::window) fn restore_after_studio(
+        &mut self,
+        output: Option<&crate::audio::output::Output>,
+    ) {
+        self.drawing = None;
+        self.generation = None;
+        self.transport.restored(&mut self.playback, output);
+    }
+}
+
 impl Application {
     fn native_toggle_randomizer(&mut self) -> Result<()> {
         let native = self.native_tenchu2.as_mut().unwrap();
@@ -562,6 +573,7 @@ impl Application {
         let phase = Instant::now();
         let screenshot = std::mem::take(&mut native.menu.screenshot);
         let mut leave = false;
+        let mut open_studio = false;
         let mut step = false;
         let mut reload_artwork = false;
         let mut save_diagnostics = false;
@@ -579,6 +591,16 @@ impl Application {
             native
                 .menu
                 .campaign_button(ctx, matches!(native.playback.content, Content::Title(_)));
+            if matches!(native.playback.content, Content::Title(_))
+                && !native.menu.panel.open
+                && !native.menu.modal_open()
+            {
+                egui::Area::new("native-level-studio".into())
+                    .anchor(egui::Align2::LEFT_BOTTOM, [12.0, -12.0])
+                    .show(ctx, |ui| {
+                        open_studio = ui.button("Level Studio…  Shift+F10").clicked();
+                    });
+            }
             native
                 .drawing
                 .as_mut()
@@ -713,6 +735,10 @@ impl Application {
                 .layout(ctx.screen_rect(), self.settings.touch, mode, false, false);
             self.touch.paint(ctx, self.settings.touch);
         });
+        if open_studio {
+            self.studio_action(crate::level_editor::Command::Open);
+            return Ok(());
+        }
         timing.overlay = phase.elapsed().as_secs_f32() * 1000.0;
         let phase = Instant::now();
         if reload_artwork {
@@ -1009,8 +1035,12 @@ impl Application {
             }
             WindowEvent::Focused(focused) => {
                 self.focused = focused;
+                if !focused {
+                    self.modifiers = ModifiersState::empty();
+                }
                 self.sync_pause();
             }
+            WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
             WindowEvent::KeyboardInput {
                 event,
                 is_synthetic,
@@ -1029,6 +1059,16 @@ impl Application {
                     _ => return Ok(()),
                 };
                 let pressed = event.state == ElementState::Pressed;
+                if pressed
+                    && code == KeyCode::F10
+                    && self.modifiers.shift_key()
+                    && matches!(native.playback.content, Content::Title(_))
+                    && !native.menu.panel.open
+                    && !native.menu.modal_open()
+                {
+                    self.studio_action(crate::level_editor::Command::Open);
+                    return Ok(());
+                }
                 if self.controls.editor.open {
                     if pressed {
                         self.controls.editor_key(code);

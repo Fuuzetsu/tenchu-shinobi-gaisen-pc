@@ -29,6 +29,10 @@ pause, frame stepping, settings-menu pauses and defocus pauses. Gameplay sounds
 remain suspended, and frontend movies/narration pause normally. It is off by default.
 **F7** opens the [randomizer](randomizer.md), with full-disc actor pools,
 stage/item blacklists and shareable seeds. Runs keep separate progress.
+**Level Studio** on either title, or **Shift+F10** in the menus, opens the
+[modern level editor](level-studio.md). It has its own workspace and project
+library, live environment previews, mixed-game assets and event/cue editing.
+The original **Mission editor / F10** remains separate.
 
 **F1 → General → Circle confirms in menus** selects Japanese confirmation
 (East / Circle confirms, South / Cross goes back). Off keeps Western confirmation

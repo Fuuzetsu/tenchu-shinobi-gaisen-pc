@@ -11,6 +11,7 @@ mod demo;
 mod diagnostics;
 mod fonts;
 mod frontend;
+mod level_editor;
 mod lighting;
 mod navigation;
 mod online;

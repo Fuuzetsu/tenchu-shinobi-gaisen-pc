@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **Level Studio**, a separate editor integrated into the game. Open it from
+  either title or with **Shift+F10** in the menus. Includes a 3D workspace and
+  zoomable map, terrain brushes, character and patrol editing, undo/redo,
+  project libraries, original challenges, and retail mission import/export.
+  Preview project lighting, shadows and animated weather, combine disc-backed
+  T1/T2 character appearances and decorative scenery, and author events with
+  ordered sound/music cues. Isolated playtests restore the previous game and
+  settings on exit. The original Mission editor remains available.
+
 ## 0.33.1 — 2026-11-13
 
 - Fix T2 invisibility leaving T1 model overrides mostly opaque. Imported bodies

@@ -47,6 +47,8 @@ pub(super) struct View {
     pack: Pack,
     pack_error: Option<String>,
     pub(super) models: Models,
+    pub(super) studio_scenery: Vec<crate::visuals::models::SceneryMaterial>,
+    pub(super) studio_time: Option<f32>,
     pub(super) bodies: Arc<Pack>,
     pub(super) model_library: Option<crate::visuals::appearance::library::Library>,
     pub(super) model_picker: crate::visuals::appearance::picker::Picker,
@@ -151,6 +153,22 @@ impl View {
         self.weather = Default::default();
         self.footprints.clear();
         self.contact.clear_weather();
+        self.dirty = true;
+    }
+
+    pub(super) fn studio_preview_tick(
+        &mut self,
+        tick: u64,
+        game: &Game,
+        settings: &Settings,
+        debug: &crate::debug::Debug,
+    ) {
+        self.sky.tick(tick, &settings.graphics.sky);
+        let surfaces = self.surfaces.get_or_insert_with(|| {
+            crate::visuals::surfaces::Surfaces::stage(&game.mission, &game.math, Some(&self.models))
+        });
+        self.weather
+            .tick(tick, debug.eye(game), surfaces, &settings.graphics.weather);
         self.dirty = true;
     }
 
@@ -479,6 +497,8 @@ impl View {
             pack,
             pack_error,
             models,
+            studio_scenery: vec![],
+            studio_time: None,
             bodies,
             model_library: None,
             model_picker: Default::default(),
@@ -557,14 +577,16 @@ impl View {
     fn build_models(&self, game: &Game, settings: &Settings) -> Result<Models> {
         let rendered = settings.rendering();
         let settings = &*rendered;
-        Models::build(&game.mission, &self.pack, &settings.graphics)?.with_player(
-            game,
-            self.selected_player(settings),
-            &self.pack,
-            &self.bodies,
-            &settings.graphics,
-            self.model_library.as_ref(),
-        )
+        Models::build(&game.mission, &self.pack, &settings.graphics)?
+            .with_scenery(&game.mission, &self.studio_scenery, &settings.graphics)?
+            .with_player(
+                game,
+                self.selected_player(settings),
+                &self.pack,
+                &self.bodies,
+                &settings.graphics,
+                self.model_library.as_ref(),
+            )
     }
 
     pub(super) fn load_bodies(
@@ -904,8 +926,9 @@ impl View {
             Default::default()
         };
         self.renderer.weather = self.weather.sample(&settings.graphics.weather, alpha);
-        self.renderer.visual_time =
-            ((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32;
+        self.renderer.visual_time = self
+            .studio_time
+            .unwrap_or(((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32);
         let frame = self.frame.as_ref();
         let camera = debug.camera.or(debug.follow_camera);
         let inspection = camera.is_some() || game.roster.keep_all_active;
@@ -1177,12 +1200,16 @@ impl View {
             ));
         }
         self.effect_vertices = self.renderer.update_effects(&mut self.effects, geometry);
-        self.window.set_title(&format!(
-            "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
-            game.tick,
-            game.player().health,
-            game.player().motion.action
-        ));
+        if self.studio_time.is_some() {
+            self.window.set_title("Tenchu — Level Studio");
+        } else {
+            self.window.set_title(&format!(
+                "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
+                game.tick,
+                game.player().health,
+                game.player().motion.action
+            ));
+        }
     }
 
     pub(super) fn draw(

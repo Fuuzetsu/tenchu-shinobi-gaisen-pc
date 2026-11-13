@@ -24,6 +24,7 @@ pub enum Command {
     Music(Option<Arc<Clip>>, bool),
     Preview(Option<Arc<Clip>>),
     PreviewEffect(i16),
+    PreviewFrom(tenchu_assets::audio::voice::Sourced<Sound>),
     SeekMusic(f64),
     Clear,
     Pause {
@@ -165,6 +166,16 @@ impl Playback {
                 Command::Music(clip, repeat) => self.mixer.music(clip, repeat),
                 Command::Preview(clip) => self.mixer.preview(clip),
                 Command::PreviewEffect(id) => self.mixer.preview_effect(id),
+                Command::PreviewFrom(event) => {
+                    if let Some(bank) = event.bank {
+                        self.mixer.preview_from(
+                            &bank,
+                            event.sound.id,
+                            event.sound.volume,
+                            event.sound.pan,
+                        );
+                    }
+                }
                 Command::SeekMusic(seconds) => self.mixer.seek_music(seconds),
                 Command::Clear => self.mixer.clear_effects(),
                 Command::Pause {

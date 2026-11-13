@@ -22,6 +22,7 @@ thread_local! {
 pub enum Kind {
     Recording,
     Unarmed,
+    Studio,
 }
 
 pub fn download(name: &str, bytes: &[u8]) -> Result<()> {
@@ -36,6 +37,7 @@ pub fn start(kind: Kind) -> Result<()> {
         let (extension, limit) = match kind {
             Kind::Recording => (".treplay", 128 * 1024 * 1024),
             Kind::Unarmed => (".t2moves", crate::sheathing::imports::LIMIT),
+            Kind::Studio => (".tenchu,.json,.msn,.mcs", 8 * 1024 * 1024),
         };
         let result = import_recording(extension, limit)
             .await

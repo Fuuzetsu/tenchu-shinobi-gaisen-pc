@@ -9,6 +9,30 @@ source hashes and comparison evidence when updating current documentation.
 No retail assets are included. The supported executable is identified at runtime
 by SHA-256 `0690a5c14ff3e975ebcb3de26e196a4dbb6afc992677d0de2cbcf86af9993558`.
 
+## Level Studio (2026-11-13)
+
+`tenchu-pc::level_editor` and `window::studio` are new PC authoring and host code.
+They reuse the port's source-backed TRIAL mission parser, theme construction,
+patrol operations and gameplay; shared authoring rules were extracted from the
+existing editor in `38708a40`. The original editor still uses those same rules.
+The existing `visuals::appearance::library` supplies T1/T2 characters and their
+established Gaisen behavior mappings. `MissionAssets`, T2 `Level`, `Bank` and
+`music::tracks` read scenery and audio from the user's discs. Imported scenery
+retains its source VRAM and artwork identity and is added after source game
+construction, so decorative instances do not consume gameplay RNG or collision
+slots. No additional sibling-repository code, game assets or RAM was imported.
+
+Studio's versioned projects, history and ordered event queues are newly authored
+optional features. They do not implement another retail scripting VM or T2's
+unported TRIAL editor. Event timing uses nominal game ticks; preview weather and
+shader time are presentation state. The full previous campaign/native session
+is retained across editor use. Modern High/Ultra and the demo catalog were
+reviewed: Studio exposes existing visual presets and an editable event example;
+global presets and showcase gameplay remain unchanged. Controlled fixtures and
+private GPU captures cover this feature without claiming ordinary-play parity.
+
+## Initial source references
+
 The following local source files informed the first implementation. SHA-256
 values identify the actual working-tree contents, including any local changes;
 the listed Git revisions alone need not describe those contents.

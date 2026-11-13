@@ -12,6 +12,15 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
+[Level Studio](level-studio.md) has separate optional-mode coverage: all sixteen
+retail challenges and twelve themes round-trip through its project format;
+invalid imports, grouped undo/redo and deterministic event queues have portable
+tests. Disc-backed fixtures exercise playtest completion, record eligibility,
+exact campaign restoration and return to native T2's title. Mixed-game GPU
+captures check scene visibility, source materials and animated weather while
+serialized gameplay remains unchanged. These are controlled authoring tests,
+not additional ordinary-play recordings. Private screenshots stay outside Git.
+
 `check-retail` supports T1's `MAIN.EXE` and bounded native Japanese T2 gameplay
 through the same observer and TNRUN002 format. Both initialize once and stop at
 the first divergence, without correcting state from later snapshots. T2 uses

@@ -29,6 +29,10 @@ pub(super) fn application(options: Options) -> Application {
             std::env::temp_dir().join(format!("tenchu-trial-test-{}.json", std::process::id())),
         ),
         trial_previous: None,
+        studio: crate::level_editor::Editor::new(
+            std::env::temp_dir().join(format!("tenchu-studio-test-{}.json", std::process::id())),
+        ),
+        studio_previous: None,
         assets,
         campaign,
         storage: Storage::temporary(),

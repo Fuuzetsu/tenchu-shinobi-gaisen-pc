@@ -4,6 +4,9 @@ use crate::{
 };
 use winit::{event::WindowEvent, window::Window};
 
+#[cfg(all(test, target_os = "linux"))]
+mod studio_tests;
+
 pub(crate) struct Overlay {
     pub opaque: bool,
     pub dirty: bool,
@@ -17,6 +20,11 @@ pub(crate) struct Overlay {
 }
 
 pub(super) struct Extras<'a> {
+    pub studio: Option<(
+        &'a mut crate::level_editor::Editor,
+        &'a tenchu_assets::game::GameAssets<crate::source::DiscSource>,
+        &'a tenchu_core::game::Game,
+    )>,
     pub touch: Option<(
         &'a mut crate::touch::Overlay,
         crate::touch::Mode,
@@ -47,6 +55,7 @@ pub(super) struct Extras<'a> {
 }
 
 pub(super) struct Updates {
+    studio: Option<crate::level_editor::Command>,
     trial: Option<crate::trial::Event>,
     edits: Vec<Edit>,
     demo: Option<crate::demo::overlay::Action>,
@@ -185,6 +194,7 @@ impl Overlay {
             && menu.edit.is_none()
             && !menu.campaigns.open
             && !extras.trial.as_ref().is_some_and(|(e, _, _)| e.open)
+            && !extras.studio.as_ref().is_some_and(|(e, _, _)| e.open)
             && !extras.controls.as_ref().is_some_and(|c| c.editor.open)
             && !extras.randomizer.as_ref().is_some_and(|r| r.editor.open)
         {
@@ -193,6 +203,7 @@ impl Overlay {
                 .retain(|event| !matches!(event, egui::Event::Key { .. } | egui::Event::Text(_)));
         }
         let mut trial_action = None;
+        let mut studio_action = None;
         let mut edits = Vec::new();
         let mut demo_action = None;
         let mut frontend_action = None;
@@ -200,9 +211,33 @@ impl Overlay {
         let mut randomizer_action = None;
         let mut tenchu2_action = None;
         let output = self.context.run(input, |ctx| {
+            if let Some((studio, assets, _)) = &mut extras.studio {
+                studio_action = studio.show(ctx, assets);
+                if studio.open {
+                    return;
+                }
+                if studio.testing {
+                    egui::Area::new("studio-playtest".into())
+                        .anchor(egui::Align2::CENTER_TOP, [0.0, 8.0])
+                        .show(ctx, |ui| {
+                            egui::Frame::window(ui.style()).show(ui, |ui| {
+                                ui.label("Level Studio playtest · Esc returns · F5 restarts");
+                                if !studio.notice.is_empty() {
+                                    ui.label(&studio.notice);
+                                }
+                                if ui.button("Return to editing").clicked() {
+                                    studio_action = Some(crate::level_editor::Command::Return);
+                                }
+                            });
+                        });
+                }
+            }
             if let Some((editor, assets, game)) = &mut extras.trial {
                 trial_action = editor.show(ctx, assets);
-                if !editor.open && game.trial.is_some() {
+                if !editor.open
+                    && game.trial.is_some()
+                    && !extras.studio.as_ref().is_some_and(|(s, _, _)| s.testing)
+                {
                     crate::trial::status(
                         ctx,
                         game,
@@ -285,6 +320,9 @@ impl Overlay {
                             {
                                 edits.push(Edit::Randomizer);
                             }
+                            if ui.button("Level Studio…  Shift+F10").clicked() {
+                                studio_action = Some(crate::level_editor::Command::Open);
+                            }
                             if extras.launcher.is_none()
                                 && ui.button("Quick launcher…  F6").clicked()
                             {
@@ -357,6 +395,7 @@ impl Overlay {
             output.textures_delta,
         );
         Updates {
+            studio: studio_action,
             trial: trial_action,
             edits,
             demo: demo_action,
@@ -519,6 +558,7 @@ impl super::Application {
                 samples: &view.renderer.sample_counts,
             },
             Extras {
+                studio: Some((&mut self.studio, &self.assets, &self.campaign.game)),
                 touch: video_time.is_none().then_some((
                     &mut self.touch,
                     if self.debug.camera.is_some() {
@@ -595,6 +635,16 @@ impl super::Application {
                 },
             },
         );
+        if let Some(event) = updates.studio {
+            self.studio_action(event);
+            return;
+        }
+        if self.studio.open {
+            if let Err(error) = self.refresh_studio() {
+                self.studio.notice = error;
+            }
+            return;
+        }
         if let Some(event) = updates.trial {
             self.trial_action(event);
             return;

@@ -62,7 +62,7 @@ pub fn time(ticks: i32) -> String {
     )
 }
 
-pub(super) fn share(bytes: &[u8]) -> String {
+pub(crate) fn share(bytes: &[u8]) -> String {
     use std::fmt::Write;
     let mut text = String::from("tenchu-trial-v1:");
     for b in bytes {
@@ -70,7 +70,7 @@ pub(super) fn share(bytes: &[u8]) -> String {
     }
     text
 }
-pub(super) fn unshare(text: &str) -> Result<Vec<u8>> {
+pub(crate) fn unshare(text: &str) -> Result<Vec<u8>> {
     let text = text
         .trim()
         .strip_prefix("tenchu-trial-v1:")

@@ -132,10 +132,21 @@ impl Application {
                     crate::web::recording::Kind::Unarmed => {
                         self.install_unarmed(crate::sheathing::imports::decode(&bytes)?)
                     }
+                    crate::web::recording::Kind::Studio => {
+                        if self.studio.open {
+                            self.studio.import(&bytes, &self.assets)
+                        } else {
+                            Err("Open Level Studio to import this project".into())
+                        }
+                    }
                 }
             }
         }) {
-            self.state_notice(error);
+            if matches!(kind, crate::web::recording::Kind::Studio) {
+                self.studio.notice = error;
+            } else {
+                self.state_notice(error);
+            }
         }
         self.update_view();
     }

@@ -213,6 +213,10 @@ impl Mixer {
             .map(Preview::Effect);
     }
 
+    pub fn preview_from(&mut self, bank: &Arc<Bank>, id: i16, volume: u8, pan: u8) {
+        self.preview = Voice::new(bank, id, volume, pan, 36, self.rate, true).map(Preview::Effect);
+    }
+
     pub fn seek_music(&mut self, seconds: f64) {
         if let Some(music) = &mut self.music {
             let position = seconds.max(0.0) * f64::from(music.clip.rate);

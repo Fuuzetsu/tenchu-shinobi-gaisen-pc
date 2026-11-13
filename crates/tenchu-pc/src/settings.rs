@@ -356,7 +356,7 @@ impl Graphics {
         Rendering::default()
     }
 
-    fn validate(&mut self) {
+    pub(crate) fn validate(&mut self) {
         self.fog_distance = self.fog_distance.clamp(25, 400);
         self.exposure = self.exposure.clamp(25, 300);
         if ![1, 2, 4, 8, 16].contains(&self.anisotropy) {

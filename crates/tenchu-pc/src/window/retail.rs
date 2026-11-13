@@ -215,6 +215,7 @@ impl Recorder {
                 samples: &view.renderer.sample_counts,
             },
             Extras {
+                studio: None,
                 tenchu2: None,
                 launcher: None,
                 touch: None,

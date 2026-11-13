@@ -128,11 +128,23 @@ impl Application {
         Ok(())
     }
     pub(super) fn trial_record_check(&mut self) {
+        if self.studio.open || self.studio.testing {
+            return;
+        }
         if self.campaign.game.trial.is_none() {
             return;
         }
+        if !self.trial_records_eligible() {
+            self.trial.eligible = false;
+        }
+        if self.campaign.game.events.outcome != Outcome::Running {
+            self.trial_action(Event::Return);
+        }
+    }
+
+    pub(super) fn trial_records_eligible(&self) -> bool {
         let game = &self.campaign.game;
-        if self.settings.keep_enemies_active
+        !(self.settings.keep_enemies_active
             || self.settings.independent_attacks
             || self.settings.quick_shuriken_dodge
             || self.settings.strict_corpse_sight
@@ -152,13 +164,7 @@ impl Application {
             || game.intelligence.ignore_player
             || self.debug.speed != 100
             || self.debug.camera.is_some()
-            || self.debug.camera_actor.is_some()
-        {
-            self.trial.eligible = false;
-        }
-        if game.events.outcome != Outcome::Running {
-            self.trial_action(Event::Return);
-        }
+            || self.debug.camera_actor.is_some())
     }
 }
 

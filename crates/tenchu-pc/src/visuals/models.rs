@@ -23,6 +23,13 @@ pub struct Material {
     pub animation: Option<tenchu_assets::texture::TextureScroll>,
 }
 
+pub(crate) struct SceneryMaterial {
+    pub part: usize,
+    pub id: String,
+    pub label: String,
+    pub vram: Arc<tenchu_assets::texture::Vram>,
+}
+
 #[derive(Default)]
 pub struct Models {
     // Identifies prepared meshes across settings, model swaps and mission reloads.
@@ -42,6 +49,41 @@ pub struct Models {
 }
 
 impl Models {
+    pub(crate) fn with_scenery(
+        mut self,
+        mission: &MissionAssets,
+        sources: &[SceneryMaterial],
+        graphics: &Graphics,
+    ) -> Result<Self> {
+        for source in sources {
+            let geometry = &mission
+                .objects
+                .get(source.part)
+                .ok_or("Missing scenery mesh")?
+                .geometry;
+            let inputs = vec![catalog::ModelSource {
+                id: source.id.clone(),
+                role: catalog::Role::Prop,
+                hero_part: None,
+                label: source.label.clone(),
+                geometry,
+            }];
+            let pack = if graphics.asset_pack {
+                Pack::for_models(&source.vram, &inputs)?
+            } else {
+                Pack::default()
+            };
+            let mut meshes = Meshes::build(&source.vram, &pack, graphics, inputs, true)?;
+            meshes.detach_textures();
+            if graphics.asset_pack {
+                meshes.replace_textures(&pack);
+            }
+            self.imported_geometry
+                .insert(geometry.as_ptr() as usize, self.imported.len());
+            self.imported.push(meshes);
+        }
+        Ok(self)
+    }
     pub fn canopies(&self, game: &tenchu_core::game::Game) -> Vec<super::contact::foliage::Canopy> {
         let mut out = Vec::new();
         render_mesh::visit_stage(&game.mission, &game.math, |geometry, matrix| {
