@@ -15,6 +15,32 @@ import release
 
 
 VERSION_FILES = ("Cargo.toml", "Cargo.lock", "CHANGELOG.md")
+WORKFLOW_START_TIMEOUT = 5 * 60
+
+
+class ReleaseProgress:
+    def __init__(self, root, version):
+        self.path = root / "private/releases" / f"v{version}" / "status.json"
+        self.report = {"version": version, "status": "running"}
+
+    def update(self, phase, message, **details):
+        self.report.update(details, phase=phase, message=message,
+                           updated_at=datetime.datetime.now(datetime.UTC).isoformat())
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(self.report, indent=2) + "\n")
+        temporary.replace(self.path)
+        print(message, flush=True)
+
+    def __enter__(self):
+        self.update("preflight", f"Preparing v{self.report['version']}; status: {self.path}")
+        return self
+
+    def __exit__(self, kind, error, traceback):
+        if error is not None:
+            status = "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
+            self.update(self.report["phase"], f"Release {status}: {error or 'interrupted'}",
+                        status=status, error=str(error))
 
 
 def run(*args, capture=False):
@@ -100,24 +126,72 @@ def check_artwork(root):
             raise ValueError(f"Published {artwork['tag']} does not match its artwork/release.json")
 
 
-def wait_for_build(branch, revision):
-    for _ in range(60):
-        runs = github(
-            "run", "list", "--workflow", "build.yml", "--event", "push", "--commit", revision,
-            "--branch", branch, "--limit", "20", "--json", "databaseId,status,conclusion,url",
-        )
-        if runs:
-            build = runs[0]
-            print(build["url"], flush=True)
+def build_summary(branch, build):
+    jobs = build["jobs"]
+    finished = sum(job["status"] == "completed" for job in jobs)
+    message = f"{branch}: {build['conclusion'] or build['status']}; {finished}/{len(jobs)} jobs finished"
+    for label, selected in (
+        ("running", [job["name"] for job in jobs if job["status"] == "in_progress"]),
+        ("failed", [job["name"] for job in jobs if job["conclusion"] not in (None, "", "success", "skipped", "neutral")]),
+    ):
+        if selected:
+            message += f"; {label}: {', '.join(selected)}"
+    return message
+
+
+def wait_for_builds(branches, revision, progress):
+    builds = {}
+    snapshots = {}
+    discovery_deadline = time.monotonic() + WORKFLOW_START_TIMEOUT
+    while True:
+        if len(builds) != len(branches):
+            runs = github(
+                "run", "list", "--workflow", "build.yml", "--event", "push", "--commit", revision,
+                "--limit", "20", "--json", "databaseId,headBranch,url",
+            )
+            for candidate in runs:
+                branch = candidate["headBranch"]
+                if branch in branches and branch not in builds:
+                    builds[branch] = {"id": candidate["databaseId"], "observed": False}
+                    progress.update("builds", f"{branch}: {candidate['url']}", builds=snapshots)
+            missing = [branch for branch in branches if branch not in builds]
+            if missing and time.monotonic() >= discovery_deadline:
+                raise ValueError(f"No push workflow appeared for {', '.join(missing)} at {revision}; rerun to resume")
+        for branch, state in builds.items():
+            previous = snapshots.get(branch, {})
+            if previous.get("status") == "completed" and previous.get("conclusion") == "success":
+                continue
+            build = github("run", "view", str(state["id"]), "--json", "attempt,status,conclusion,jobs,url")
+            if not state["observed"]:
+                state["observed"] = True
+                if build["status"] == "completed" and build["conclusion"] != "success":
+                    # Resume an earlier failure once; a new failure stops this invocation.
+                    flags = ("--failed",) if build["conclusion"] == "failure" else ()
+                    run("gh", "run", "rerun", str(state["id"]), *flags)
+                    state.update(minimum_attempt=build["attempt"] + 1,
+                                 deadline=time.monotonic() + WORKFLOW_START_TIMEOUT)
+                    progress.update("builds", f"{branch}: retry requested; waiting for the next attempt", builds=snapshots)
+                    continue
+            if build["attempt"] < state.get("minimum_attempt", 0):
+                if time.monotonic() >= state["deadline"]:
+                    raise ValueError(f"Retry did not start for {branch}: {build['url']}; rerun to resume")
+                continue
+            snapshot = {key: build[key] for key in ("attempt", "status", "conclusion", "url")}
+            snapshot["id"] = state["id"]
+            snapshot["jobs"] = sorted(
+                ({key: job[key] for key in ("name", "status", "conclusion")} for job in build["jobs"]),
+                key=lambda job: job["name"],
+            )
+            if snapshot != snapshots.get(branch):
+                snapshots[branch] = snapshot
+                progress.update("builds", build_summary(branch, snapshot), builds=snapshots)
             if build["status"] == "completed" and build["conclusion"] != "success":
-                # A repeated invocation resumes a failed publication without moving its tag.
-                flags = ("--failed",) if build["conclusion"] == "failure" else ()
-                run("gh", "run", "rerun", str(build["databaseId"]), *flags)
-            run("gh", "run", "watch", str(build["databaseId"]), "--compact", "--exit-status", "--interval", "30")
+                raise ValueError(f"{build_summary(branch, snapshot)}; {build['url']}; rerun to resume")
+        if len(snapshots) == len(branches) and all(
+            build["status"] == "completed" and build["conclusion"] == "success" for build in snapshots.values()
+        ):
             return
-        print(f"Waiting for the {branch} workflow to appear…", flush=True)
-        time.sleep(5)
-    raise ValueError(f"No push workflow appeared for {branch} at {revision}; check GitHub Actions, then rerun")
+        time.sleep(5 if len(builds) != len(branches) else 30)
 
 
 def verify_published(root, tag, revision, version):
@@ -151,6 +225,11 @@ def verify_published(root, tag, revision, version):
 
 def execute(root, version, prepare_only=False):
     version_key(version)
+    with ReleaseProgress(root, version) as progress:
+        execute_release(root, version, prepare_only, progress)
+
+
+def execute_release(root, version, prepare_only, progress):
     tag = f"v{version}"
     if run("git", "branch", "--show-current", capture=True) != "master":
         raise ValueError("Release from master")
@@ -169,6 +248,7 @@ def execute(root, version, prepare_only=False):
     check_artwork(root)
     original = {name: (root / name).read_bytes() for name in VERSION_FILES}
     try:
+        progress.update("checks", "Checking the release version, local builds and supported systems.")
         changed = prepare_version(root, version)
         run("nix", "flake", "check", "--print-build-logs")
         run("nix", "flake", "check", "--all-systems", "--no-build")
@@ -186,15 +266,21 @@ def execute(root, version, prepare_only=False):
     if run("git", "status", "--porcelain", capture=True):
         raise ValueError("Checks left uncommitted changes; review them before publishing")
     if prepare_only:
-        print(f"Prepared {tag} locally. Review/play-test it, then run ./release.sh {version} to publish.")
+        progress.update("prepared", f"Prepared {tag} locally. Review/play-test it, then run ./release.sh {version} to publish.",
+                        status="prepared", revision=revision)
         return
+    progress.update("push", f"Publishing {tag} at {revision}.", revision=revision)
     check_tag(tag, revision)
     if not run("git", "tag", "--list", tag, capture=True):
         run("git", "tag", "-a", tag, "-m", f"Tenchu PC {version}")
     run("git", "push", "--atomic", "origin", "HEAD:refs/heads/master", f"refs/tags/{tag}")
-    wait_for_build(tag, revision)
-    wait_for_build("master", revision)
+    progress.update("builds", "Waiting for the tagged and HEAD workflows; progress is reported only when it changes.")
+    wait_for_builds((tag, "master"), revision, progress)
+    progress.update("downloads", "Both workflows passed; downloading and verifying the published release.")
     verify_published(root, tag, revision, version)
+    receipt = progress.path.with_name("verified.json")
+    progress.update("verified", f"Release {tag} is published and verified; receipt: {receipt}",
+                    status="succeeded", receipt=str(receipt))
 
 
 def main():

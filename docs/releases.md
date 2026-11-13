@@ -86,6 +86,15 @@ its checksums, GitHub digests, build identities and library/source inventories.
 It checks each referenced HD pack is already published with the expected hash;
 unchanged artwork is reused, not uploaded again.
 
+Leave this one command running through publication and download verification;
+there is no need to watch separate Actions runs. It monitors the tagged and HEAD
+workflows together and prints job status only when it changes. A failure in
+either workflow is reported immediately, with the job names and run link.
+`private/releases/vVERSION/status.json` records the current phase and both builds,
+then a final `succeeded`, `failed` or `interrupted` result (`prepared` when using
+`--prepare-only`). The successful download-verification receipt remains
+`verified.json` alongside it. These local records stay outside Git.
+
 To prepare and review locally before publishing:
 
 ```sh
