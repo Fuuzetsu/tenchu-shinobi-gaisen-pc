@@ -30,6 +30,25 @@ producers are not yet covered by this comparer. Campaign progression has separat
 controlled fixtures. T2 requires `--scenario` or an update limit; the video tape
 export path remains T1-only.
 
+The native JP campaign fixture starts each hero at the title with the same
+persistent save and original unlocks. It traverses 231 sequence visits, 56
+gameplay areas and 29 results screens (27 story missions plus both training
+routes), letting prologues, chapter narration, 3D cutscenes, ending movies and
+credits finish without skip input. It confirms equipment entry, records and
+supplies saved once per result, Tatsumaru becoming available after Rikimaru and
+Ayame, and return to the native title. Objectives use controlled exit positions,
+boss HP and kill quotas; this is progression coverage, not a full ordinary-play
+campaign recording. Separate fixtures exercise all 56 death routes and both
+detection failures, unchanged progress on failure and the correct retry area.
+
+The 2026-11-13 campaign audit also reruns the original-instruction references:
+336 area entries, 600 area exits, 483 dispatcher routes, 25,348 mission-selection
+updates and 600 results/reward cases. Menu checks cover locked Campaign versus
+unrestricted F6 access, cinematic cancellation, checkpoint/rewind continuation
+and the v0.32.0 quickstate menu-flag encoding. Logs remain outside Git in
+`private/t2-campaign-audit-20261113`; source provenance is in
+[T2 reuse notes](tenchu2-reuse.md#native-t2-campaign-return).
+
 T2 scenery-sandbox guard checks (#98/#99) run separately on Europe and Japan.
 An authored route-less slot from sequence 4 is placed on a flat arena to compare
 640 updates with the unseen player on opposite sides. Sword, spear and archer

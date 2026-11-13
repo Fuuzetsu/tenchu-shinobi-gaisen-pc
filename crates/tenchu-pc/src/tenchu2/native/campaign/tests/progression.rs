@@ -66,7 +66,7 @@ fn prepare_success(playback: &mut Game) -> Outcome {
     }
 }
 
-fn finish_sequence(playback: &mut Game, outcome: Option<Outcome>) {
+fn finish_sequence(playback: &mut Game, outcome: Option<Outcome>, skip_cinematics: bool) {
     let sequence = playback.run.sequence;
     let generation = playback.generation;
     let mut observed = None;
@@ -79,7 +79,8 @@ fn finish_sequence(playback: &mut Game, outcome: Option<Outcome>) {
                 Phase::Playing { .. } => {}
             }
         }
-        let buttons = if tick % 15 == 0
+        let buttons = if skip_cinematics
+            && tick % 15 == 0
             && matches!(
                 playback.content,
                 Content::Story { .. } | Content::Movie(_) | Content::Introduction(_)
@@ -101,7 +102,7 @@ fn finish_sequence(playback: &mut Game, outcome: Option<Outcome>) {
 }
 
 #[test]
-#[ignore = "requires Japanese TENCHU2_DISC; controlled exits, boss health and quotas traverse all three full campaigns, results, saved records and Tatsumaru unlock"]
+#[ignore = "requires Japanese TENCHU2_DISC; controlled objectives traverse all three campaigns with uninterrupted cinematics, credits, results, saved records and Tatsumaru unlock"]
 fn native_campaigns_complete_through_actual_area_transitions() {
     use super::super::super::save::SaveFile;
     let path = std::env::temp_dir().join(format!(
@@ -120,23 +121,50 @@ fn native_campaigns_complete_through_actual_area_transitions() {
             crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
         let campaign = Campaign::load(&disc).unwrap();
         let first = campaign.starts[hero][0].unwrap();
-        let mut items = [0; 21];
-        items[0] = 255;
-        items[4] = 5;
-        let mut playback = Playback::load(
-            disc,
-            first,
-            2,
-            17,
-            Some(items),
-            Some(SaveFile::at(path.clone())),
-        )
-        .unwrap();
+        let mut playback = Playback::title(disc, 2, 17, Some(SaveFile::at(path.clone()))).unwrap();
+        for _ in 0..15 {
+            playback.step(0).unwrap();
+        }
+        playback.action = Some(Action::Title(tenchu_core::tenchu2::title::Choice::Campaign));
+        playback.step(0).unwrap();
+        next(&mut playback);
+        let Content::MissionSelection(selection) = &playback.content else {
+            panic!("title did not open mission selection")
+        };
+        assert!(!selection.state.all_unlocked);
+        for _ in 0..15 {
+            playback.step(0).unwrap();
+        }
+        for _ in 0..hero {
+            playback.action = Some(Action::MissionSelection(
+                super::super::super::selection::Edit::Hero(true),
+            ));
+            playback.step(0).unwrap();
+            for _ in 0..15 {
+                playback.step(0).unwrap();
+            }
+        }
+        playback.action = Some(Action::Continue);
+        playback.step(0).unwrap();
+        next(&mut playback);
+        if matches!(playback.content, Content::Prologue(_)) {
+            finish_sequence(&mut playback, None, false);
+        }
         assert_eq!(playback.run.hero, hero);
+        assert_eq!(playback.run.sequence, first);
         assert_eq!(playback.run.progress.tatsumaru_unlocked, hero == 2);
         let mut visited = std::collections::BTreeSet::new();
         let mut results = std::collections::BTreeSet::new();
         loop {
+            if matches!(playback.content, Content::Equipment(_)) {
+                for _ in 0..15 {
+                    playback.step(0).unwrap();
+                }
+                playback.action = Some(Action::Continue);
+                playback.step(0).unwrap();
+                next(&mut playback);
+                assert!(matches!(playback.content, Content::Gameplay(_)));
+            }
             let sequence = playback.run.sequence;
             assert!(
                 visited.insert(sequence),
@@ -175,7 +203,7 @@ fn native_campaigns_complete_through_actual_area_transitions() {
                 playback.action = Some(Action::Continue);
                 completed += 1;
             }
-            finish_sequence(&mut playback, outcome);
+            finish_sequence(&mut playback, outcome, false);
             sequences += 1;
             if let Some(next) = descriptor.next {
                 assert_eq!(
@@ -183,7 +211,8 @@ fn native_campaigns_complete_through_actual_area_transitions() {
                     "hero {hero}, sequence {sequence}"
                 );
             } else {
-                assert!(matches!(playback.content, Content::Complete));
+                assert!(matches!(playback.content, Content::Title(_)));
+                assert_eq!(playback.origin, Origin::Campaign);
                 break;
             }
             eprintln!("hero {hero}: {sequence} -> {}", playback.run.sequence);
@@ -243,7 +272,7 @@ fn native_campaign_failures_return_to_the_correct_retry_area() {
                     deaths += 1;
                     Outcome::Dead
                 };
-                finish_sequence(&mut playback, Some(outcome));
+                finish_sequence(&mut playback, Some(outcome), true);
                 let mut expected = descriptor.failure;
                 let mut failure_scenes = 0;
                 while let Some(index) = expected {
@@ -252,7 +281,7 @@ fn native_campaign_failures_return_to_the_correct_retry_area() {
                         playback.content,
                         Content::Story { .. } | Content::Movie(_)
                     ));
-                    finish_sequence(&mut playback, None);
+                    finish_sequence(&mut playback, None, true);
                     expected = campaign.sequences[index].next;
                     failure_scenes += 1;
                     assert!(failure_scenes < 10);

@@ -149,7 +149,7 @@ fn compare(a: &Playback<DiscSource>, b: &Playback<DiscSource>) {
     );
     assert_eq!(a.previous_buttons, b.previous_buttons);
     assert_eq!(a.loadout, b.loadout);
-    assert_eq!(a.from_menu, b.from_menu);
+    assert_eq!(a.origin, b.origin);
     assert!(postcard::to_allocvec(&a.death).unwrap() == postcard::to_allocvec(&b.death).unwrap());
     match (&a.content, &b.content) {
         (Content::Gameplay(a), Content::Gameplay(b)) => {
@@ -185,6 +185,20 @@ fn compare(a: &Playback<DiscSource>, b: &Playback<DiscSource>) {
     }
 }
 
+#[test]
+fn campaign_origin_preserves_legacy_quickstate_encoding() {
+    for (old_flag, origin) in [(false, Origin::Quick), (true, Origin::UnlockedMenu)] {
+        let legacy = postcard::to_allocvec(&old_flag).unwrap();
+        assert_eq!(postcard::from_bytes::<Origin>(&legacy).unwrap(), origin);
+        assert_eq!(postcard::to_allocvec(&origin).unwrap(), legacy);
+    }
+    assert_eq!(
+        postcard::from_bytes::<Origin>(&postcard::to_allocvec(&Origin::Campaign).unwrap()).unwrap(),
+        Origin::Campaign
+    );
+    assert!(postcard::from_bytes::<Origin>(&[3]).is_err());
+}
+
 fn together(a: &mut Playback<DiscSource>, b: &mut Playback<DiscSource>, ticks: usize) {
     for _ in 0..ticks {
         let x = a.step(0).unwrap();
@@ -203,7 +217,7 @@ fn together(a: &mut Playback<DiscSource>, b: &mut Playback<DiscSource>, ticks: u
 fn native_campaign_checkpoints_preserve_transitions_and_retry() {
     for sequence in [9, 119, 191] {
         let mut original = start(sequence);
-        original.from_menu = true;
+        original.origin = Origin::UnlockedMenu;
         let mut settings = crate::settings::Settings {
             keep_enemies_active: true,
             ..Default::default()
@@ -344,8 +358,9 @@ fn native_campaign_checkpoints_leave_progress_files_unchanged() {
     file.write(&Default::default()).unwrap();
     let stored = std::fs::read(&path).unwrap();
     let mut original = start(9);
-    original.from_menu = true;
+    original.origin = Origin::Campaign;
     original.run.progress.records[0][1].score = 527;
+    original.run.progress.records[0][1].time_tenths = 59999;
     original.step(0x2000).unwrap();
     let bytes = original.capture_state().unwrap();
     let disc =
@@ -357,6 +372,14 @@ fn native_campaign_checkpoints_leave_progress_files_unchanged() {
     assert_eq!(std::fs::read(&path).unwrap(), stored);
     assert!(bytes == restored.capture_state().unwrap());
     together(&mut original, &mut restored, 30);
+    restored.action = Some(Action::SelectMission);
+    restored.step(0).unwrap();
+    let Content::MissionSelection(selection) = &restored.content else {
+        panic!("checkpoint lost its campaign menu")
+    };
+    assert!(!selection.state.all_unlocked);
+    assert!(selection.state.available(1, &selection.resources.rules));
+    assert!(!selection.state.available(2, &selection.resources.rules));
     assert_eq!(std::fs::read(&path).unwrap(), stored);
     std::fs::remove_dir_all(root).unwrap();
 }

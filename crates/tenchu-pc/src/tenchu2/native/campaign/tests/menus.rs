@@ -2,6 +2,38 @@ use super::*;
 use crate::{controls::Controls, settings::Settings, tenchu2::native::tools::Tools};
 use tenchu_core::input;
 
+#[test]
+#[ignore = "requires TENCHU2_DISC; Start+Select leaves campaign narration/movies for the T2 title without losing progress, while quick launch exits its preview"]
+fn cinematic_quit_returns_to_the_native_title() {
+    for sequence in [15, 34] {
+        for origin in [Origin::Quick, Origin::UnlockedMenu, Origin::Campaign] {
+            let mut playback = start(sequence);
+            playback.origin = origin;
+            let progress = postcard::to_allocvec(&playback.run.progress).unwrap();
+            let generation = playback.generation;
+            playback.step(9).unwrap();
+            let mut finished = false;
+            for _ in 0..300 {
+                let update = playback.step(0).unwrap();
+                if update.quit || playback.generation != generation {
+                    assert!(update.stop_music);
+                    assert_eq!(update.quit, origin == Origin::Quick);
+                    if !update.quit {
+                        assert!(matches!(playback.content, Content::Title(_)));
+                    }
+                    finished = true;
+                    break;
+                }
+            }
+            assert!(finished, "sequence {sequence}, {origin:?}");
+            assert_eq!(
+                postcard::to_allocvec(&playback.run.progress).unwrap(),
+                progress
+            );
+        }
+    }
+}
+
 fn buttons(content: &mut Content, settings: &Settings, buttons: u16) -> u16 {
     let mut controls = Controls::default();
     controls.touch(crate::touch::Sample {
@@ -147,10 +179,10 @@ fn native_menu_convention_applies_at_the_input_boundary() {
             }
         }
         for complete in [false, true] {
-            for from_menu in [false, true] {
+            for origin in [Origin::Quick, Origin::UnlockedMenu, Origin::Campaign] {
                 for retry in [false, true] {
                     let mut playback = start(13);
-                    playback.from_menu = from_menu;
+                    playback.origin = origin;
                     playback.content = if complete {
                         Content::Complete
                     } else {
@@ -165,7 +197,7 @@ fn native_menu_convention_applies_at_the_input_boundary() {
                     if retry {
                         assert!(!update.quit);
                         assert_eq!(playback.run.sequence, 9);
-                    } else if from_menu {
+                    } else if origin != Origin::Quick {
                         assert!(
                             !update.quit
                                 && matches!(playback.content, Content::MissionSelection(_))
@@ -202,10 +234,31 @@ fn title_menu_enters_campaign_and_returns_without_changing_progress() {
     playback.step(0).unwrap();
     playback.step(0x2000).unwrap();
     next(&mut playback);
-    assert!(matches!(playback.content, Content::MissionSelection(_)));
+    let Content::MissionSelection(selection) = &playback.content else {
+        panic!("title did not open campaign selection")
+    };
+    assert!(!selection.state.all_unlocked);
+    assert!(selection.state.available(0, &selection.resources.rules));
+    assert!((1..11).all(|mission| {
+        !selection
+            .state
+            .available(mission, &selection.resources.rules)
+    }));
     for _ in 0..15 {
         playback.step(0).unwrap();
     }
+    playback.action = Some(Action::MissionSelection(
+        super::super::super::selection::Edit::Scroll(true),
+    ));
+    playback.step(0).unwrap();
+    playback.action = Some(Action::MissionSelection(
+        super::super::super::selection::Edit::Hero(false),
+    ));
+    playback.step(0).unwrap();
+    let Content::MissionSelection(selection) = &playback.content else {
+        unreachable!()
+    };
+    assert_eq!((selection.state.hero, selection.state.mission), (1, 0));
     playback.action = Some(Action::Quit);
     playback.step(0).unwrap();
     next(&mut playback);

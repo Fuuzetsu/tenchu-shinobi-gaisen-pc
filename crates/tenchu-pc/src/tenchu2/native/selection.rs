@@ -24,7 +24,7 @@ pub struct Selection {
 }
 
 impl Selection {
-    pub fn load(disc: &Disc<impl ReadAt>, progress: Progress) -> Result<Self> {
+    pub fn load(disc: &Disc<impl ReadAt>, progress: Progress, all_unlocked: bool) -> Result<Self> {
         let resources = Resources::load(disc)?;
         let mut motions = [
             Motion::new(&resources.models[0].parts)?,
@@ -35,7 +35,7 @@ impl Selection {
         let music = Arc::new(Clip::load(disc, &resources.music)?);
         Ok(Self {
             resources,
-            state: State::new(progress, true),
+            state: State::new(progress, all_unlocked),
             motions,
             math: Math {
                 tables: tenchu_assets::tenchu2::math_tables(disc)?,

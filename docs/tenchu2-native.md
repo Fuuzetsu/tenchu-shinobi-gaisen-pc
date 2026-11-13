@@ -8,12 +8,14 @@ switching. This frontend is available on desktop and Android.
 
 The title uses the original disc artwork, menu sounds, fades and idle movies.
 Enter or the configured confirm button reveals its three choices; Up/Down
-selects. **Campaign** opens the original mission screen, whose Back action
-returns to the T2 title. **Settings** opens F1. The original **Mission editor**
-entry explains that T2's editor has not yet been ported. Switching titles does
-not change either campaign's saved progress. The PC enters the still title
-directly; after 30 seconds without input, the original opening and title movies
-play. Start/Circle skips each movie.
+selects. **Campaign** opens the original mission screen with saved unlocks:
+new campaigns start with Rikimaru's and Ayame's training, completing a mission
+opens the next, and finishing both heroes' campaigns unlocks Tatsumaru.
+Its Back action returns to the T2 title. **Settings** opens F1. The original
+**Mission editor** entry explains that T2's editor has not yet been ported.
+Switching titles does not change either campaign's saved progress. The PC enters
+the still title directly; after 30 seconds without input, the original opening
+and title movies play. Start/Circle skips each movie.
 
 Connect your Japanese disc through **F6 → Connect another disc…**, select
 **Tenchu 2 Japan**, an area and a sequence, then **Start mission**. JP selections
@@ -47,6 +49,10 @@ starts at the mission's opening scene. F1 can return to this screen during JP
 play; leaving equipment or results returns here when the mission began here.
 Saved ranks and supplies are retained; making missions available does not grant
 items or change your recorded results.
+This unrestricted shortcut is separate from the title's Campaign entry. Leaving
+equipment or results returns to the same mission menu and retains its unlock
+rules, including after F11/F12 or rewind. Quicksaves made before this distinction
+keep their unrestricted menu behavior.
 Until that hero's training is complete, Rikimaru and Ayame first play the original
 narrated prologue. Start/Circle, Enter or the on-screen button skips it.
 
@@ -579,6 +585,10 @@ armored costume and damage protection.
 At results, Circle continues, Start retries, and Cross leaves the mission. The
 original score/rank artwork and dimmed scene accompany mouse/touch buttons;
 Enter also continues. Results use the disc's menu sound bank.
+After the final results, the original ending movies and credits play in their
+authored order and return to the T2 title. Start + Select during chapter narration
+or a movie also returns there. Direct quick-launch previews retain their exit
+and completion controls.
 
 For development, the standalone preview is also available:
 
@@ -643,6 +653,7 @@ keep narration at the corresponding position. The original lesson text panels
 and floating diamond prompts are not yet drawn.
 The existing BizHawk observer/replay checker now compares bounded native JP
 training play, including recorded display skips. Separate controlled fixtures
-cover progression, failure and retry through all three campaigns. Neither is a
-complete recorded campaign playthrough; see [validation coverage](validation.md).
+cover progression, failure and retry through all three campaigns, including
+uninterrupted narration, story scenes, movies and credits. Neither is a complete
+recorded campaign playthrough; see [validation coverage](validation.md).
 EU assets remain supported without an EU-native AI runtime.

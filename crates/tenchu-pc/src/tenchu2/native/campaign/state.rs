@@ -17,7 +17,7 @@ pub(in crate::tenchu2::native) struct State<C> {
     action: Option<Action>,
     loadout: Option<[u8; 21]>,
     previous_buttons: u16,
-    from_menu: bool,
+    origin: Origin,
     pub(super) death: death::Hold,
     keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
@@ -44,7 +44,7 @@ impl Borrowed<'_> {
             action,
             loadout,
             previous_buttons,
-            from_menu,
+            origin,
             death,
             keep_all_active,
             circle_action,
@@ -68,7 +68,7 @@ impl Borrowed<'_> {
         out.value(action)?;
         out.value(loadout)?;
         out.value(previous_buttons)?;
-        out.value(from_menu)?;
+        out.value(origin)?;
         out.value(death)?;
         out.value(keep_all_active)?;
         out.value(circle_action)?;
@@ -92,7 +92,7 @@ impl<S: ReadAt> Playback<S> {
             previous_buttons,
             blank: _,
             save: _,
-            from_menu,
+            origin,
             death,
             keep_all_active,
             circle_action,
@@ -113,7 +113,7 @@ impl<S: ReadAt> Playback<S> {
             action: *action,
             loadout: *loadout,
             previous_buttons: *previous_buttons,
-            from_menu: *from_menu,
+            origin: *origin,
             death: death.clone(),
             keep_all_active: *keep_all_active,
             circle_action: *circle_action,
@@ -194,7 +194,7 @@ impl<S: ReadAt> Playback<S> {
             action,
             loadout,
             previous_buttons,
-            from_menu,
+            origin,
             death,
             keep_all_active,
             circle_action,
@@ -256,7 +256,7 @@ impl<S: ReadAt> Playback<S> {
         self.action = action;
         self.loadout = loadout;
         self.previous_buttons = previous_buttons;
-        self.from_menu = from_menu;
+        self.origin = origin;
         self.death = death;
         self.keep_all_active = keep_all_active;
         self.circle_action = circle_action;

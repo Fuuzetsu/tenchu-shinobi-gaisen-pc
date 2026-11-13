@@ -16,7 +16,7 @@ fn capture(path: &std::path::Path, canvas: &Canvas) {
 fn selection_portraits_remain_in_front_of_the_backdrop() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let mut selection = Selection::load(&disc, Default::default()).unwrap();
+    let mut selection = Selection::load(&disc, Default::default(), true).unwrap();
     let output = std::env::var_os("TENCHU2_SELECTION_REVIEW").map(std::path::PathBuf::from);
     if let Some(path) = &output {
         std::fs::create_dir_all(path).unwrap();
@@ -73,7 +73,7 @@ fn selection_portraits_remain_in_front_of_the_backdrop() {
 fn selection_portraits_gpu_review() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let mut selection = Selection::load(&disc, Default::default()).unwrap();
+    let mut selection = Selection::load(&disc, Default::default(), true).unwrap();
     let output = std::path::PathBuf::from(std::env::var_os("TENCHU2_SELECTION_REVIEW").unwrap());
     std::fs::create_dir_all(&output).unwrap();
     let instance = wgpu::Instance::new(&Default::default());

@@ -85,6 +85,24 @@ Campaign movies retain their existing three-frame tail cutoff. Native title
 integration checks cover disc import, save isolation, mission selection/back,
 the editor boundary, settings, movie skip edges and rendered control prompts.
 
+## Native T2 campaign return
+
+The JP `GAME.EXE` campaign dispatcher at `80062310` returns after its terminal
+sequence or cinematic quit. Its caller at `80066378` then cleans up and executes
+`\TENCHU2\MENU.EXE;1` at `80066388`–`80066394` (path at `80013368`). The menu
+entry calls `8010f87c`, which enters the title at `8010f9bc` and mission selection
+at `8010fa04`. The PC therefore returns menu-launched campaigns to the native
+title after endings/credits and Start+Select cancellation during narration or
+movies. Direct developer previews retain their existing host-exit behavior.
+
+Campaign selection uses the existing source-derived unlock rules and saved
+progress; F6 explicitly selects unrestricted access. The existing mission-menu,
+results/reward and campaign-dispatch oracles under
+`private/tenchu2-campaign-20261108` were rerun for this boundary. The Gaisen
+research, decomp and viewer repositories were consulted read-only; none supplies
+the T2 campaign frontend. No sibling code or game assets were imported. Audit
+logs and disassembly remain in `private/t2-campaign-audit-20261113`.
+
 ## Native T2 story effects
 
 The 2026-11-12 completion uses JP `EVENT.BIN` command dispatch `800d42b4`,

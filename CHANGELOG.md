@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Follow original mission and Tatsumaru unlock progression from the T2 title's
+  **Campaign** entry. F6's original mission-selection shortcut still exposes all
+  missions. Existing campaign progress and v0.32.0 quickstates remain compatible.
+
+- Return to the T2 title after a campaign's ending and credits, and when leaving
+  chapter narration or movies with Start + Select.
+
 ## 0.32.0 — 2026-11-12
 
 - Fix T2 blood flickering on floors and walls as the camera moves, including

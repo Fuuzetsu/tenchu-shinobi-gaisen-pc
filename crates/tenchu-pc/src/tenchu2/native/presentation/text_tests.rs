@@ -31,7 +31,8 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let output = std::path::PathBuf::from(std::env::var_os("TENCHU2_HUD_REVIEW").unwrap());
     std::fs::create_dir_all(&output).unwrap();
-    let mut selection = native::selection::Selection::load(&disc, Default::default()).unwrap();
+    let mut selection =
+        native::selection::Selection::load(&disc, Default::default(), true).unwrap();
     selection.state.fade = 0;
     let mut equipment = native::equipment::Selection::load(
         &disc,

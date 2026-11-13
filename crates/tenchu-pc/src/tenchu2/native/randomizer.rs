@@ -45,7 +45,7 @@ pub(super) struct Previous {
     pub content: Content,
     pub gaisen: Option<gaisen::Source>,
     pub loadout: Option<[u8; 21]>,
-    pub from_menu: bool,
+    pub origin: super::campaign::Origin,
     pub death: super::campaign::death::Hold,
     pub keep_all_active: bool,
     pub previous_buttons: u16,
@@ -413,7 +413,7 @@ impl<S: ReadAt> Playback<S> {
                 content: std::mem::replace(&mut self.content, Content::Complete),
                 gaisen: self.gaisen.take(),
                 loadout: self.loadout,
-                from_menu: self.from_menu,
+                origin: self.origin,
                 death: self.death.clone(),
                 keep_all_active: self.keep_all_active,
                 previous_buttons: self.previous_buttons,
@@ -425,7 +425,7 @@ impl<S: ReadAt> Playback<S> {
         self.run = campaign_run;
         self.gaisen = source;
         self.loadout = None;
-        self.from_menu = false;
+        self.origin = super::campaign::Origin::Quick;
         self.death.clear();
         self.action = None;
         self.previous_buttons = 0;
@@ -441,7 +441,7 @@ impl<S: ReadAt> Playback<S> {
             self.content = previous.content;
             self.gaisen = previous.gaisen;
             self.loadout = previous.loadout;
-            self.from_menu = previous.from_menu;
+            self.origin = previous.origin;
             self.death = previous.death;
             self.keep_all_active = previous.keep_all_active;
             self.action = previous.action;

@@ -50,6 +50,14 @@ pub enum Action {
     Title(tenchu_core::tenchu2::title::Choice),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(super) enum Origin {
+    // Keep the first two postcard tags compatible with the former from_menu bool.
+    Quick,
+    UnlockedMenu,
+    Campaign,
+}
+
 #[derive(Default)]
 pub struct Update {
     pub sounds: Vec<tenchu_assets::audio::voice::Sourced<Sound>>,
@@ -71,7 +79,7 @@ pub struct Playback<S> {
     pub(super) previous_buttons: u16,
     blank: Vram,
     save: Option<super::save::SaveFile>,
-    pub(super) from_menu: bool,
+    pub(super) origin: Origin,
     pub death: death::Hold,
     pub(super) keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
@@ -162,6 +170,7 @@ impl<S: ReadAt> Playback<S> {
 
     fn show_title(&mut self) -> Result<()> {
         self.content = Content::Title(Box::new(super::title::Title::load(&self.disc)?));
+        self.origin = Origin::Campaign;
         self.generation += 1;
         self.death.clear();
         Ok(())
@@ -196,7 +205,7 @@ impl<S: ReadAt> Playback<S> {
         self.action = None;
         self.loadout = None;
         self.previous_buttons = 0;
-        self.from_menu = false;
+        self.origin = Origin::Campaign;
         self.death.clear();
         Ok(())
     }
@@ -282,7 +291,7 @@ impl<S: ReadAt> Playback<S> {
             previous_buttons: 0,
             blank: Vram::default(),
             save,
-            from_menu: false,
+            origin: Origin::Quick,
             death: Default::default(),
             keep_all_active: false,
             circle_action: Default::default(),
@@ -295,11 +304,14 @@ impl<S: ReadAt> Playback<S> {
 
     fn select_mission(&mut self) -> Result<()> {
         self.death.clear();
-        self.from_menu = true;
+        if self.origin == Origin::Quick {
+            self.origin = Origin::UnlockedMenu;
+        }
         self.loadout = None;
         self.content = Content::MissionSelection(Box::new(super::selection::Selection::load(
             &self.disc,
             self.run.progress.clone(),
+            self.origin == Origin::UnlockedMenu,
         )?));
         self.generation += 1;
         Ok(())
@@ -429,6 +441,7 @@ impl<S: ReadAt> Playback<S> {
     fn arrive(&mut self, destination: Destination) -> Result<()> {
         match destination {
             Destination::Sequence(_) => self.load_current(),
+            Destination::Complete if self.origin != Origin::Quick => self.show_title(),
             Destination::Failed | Destination::Complete => {
                 self.death.clear();
                 self.content = if destination == Destination::Failed {
@@ -466,6 +479,7 @@ impl<S: ReadAt> Playback<S> {
         }
         let mut update = Update::default();
         let mut choose_mission = false;
+        let mut leave_campaign = false;
         let destination = match &mut self.content {
             Content::Title(title) => {
                 if matches!(action, Some(Action::Quit)) {
@@ -569,7 +583,7 @@ impl<S: ReadAt> Playback<S> {
                     if selection.state.outcome
                         == Some(tenchu_core::tenchu2::equipment::Outcome::Cancel)
                     {
-                        choose_mission = self.from_menu;
+                        choose_mission = self.origin != Origin::Quick;
                         update.quit = !choose_mission;
                         None
                     } else {
@@ -590,7 +604,7 @@ impl<S: ReadAt> Playback<S> {
                 use tenchu_core::tenchu2::introduction::{Outcome, Phase};
                 if intro.state.phase == Phase::Finished {
                     if intro.state.outcome == Outcome::Quit {
-                        update.quit = true;
+                        leave_campaign = true;
                         None
                     } else {
                         Some(self.run.advance(&self.campaign, false)?)
@@ -613,7 +627,7 @@ impl<S: ReadAt> Playback<S> {
             Content::Movie(movie) => {
                 if movie.finished {
                     if movie.quit {
-                        update.quit = true;
+                        leave_campaign = true;
                         None
                     } else {
                         Some(self.run.advance(&self.campaign, false)?)
@@ -709,7 +723,7 @@ impl<S: ReadAt> Playback<S> {
                             Action::Continue => Some(self.run.advance(&self.campaign, false)?),
                             Action::Retry => Some(self.run.retry(&self.campaign)?),
                             Action::Quit => {
-                                choose_mission = self.from_menu;
+                                choose_mission = self.origin != Origin::Quick;
                                 update.quit = !choose_mission;
                                 None
                             }
@@ -751,7 +765,7 @@ impl<S: ReadAt> Playback<S> {
             Content::Failed | Content::Complete
                 if matches!(action, Some(Action::Quit)) || pressed & 0x4000 != 0 =>
             {
-                choose_mission = self.from_menu;
+                choose_mission = self.origin != Origin::Quick;
                 update.quit = !choose_mission;
                 None
             }
@@ -762,7 +776,14 @@ impl<S: ReadAt> Playback<S> {
             }
             _ => None,
         };
-        if choose_mission {
+        if leave_campaign {
+            update.stop_music = true;
+            if self.origin == Origin::Quick {
+                update.quit = true;
+            } else {
+                self.show_title()?;
+            }
+        } else if choose_mission {
             update.stop_music = true;
             self.select_mission()?;
         } else if let Some(destination) = destination {
