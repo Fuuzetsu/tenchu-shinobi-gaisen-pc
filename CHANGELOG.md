@@ -5,7 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
-## 0.35.0 — 2026-11-13
+- Fix Android release compilation for Level Studio's bundled-asset support.
+  Individual asset import remains available on desktop and in the browser;
+  Android opens maps with their assets already bundled.
 
 - Reuse prepared characters, weapons, scenery and decoded artwork during Studio
   terrain edits. Rebuild source terrain/collision without reloading unchanged
@@ -63,6 +65,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - New Studio maps and imported retail challenges inherit your current graphics
   settings. Saved projects keep their environment; **Use my game settings** in
   Environment restores your preferences for the current project.
+
+## 0.35.0 — 2026-11-13
+
+- Not published: Android compilation failed before release publication. The
+  Studio update is included in the next release; the v0.35.0 tag is unchanged.
 
 ## 0.34.0 — 2026-11-13
 

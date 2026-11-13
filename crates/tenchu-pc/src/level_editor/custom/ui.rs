@@ -2,6 +2,7 @@ use super::*;
 use crate::level_editor::{Action, AssetGame, Command, Editor, Panel, Tool, project::Scenery};
 
 impl Editor {
+    #[cfg(not(target_os = "android"))]
     pub(crate) fn import_custom(&mut self, name: String, kind: Kind, bytes: Vec<u8>) -> Result<()> {
         if !self.open || !self.unlocked {
             return Err("Open and unlock a Studio project first".into());

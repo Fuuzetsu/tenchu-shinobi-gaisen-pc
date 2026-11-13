@@ -104,6 +104,7 @@ impl Payload {
 }
 
 impl Asset {
+    #[cfg(any(test, not(target_os = "android")))]
     pub fn import(name: String, kind: Kind, bytes: Vec<u8>) -> Result<Self> {
         let asset = Self {
             name,
