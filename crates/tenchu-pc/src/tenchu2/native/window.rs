@@ -734,6 +734,7 @@ impl Application {
                 &mut self.session.content,
                 [view.config.width, view.config.height],
             );
+            self.menu.preview_audio(&self.session, self.audio.as_ref());
             let (_, accelerated) = input.pacing(&self.session.content);
             view.drawing.presentation_audio(
                 &self.session.content,

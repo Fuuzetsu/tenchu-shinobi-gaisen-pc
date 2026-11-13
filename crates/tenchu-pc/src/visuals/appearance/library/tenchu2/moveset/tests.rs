@@ -2,6 +2,7 @@ use super::*;
 use tenchu_assets::game::GameAssets;
 use tenchu_core::input::*;
 
+mod attacks;
 mod turning;
 
 fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {

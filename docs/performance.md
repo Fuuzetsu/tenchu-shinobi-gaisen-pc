@@ -1,8 +1,8 @@
 # Performance measurements
 
-F1 → General → **Benchmarks…** runs four fixed scenes using the
+F1 → General → **Benchmarks…** runs five fixed scenes using the
 current graphics: village lanterns/characters, Mission 5's courtyard, a garden
-with vegetation/water, and a waterfall. Each scene advances the same 60 Hz
+with vegetation/water, Mission 4's checkpoint guards, and a waterfall. Each scene advances the same 60 Hz
 presentation timeline and original 30 Hz simulation. Loading and the first 60
 frames are excluded. Escape cancels. The current game, preferences and input
 recording are restored afterwards; temporary presentation particles are rebuilt.
@@ -55,7 +55,7 @@ resolution. This can take several minutes; close heavy background workloads.
   blood remain at Ultra settings. Artwork and **all** selected weather parameters
   are retained. It never adds black sight fog or switches to Original as a fallback.
 
-Every candidate runs all four scenes, with 60 warm-up and 240 measured frames
+Every candidate runs every scene, with 60 warm-up and 240 measured frames
 each. A candidate is kept if it passes the target or reduces the aggregate
 normalized time over budget by at least 3%; otherwise it is reverted. This
 compares measured costs on the current device, rather than assuming the same
@@ -135,6 +135,27 @@ It is useful for isolating rendering work on a virtual display. Its FPS includes
 serialized CPU/GPU work and **is not a prediction of interactive FPS**. Compare
 the phase timings on the same machine, backend, resolution, artwork and build.
 Do not run simultaneous benchmarks or compare a release build with a debug one.
+
+## Shinobi Gaisen Mission 4 report (2026-11-13)
+
+The catalog now includes a camera sweep around the first checkpoint patrol in
+**Cross the Checkpoint** (internal stage 9). On a GTX 1080 Ti / Vulkan at
+1280×720, an optimized build measured 420 CPU frames and 419 GPU frames after
+60 warm-up frames, with no other benchmark or compilation running:
+
+| Settings | CPU work p95 | Geometry/uploads p95 | GPU p95 |
+| --- | ---: | ---: | ---: |
+| Original, disc artwork | 0.31 ms | 0.15 ms | 0.08 ms |
+| Modern High, disc artwork | 1.02 ms | 0.31 ms | 1.37 ms |
+| Modern High, HD v3, all enemies active | 1.60 ms | 0.81 ms | 1.81 ms |
+
+The last run loaded 311 replacement textures and two replacement models for the
+checkpoint. The reported unstable frame rate was not reproduced on this path.
+This offscreen measurement excludes loading, window/compositor presentation and
+other routes through the mission; it cannot rule out a problem with a different
+location, settings or device. No gameplay or rendering behavior was changed on
+the strength of this report. Full JSON reports and settings are in
+`private/t2-sound-hitbox-review-20261113/performance` outside Git.
 
 ## T1 stages under T2 rules (2026-11-12)
 

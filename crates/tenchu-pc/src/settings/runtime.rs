@@ -127,6 +127,11 @@ impl Runtime {
     pub fn unavailable(self, item: Item) -> Option<&'static str> {
         use Item::*;
         use tenchu_core::effects::RumbleAction;
+        if self == Self::Gaisen && item == SoundTriggers {
+            return Some(
+                "Sound-trigger inspection is available during native Tenchu 2 Japan play.",
+            );
+        }
         if self == Self::Gaisen
             && matches!(
                 item,
@@ -204,10 +209,10 @@ impl Runtime {
             | Sharpen | FogTint | Haze | CutsceneSpeed | Pause | Step | Speed | FreeCamera
             | FlightSpeed | Fov | FocusPlayer | FocusActor | Actor | Overhead | SaveCamera
             | RestoreCamera | PhotoMode | Hitboxes | Labels | InspectActor | Xray | Trail
-            | Sight | SightStance | Patrols | Events | Collision | CollisionOnly | Target(_)
-            | PlayerPosition | CameraPosition | SnapFloor | Teleport | PickTeleport
-            | ClickTeleport | KillActor | ClickKill | Screenshot | ActorPosition
-            | PickActorPosition | MoveActor | RemoveActor | SpawnActor => None,
+            | Sight | SightStance | Patrols | Events | SoundTriggers | Collision
+            | CollisionOnly | Target(_) | PlayerPosition | CameraPosition | SnapFloor
+            | Teleport | PickTeleport | ClickTeleport | KillActor | ClickKill | Screenshot
+            | ActorPosition | PickActorPosition | MoveActor | RemoveActor | SpawnActor => None,
             CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,

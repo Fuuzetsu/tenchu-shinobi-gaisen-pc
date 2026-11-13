@@ -489,6 +489,24 @@ label explains the result of its next perception update. These queries do not
 advance AI or change the world. Free-camera clicks select actors. Both games share the
 [inspection and presentation boundaries](runtime-boundaries.md).
 
+**Sound triggers** shows the training signs' four entry regions, spatial lesson
+targets and scenery that emits sounds, such as doors and traps. Close F1 and
+click/tap a cyan marker to preview its narration or initial sound. This works
+with the normal, follow or free camera, including while paused. Turn the overlay
+off to stop a preview. Teleport and click-to-kill modes take priority; photo mode
+hides the markers. Previews do not enter a course, replenish items, advance a
+lesson or activate scenery. Narration previews temporarily mute campaign audio
+while keeping its normal playhead; scenery previews retain the game voices.
+
+The signs use a separate training lesson controller, so actor/event overlays
+do not describe their conditions. Entering a sign's region starts a course;
+later lessons wait for movement, specific actions, guard defeats or camera/item
+controls. **Lesson target** boxes show the spatial checks; they only advance
+when that lesson is current and the player is grounded. Labels identify the
+next narration, and active regions are brighter. Random stage ambience and
+action-dependent narration have no fixed trigger box. Sound inspection stays
+off in every graphics preset, including Modern High/Ultra, and in benchmark demos.
+
 **F1 → Teleport / actor → Kill selected actor** forces a living NPC's death,
 including bosses. **Click to kill**, also under Experiment, targets NPC body
 hitboxes in the normal, follow or free camera; close F1 before clicking/tapping.

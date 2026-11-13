@@ -270,7 +270,7 @@ impl Tuner {
     pub fn note(&self) -> String {
         let assessment = &self.best.as_ref().unwrap().assessment;
         let mut note = if assessment.passed {
-            "Validated all four scenes with measured timing headroom. Kept only adjustments that helped on this device.".to_owned()
+            "Validated every scene with measured timing headroom. Kept only adjustments that helped on this device.".to_owned()
         } else if assessment.presentation_limited {
             "CPU/GPU work fits the budget, but observed frames miss the target. Kept visual quality; check display refresh, compositor or browser pacing.".to_owned()
         } else {

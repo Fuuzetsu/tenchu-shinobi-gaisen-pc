@@ -7,6 +7,7 @@ use tenchu_core::{
 };
 
 mod sight;
+pub(super) mod sounds;
 mod surfaces;
 #[cfg(not(target_arch = "wasm32"))]
 pub(super) use surfaces::pick;
@@ -37,13 +38,22 @@ pub(super) fn overlay(session: &Session, debug: &Debug, matrix: Mat4, aspect: f3
         return drawing.finish();
     }
     debug.draw_trail(&mut drawing);
-    if debug.collision || debug.collision_only || debug.events {
+    if debug.collision || debug.collision_only || debug.events || debug.sound_triggers {
         for (node, corners) in surfaces::surfaces(&session.world.terrain) {
             let trigger = node.attributes & 0xf00 == 0x400;
-            if debug.collision || debug.collision_only || trigger {
+            let sound = trigger
+                && debug.sound_triggers
+                && session
+                    .world
+                    .environment
+                    .triggers
+                    .get(usize::from(node.attributes & 255))
+                    .is_some_and(|trigger| sounds::effect(trigger.kind).is_some());
+            if debug.collision || debug.collision_only || (trigger && debug.events) || sound {
                 let color = match node.attributes & 0xf00 {
                     0x100 => [0.74, 0.35, 1.0],
                     0x200 | 0x300 => [0.12, 0.57, 1.0],
+                    0x400 if sound => [0.15, 0.85, 1.0],
                     0x400 => [1.0, 0.3, 0.15],
                     _ => [0.23, 0.84, 0.65],
                 };
@@ -85,6 +95,9 @@ pub(super) fn overlay(session: &Session, debug: &Debug, matrix: Mat4, aspect: f3
     }
     if debug.events {
         events(session, &mut drawing);
+    }
+    if debug.sound_triggers {
+        sounds::draw(session, &mut drawing);
     }
     if debug.sight {
         sight::draw(session, debug, &mut drawing);

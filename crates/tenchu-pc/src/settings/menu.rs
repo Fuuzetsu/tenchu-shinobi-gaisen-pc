@@ -201,6 +201,7 @@ pub enum Item {
     SurfaceStrength,
     Antialiasing,
     Hitboxes,
+    SoundTriggers,
     Sight,
     SightStance,
     Collision,
@@ -1966,6 +1967,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Event regions",
                 on(d.events),
                 "Spatial ESD records, including inactive.",
+            ),
+            (
+                Item::SoundTriggers,
+                "Sound triggers",
+                on(d.sound_triggers),
+                "T2 instruction-sign regions, lesson targets and scenery sounds. Close F1 and click/tap a marker to preview its sound, also while paused or in free camera. Does not advance lessons or activate traps.",
             ),
             (
                 Item::Labels,

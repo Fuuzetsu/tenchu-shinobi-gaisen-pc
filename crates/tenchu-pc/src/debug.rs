@@ -40,6 +40,7 @@ pub struct Debug {
     pub collision_only: bool,
     pub patrols: bool,
     pub events: bool,
+    pub sound_triggers: bool,
     pub labels: bool,
     pub xray: bool,
     pub show_trail: bool,
@@ -95,6 +96,7 @@ impl Default for Debug {
             collision_only: false,
             patrols: false,
             events: false,
+            sound_triggers: false,
             labels: false,
             xray: false,
             show_trail: false,
@@ -151,6 +153,7 @@ impl Debug {
             || self.collision_only
             || self.patrols
             || self.events
+            || self.sound_triggers
             || self.labels
             || self.show_trail
             || self.inspect_actor

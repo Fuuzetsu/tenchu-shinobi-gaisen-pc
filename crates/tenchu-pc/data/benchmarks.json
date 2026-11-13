@@ -59,6 +59,18 @@
     }
   },
   {
+    "id": "checkpoint-guards",
+    "title": "Mission 4: checkpoint guards",
+    "description": "Checkpoint architecture, guard animation and a moving camera near the first patrol.",
+    "seconds": 8,
+    "mission": 9,
+    "character": 0,
+    "preset": 0,
+    "feature": "performance",
+    "shot": "guard",
+    "hud": true
+  },
+  {
     "id": "waterfall",
     "title": "Waterfall: water and spray",
     "description": "Waterfall geometry, surface shading and transparent spray.",

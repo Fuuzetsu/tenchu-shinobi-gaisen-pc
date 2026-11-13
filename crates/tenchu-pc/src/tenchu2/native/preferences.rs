@@ -361,6 +361,20 @@ impl Menu {
             self.panel.reveal_row = false;
         }
     }
+
+    pub fn preview_audio(
+        &mut self,
+        playback: &super::campaign::Playback<impl tenchu_assets::ReadAt>,
+        output: Option<&crate::audio::output::Output>,
+    ) {
+        if let Err(error) = self
+            .tools
+            .preview_audio(&playback.disc, &playback.content, output)
+        {
+            self.panel.notice = error.clone();
+            self.tools.debug.notice = Some((error, web_time::Instant::now()));
+        }
+    }
     pub fn cutscene_controls(&mut self, ctx: &egui::Context, cinematic: bool) {
         if !cinematic {
             self.fast_forward = false;

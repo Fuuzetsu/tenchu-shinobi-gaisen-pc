@@ -49,6 +49,25 @@ and the v0.32.0 quickstate menu-flag encoding. Logs remain outside Git in
 `private/t2-campaign-audit-20261113`; source provenance is in
 [T2 reuse notes](tenchu2-reuse.md#native-t2-campaign-return).
 
+The imported-moveset attack-window check compares a basic swing for all three
+T2 heroes on both original T1 bodies with native JP T2. The active updates,
+motion frames, local contact offsets and sizes match exactly: Rikimaru has
+three active ticks (100 ms), Ayame four and Tatsumaru five. The existing
+guard-contact fixture also confirms damage and cleanup after switching movesets.
+Both hitbox overlays read the active collision slots. This does not establish
+identical world-space reach for differently proportioned bodies, all combos or
+every blocked/clashing contact; the reported shortened basic swing was not
+reproduced, so its gameplay timing has not been changed.
+
+Sound-overlay checks compare region boundaries with the lesson controller's
+quantized position checks, including negative and zero coordinates. Click
+previews preserve the complete serialized world, and cover pause, free camera,
+normal camera, menu consumption and photo-mode suppression. Mixer checks retain
+the campaign audio playhead and game effect voices through preview, pause,
+cancellation and scene changes. GPU captures exercise overlay visibility and
+photo-mode suppression. Evidence remains under
+`private/t2-sound-hitbox-review-20261113`.
+
 T2 scenery-sandbox guard checks (#98/#99) run separately on Europe and Japan.
 An authored route-less slot from sequence 4 is placed on a flat arena to compare
 640 updates with the unseen player on opposite sides. Sword, spear and archer

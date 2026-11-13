@@ -17,11 +17,52 @@ struct Music {
     repeat: bool,
 }
 
+impl Music {
+    fn new(clip: Arc<Clip>, rate: u32, repeat: bool) -> Option<Self> {
+        (!clip.frames.is_empty()).then(|| Self {
+            step: f64::from(clip.rate) / f64::from(rate),
+            clip,
+            position: 0.0,
+            repeat,
+        })
+    }
+
+    fn frame(&mut self) -> Option<[f32; 2]> {
+        let length = self.clip.frames.len();
+        if self.position >= length as f64 && !self.repeat {
+            return None;
+        }
+        self.position %= length as f64;
+        let index = self.position as usize;
+        let next = if index + 1 < length {
+            index + 1
+        } else if self.repeat {
+            0
+        } else {
+            index
+        };
+        let fraction = self.position.fract() as f32;
+        let frame = std::array::from_fn(|channel| {
+            let a = f32::from(self.clip.frames[index][channel]);
+            let b = f32::from(self.clip.frames[next][channel]);
+            (a + (b - a) * fraction) / 32768.0
+        });
+        self.position += self.step;
+        Some(frame)
+    }
+}
+
+enum Preview {
+    Music(Music),
+    Effect(Voice),
+}
+
 pub struct Mixer {
     bank: Option<Arc<Bank>>,
     voices: [Option<Voice>; 24],
     next_voice: usize,
     music: Option<Music>,
+    preview: Option<Preview>,
     thunder: [Option<thunder::Thunder>; 2],
     ambience: Option<ambience::Bed>,
     soundscape: Option<tenchu2::Soundscape>,
@@ -44,6 +85,7 @@ impl Mixer {
             voices: std::array::from_fn(|_| None),
             next_voice: 0,
             music: None,
+            preview: None,
             thunder: [None, None],
             ambience: None,
             soundscape: None,
@@ -66,6 +108,7 @@ impl Mixer {
 
     pub fn clear_effects(&mut self) {
         self.voices = std::array::from_fn(|_| None);
+        self.preview = None;
         self.thunder = [None, None];
         self.ambience = None;
         self.soundscape = None;
@@ -153,14 +196,21 @@ impl Mixer {
     }
 
     pub fn music(&mut self, clip: Option<Arc<Clip>>, repeat: bool) {
-        self.music = clip
-            .filter(|clip| !clip.frames.is_empty())
-            .map(|clip| Music {
-                step: f64::from(clip.rate) / f64::from(self.rate),
-                clip,
-                position: 0.0,
-                repeat,
-            });
+        self.music = clip.and_then(|clip| Music::new(clip, self.rate, repeat));
+    }
+
+    pub fn preview(&mut self, clip: Option<Arc<Clip>>) {
+        self.preview = clip
+            .and_then(|clip| Music::new(clip, self.rate, false))
+            .map(Preview::Music);
+    }
+
+    pub fn preview_effect(&mut self, id: i16) {
+        self.preview = self
+            .bank
+            .as_ref()
+            .and_then(|bank| Voice::new(bank, id, 127, 64, 36, self.rate, true))
+            .map(Preview::Effect);
     }
 
     pub fn seek_music(&mut self, seconds: f64) {
@@ -227,29 +277,38 @@ impl Mixer {
             }
         }
         output = output.map(|v| v * self.effects_volume);
+        let (preview, mute_music) = match &mut self.preview {
+            Some(Preview::Music(music)) => (
+                music.frame().map(|f| f.map(|s| s * self.music_volume)),
+                true,
+            ),
+            Some(Preview::Effect(voice)) => (
+                voice
+                    .frame(ticks)
+                    .map(|f| f.map(|s| s * self.effects_volume)),
+                false,
+            ),
+            None => (None, false),
+        };
+        if preview.is_none() {
+            self.preview = None;
+        }
         if (!self.paused || self.music_while_paused)
             && let Some(music) = &mut self.music
         {
-            let length = music.clip.frames.len();
-            if music.position < length as f64 || music.repeat {
-                music.position %= length as f64;
-                let index = music.position as usize;
-                let next = if index + 1 < length {
-                    index + 1
-                } else if music.repeat {
-                    0
-                } else {
-                    index
-                };
-                let fraction = music.position.fract() as f32;
-                for (channel, out) in output.iter_mut().enumerate() {
-                    let a = f32::from(music.clip.frames[index][channel]);
-                    let b = f32::from(music.clip.frames[next][channel]);
-                    *out += (a + (b - a) * fraction) / 32768.0 * self.music_volume;
+            if let Some(frame) = music.frame() {
+                if !mute_music || preview.is_none() {
+                    for (out, sample) in output.iter_mut().zip(frame) {
+                        *out += sample * self.music_volume;
+                    }
                 }
-                music.position += music.step;
             } else {
                 self.music = None;
+            }
+        }
+        if let Some(frame) = preview {
+            for (out, sample) in output.iter_mut().zip(frame) {
+                *out += sample;
             }
         }
         if !self.stereo {

@@ -1,4 +1,5 @@
 use super::campaign::Content;
+use super::inspection::sounds::{self, Cue};
 use crate::{
     controls::Controls,
     debug::{
@@ -26,6 +27,7 @@ pub struct Tools {
     click: Option<(f64, f64)>,
     teleport: Option<(tenchu_core::math::Position, bool)>,
     kill: Option<usize>,
+    preview: Option<Cue>,
     actor_edit: Option<actors::Edit>,
     pub open_actor_editor: bool,
     edits: Vec<experiment::Edit>,
@@ -70,6 +72,7 @@ impl Tools {
                 ..Self::default()
             };
             self.debug.actors_edited = actors_edited;
+            self.preview = Some(Cue::Stop);
             if let Some(player) = self.scene.actor(self.scene.player) {
                 self.debug.target = player.position.to_array().map(|v| v as i32).into();
             }
@@ -143,6 +146,7 @@ impl Tools {
             self.click = None;
             self.teleport = None;
             self.kill = None;
+            self.preview = None;
             self.actor_edit = None;
             self.open_actor_editor = false;
             self.edits.clear();
@@ -402,7 +406,8 @@ impl Tools {
                     && (self.debug.teleport_armed
                         || self.debug.pick_actor_position
                         || self.debug.click_teleport
-                        || self.debug.click_kill) =>
+                        || self.debug.click_kill
+                        || self.debug.sound_triggers) =>
             {
                 self.click = Some((touch.location.x, touch.location.y));
             }
@@ -489,6 +494,10 @@ impl Tools {
             _ => {}
         }
         if self.debug.change_tool(&self.scene, item, delta)? {
+            if item == Item::SoundTriggers && !self.debug.sound_triggers {
+                self.preview = Some(Cue::Stop);
+                self.click = None;
+            }
             Ok(())
         } else {
             Err("This control is not connected to native Tenchu 2 JP yet.".into())
@@ -509,6 +518,10 @@ impl Tools {
             return Ok(());
         }
         if self.debug.reset_tool(&self.scene, item)? {
+            if item == Item::SoundTriggers {
+                self.preview = Some(Cue::Stop);
+                self.click = None;
+            }
             Ok(())
         } else {
             Err("This action has no default value.".into())
@@ -587,6 +600,15 @@ impl Tools {
                 } else {
                     self.teleport = Some((point, false));
                 }
+            } else if self.debug.sound_triggers
+                && !self.debug.click_kill
+                && let Some(marker) = sounds::pick(session, origin, direction)
+            {
+                self.preview = Some(marker.cue);
+                self.debug.notice = Some((
+                    format!("Preview: {}", marker.label),
+                    web_time::Instant::now(),
+                ));
             } else if self.debug.camera.is_some() || self.debug.click_kill {
                 use tenchu_core::tenchu2::collision::{BODY, DISABLED, REMOVED};
                 let picked = session
@@ -650,7 +672,63 @@ impl Tools {
         Ok(())
     }
 
+    pub(super) fn preview_audio(
+        &mut self,
+        disc: &tenchu_assets::disc::Disc<impl tenchu_assets::ReadAt>,
+        content: &Content,
+        output: Option<&crate::audio::output::Output>,
+    ) -> Result<()> {
+        use crate::audio::output::Command;
+        let Some(cue) = self.preview.take() else {
+            return Ok(());
+        };
+        let Some(output) = output else {
+            return if cue == Cue::Stop {
+                Ok(())
+            } else {
+                Err("Audio output is unavailable".into())
+            };
+        };
+        let command = match cue {
+            Cue::Stop => Command::Preview(None),
+            Cue::Effect(id) => Command::PreviewEffect(id),
+            Cue::Narration(id) => {
+                let Content::Gameplay(session) = content else {
+                    return Ok(());
+                };
+                let track = session
+                    .world
+                    .tutorial
+                    .as_ref()
+                    .and_then(|training| training.data.tracks.get(&id))
+                    .ok_or("This scene has no training narration for that marker")?;
+                Command::Preview(Some(std::sync::Arc::new(
+                    tenchu_assets::audio::stream::Clip::load(disc, track)?,
+                )))
+            }
+        };
+        output.send(command);
+        Ok(())
+    }
+
     pub fn hint(&self, ctx: &egui::Context, menu_open: bool) {
+        if self.debug.sound_triggers
+            && !menu_open
+            && !self.debug.photo_mode
+            && !self.debug.click_kill
+            && !self.debug.click_teleport
+            && !self.debug.teleport_armed
+            && !self.debug.pick_actor_position
+        {
+            crate::debug::overlay::paint_labels(
+                ctx,
+                &[crate::debug::Label(
+                    crate::debug::Anchor::BottomLeft([12.0, 96.0]),
+                    "SOUND · click/tap a cyan marker to preview · disable overlay to stop".into(),
+                    [0.15, 0.85, 1.0],
+                )],
+            );
+        }
         if self.debug.click_kill && !menu_open && !self.debug.photo_mode {
             crate::debug::overlay::paint_labels(
                 ctx,

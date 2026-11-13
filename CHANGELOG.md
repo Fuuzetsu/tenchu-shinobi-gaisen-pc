@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **F1 → Overlays → Sound triggers** for native T2: instruction-sign entry
+  regions, spatial lesson targets and sound-producing scenery. Click or tap a
+  cyan marker to preview its audio, including while paused or in free camera,
+  without advancing lessons or activating traps.
+
+- Fix in-game update/download and other web links failing to open the browser.
+
+- Include **Cross the Checkpoint** (Shinobi Gaisen Mission 4) in the built-in
+  performance benchmarks and automatic graphics tuning.
+
 ## 0.32.1 — 2026-11-13
 
 - Follow original mission and Tatsumaru unlock progression from the T2 title's

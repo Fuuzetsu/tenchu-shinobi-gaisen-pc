@@ -1,6 +1,8 @@
 use super::*;
 use winit::keyboard::KeyCode;
 
+mod sounds;
+
 #[test]
 #[ignore = "requires Japanese TENCHU2_DISC; native actor edits retain IDs, collision, patrol reset and retry restoration"]
 fn actor_edits_move_remove_and_pick_without_advancing_play() {

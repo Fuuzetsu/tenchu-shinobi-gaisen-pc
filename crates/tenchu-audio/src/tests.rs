@@ -259,6 +259,93 @@ fn pause_chimes_finish_without_advancing_game_sounds_or_music() {
 }
 
 #[test]
+fn sound_previews_keep_the_campaign_playhead_and_work_during_pause() {
+    for rate in [44100, 48000] {
+        for (paused, music_while_paused) in [(false, false), (true, false), (true, true)] {
+            let setup = || {
+                let mut mixer = Mixer::new(rate);
+                mixer.music(
+                    Some(Arc::new(Clip {
+                        rate: 37800,
+                        frames: (0..351).map(|i| [i * 31 - 1200, 4800 - i * 47]).collect(),
+                    })),
+                    true,
+                );
+                mixer.render(&mut [[0.0; 2]; 37]);
+                mixer.paused = paused;
+                mixer.music_while_paused = music_while_paused;
+                mixer
+            };
+            let clip = Arc::new(Clip {
+                rate: 37800,
+                frames: vec![[8000, -4000]; 239],
+            });
+            let mut actual = setup();
+            let mut expected = setup();
+            actual.preview(Some(clip.clone()));
+            let preview_frames = (239_u64 * u64::from(rate)).div_ceil(37800);
+            for tick in 0..500 {
+                let campaign = expected.frame();
+                let frame = actual.frame();
+                assert_eq!(
+                    frame,
+                    if tick < preview_frames {
+                        [8000.0, -4000.0].map(|s| s / 65536.0)
+                    } else {
+                        campaign
+                    }
+                );
+            }
+            actual.preview(Some(clip));
+            for _ in 0..23 {
+                actual.frame();
+                expected.frame();
+            }
+            actual.preview(None);
+            actual.paused = false;
+            expected.paused = false;
+            for _ in 0..500 {
+                assert_eq!(actual.frame(), expected.frame());
+            }
+            actual.preview(Some(Arc::new(Clip {
+                rate,
+                frames: vec![[1234; 2]; 100],
+            })));
+            actual.clear_effects();
+            assert_eq!(
+                actual.frame(),
+                expected.frame(),
+                "scene change must stop a preview"
+            );
+        }
+    }
+}
+
+#[test]
+fn scenery_previews_stop_without_consuming_game_effect_voices() {
+    let setup = || {
+        let mut mixer = Mixer::new(48000);
+        mixer.set_bank(bank(Some(14)));
+        mixer.play(0, 126, 0);
+        mixer.render(&mut [[0.0; 2]; 37]);
+        mixer
+    };
+    let mut actual = setup();
+    let mut expected = setup();
+    actual.paused = true;
+    actual.preview_effect(0);
+    let mut preview = [[0.0; 2]; 512];
+    actual.render(&mut preview);
+    assert!(preview.iter().flatten().any(|v| v.abs() > 0.1));
+    actual.preview(None);
+    assert_eq!(actual.frame(), [0.0; 2]);
+    actual.paused = false;
+    for _ in 0..1000 {
+        assert_eq!(actual.frame(), expected.frame());
+    }
+}
+
+#[test]
 fn optional_pause_music_keeps_playing_while_effects_stay_frozen() {
     let mut mixer = Mixer::new(48000);
     mixer.set_bank(bank(Some(14)));

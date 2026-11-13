@@ -6,6 +6,83 @@ mod heroes;
 mod indexed;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; sound marker geometry, labels and photo-mode suppression"]
+fn training_sound_overlay_is_visible_without_changing_the_scene() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MODEL_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let session = super::super::Session::load(&disc, 1, 1).unwrap();
+    let marker = super::super::inspection::sounds::markers(&session).remove(0);
+    let camera = crate::demo::framing::Path {
+        eye: (marker.position + Vec3::new(1000.0, -2300.0, -6000.0)).to_array(),
+        target: marker.position.to_array(),
+        end_eye: None,
+        end_target: None,
+        follow_player: false,
+        fov: 55.0,
+    }
+    .sample(0.0);
+    let graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        ..Default::default()
+    };
+    let before = postcard::to_allocvec(&session.world).unwrap();
+    let mut captures = Vec::new();
+    for (name, sound_triggers, photo_mode) in [
+        ("off", false, false),
+        ("on", true, false),
+        ("photo", true, true),
+    ] {
+        let path = output.join(format!("training-sounds-{name}.png"));
+        capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+            let mut drawing = Drawing::new(&session, &graphics, renderer)?;
+            drawing.camera = Some(camera);
+            let mut debug = crate::debug::Debug::default();
+            debug.sound_triggers = sound_triggers;
+            debug.photo_mode = photo_mode;
+            debug.xray = true;
+            drawing.update(&session, renderer, Some(&debug))?;
+            assert_eq!(
+                drawing
+                    .labels
+                    .iter()
+                    .any(|label| label.1.starts_with("Sign ")),
+                sound_triggers && !photo_mode
+            );
+            let texts = drawing
+                .labels
+                .into_iter()
+                .filter_map(|crate::debug::Label(anchor, text, color)| {
+                    let crate::debug::Anchor::Projected([x, y]) = anchor else {
+                        return None;
+                    };
+                    Some(crate::fonts::Text {
+                        position: egui::pos2((x - 0.5) * (240.0 * 16.0 / 9.0), (y - 0.5) * 240.0),
+                        text,
+                        color: crate::fonts::color(color),
+                        size: 5.0,
+                        width: 200.0,
+                        centered: false,
+                    })
+                })
+                .collect();
+            Ok((drawing.scene, camera.source_view(), texts))
+        })
+        .unwrap();
+        captures.push(
+            crate::visuals::pack::decode_png(&std::fs::read(path).unwrap())
+                .unwrap()
+                .rgba,
+        );
+    }
+    assert_ne!(captures[0], captures[1]);
+    assert_eq!(captures[0], captures[2]);
+    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; checks opaque night scenery independently of particles"]
 fn native_night_scenery_does_not_depend_on_the_effect_pass() {
     let disc =

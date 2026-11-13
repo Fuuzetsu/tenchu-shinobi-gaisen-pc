@@ -678,6 +678,10 @@ impl Application {
             native
                 .menu
                 .apply_tools(&mut native.playback.content, view.size);
+            native.menu.preview_audio(
+                &native.playback,
+                self.audio.as_ref().map(|audio| audio.output()),
+            );
             leave |= actions.leave;
             step |= actions.step;
             if actions.select_mission {

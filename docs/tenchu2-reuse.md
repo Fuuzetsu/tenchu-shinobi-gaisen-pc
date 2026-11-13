@@ -85,6 +85,17 @@ Campaign movies retain their existing three-frame tail cutoff. Native title
 integration checks cover disc import, save isolation, mission selection/back,
 the editor boundary, settings, movie skip edges and rendered control prompts.
 
+## Training sound inspection
+
+The overlay reads the existing JP `DATAMNG.BIN` lesson table at `800d8d68`,
+course starts at `800d8f18` and course bounds at `800d8f24`, used by handler
+`800d202c`. Entry and reach boxes preserve its division by 1000 toward zero,
+strict horizontal radius and exact vertical cell. Nonspatial action checks
+remain in the lesson controller. The narration comes from the existing
+`NARAT_J.XA` track parser; scenery markers use the native environment trigger
+kinds and their sound IDs. Preview mixing and picking are PC presentation only.
+No core behavior or sibling-repository code was changed for this overlay.
+
 ## Native T2 campaign return
 
 The JP `GAME.EXE` campaign dispatcher at `80062310` returns after its terminal

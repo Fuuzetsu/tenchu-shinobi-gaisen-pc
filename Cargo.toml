@@ -18,7 +18,7 @@ wgpu = "24.0.5"
 winit = { version = "0.30.12", features = ["serde"] }
 egui = "=0.31.1"
 egui-wgpu = { version = "=0.31.1", default-features = false }
-egui-winit = { version = "=0.31.1", default-features = false }
+egui-winit = { version = "=0.31.1", default-features = false, features = ["links"] }
 glam = { version = "0.30", features = ["serde"] }
 pollster = "0.4"
 bytemuck = { version = "1", features = ["derive"] }

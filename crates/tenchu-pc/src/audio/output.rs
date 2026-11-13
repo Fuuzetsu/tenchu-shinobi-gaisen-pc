@@ -22,6 +22,8 @@ pub enum Command {
     Tenchu2Effect(tenchu_assets::audio::voice::Sourced<tenchu_core::tenchu2::audio::Sound>),
     UiEffect(i16),
     Music(Option<Arc<Clip>>, bool),
+    Preview(Option<Arc<Clip>>),
+    PreviewEffect(i16),
     SeekMusic(f64),
     Clear,
     Pause {
@@ -161,6 +163,8 @@ impl Playback {
                 }
                 Command::UiEffect(id) => self.mixer.play_ui(id, 127, 64),
                 Command::Music(clip, repeat) => self.mixer.music(clip, repeat),
+                Command::Preview(clip) => self.mixer.preview(clip),
+                Command::PreviewEffect(id) => self.mixer.preview_effect(id),
                 Command::SeekMusic(seconds) => self.mixer.seek_music(seconds),
                 Command::Clear => self.mixer.clear_effects(),
                 Command::Pause {
