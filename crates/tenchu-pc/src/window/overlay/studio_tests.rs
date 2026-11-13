@@ -103,6 +103,7 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
             .position(|part| !part.geometry.is_empty())
             .unwrap();
         app.studio.project.scenery.push(Scenery {
+            custom: None,
             name: format!("{game:?} scenery"),
             game,
             stage,
@@ -293,6 +294,88 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
         app.settings.graphics.weather.mode,
         settings::WeatherMode::Rainstorm
     );
+    app.studio_action(Command::Return);
+    let (assets, model, sound) = crate::level_editor::custom::tests::sample();
+    app.studio.project.assets = assets;
+    app.studio.project.scenery.push(Scenery {
+        custom: Some(model),
+        name: "Imported banner".into(),
+        game: AssetGame::Tenchu,
+        stage: 0,
+        part: 0,
+        position: [33_000, 0, -33_000],
+        yaw: 0,
+    });
+    app.studio.project.events.push(Event {
+        cues: vec![
+            Cue {
+                delay: 0,
+                action: CueAction::CustomMusic {
+                    asset: sound.clone(),
+                },
+            },
+            Cue {
+                delay: 1,
+                action: CueAction::CustomSound {
+                    asset: sound,
+                    volume: 100,
+                    pan: 32,
+                },
+            },
+        ],
+        ..Default::default()
+    });
+    let exported = app.studio.project.encode().unwrap();
+    app.studio.import(&exported, &app.assets).unwrap();
+    app.studio
+        .camera
+        .focus(glam::vec3(33_000.0, -1000.0, -33_000.0), false);
+    for artwork in [false, true] {
+        app.studio.project.graphics.asset_pack = artwork;
+        app.studio.project.graphics.weather.mode = settings::WeatherMode::Clear;
+        app.studio_action(Command::Rebuild);
+        let view = app.view.as_mut().unwrap();
+        let part = view.studio_scenery.last().unwrap().part;
+        let geometry = &app.campaign.game.mission.objects[part].geometry;
+        let mut count = 0;
+        assert!(
+            view.models
+                .visit(geometry, Default::default(), true, |triangle| {
+                    count += 1;
+                    assert!(
+                        triangle
+                            .iter()
+                            .all(|v| v.flags & crate::render_mesh::TEXTURED != 0)
+                    );
+                    assert!(triangle.iter().any(|v| v.position[1] == -2000.0));
+                })
+        );
+        assert_eq!(count, 1);
+        for _ in 0..3 {
+            view.overlay.custom(&view.window, &view.renderer, |ctx| {
+                ctx.input_mut(|input| {
+                    input.modifiers.alt = true;
+                    input.events.push(egui::Event::Key {
+                        key: egui::Key::Num8,
+                        physical_key: None,
+                        pressed: true,
+                        repeat: false,
+                        modifiers: egui::Modifiers::ALT,
+                    });
+                });
+                app.studio.show(ctx, &app.assets);
+            });
+        }
+        view.capture(
+            &app.campaign.game,
+            &app.debug,
+            &output.join(format!("custom-assets-artwork-{artwork}.png")),
+        )
+        .unwrap();
+    }
+    app.studio_action(Command::Play);
+    assert!(app.studio.testing, "{}", app.studio.notice);
+    app.game_tick(0);
     app.studio_action(Command::Return);
     app.studio_action(Command::Close);
     assert!(app.studio_previous.is_none(), "{}", app.studio.notice);

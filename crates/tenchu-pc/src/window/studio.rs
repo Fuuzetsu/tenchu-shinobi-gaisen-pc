@@ -360,6 +360,7 @@ impl Application {
                         || previous.character != current.character
                         || previous.actors != current.actors
                         || previous.scenery != current.scenery
+                        || previous.assets != current.assets
                 });
             self.studio.preview_revision = self.studio.revision;
             if scene_changed {

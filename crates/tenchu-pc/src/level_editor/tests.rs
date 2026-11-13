@@ -67,9 +67,9 @@ fn project_roundtrip_preserves_retail_and_extensions_and_rejects_dangling_refere
     p.events.clear();
     p.remove_actor(2).unwrap();
     assert!(p.actors.is_empty());
-    p.version = 2;
+    p.version = 999;
     assert!(p.encode().is_err());
-    p.version = 1;
+    p.version = 2;
     p.events.push(Event {
         trigger: Trigger::Enter {
             min: [10, 0, 0],
@@ -367,6 +367,7 @@ fn blocked_stamp_paste_is_atomic_and_success_uses_original_patrol_rules() {
 fn scenery_grounding_uses_source_surface_height_and_keeps_misses_unchanged() {
     let mut editor = Editor::new(PathBuf::new());
     editor.project.scenery.push(project::Scenery {
+        custom: None,
         name: "Test prop".into(),
         game: AssetGame::Tenchu,
         stage: 0,

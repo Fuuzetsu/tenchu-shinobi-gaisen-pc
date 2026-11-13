@@ -6,6 +6,23 @@
 }:
 let
   inherit (pkgs) lib;
+  rustSources =
+    map
+      (
+        crate:
+        crate
+        // {
+          archive = "rust/${crate.name}-${crate.version}.crate";
+          src = pkgs.fetchurl {
+            url = "https://static.crates.io/crates/${crate.name}/${crate.name}-${crate.version}.crate";
+            sha256 = crate.checksum;
+          };
+        }
+      )
+      (
+        builtins.filter (crate: lib.hasPrefix "symphonia" crate.name)
+          (builtins.fromTOML (builtins.readFile ../Cargo.lock)).package
+      );
   # These packages supply copyleft library binaries in the portable Linux bundle.
   # Package-wide licenses also cover tools we do not distribute (FLAC, MinGW).
   copyleftLibraries =
@@ -98,6 +115,11 @@ let
   sourceManifest = pkgs.writeText "source-packages.json" (
     builtins.toJSON {
       nixpkgsRevision = nixpkgsSource.rev;
+      rust_components = map (crate: {
+        inherit (crate) name version checksum;
+        license = "MPL-2.0";
+        source = crate.archive;
+      }) rustSources;
       components = map (p: {
         inherit (p) name;
         source = sourceArchive p;
@@ -147,7 +169,10 @@ in
     '';
   };
   sources = pkgs.runCommand "tenchu-dependency-sources" { } ''
-    mkdir -p "$out/upstream" "$out/patches" "$out/recipes"
+    mkdir -p "$out/upstream" "$out/patches" "$out/recipes" "$out/rust"
+    ${lib.concatMapStringsSep "\n" (crate: ''
+      cp ${crate.src} "$out/${crate.archive}"
+    '') rustSources}
     ${lib.concatMapStringsSep "\n" (
       group:
       let

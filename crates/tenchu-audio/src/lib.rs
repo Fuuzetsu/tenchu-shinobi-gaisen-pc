@@ -55,6 +55,20 @@ impl Music {
 enum Preview {
     Music(Music),
     Effect(Voice),
+    Clip(ClipVoice),
+}
+
+struct ClipVoice {
+    music: Music,
+    gain: [f32; 2],
+}
+
+impl ClipVoice {
+    fn frame(&mut self) -> Option<[f32; 2]> {
+        self.music
+            .frame()
+            .map(|frame| std::array::from_fn(|i| frame[i] * self.gain[i]))
+    }
 }
 
 pub struct Mixer {
@@ -63,6 +77,7 @@ pub struct Mixer {
     next_voice: usize,
     music: Option<Music>,
     preview: Option<Preview>,
+    clips: Vec<ClipVoice>,
     thunder: [Option<thunder::Thunder>; 2],
     ambience: Option<ambience::Bed>,
     soundscape: Option<tenchu2::Soundscape>,
@@ -86,6 +101,7 @@ impl Mixer {
             next_voice: 0,
             music: None,
             preview: None,
+            clips: Vec::new(),
             thunder: [None, None],
             ambience: None,
             soundscape: None,
@@ -109,6 +125,7 @@ impl Mixer {
     pub fn clear_effects(&mut self) {
         self.voices = std::array::from_fn(|_| None);
         self.preview = None;
+        self.clips.clear();
         self.thunder = [None, None];
         self.ambience = None;
         self.soundscape = None;
@@ -205,6 +222,29 @@ impl Mixer {
             .map(Preview::Music);
     }
 
+    pub fn play_clip(&mut self, clip: Arc<Clip>, volume: u8, pan: u8, preview: bool) {
+        let Some(music) = Music::new(clip, self.rate, false) else {
+            return;
+        };
+        let volume = f32::from(volume.min(127)) / 127.0;
+        let pan = pan.min(127);
+        let voice = ClipVoice {
+            music,
+            gain: [
+                volume * (f32::from(127 - pan) / 63.0).min(1.0),
+                volume * (f32::from(pan) / 64.0).min(1.0),
+            ],
+        };
+        if preview {
+            self.preview = Some(Preview::Clip(voice));
+        } else {
+            if self.clips.len() == 16 {
+                self.clips.remove(0);
+            }
+            self.clips.push(voice);
+        }
+    }
+
     pub fn preview_effect(&mut self, id: i16) {
         self.preview = self
             .bank
@@ -250,6 +290,15 @@ impl Mixer {
             }
         }
         if !self.paused {
+            self.clips.retain_mut(|voice| {
+                let Some(frame) = voice.frame() else {
+                    return false;
+                };
+                for (out, sample) in output.iter_mut().zip(frame) {
+                    *out += sample;
+                }
+                true
+            });
             for slot in &mut self.thunder {
                 if let Some(thunder) = slot {
                     if thunder.finished() {
@@ -282,6 +331,10 @@ impl Mixer {
         }
         output = output.map(|v| v * self.effects_volume);
         let (preview, mute_music) = match &mut self.preview {
+            Some(Preview::Clip(voice)) => (
+                voice.frame().map(|f| f.map(|s| s * self.effects_volume)),
+                false,
+            ),
             Some(Preview::Music(music)) => (
                 music.frame().map(|f| f.map(|s| s * self.music_volume)),
                 true,

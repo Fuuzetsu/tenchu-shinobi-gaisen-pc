@@ -70,7 +70,42 @@ impl Editor {
         assets: &GameAssets<DiscSource>,
     ) -> Result<Vec<crate::visuals::models::SceneryMaterial>> {
         let mut materials = vec![];
-        for prop in &self.project.scenery {
+        let mut custom_parts = BTreeMap::new();
+        let mut custom_vram = None;
+        for (placed, prop) in self.project.scenery.iter().enumerate() {
+            if let Some(model) = &prop.custom {
+                let index = if let Some(&index) = custom_parts.get(model) {
+                    index
+                } else {
+                    let id = format!("studio/custom/{placed}");
+                    let (part, pack) = model.build(&self.project.assets, &id)?;
+                    let index = mission.objects.len();
+                    Arc::make_mut(&mut mission.objects).push(part);
+                    mission.object_names.push(prop.name.clone());
+                    let vram = custom_vram.get_or_insert_with(|| {
+                        mission
+                            .world_vram
+                            .clone()
+                            .unwrap_or_else(|| Arc::new(mission.vram.clone()))
+                    });
+                    materials.push(crate::visuals::models::SceneryMaterial {
+                        custom: Some(pack),
+                        part: index,
+                        id,
+                        label: prop.name.clone(),
+                        vram: vram.clone(),
+                    });
+                    custom_parts.insert(model.clone(), index);
+                    index
+                };
+                mission.placements.push(tenchu_assets::stage::Placement {
+                    part: index,
+                    cloned: true,
+                    position: prop.position,
+                    facing: i32::from(prop.yaw),
+                });
+                continue;
+            }
             self.scenery_library.load(assets, prop.game, prop.stage)?;
             let source = &self.scenery_library.sources[&(prop.game, prop.stage)];
             let mut part = source
@@ -94,6 +129,7 @@ impl Editor {
                 facing: i32::from(prop.yaw),
             });
             materials.push(crate::visuals::models::SceneryMaterial {
+                custom: None,
                 part: index,
                 id: format!("{}/{}", source.model_prefix, prop.part),
                 label: source.names[prop.part].clone(),
@@ -159,6 +195,7 @@ impl Editor {
                             )) * 1000;
                             self.scenery_selection = Some(self.project.scenery.len());
                             self.project.scenery.push(project::Scenery {
+            custom: None,
                                 name: name.clone(),
                                 game: self.scenery_game,
                                 stage: self.scenery_stage,
@@ -208,16 +245,20 @@ impl Editor {
         let prop = &mut self.project.scenery[index];
         ui.separator();
         ui.text_edit_singleline(&mut prop.name);
-        ui.label(format!(
-            "{} · source area {} · object {}",
-            if prop.game == AssetGame::Tenchu {
-                "Tenchu"
-            } else {
-                "Tenchu 2"
-            },
-            prop.stage,
-            prop.part
-        ));
+        if let Some(model) = &mut prop.custom {
+            custom::ui::model(ui, model, &self.project.assets);
+        } else {
+            ui.label(format!(
+                "{} · source area {} · object {}",
+                if prop.game == AssetGame::Tenchu {
+                    "Tenchu"
+                } else {
+                    "Tenchu 2"
+                },
+                prop.stage,
+                prop.part
+            ));
+        }
         ui.small(
             "Click or drag in 3D to place precisely; map view uses cell centres. Coordinates use 1000 units per metre.",
         );

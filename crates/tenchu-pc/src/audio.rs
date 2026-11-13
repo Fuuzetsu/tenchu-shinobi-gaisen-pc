@@ -49,6 +49,15 @@ pub struct State {
 }
 
 impl Audio {
+    pub(crate) fn studio_clip(
+        &self,
+        clip: Arc<tenchu_assets::audio::stream::Clip>,
+        volume: u8,
+        pan: u8,
+        preview: bool,
+    ) {
+        self.output.send(Command::Clip(clip, volume, pan, preview));
+    }
     pub(crate) fn studio_sound(&self, bank: Arc<Bank>, sound: Sound, preview: bool) {
         let event = tenchu_assets::audio::voice::Sourced {
             bank: Some(bank),

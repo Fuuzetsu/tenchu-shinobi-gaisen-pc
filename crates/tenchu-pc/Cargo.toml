@@ -25,6 +25,8 @@ flate2 = "1"
 sha2.workspace = true
 web-time = "1.1"
 semver = "1"
+base64 = "0.23.1"
+symphonia = { version = "0.6.1", default-features = false, features = ["wav", "pcm", "ogg", "vorbis", "mp3", "flac"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 cpal.workspace = true

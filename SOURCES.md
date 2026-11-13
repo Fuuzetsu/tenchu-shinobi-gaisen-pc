@@ -4119,3 +4119,14 @@ behavior, survivor counts and the three source RNG-selected candle frames.
 No gameplay code or artwork was imported. The clock uses the existing bundled
 UI font; the new candle is code-native vector geometry with the source sprite
 bounds and frame selection. Original sprites remain the fallback.
+
+Studio custom files reuse the existing portable `visuals::obj` triangulated OBJ
+reader, `visuals::pack::decode_png`, model/material renderer and audio mixer.
+Original files are immutable, content-addressed map payloads; no path extraction
+or source-disc asset copying occurs. Audio decoding uses unmodified Symphonia
+0.6.1 (MPL-2.0), pinned in Cargo.lock without SIMD features. Its official
+`symphonia/examples/basic-interleaved.rs` documents the decoder API; playback,
+queues and resampling use this port's existing scalar mixer. Release dependency
+notices include MPL-2.0 and the source archive includes every pinned Symphonia
+crate and checksum. No sibling code, game assets or generated recordings were
+imported into the repository.

@@ -147,6 +147,24 @@ delay and eight distinct music tracks per project.
 
 ## Saving and sharing
 
+The **Assets** workspace imports PNG textures, triangulated Wavefront OBJ models,
+and WAV, Ogg/Vorbis, MP3 or FLAC audio on desktop and in the browser. Files are
+embedded in the map, with content hashes; moving files after import is safe.
+Each file can use up to 32 MiB, with 64 MiB of files per map and a 192 MiB decoded
+asset budget. PNGs support up to 2048 × 2048 pixels; models support 100,000
+triangles, with 500,000 across distinct placed scale/material variants. Audio
+must be mono/stereo at 8–96 kHz, with at most 64 MiB of decoded
+stereo samples per file. Shorten or resample long tracks if they exceed the limit.
+
+Choose **Place model**, then adjust its scale, vertical axis and **Material
+textures** in Scenery. OBJ defaults to metres and Y up; existing engine exports
+use millimetres and Y down. Import each PNG and assign it to the named OBJ
+material; external `mtllib` paths are not read. Imported models are decorative,
+receive lighting and cast shadows, and remain visible with Replacement artwork
+disabled. Audio appears as **Custom sound effect** / **Custom music** in event
+queues. Sound effects overlap and support volume/pan; music loops. Audition works
+while editing or paused. Remove references before deleting an asset.
+
 **Save** updates the selected library project or creates one; **Save copy** keeps
 both. Opening another project saves the current work. **Remove** removes a library
 copy while keeping the current draft. The separate library holds up to 128
@@ -154,9 +172,12 @@ projects in `level-studio.json` in the game data directory, or at `TENCHU_STUDIO
 Browsers use local storage. The original `trials.json` is untouched.
 
 **Export project** writes a versioned `.tenchu` JSON project with all settings,
-events and asset references. **Copy project** supports text sharing. These files
-contain no textures, sounds or models; recipients need the corresponding discs
-and any selected external model assets. Missing references produce an error.
+events, disc references and embedded custom files. **Copy project** supports text
+sharing; file export is more convenient for large bundles. Recipients still need
+the corresponding game discs and any separately selected character artwork
+packs. Source-disc artwork/audio is never copied into the bundle. Missing
+references produce an error. Schema 2 reads older version-one projects; opening
+maps with bundled assets requires this build or later.
 
 **Import** accepts Studio projects, retail `.msn` missions, or the existing
 single-block `.mcs` format. Retail share codes also work. **Export retail map

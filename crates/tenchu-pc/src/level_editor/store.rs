@@ -28,15 +28,17 @@ impl Library {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Self::default()),
             Err(e) => return Err(format!("Read Level Studio library: {e}")),
         };
-        if bytes.len() > 64 * 1024 * 1024 {
+        if bytes.len() > 512 * 1024 * 1024 {
             return Err("Level Studio library is too large".into());
         }
-        let library: Self = serde_json::from_slice(&bytes)
+        let mut library: Self = serde_json::from_slice(&bytes)
             .map_err(|e| format!("Read Level Studio library: {e}"))?;
         if library.version != 1 || library.projects.len() > 128 || library.record_name.len() > 512 {
             return Err("Unsupported Level Studio library".into());
         }
-        for project in library.projects.iter().chain(&library.draft) {
+        let mut shared = custom::Assets::new();
+        for project in library.projects.iter_mut().chain(&mut library.draft) {
+            custom::share_payloads(&mut project.assets, &mut shared);
             project.validate()?;
         }
         Ok(library)
@@ -44,7 +46,7 @@ impl Library {
 
     pub fn write(&self, path: &Path) -> Result<()> {
         let bytes = serde_json::to_vec(self).map_err(|e| e.to_string())?;
-        if bytes.len() > 64 * 1024 * 1024 {
+        if bytes.len() > 512 * 1024 * 1024 {
             return Err("Level Studio library is too large".into());
         }
         crate::storage::atomic_write(path, &bytes)

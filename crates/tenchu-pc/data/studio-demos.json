@@ -145,7 +145,7 @@
   {
     "id": "studio-projects",
     "title": "Keep and share your work",
-    "description": "Save projects with their events, views and stamps. Retail maps and share codes remain supported.",
+    "description": "Save events, views and stamps with build provenance. The Assets workspace bundles custom models, textures and audio into shared maps.",
     "seconds": 4,
     "mission": 0,
     "character": 0,

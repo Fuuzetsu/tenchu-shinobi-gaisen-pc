@@ -23,6 +23,7 @@ pub enum Kind {
     Recording,
     Unarmed,
     Studio,
+    StudioAsset(crate::level_editor::custom::Kind),
 }
 
 pub fn download(name: &str, bytes: &[u8]) -> Result<()> {
@@ -37,7 +38,18 @@ pub fn start(kind: Kind) -> Result<()> {
         let (extension, limit) = match kind {
             Kind::Recording => (".treplay", 128 * 1024 * 1024),
             Kind::Unarmed => (".t2moves", crate::sheathing::imports::LIMIT),
-            Kind::Studio => (".tenchu,.json,.msn,.mcs", 8 * 1024 * 1024),
+            Kind::StudioAsset(kind) => (
+                match kind {
+                    crate::level_editor::custom::Kind::Texture => ".png",
+                    crate::level_editor::custom::Kind::Model => ".obj",
+                    crate::level_editor::custom::Kind::Audio => ".wav,.ogg,.mp3,.flac",
+                },
+                crate::level_editor::custom::FILE_LIMIT,
+            ),
+            Kind::Studio => (
+                ".tenchu,.json,.msn,.mcs",
+                crate::level_editor::Project::MAX_BYTES,
+            ),
         };
         let result = import_recording(extension, limit)
             .await

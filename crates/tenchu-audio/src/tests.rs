@@ -488,3 +488,34 @@ fn movie_voice_pitch_and_independent_music_effects_balance() {
         assert_eq!(mono[i], [(mixed[i][0] + mixed[i][1]) * 0.5; 2]);
     }
 }
+#[test]
+fn custom_clips_overlap_pan_pause_and_clear_without_replacing_music() {
+    use std::sync::Arc;
+    use tenchu_assets::audio::stream::Clip;
+    let clip = Arc::new(Clip {
+        rate: 8000,
+        frames: vec![[4096; 2]; 4],
+    });
+    let mut mixer = super::Mixer::new(8000);
+    mixer.volume = 1.0;
+    mixer.music(Some(clip.clone()), true);
+    mixer.play_clip(clip.clone(), 127, 0, false);
+    mixer.play_clip(clip.clone(), 127, 127, false);
+    assert_eq!(mixer.frame(), [0.25, 0.25]);
+    mixer.paused = true;
+    assert_eq!(mixer.frame(), [0.0, 0.0]);
+    mixer.play_clip(clip.clone(), 127, 0, true);
+    assert_eq!(mixer.frame(), [0.125, 0.0]);
+    mixer.preview(None);
+    assert_eq!(mixer.frame(), [0.0, 0.0]);
+    mixer.paused = false;
+    assert_eq!(mixer.frame(), [0.25, 0.25]);
+    mixer.clear_effects();
+    assert_eq!(mixer.frame(), [0.125, 0.125]);
+    mixer.music(None, false);
+    mixer.play_clip(clip, 127, 64, false);
+    for _ in 0..4 {
+        assert_eq!(mixer.frame(), [0.125, 0.125]);
+    }
+    assert_eq!(mixer.frame(), [0.0, 0.0]);
+}

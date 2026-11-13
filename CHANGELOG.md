@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Import custom PNG textures, triangulated OBJ models, and WAV/Ogg Vorbis/MP3/FLAC
+  music and effects into Level Studio. Set model scale and material textures,
+  place models, audition audio and queue it in events. Custom files are embedded
+  in shared `.tenchu` maps; source-disc assets remain references. Map schema 2
+  still reads version-one projects.
+
 - Record map schema, game version and source commit in Studio projects, preserving
   the creator build and updating the last-saved build on export and save. Inspect
   these markers under **Projects → Map format & build**.

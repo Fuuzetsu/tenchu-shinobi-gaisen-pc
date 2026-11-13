@@ -21,6 +21,15 @@ captures check scene visibility, source materials and animated weather while
 serialized gameplay remains unchanged. These are controlled authoring tests,
 not additional ordinary-play recordings. Private screenshots stay outside Git.
 
+Custom-asset checks reopen exported maps without the source project, verify shared
+immutable undo payloads, reject malformed files and dangling material/cue links,
+and decode independent WAV, Ogg/Vorbis, MP3 and FLAC fixtures. Mixer tests cover
+overlap, pan, paused audition, stopping and music independence. A disc-backed GPU
+fixture renders an embedded textured OBJ with replacement artwork on and off,
+then exercises its queued custom music/effect and campaign restoration. Native
+strict Clippy and the WASM build pass; packaged notices and matching Symphonia
+source inventories are verified. No retail-behavior claim follows from these tests.
+
 `check-retail` supports T1's `MAIN.EXE` and bounded native Japanese T2 gameplay
 through the same observer and TNRUN002 format. Both initialize once and stop at
 the first divergence, without correcting state from later snapshots. T2 uses

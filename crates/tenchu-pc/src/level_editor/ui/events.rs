@@ -140,14 +140,22 @@ impl Editor {
                         }
                     });
                     ticks_control(ui, &mut cue.delay, "Delay");
-                    if let Some(command) =
-                        action(ui, &mut cue.action, &self.sound_catalog, &self.music_names)
-                    {
+                    if let Some(command) = action(
+                        ui,
+                        &mut cue.action,
+                        &self.sound_catalog,
+                        &self.music_names,
+                        &self.project.assets,
+                    ) {
                         self.pending = Some(command);
                     }
                     if matches!(
                         cue.action,
-                        Action::Sound { .. } | Action::Music { .. } | Action::StopMusic
+                        Action::Sound { .. }
+                            | Action::Music { .. }
+                            | Action::StopMusic
+                            | Action::CustomSound { .. }
+                            | Action::CustomMusic { .. }
                     ) && ui.button("Audition cue").clicked()
                     {
                         self.pending = Some(Command::Preview(cue.action.clone()));
@@ -207,6 +215,7 @@ fn action(
     action: &mut Action,
     sounds: &std::collections::BTreeMap<(Game, usize), Vec<(u16, String)>>,
     music: &[String],
+    assets: &custom::Assets,
 ) -> Option<Command> {
     let mut command = None;
     let mut kind = match action {
@@ -219,6 +228,8 @@ fn action(
         Action::Flag { .. } => 6,
         Action::Complete => 7,
         Action::Fail => 8,
+        Action::CustomSound { .. } => 9,
+        Action::CustomMusic { .. } => 10,
     };
     let before = kind;
     let names = [
@@ -231,12 +242,21 @@ fn action(
         "Set flag",
         "Complete mission",
         "Fail mission",
+        "Custom sound effect",
+        "Custom music",
     ];
     egui::ComboBox::from_id_salt("action-kind")
         .selected_text(names[kind])
         .show_ui(ui, |ui| {
             for (i, name) in names.iter().enumerate() {
-                ui.selectable_value(&mut kind, i, *name);
+                ui.add_enabled_ui(
+                    i < 9 || assets.values().any(|a| a.kind == custom::Kind::Audio),
+                    |ui| {
+                        ui.selectable_value(&mut kind, i, *name);
+                    },
+                )
+                .response
+                .on_disabled_hover_text("Import audio in the Assets workspace first");
             }
         });
     if kind != before {
@@ -264,10 +284,30 @@ fn action(
                 value: true,
             },
             7 => Action::Complete,
-            _ => Action::Fail,
+            8 => Action::Fail,
+            9 => Action::CustomSound {
+                asset: assets
+                    .iter()
+                    .find(|(_, a)| a.kind == custom::Kind::Audio)
+                    .map_or(String::new(), |(id, _)| id.clone()),
+                volume: 100,
+                pan: 64,
+            },
+            _ => Action::CustomMusic {
+                asset: assets
+                    .iter()
+                    .find(|(_, a)| a.kind == custom::Kind::Audio)
+                    .map_or(String::new(), |(id, _)| id.clone()),
+            },
         };
     }
     match action {
+        Action::CustomMusic { asset } => custom::ui::audio_choice(ui, asset, assets),
+        Action::CustomSound { asset, volume, pan } => {
+            custom::ui::audio_choice(ui, asset, assets);
+            ui.add(egui::Slider::new(volume, 0..=127).text("Volume"));
+            ui.add(egui::Slider::new(pan, 0..=127).text("Pan"));
+        }
         Action::Message { text, ticks } => {
             ui.add(egui::TextEdit::multiline(text).desired_rows(3));
             ticks_control(ui, ticks, "Display");

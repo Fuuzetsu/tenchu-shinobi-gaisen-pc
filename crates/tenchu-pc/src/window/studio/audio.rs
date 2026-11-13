@@ -77,6 +77,15 @@ impl Application {
 
     fn load_studio_audio(&mut self, action: &CueAction) -> Result<bool> {
         match *action {
+            CueAction::CustomSound { ref asset, .. } | CueAction::CustomMusic { ref asset } => {
+                let _ = self
+                    .studio
+                    .project
+                    .assets
+                    .get(asset)
+                    .ok_or("Missing custom audio asset")?
+                    .clip()?;
+            }
             CueAction::Sound { game, bank, id, .. } => {
                 let source = self.studio_bank(game, bank)?;
                 if source
@@ -175,6 +184,14 @@ impl Application {
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
             match action {
+                CueAction::CustomSound {
+                    ref asset,
+                    volume,
+                    pan,
+                } => sound.studio_clip(self.studio.project.assets[asset].clip()?, volume, pan),
+                CueAction::CustomMusic { ref asset } => {
+                    sound.studio_music(Some(self.studio.project.assets[asset].clip()?))
+                }
                 CueAction::Sound {
                     game,
                     bank,
@@ -191,6 +208,19 @@ impl Application {
         }
         if let Some(audio) = &mut self.audio {
             match action {
+                CueAction::CustomSound {
+                    ref asset,
+                    volume,
+                    pan,
+                } => audio.studio_clip(
+                    self.studio.project.assets[asset].clip()?,
+                    volume,
+                    pan,
+                    preview,
+                ),
+                CueAction::CustomMusic { ref asset } => {
+                    audio.studio_music(Some(self.studio.project.assets[asset].clip()?), preview)
+                }
                 CueAction::Sound {
                     game,
                     bank,

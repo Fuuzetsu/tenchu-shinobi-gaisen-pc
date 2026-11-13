@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use tenchu_assets::{Result, trial::Mission};
 
 pub const FORMAT: &str = "tenchu-level-studio";
-pub const MAX_BYTES: usize = 8 * 1024 * 1024;
+pub const MAX_BYTES: usize = 96 * 1024 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Project {
@@ -22,6 +22,8 @@ pub struct Project {
     pub stamps: Vec<super::building::Stamp>,
     #[serde(default)]
     pub views: Vec<super::building::View>,
+    #[serde(default)]
+    pub assets: super::custom::Assets,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -33,6 +35,8 @@ pub enum Game {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Scenery {
+    #[serde(default)]
+    pub custom: Option<super::custom::Model>,
     pub name: String,
     pub game: Game,
     pub stage: usize,
@@ -83,6 +87,14 @@ pub enum Action {
         track: usize,
     },
     StopMusic,
+    CustomSound {
+        asset: String,
+        volume: u8,
+        pan: u8,
+    },
+    CustomMusic {
+        asset: String,
+    },
     Weather(WeatherMode),
     TimeOfDay(u16),
     Flag {
@@ -112,10 +124,12 @@ impl Default for Event {
 }
 
 impl Project {
+    #[cfg(target_arch = "wasm32")]
+    pub const MAX_BYTES: usize = MAX_BYTES;
     pub fn new(mission: Mission) -> Self {
         Self {
             format: FORMAT.into(),
-            version: 1,
+            version: 2,
             build: super::provenance::Provenance::new(),
             mission,
             character: 0,
@@ -125,14 +139,16 @@ impl Project {
             events: vec![],
             stamps: vec![],
             views: vec![],
+            assets: Default::default(),
         }
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.format != FORMAT || self.version != 1 {
+        if self.format != FORMAT || !matches!(self.version, 1 | 2) {
             return Err("Unsupported Level Studio project format or version".into());
         }
         self.build.validate()?;
+        super::custom::validate(&self.assets)?;
         self.mission.validate()?;
         if !(0..=1).contains(&self.character)
             || self.mission.title.len() > 512
@@ -165,7 +181,18 @@ impl Project {
                 return Err("Objective characters must keep their original appearance".into());
             }
         }
+        let mut models = std::collections::BTreeSet::new();
+        let mut triangles = 0;
         for prop in &self.scenery {
+            if let Some(model) = &prop.custom {
+                model.validate(&self.assets)?;
+                if models.insert(model) {
+                    triangles += self.assets[&model.asset].model()?.len();
+                    if triangles > 500_000 {
+                        return Err("Placed custom models exceed 500,000 triangles across distinct scale/material variants".into());
+                    }
+                }
+            }
             if prop.name.len() > 512
                 || prop.part > 65535
                 || prop.stage >= if prop.game == Game::Tenchu { 19 } else { 24 }
@@ -204,6 +231,15 @@ impl Project {
                     .filter(|n| *n <= 108_000)
                     .ok_or("Event queue exceeds one hour")?;
                 match &cue.action {
+                    Action::CustomMusic { asset } => {
+                        super::custom::get(&self.assets, asset, super::custom::Kind::Audio)?;
+                    }
+                    Action::CustomSound { asset, volume, pan } => {
+                        super::custom::get(&self.assets, asset, super::custom::Kind::Audio)?;
+                        if *volume > 127 || *pan > 127 {
+                            return Err("Invalid custom sound volume or pan".into());
+                        }
+                    }
                     Action::Message { text, ticks }
                         if text.len() > 4096 || !(1..=108_000).contains(ticks) =>
                     {
@@ -266,6 +302,7 @@ impl Project {
     }
 
     pub fn mark_saved(&mut self) {
+        self.version = 2;
         self.build.last_saved_with = Some(super::provenance::Build::current());
     }
 

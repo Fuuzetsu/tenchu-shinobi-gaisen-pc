@@ -73,6 +73,7 @@ impl Editor {
                 .position(|n| n == name)
                 .ok_or_else(|| format!("Missing T1 scenery {name}"))?;
             project.scenery.push(project::Scenery {
+                custom: None,
                 name: format!("T1 · {name}"),
                 game: AssetGame::Tenchu,
                 stage: 0,
@@ -87,6 +88,7 @@ impl Editor {
             (8, [45_000, 0, -32_000]),
         ] {
             project.scenery.push(project::Scenery {
+                custom: None,
                 name: format!("T2 · Training prop {part}"),
                 game: AssetGame::Tenchu2,
                 stage: 2,

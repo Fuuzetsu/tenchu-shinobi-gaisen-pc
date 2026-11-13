@@ -24,6 +24,7 @@ impl Editor {
                         (egui::Key::Num5, Panel::Environment),
                         (egui::Key::Num6, Panel::Mission),
                         (egui::Key::Num7, Panel::Library),
+                        (egui::Key::Num8, Panel::Assets),
                     ] {
                         if input.key_pressed(key) {
                             self.panel = panel;
@@ -262,7 +263,11 @@ impl Editor {
             )
             .show(ctx, |ui| {
                 crate::ui::theme::style(ui);
-                let width = ((ui.available_width() - 6.0 * 8.0) / 7.0).max(90.0);
+                let columns = ((ui.available_width() + 8.0) / 100.0)
+                    .floor()
+                    .clamp(1.0, 8.0);
+                let width =
+                    ((ui.available_width() - (columns - 1.0) * 8.0) / columns).floor() - 1.0;
                 ui.horizontal_wrapped(|ui| {
                     for (index, (panel, label)) in [
                         (Panel::Terrain, "Terrain"),
@@ -272,6 +277,7 @@ impl Editor {
                         (Panel::Environment, "Environment"),
                         (Panel::Mission, "Mission"),
                         (Panel::Library, "Projects"),
+                        (Panel::Assets, "Assets"),
                     ]
                     .into_iter()
                     .enumerate()
@@ -294,9 +300,8 @@ impl Editor {
                 ui.label(RichText::new(&self.project.mission.title).color(crate::ui::theme::GOLD));
                 ui.separator();
                 ui.label(format!("Cell {}, {}", self.cursor.x, self.cursor.z));
-                ui.separator();
-                ui.small(if self.grid { "Scroll: zoom · middle drag: pan · click: edit · R: rotate" } else { "Right drag: look · right + WASD/QE: fly · middle drag: pan · scroll: dolly · F: frame selection" });
             });
+            ui.small(if self.grid { "Scroll: zoom · middle drag: pan · click: edit · R: rotate" } else { "Right drag: look · right + WASD/QE: fly · middle drag: pan · scroll: dolly · F: frame selection" });
             if !self.notice.is_empty() { ui.colored_label(Color32::GOLD, &self.notice); }
         });
         egui::SidePanel::left("studio-inspector")
@@ -331,6 +336,7 @@ impl Editor {
                                 Panel::Environment => self.environment(ui),
                                 Panel::Mission => self.mission(ui),
                                 Panel::Library => (),
+                                Panel::Assets => self.custom_assets(ui),
                             }
                         });
                     }

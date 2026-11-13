@@ -1,5 +1,6 @@
 mod assets;
 mod building;
+pub(crate) mod custom;
 mod events;
 mod example;
 mod history;
@@ -56,6 +57,7 @@ enum Panel {
     Environment,
     Mission,
     Library,
+    Assets,
 }
 
 pub struct Editor {
@@ -114,6 +116,7 @@ pub struct Editor {
     default_graphics: crate::settings::Graphics,
     weather_preview_seconds: u16,
     environment_weather: bool,
+    custom_kind: custom::Kind,
 }
 
 impl Editor {
@@ -179,6 +182,7 @@ impl Editor {
             default_graphics: Default::default(),
             weather_preview_seconds: 0,
             environment_weather: false,
+            custom_kind: custom::Kind::Model,
         }
     }
 

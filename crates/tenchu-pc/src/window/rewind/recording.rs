@@ -132,6 +132,10 @@ impl Application {
                     crate::web::recording::Kind::Unarmed => {
                         self.install_unarmed(crate::sheathing::imports::decode(&bytes)?)
                     }
+                    crate::web::recording::Kind::StudioAsset(kind) => {
+                        self.studio
+                            .import_custom(format!("Imported {}", kind.label()), kind, bytes)
+                    }
                     crate::web::recording::Kind::Studio => {
                         if self.studio.open {
                             self.studio.import(&bytes, &self.assets)
@@ -142,7 +146,10 @@ impl Application {
                 }
             }
         }) {
-            if matches!(kind, crate::web::recording::Kind::Studio) {
+            if matches!(
+                kind,
+                crate::web::recording::Kind::Studio | crate::web::recording::Kind::StudioAsset(_)
+            ) {
                 self.studio.notice = error;
             } else {
                 self.state_notice(error);

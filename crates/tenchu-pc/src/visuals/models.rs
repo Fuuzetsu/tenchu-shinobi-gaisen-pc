@@ -24,6 +24,7 @@ pub struct Material {
 }
 
 pub(crate) struct SceneryMaterial {
+    pub custom: Option<Arc<Pack>>,
     pub part: usize,
     pub id: String,
     pub label: String,
@@ -68,15 +69,20 @@ impl Models {
                 label: source.label.clone(),
                 geometry,
             }];
-            let pack = if graphics.asset_pack {
+            let mut graphics = graphics.clone();
+            let pack = if source.custom.is_some() {
+                graphics.asset_pack = true;
+                Pack::default()
+            } else if graphics.asset_pack {
                 Pack::for_models(&source.vram, &inputs)?
             } else {
                 Pack::default()
             };
-            let mut meshes = Meshes::build(&source.vram, &pack, graphics, inputs, true)?;
+            let pack = source.custom.as_deref().unwrap_or(&pack);
+            let mut meshes = Meshes::build(&source.vram, pack, &graphics, inputs, true)?;
             meshes.detach_textures();
             if graphics.asset_pack {
-                meshes.replace_textures(&pack);
+                meshes.replace_textures(pack);
             }
             self.imported_geometry
                 .insert(geometry.as_ptr() as usize, self.imported.len());

@@ -135,6 +135,10 @@ impl Sound {
         self.mixer.music(clip, true);
     }
 
+    pub fn studio_clip(&mut self, clip: Arc<Clip>, volume: u8, pan: u8) {
+        self.mixer.play_clip(clip, volume, pan, false);
+    }
+
     pub fn flush(&mut self) -> Result<()> {
         self.file.flush().map_err(|e| e.to_string())
     }
