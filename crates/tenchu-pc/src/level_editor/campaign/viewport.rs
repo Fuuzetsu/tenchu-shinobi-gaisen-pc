@@ -344,7 +344,7 @@ impl Editor {
                         campaign.start = point;
                     } else if let Some(actor) = campaign.actors.get_mut(self.actor - 1) {
                         if self.tool == Tool::Patrol {
-                            if actor.spawn.patrol.len() < 64 {
+                            if actor.spawn.patrol.len() < self.project.mission.limits.patrol {
                                 actor
                                     .spawn
                                     .patrol

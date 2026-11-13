@@ -121,10 +121,10 @@ impl Campaign {
             }
             _ => (),
         }
-        if self.actors.len() > 64
-            || self.props.len() > 8192
-            || self.pickups.len() > 256
-            || self.terrain.len() > 8192
+        if self.actors.len() > super::limits::Limits::MAX.characters
+            || self.props.len() > super::limits::Limits::MAX.props
+            || self.pickups.len() > super::limits::Limits::MAX.pickups
+            || self.terrain.len() > super::limits::Limits::MAX.terrain
         {
             return Err("Campaign project exceeds the supported authoring limits".into());
         }
@@ -133,7 +133,10 @@ impl Campaign {
             if actor.enabled {
                 position(actor.spawn.position).map_err(|e| format!("{}: {e}", actor.name))?;
             }
-            if actor.name.len() > 512 || actor.spawn.patrol.len() > 64 || actor.spawn.kind < 0 {
+            if actor.name.len() > 512
+                || actor.spawn.patrol.len() > tenchu_assets::trial::Limits::MAX.patrol
+                || actor.spawn.kind < 0
+            {
                 return Err("Invalid campaign character".into());
             }
             for (point, wait) in &actor.spawn.patrol {
@@ -472,12 +475,30 @@ impl Editor {
         self.campaign_cache.as_ref().unwrap().build(&campaign)
     }
 
+    #[cfg(all(test, target_os = "linux"))]
+    pub(crate) fn campaign_choices(&self) -> Vec<(Source, String)> {
+        self.campaign_sources.clone()
+    }
+
+    #[cfg(all(test, target_os = "linux"))]
+    pub(crate) fn first_campaign_surface(&self) -> Option<([usize; 2], Node)> {
+        self.campaign_cache
+            .as_ref()?
+            .nodes
+            .iter()
+            .find(|(_, n)| n.division != 0)
+            .map(|(&key, &node)| (key, node))
+    }
+
     pub(crate) fn open_campaign(
         &mut self,
         assets: &GameAssets<DiscSource>,
         source: Source,
     ) -> Result<()> {
-        self.save(false)?;
+        self.commit();
+        if self.selected_save.is_some() || self.campaign_template.as_ref() != Some(&self.project) {
+            self.save(false)?;
+        }
         self.load_campaign_cache(assets, &source, self.project.character)?;
         let cache = self.campaign_cache.as_ref().unwrap();
         let mut project = self.new_project(Mission::new(0, Objective::EliminateEnemies, 16)?);
@@ -486,6 +507,7 @@ impl Editor {
         project.campaign = Some(cache.initial.clone());
         project.actors = cache.appearances.clone();
         self.select(project, assets)?;
+        self.campaign_template = Some(self.project.clone());
         self.panel = Panel::Terrain;
         self.tool = Tool::Select;
         self.notice = "Campaign map opened. Edit terrain, characters and scenery; build objectives under Events. Playtests use Gaisen rules; source cutscenes, scripts and T2 dynamic scenery are not imported.".into();

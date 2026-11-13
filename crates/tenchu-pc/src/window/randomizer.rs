@@ -103,57 +103,80 @@ impl Application {
     }
 
     pub(super) fn reload_game(&mut self) -> Result<()> {
+        self.reload_game_with_preview(None, false).map(|_| ())
+    }
+
+    pub(super) fn reload_game_with_preview(
+        &mut self,
+        previous: Option<&Game>,
+        inspection: bool,
+    ) -> Result<bool> {
+        #[cfg(test)]
+        let inspection = inspection && std::env::var_os("TENCHU_STUDIO_FULL_REBUILD").is_none();
         self.clear_rewind();
         self.release_pointer();
         if let Some(frontend) = &mut self.frontend {
             frontend.leave();
         }
-        if self.campaign.randomized.is_none() {
-            self.campaign.game.intelligence.sight_percent = self.settings.sight_percent;
-            self.settings
-                .apply_activation(&mut self.campaign.game.roster);
+        if !inspection {
+            if self.campaign.randomized.is_none() {
+                self.campaign.game.intelligence.sight_percent = self.settings.sight_percent;
+                self.settings
+                    .apply_activation(&mut self.campaign.game.roster);
+            }
+            self.debug.sight_percent = self.campaign.game.intelligence.sight_percent;
+            self.campaign.game.intelligence.independent_attacks = self.settings.independent_attacks;
+            self.campaign.game.intelligence.quick_shuriken_dodge =
+                self.settings.quick_shuriken_dodge;
+            self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
+            self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
+            self.campaign.game.intelligence.guard_draw = self.settings.guard_draw;
+            self.campaign.game.intelligence.circle_action = self.settings.circle_action;
+            crate::walking::configure(
+                &mut self.campaign.game,
+                &self.assets,
+                self.settings.walking.enabled,
+            )?;
+            crate::sheathing::configure(
+                &mut self.campaign.game,
+                &self.assets,
+                self.settings.sheathing,
+            )?;
+            self.campaign.game.set_bleeding(self.settings.bleeding);
+            self.campaign.game.combat.dismemberment = self.settings.dismemberment;
+            self.campaign
+                .game
+                .set_damage_escalation(self.settings.damage_escalation);
+            self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
+            self.campaign.game.combat.attack_assist = self.settings.attack_assist;
+            self.campaign
+                .game
+                .set_behavior_profiles(self.settings.behavior_profiles);
         }
-        self.debug.sight_percent = self.campaign.game.intelligence.sight_percent;
-        self.campaign.game.intelligence.independent_attacks = self.settings.independent_attacks;
-        self.campaign.game.intelligence.quick_shuriken_dodge = self.settings.quick_shuriken_dodge;
-        self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
-        self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
-        self.campaign.game.intelligence.guard_draw = self.settings.guard_draw;
-        self.campaign.game.intelligence.circle_action = self.settings.circle_action;
-        crate::walking::configure(
-            &mut self.campaign.game,
-            &self.assets,
-            self.settings.walking.enabled,
-        )?;
-        crate::sheathing::configure(
-            &mut self.campaign.game,
-            &self.assets,
-            self.settings.sheathing,
-        )?;
-        self.campaign.game.set_bleeding(self.settings.bleeding);
-        self.campaign.game.combat.dismemberment = self.settings.dismemberment;
-        self.campaign
-            .game
-            .set_damage_escalation(self.settings.damage_escalation);
-        self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
-        self.campaign.game.combat.attack_assist = self.settings.attack_assist;
-        self.campaign
-            .game
-            .set_behavior_profiles(self.settings.behavior_profiles);
         self.debug.reload(&self.campaign.game)?;
-        if let Some(audio) = &mut self.audio {
+        if previous.is_none()
+            && let Some(audio) = &mut self.audio
+        {
             if let Err(error) = audio.reload(&self.assets, &self.campaign) {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);
         }
+        let mut reused = false;
         if let Some(view) = &mut self.view {
             view.randomizer_player = self
                 .campaign
                 .randomized
                 .as_ref()
                 .map(|r| r.plan.player_model.clone().unwrap_or_default());
-            view.reload(&self.campaign.game, &self.settings)?;
+            if let Some(previous) = previous {
+                reused = view
+                    .refresh_studio_terrain(previous, &mut self.campaign.game, &self.settings)
+                    .unwrap_or(false);
+            }
+            if !reused {
+                view.reload(&self.campaign.game, &self.settings)?;
+            }
         }
         self.clock = GameClock::default();
         self.last_frame = Instant::now();
@@ -161,6 +184,6 @@ impl Application {
         self.faulted = false;
         self.fault = None;
         self.controls.clear();
-        Ok(())
+        Ok(reused)
     }
 }

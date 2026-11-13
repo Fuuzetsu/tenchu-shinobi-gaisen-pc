@@ -7,7 +7,7 @@ impl Editor {
         ui.horizontal(|ui| {
             if ui
                 .add_enabled(
-                    self.project.events.len() < 256,
+                    self.project.events.len() < self.project.limits.events,
                     egui::Button::new("Add event"),
                 )
                 .clicked()
@@ -171,7 +171,10 @@ impl Editor {
             event.cues.swap(a, b);
         }
         if ui
-            .add_enabled(event.cues.len() < 128, egui::Button::new("Add cue"))
+            .add_enabled(
+                event.cues.len() < self.project.limits.cues,
+                egui::Button::new("Add cue"),
+            )
             .clicked()
         {
             event.cues.push(Cue {

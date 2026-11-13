@@ -247,7 +247,7 @@ impl Application {
                 self.menu.open = false;
                 self.randomizer.open = false;
                 self.tenchu2.open = false;
-                self.studio_present(false)?;
+                self.studio_present(false, None)?;
             }
             Command::Close => {
                 self.studio.persist()?;
@@ -302,10 +302,34 @@ impl Application {
                 }
                 self.studio.persist()?;
                 let game = self.build_studio(!playing)?;
-                self.campaign.game = game;
+                let reusable = matches!(command, Command::Rebuild)
+                    && self.studio.open
+                    && self
+                        .studio_previous
+                        .as_ref()
+                        .and_then(|s| s.preview_project.as_ref())
+                        .is_some_and(|previous| {
+                            let current = &self.studio.project;
+                            previous.character == current.character
+                                && previous.actors == current.actors
+                                && previous.scenery.len() == current.scenery.len()
+                                && previous.scenery.iter().zip(&current.scenery).all(|(a, b)| {
+                                    a.game == b.game
+                                        && a.stage == b.stage
+                                        && a.part == b.part
+                                        && a.custom == b.custom
+                                })
+                                && previous.assets == current.assets
+                                && previous.campaign.as_ref().map(|c| &c.source)
+                                    == current.campaign.as_ref().map(|c| &c.source)
+                                && previous.mission.theme == current.mission.theme
+                        });
+                #[cfg(test)]
+                let reusable = reusable && std::env::var_os("TENCHU_STUDIO_FULL_REBUILD").is_none();
+                let previous = std::mem::replace(&mut self.campaign.game, game);
                 self.campaign.options.character = self.studio.project.character;
                 self.campaign.screen = Screen::Playing;
-                self.studio_present(playing)?;
+                self.studio_present(playing, reusable.then_some(&previous))?;
                 if playing {
                     self.studio.notice.clear();
                     self.studio_tick()?;
@@ -350,7 +374,7 @@ impl Application {
         Ok(())
     }
 
-    fn studio_present(&mut self, playing: bool) -> Result<()> {
+    fn studio_present(&mut self, playing: bool, previous: Option<&Game>) -> Result<()> {
         self.menu.open = false;
         self.controls.close_editor();
         self.settings = self.studio_previous.as_ref().unwrap().settings.clone();
@@ -369,7 +393,7 @@ impl Application {
         self.settings.model_moveset = false;
         self.settings.weapon_model.clear();
         self.settings.voice_model.clear();
-        self.reload_game()?;
+        let reused = self.reload_game_with_preview(previous, !playing)?;
         self.studio.open = !playing;
         self.studio.testing = playing;
         self.studio.preview_revision = self.studio.revision;
@@ -381,8 +405,10 @@ impl Application {
         };
         self.studio_previous.as_mut().unwrap().message_until = None;
         self.studio_previous.as_mut().unwrap().preview_project = Some(self.studio.project.clone());
-        self.studio_previous.as_mut().unwrap().preview_tick = 0;
-        self.studio_previous.as_mut().unwrap().preview_fraction = 0.0;
+        if !reused {
+            self.studio_previous.as_mut().unwrap().preview_tick = 0;
+            self.studio_previous.as_mut().unwrap().preview_fraction = 0.0;
+        }
         self.paused = !playing;
         self.debug.photo_mode = !playing;
         if playing {
@@ -392,8 +418,10 @@ impl Application {
         }
         if let Some(view) = &mut self.view {
             view.settings(&self.settings, &self.campaign.game)?;
-            view.studio_time = (!playing).then_some(0.0);
-            view.prewarm_weather(&self.campaign.game, &self.settings, &self.debug, 2);
+            if !reused {
+                view.studio_time = (!playing).then_some(0.0);
+                view.prewarm_weather(&self.campaign.game, &self.settings, &self.debug, 2);
+            }
         }
         self.studio_previous.as_mut().unwrap().eligible = playing
             && self.studio.project.campaign.is_none()

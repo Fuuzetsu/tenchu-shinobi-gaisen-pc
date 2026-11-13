@@ -5,6 +5,7 @@ pub(crate) mod custom;
 mod events;
 mod example;
 mod history;
+mod limits;
 mod project;
 mod provenance;
 mod showcase;
@@ -72,6 +73,7 @@ pub struct Editor {
     pub revision: u64,
     pub preview_revision: u64,
     pub runtime: Runtime,
+    limits_open: bool,
     pub surfaces: Vec<crate::debug::terrain::Surface>,
     scenery_library: assets::SceneryLibrary,
     scenery_game: AssetGame,
@@ -80,6 +82,7 @@ pub struct Editor {
     path: PathBuf,
     library: store::Library,
     selected_save: Option<usize>,
+    campaign_template: Option<Project>,
     presets: Vec<Mission>,
     history: History,
     panel: Panel,
@@ -147,6 +150,7 @@ impl Editor {
             revision: 0,
             preview_revision: u64::MAX,
             runtime: Runtime::default(),
+            limits_open: false,
             surfaces: vec![],
             scenery_library: Default::default(),
             scenery_game: AssetGame::Tenchu,
@@ -155,6 +159,7 @@ impl Editor {
             path,
             library: store::Library::default(),
             selected_save: None,
+            campaign_template: None,
             presets: vec![],
             history: History::default(),
             panel: Panel::Terrain,
@@ -300,6 +305,7 @@ impl Editor {
         self.event = 0;
         self.selection = None;
         self.selected_save = None;
+        self.campaign_template = None;
         self.revision = self.revision.wrapping_add(1);
         Ok(())
     }

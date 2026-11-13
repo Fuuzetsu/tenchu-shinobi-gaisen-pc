@@ -132,8 +132,9 @@ All twelve original tile themes and sixteen challenges are available. Paint
 ground, ramps, walls, pits, water, ornaments and traps using the source editor's
 placement rules. Brushes support sizes from one to eight cells and four rotations.
 Character placement retains supporting ground, ornament limits and original
-route rules. Ten slots include the player and reserved objective characters;
-patrols support up to 64 adjacent waypoints with original waits and facing.
+route rules. By default, ten slots include the player and reserved objective
+characters, and patrols support 64 adjacent waypoints. **Limits** can raise both
+while retaining original waits and facing.
 
 The five objectives are reaching Lord Gohda, assassination, eliminating enemies,
 protecting Princess Kiku and finding the herb. Any can require stealth. Mission
@@ -153,7 +154,8 @@ textures and installed artwork overrides. They receive lighting and cast shadows
 They are decorative: solid geometry and interactive traps come from the terrain
 palette. Campaign projects are described below; Studio does not port T2's original TRIAL
 editor. Tile missions retain Gaisen's original size
-and collision behavior. Projects allow up to 512 added scenery instances.
+and collision behavior. The default scenery limit is 512 instances; **Limits**
+can raise it per project.
 
 ## Events and cue queues
 
@@ -175,8 +177,9 @@ Events can be disabled or set to run once. Repeating region/flag triggers requir
 leaving and re-entering their condition, and do not overlap their own pending
 queues. Equal-time cues use event order, then cue order. Flag changes can trigger
 other events on the next logic tick. Rendering cadence never runs events or
-advances gameplay. Limits are 256 events, 128 cues per event, one hour of queued
-delay and eight distinct music tracks per project.
+advances gameplay. Defaults are 256 events and 128 cues per event, adjustable in
+**Limits**. Queues allow one hour of delay and eight distinct disc music tracks
+per project.
 
 ## Saving and sharing
 
@@ -199,7 +202,8 @@ queues. Sound effects overlap and support volume/pan; music loops. Audition work
 while editing or paused. Remove references before deleting an asset.
 
 **Save** updates the selected library project or creates one; **Save copy** keeps
-both. Opening another project saves the current work. **Remove** removes a library
+both. Opening another project saves the current work. Browsing untouched
+campaign templates does not add duplicate library copies. **Remove** removes a library
 copy while keeping the current draft. The separate library holds up to 128
 projects in `level-studio.json` in the game data directory, or at `TENCHU_STUDIO`.
 Browsers use local storage. The original `trials.json` is untouched.
@@ -209,8 +213,8 @@ events, disc references and embedded custom files. **Copy project** supports tex
 sharing; file export is more convenient for large bundles. Recipients still need
 the corresponding game discs and any separately selected character artwork
 packs. Source-disc artwork/audio is never copied into the bundle. Missing
-references produce an error. Schema 3 reads version-one and version-two projects. Campaign projects require
-this build or later.
+references produce an error. Schema 4 reads version-one through version-three
+projects. Campaign editing and extended limits require a supporting build.
 
 **Import** accepts Studio projects, retail `.msn` missions, or the existing
 single-block `.mcs` format. Retail share codes also work. **Export retail map
@@ -254,5 +258,29 @@ During F5 playtests, F1 opens the normal settings and inspection menu. Changes
 made there last for that playtest; restarting or returning to Studio restores the
 project environment and your previous gameplay preferences. Save the project to
 keep edits; campaign savestates remain separate from Studio playtests.
+Return from Studio before switching campaigns, starting benchmarks or importing
+savestates/rewind recordings.
 The 3D editor displays all placed characters, including those that start dormant
 in playtests under the original activation rules.
+
+The **Limits** button in the bottom status bar always shows character, ornament
+(or source prop), and scenery counts. Open it to change this map's limits, or
+choose **Extended limits**. Limits are saved with the project and participate in
+undo/redo. Lowering a limit never deletes existing placements. Trial maps can
+raise their caps to 256 characters including the player, 1,024 ornaments and
+1,024 patrol points. Campaign maps can raise their caps to 256 additional
+characters, 16,384 source props, 4,096 pickups and 32,768 edited surfaces. Added
+scenery supports up to 8,192 instances; events up to 4,096 with 1,024 cues each.
+The panel also lists fixed storage, custom-asset and audio budgets.
+
+Use `.tenchu` export for extended maps. Retail `.msn` export reports an error
+above 10 characters, 64 ornaments or 64 patrol points, instead of truncating the
+map. The original editor retains its original defaults. Extended elimination
+missions display a numeric enemy count so a long row of candles cannot run off
+screen. Activation and gameplay rules still follow the source game.
+
+Terrain edits reuse unchanged artwork and prepared character/weapon/scenery
+meshes. Geometry and collision still rebuild from the original scalar source
+rules, and weather accumulation continues while editing. Changes to model
+sources or mesh quality, and entering a playtest, prepare the required assets
+again.

@@ -118,3 +118,55 @@ fn patrol_ramps_require_source_facing_and_waits_keep_their_source_units() {
         mission
     );
 }
+
+#[test]
+fn extended_limits_cover_painting_characters_and_patrols_without_lossy_retail_export() {
+    let theme = theme();
+    let mut mission = Mission::new(0, crate::trial::Objective::EliminateEnemies, 140).unwrap();
+    for x in 0..8 {
+        add_actor(&mut mission, &theme, Point { x, z: 5 }, 140).unwrap();
+    }
+    assert!(add_actor(&mut mission, &theme, Point { x: 8, z: 5 }, 140).is_err());
+    mission.limits = crate::trial::Limits::MAX;
+    add_actor(&mut mission, &theme, Point { x: 8, z: 5 }, 140).unwrap();
+    for _ in 0..70 {
+        patrol(
+            &mut mission,
+            &theme,
+            2,
+            Waypoint {
+                point: Point { x: 0, z: 5 },
+                wait: 1,
+                facing: 0,
+            },
+        )
+        .unwrap();
+    }
+    mission.limits.ornaments = 64;
+    for i in 0..64 {
+        paint(
+            &mut mission,
+            &theme,
+            Point {
+                x: i % 32,
+                z: i / 32,
+            },
+            true,
+            10,
+        )
+        .unwrap();
+    }
+    let last = Point { x: 0, z: 2 };
+    assert!(paint(&mut mission, &theme, last, true, 10).is_err());
+    mission.limits.ornaments = 1024;
+    paint(&mut mission, &theme, last, true, 10).unwrap();
+    mission.validate().unwrap();
+    assert!(mission.encode().unwrap_err().contains(".tenchu"));
+    mission.placements.truncate(10);
+    mission.placements[2].route.truncate(64);
+    paint(&mut mission, &theme, last, true, 255).unwrap();
+    let restored = Mission::decode(&mission.encode().unwrap()).unwrap();
+    assert_eq!(restored.placements, mission.placements);
+    assert_eq!(restored.map, mission.map);
+    assert_eq!(restored.limits, crate::trial::Limits::default());
+}

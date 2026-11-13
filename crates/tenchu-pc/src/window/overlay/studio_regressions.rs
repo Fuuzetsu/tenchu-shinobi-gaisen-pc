@@ -63,6 +63,12 @@ fn click(app: &mut Application, ctx: &egui::Context, text: &str) {
 }
 
 fn capture(app: &mut Application, output: &std::path::Path, name: &str) {
+    app.view
+        .as_ref()
+        .unwrap()
+        .overlay
+        .context
+        .style_mut(|style| style.animation_time = 0.0);
     for _ in 0..3 {
         app.update_overlay();
     }
@@ -75,6 +81,54 @@ fn capture(app: &mut Application, output: &std::path::Path, name: &str) {
             &output.join(format!("{name}.png")),
         )
         .unwrap();
+}
+
+fn geometry(app: &Application) -> Vec<u8> {
+    let game = &app.campaign.game;
+    let mut vertices = crate::render_mesh::stage(
+        &game.mission,
+        &game.math,
+        Some(&app.view.as_ref().unwrap().models),
+    );
+    // Renderer material handles may be assigned in a different order after a
+    // full reload. The geometry, UVs, colors and rendering flags must agree.
+    for vertex in &mut vertices {
+        vertex.material = 0;
+    }
+    bytemuck::cast_slice(&vertices).to_vec()
+}
+
+fn compare_full_rebuild(app: &mut Application) {
+    let state = postcard::to_allocvec(&app.campaign.game).unwrap();
+    let optimized = geometry(app);
+    app.apply_studio(Command::Play).unwrap();
+    app.apply_studio(Command::Return).unwrap();
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), state);
+    assert_eq!(geometry(app), optimized);
+}
+
+fn edit_campaign_surface(app: &mut Application) {
+    let (key, original) = app.studio.first_campaign_surface().unwrap();
+    let campaign = app.studio.project.campaign.as_mut().unwrap();
+    campaign.edit_surface(
+        crate::level_editor::campaign::Edit {
+            key,
+            original,
+            node: tenchu_assets::terrain::Node {
+                y: original.y.saturating_sub(50),
+                ..original
+            },
+            geometry: true,
+        },
+        true,
+    );
+    app.studio.revision += 1;
+    let start = Instant::now();
+    app.refresh_studio().unwrap();
+    eprintln!(
+        "CAMPAIGN TERRAIN EDIT: {:.3} ms",
+        start.elapsed().as_secs_f64() * 1000.
+    );
 }
 
 #[test]
@@ -114,6 +168,7 @@ fn studio_browser_and_tile_edit_regressions() {
         .unwrap(),
     );
     let path = output.join("regression-library.json");
+    let _ = std::fs::remove_file(&path);
     app.studio = crate::level_editor::Editor::new(path.clone());
     app.apply_studio(Command::Open).unwrap();
     let ctx = egui::Context::default();
@@ -128,6 +183,33 @@ fn studio_browser_and_tile_edit_regressions() {
     });
     assert_eq!(roots.len(), app.campaign.game.roster.order.len());
     capture(&mut app, &output, "lighting-example");
+    click(&mut app, &ctx, "Characters");
+    let camera = app.studio.camera;
+    let actor = app.campaign.game.roster.order[2];
+    let target = glam::Vec3::from_array(
+        app.campaign
+            .game
+            .roster
+            .get(actor)
+            .position
+            .to_array()
+            .map(|v| v as f32),
+    ) + glam::vec3(0., -900., 0.);
+    let eye = target + glam::vec3(0., 0., 900.);
+    let direction = (target - eye).normalize();
+    app.studio.camera = crate::debug::camera::Camera {
+        position: eye,
+        yaw: direction.x.atan2(direction.z),
+        pitch: (-direction.y).asin(),
+        fov: 95.,
+    };
+    click(&mut app, &ctx, "Guides");
+    app.campaign.game.roster.get_mut(actor).attribute |= tenchu_core::ids::ATTR_SUSPEND;
+    capture(&mut app, &output, "character-before");
+    app.campaign.game.roster.get_mut(actor).attribute &= !tenchu_core::ids::ATTR_SUSPEND;
+    capture(&mut app, &output, "character-after");
+    app.studio.camera = camera;
+    click(&mut app, &ctx, "Guides");
     let tiles: Vec<_> = app
         .studio
         .theme
@@ -140,6 +222,15 @@ fn studio_browser_and_tile_edit_regressions() {
         .map(|(i, t)| (i as u8, t.is_ornament()))
         .collect();
     assert!(!tiles.is_empty());
+    app.studio.project.graphics.weather.mode = crate::settings::WeatherMode::Rainstorm;
+    app.apply_studio(Command::WeatherPreview(120)).unwrap();
+    let weather = app
+        .view
+        .as_ref()
+        .unwrap()
+        .weather_preview_state(&app.settings);
+    assert!(weather[0] > 0.0);
+    let mut timings = Vec::new();
     for (id, ornament) in tiles.into_iter().take(3) {
         let cell = &mut app.studio.project.mission.map[10 * 32 + 10];
         if ornament {
@@ -150,15 +241,43 @@ fn studio_browser_and_tile_edit_regressions() {
         app.studio.revision += 1;
         let start = Instant::now();
         app.refresh_studio().unwrap();
+        timings.push(start.elapsed().as_secs_f64() * 1000.);
         eprintln!(
             "TILE EDIT {id} ornament={ornament}: {:.3} ms",
             start.elapsed().as_secs_f64() * 1000.
         );
+        if std::env::var_os("TENCHU_STUDIO_FULL_REBUILD").is_none() {
+            assert_eq!(
+                app.view
+                    .as_ref()
+                    .unwrap()
+                    .weather_preview_state(&app.settings),
+                weather,
+                "Weather accumulation or elapsed time reset during a terrain edit"
+            );
+        }
         assert_eq!(
             app.campaign.game.mission.trial.as_ref().unwrap().mission,
             app.studio.project.mission
         );
     }
+    let start = Instant::now();
+    for _ in 0..30 {
+        app.refresh_studio().unwrap();
+    }
+    let idle_ms = start.elapsed().as_secs_f64() * 1000. / 30.;
+    eprintln!("IDLE PREVIEW UPDATE: {idle_ms:.3} ms");
+    std::fs::write(
+        output.join("timings.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "full_rebuild": std::env::var_os("TENCHU_STUDIO_FULL_REBUILD").is_some(),
+            "optimized_build": !cfg!(debug_assertions), "tile_ms": timings, "idle_ms": idle_ms
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    compare_full_rebuild(&mut app);
+    capture(&mut app, &output, "edited-terrain");
     click(&mut app, &ctx, "Projects");
     click(&mut app, &ctx, "Campaign maps · T1 / T2");
     click(&mut app, &ctx, "Browse / refresh connected discs");
@@ -182,6 +301,8 @@ fn studio_browser_and_tile_edit_regressions() {
     assert_eq!(app.campaign.game.mission.stage.directory, stage.directory);
     assert!(app.campaign.game.trial.is_none());
     capture(&mut app, &output, "campaign-t1-ui");
+    edit_campaign_surface(&mut app);
+    compare_full_rebuild(&mut app);
     click(&mut app, &ctx, "Projects");
     let output_ui = frame(&mut app, &ctx, vec![]);
     let pos = find(&output_ui, "Find campaign area or sequence…");
@@ -225,7 +346,111 @@ fn studio_browser_and_tile_edit_regressions() {
     );
     assert!(app.campaign.game.trial.is_none());
     capture(&mut app, &output, "campaign-t2-ui");
+    edit_campaign_surface(&mut app);
+    compare_full_rebuild(&mut app);
+    click(&mut app, &ctx, "Projects");
+    if std::env::var_os("TENCHU_STUDIO_SCAN_CAMPAIGNS").is_some() {
+        let mut loaded = Vec::new();
+        for (source, name) in app.studio.campaign_choices() {
+            click(&mut app, &ctx, "Projects");
+            ctx.memory_mut(|m| m.request_focus(egui::Id::new("studio-campaign-search")));
+            frame(
+                &mut app,
+                &ctx,
+                vec![egui::Event::Key {
+                    key: egui::Key::A,
+                    physical_key: Some(egui::Key::A),
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers {
+                        command: true,
+                        ctrl: true,
+                        ..Default::default()
+                    },
+                }],
+            );
+            frame(
+                &mut app,
+                &ctx,
+                vec![
+                    egui::Event::Text(name[3..].into()),
+                    egui::Event::Key {
+                        key: egui::Key::A,
+                        physical_key: Some(egui::Key::A),
+                        pressed: false,
+                        repeat: false,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+            click(&mut app, &ctx, &name);
+            assert_eq!(
+                app.studio.project.campaign.as_ref().map(|c| &c.source),
+                Some(&source),
+                "{name}: {}",
+                app.studio.notice
+            );
+            assert!(app.campaign.game.mission.trial.is_none());
+            assert_eq!(app.studio.preview_revision, app.studio.revision);
+            eprintln!("CAMPAIGN LOADED: {name}");
+            loaded.push(name);
+        }
+        let library: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert!(
+            library["projects"].as_array().unwrap().len() < 10,
+            "Browsing untouched templates filled the library"
+        );
+        std::fs::write(
+            output.join("campaign-browser-matrix.json"),
+            serde_json::to_vec_pretty(&loaded).unwrap(),
+        )
+        .unwrap();
+        click(&mut app, &ctx, "Projects");
+    }
+    click(&mut app, &ctx, "Open T1 + T2 garden example");
+    let ornament = app
+        .studio
+        .project
+        .mission
+        .map
+        .iter()
+        .find(|c| c.ornament != 255)
+        .unwrap()
+        .ornament;
+    app.studio.project.mission.map[11 * 32 + 19].ornament = ornament;
+    app.studio.revision += 1;
+    let start = Instant::now();
+    app.refresh_studio().unwrap();
+    eprintln!(
+        "MIXED TERRAIN EDIT: {:.3} ms",
+        start.elapsed().as_secs_f64() * 1000.
+    );
+    compare_full_rebuild(&mut app);
+    capture(&mut app, &output, "mixed-edited-terrain");
+    let ui = frame(&mut app, &ctx, vec![]);
+    let limits = ui
+        .shapes
+        .iter()
+        .find_map(|s| match &s.shape {
+            egui::Shape::Text(t) if t.galley.job.text.starts_with("Limits ·") => {
+                Some(t.galley.job.text.clone())
+            }
+            _ => None,
+        })
+        .unwrap();
+    click(&mut app, &ctx, &limits);
+    click(&mut app, &ctx, "Extended limits");
+    capture(&mut app, &output, "project-limits");
+    assert_eq!(
+        app.studio.project.mission.limits,
+        tenchu_assets::trial::Limits::MAX
+    );
     app.apply_studio(Command::Play).unwrap();
+    app.toggle_menu();
+    assert!(app.menu.open && app.is_suspended());
+    capture(&mut app, &output, "playtest-f1");
+    app.toggle_menu();
     for _ in 0..4 {
         app.game_tick(0);
     }

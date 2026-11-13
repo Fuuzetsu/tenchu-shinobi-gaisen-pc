@@ -104,6 +104,16 @@ pub fn game_text(
     subtitles: Option<tenchu_assets::script::Language>,
 ) -> Vec<Text> {
     let mut text = Vec::new();
+    if show_hud && let Some(remaining) = trial::extended_counter(game) {
+        text.push(Text {
+            position: Pos2::new(0.0, 90.0),
+            text: format!("Enemies remaining: {remaining}"),
+            color: Color32::WHITE,
+            size: 10.0,
+            width: 180.0,
+            centered: true,
+        });
+    }
     if show_hud && sharp_text {
         if game.hud.bandage_selected()
             && let Some([x, y]) = game.hud.bandage_position(game.player())

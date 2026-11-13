@@ -4,6 +4,41 @@ use crate::{Result, i16_le, u16_le, u32_le};
 pub const SIZE: usize = 0x1d3c;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Limits {
+    pub characters: usize,
+    pub ornaments: usize,
+    pub patrol: usize,
+}
+
+impl Default for Limits {
+    fn default() -> Self {
+        Self {
+            characters: 10,
+            ornaments: 64,
+            patrol: 64,
+        }
+    }
+}
+
+impl Limits {
+    pub const MAX: Self = Self {
+        characters: 256,
+        ornaments: 1024,
+        patrol: 1024,
+    };
+
+    pub fn validate(self) -> Result<()> {
+        if !(3..=Self::MAX.characters).contains(&self.characters)
+            || self.ornaments > Self::MAX.ornaments
+            || !(2..=Self::MAX.patrol).contains(&self.patrol)
+        {
+            return Err("Invalid mission authoring limits".into());
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Objective {
     ReachLord,
     Assassinate,
@@ -73,6 +108,8 @@ pub struct Record {
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Mission {
+    #[serde(default)]
+    pub limits: Limits,
     pub title: String,
     pub author: String,
     pub password: String,
@@ -105,6 +142,7 @@ impl Mission {
     pub fn new(theme: usize, objective: Objective, target: i16) -> Result<Self> {
         let ground = *DEFAULT_TILES.get(theme).ok_or("Unknown trial theme")?;
         let mut mission = Self {
+            limits: Limits::default(),
             title: "New mission".into(),
             author: String::new(),
             password: String::new(),
@@ -231,6 +269,7 @@ impl Mission {
             placements.push(Placement { kind, point, route });
         }
         let mission = Self {
+            limits: Limits::default(),
             title: read_text(&bytes[8..40]),
             author: read_text(&bytes[40..58]),
             password: read_text(&bytes[58..76]),
@@ -246,9 +285,11 @@ impl Mission {
         Ok(mission)
     }
     pub fn validate(&self) -> Result<()> {
+        self.limits.validate()?;
         if self.map.len() != 1024
             || self.theme >= 12
-            || !(self.objective.reserved()..=10).contains(&self.placements.len())
+            || !(self.objective.reserved()..=self.limits.characters)
+                .contains(&self.placements.len())
             || self.placements[0].kind != 0
             || self.records.len() > 10
         {
@@ -256,7 +297,7 @@ impl Mission {
         }
         for placement in &self.placements {
             if !placement.point.valid()
-                || placement.route.len() > 64
+                || placement.route.len() > self.limits.patrol
                 || placement.route.len() == 1
                 || placement.route.iter().any(|p| {
                     !p.point.valid() || !(0..4).contains(&p.facing) || !(0..=9).contains(&p.wait)
@@ -269,6 +310,12 @@ impl Mission {
     }
     pub fn encode(&self) -> Result<Vec<u8>> {
         self.validate()?;
+        if self.placements.len() > 10
+            || self.placements.iter().any(|p| p.route.len() > 64)
+            || self.map.iter().filter(|c| c.ornament != 255).count() > 64
+        {
+            return Err("Retail .msn export allows 10 characters, 64 ornaments and 64 patrol points. Export a .tenchu project to retain this map.".into());
+        }
         let mut bytes = vec![0; SIZE];
         let objective = Objective::ALL
             .iter()

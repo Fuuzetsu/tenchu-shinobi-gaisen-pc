@@ -39,6 +39,16 @@ pub fn text(sprite: &Sprite, character: char) -> Text {
     }
 }
 
+pub fn extended_counter(game: &Game) -> Option<i16> {
+    let setup = game.mission.trial.as_ref()?;
+    let state = game.trial.as_ref()?;
+    (setup.mission.placements.len() > 10
+        && setup.mission.objective == tenchu_assets::trial::Objective::EliminateEnemies
+        && state.phase == tenchu_core::game::trial::Phase::Playing
+        && state.remaining >= 0)
+        .then_some(state.remaining)
+}
+
 pub fn candle(game: &Game, sprite: &Sprite) -> Option<usize> {
     game.mission
         .trial

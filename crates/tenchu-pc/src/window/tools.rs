@@ -521,7 +521,9 @@ impl Application {
                 unreachable!("checked runtime availability")
             }
             Item::UseBandage => {
-                self.state_tools_available()?;
+                if self.studio_previous.is_none() {
+                    self.state_tools_available()?;
+                }
                 let state = self
                     .campaign
                     .game

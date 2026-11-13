@@ -5,10 +5,26 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reuse prepared characters, weapons, scenery and decoded artwork during Studio
+  terrain edits. Rebuild source terrain/collision without reloading unchanged
+  assets, and keep weather accumulation running across edits.
+- Show live character, ornament and scenery counts in Studio. Open **Limits** to
+  raise per-map character, ornament, patrol, scenery, event and campaign-object
+  budgets. Extended `.tenchu` maps retain every placement; retail `.msn` export
+  rejects counts it cannot represent. Extended elimination missions show a
+  readable remaining-enemy count. Schema 4 retains existing JSON project support.
+  Recreate trial-mission savestates and rewind recordings from earlier builds.
+- Populate the campaign browser when opened and explicitly reload the selected
+  T1 layout or T2 sequence into the Studio preview. Browsing untouched campaign
+  templates no longer fills the project library and prevents further loads;
+  edited work is still saved before switching.
+
 - Level Studio shows every placed character in the 3D editor, including actors
   that start dormant under the original gameplay rules. Playtests retain those rules.
 - F1 opens the normal settings and inspection menu during Studio playtests.
   Temporary playtest settings are discarded on restart or return to editing.
+  Switching campaigns, running benchmarks and importing savestates/rewind require
+  returning from Studio first, keeping the playtest and campaign separate.
 
 - Use physical WASD/QE positions for Studio camera movement, matching in-game
   free camera and default playtest controls on Dvorak and other keyboard layouts.
@@ -18,8 +34,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   Edit source terrain elevation, ramps and holes with matching visible geometry
   and collision, plus characters, patrols, static props and pickups. Campaign
   projects use Gaisen playtests and authored events; retail scripts/cutscenes,
-  native T2 AI and dynamic T2 scenery are not imported. Schema 3 reads existing
-  Studio projects and keeps source-disc assets as references.
+  native T2 AI and dynamic T2 scenery are not imported. Source-disc assets remain
+  references in saved projects.
 
 - Import custom PNG textures, triangulated OBJ models, and WAV/Ogg Vorbis/MP3/FLAC
   music and effects into Level Studio. Set model scale and material textures,

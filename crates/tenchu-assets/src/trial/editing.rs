@@ -39,9 +39,13 @@ pub fn paint(
     if ornament {
         if tile != 255 {
             if mission.map[at].ornament == 255
-                && mission.map.iter().filter(|c| c.ornament != 255).count() >= 64
+                && mission.map.iter().filter(|c| c.ornament != 255).count()
+                    >= mission.limits.ornaments
             {
-                return Err("The original mission format supports 64 ornaments".into());
+                return Err(format!(
+                    "Ornament limit reached ({}). Adjust project Limits in Level Studio to raise it.",
+                    mission.limits.ornaments
+                ));
             }
             if !supports(mission.map[at].ground, tile) {
                 return Err(
@@ -86,8 +90,11 @@ pub fn clear_ground(mission: &Mission, theme: &Theme, point: Point) -> Result<()
 }
 
 pub fn add_actor(mission: &mut Mission, theme: &Theme, point: Point, kind: i16) -> Result<usize> {
-    if mission.placements.len() >= 10 {
-        return Err("A mission supports ten characters, including player and objectives".into());
+    if mission.placements.len() >= mission.limits.characters {
+        return Err(format!(
+            "Character limit reached ({} including player and objectives). Adjust project Limits in Level Studio to raise it.",
+            mission.limits.characters
+        ));
     }
     clear_ground(mission, theme, point)?;
     mission.placements.push(Placement {
@@ -143,8 +150,11 @@ pub fn patrol(
         (0, 0) => waypoint.facing,
         _ => return Err("Add adjacent tiles one step at a time".into()),
     };
-    if placement.route.len() >= 64 {
-        return Err("A patrol supports at most 64 points".into());
+    if placement.route.len() >= mission.limits.patrol {
+        return Err(format!(
+            "Patrol limit reached ({} points)",
+            mission.limits.patrol
+        ));
     }
     if delta != (0, 0) && blocked(theme, &mission.map, previous, waypoint.point, facing) {
         return Err("Patrol step blocked: use connected ground or an aligned ramp".into());

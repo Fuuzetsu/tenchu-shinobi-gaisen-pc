@@ -4,6 +4,9 @@ use tenchu_assets::frontend::Movie;
 
 impl Application {
     pub(super) fn select_campaign(&mut self, id: u64) -> Result<()> {
+        if self.studio_previous.is_some() {
+            return Err("Return from Level Studio before switching campaigns".into());
+        }
         if self.demo.is_some() || self.benchmarks.run.is_some() {
             return Err("Finish the demo or benchmark before switching campaigns".into());
         }

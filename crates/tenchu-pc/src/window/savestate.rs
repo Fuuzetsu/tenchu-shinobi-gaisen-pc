@@ -23,6 +23,9 @@ struct State<G> {
 
 impl Application {
     pub(super) fn state_tools_available(&self) -> Result<()> {
+        if self.studio_previous.is_some() {
+            return Err("Return from Level Studio before using campaign savestates or rewind; save the project to keep your map".into());
+        }
         if self.demo.is_some() || self.benchmarks.run.is_some() {
             return Err("Finish the demo or benchmark before using savestates".into());
         }

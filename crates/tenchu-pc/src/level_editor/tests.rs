@@ -501,3 +501,40 @@ fn saving_records_current_build_without_inventing_the_original_build() {
         Some(provenance::Build::current())
     );
 }
+
+#[test]
+fn project_limits_roundtrip_and_undo_without_truncating_scenery_or_events() {
+    let mut project = Project::new(Mission::new(0, Objective::ReachLord, 140).unwrap());
+    project.limits = limits::Limits::MAX;
+    project.mission.limits = tenchu_assets::trial::Limits::MAX;
+    project.scenery = vec![
+        Scenery {
+            name: "Prop".into(),
+            custom: None,
+            game: AssetGame::Tenchu,
+            stage: 0,
+            part: 0,
+            position: [0; 3],
+            yaw: 0
+        };
+        513
+    ];
+    project.events = vec![Event::default(); 257];
+    project.validate().unwrap();
+    let saved = Project::decode(&project.encode().unwrap()).unwrap();
+    assert_eq!(saved.scenery, project.scenery);
+    assert_eq!(saved.events, project.events);
+    assert_eq!(saved.limits, project.limits);
+    assert_eq!(saved.mission.limits, project.mission.limits);
+    let mut history = History::default();
+    history.begin(&project);
+    project.scenery.pop();
+    project.limits.scenery = 512;
+    history.commit(&mut project);
+    assert!(history.undo(&mut project));
+    assert_eq!(project.scenery.len(), 513);
+    assert_eq!(project.limits, limits::Limits::MAX);
+    project.limits = limits::Limits::default();
+    assert!(project.validate().is_err());
+    assert_eq!(project.scenery.len(), 513);
+}

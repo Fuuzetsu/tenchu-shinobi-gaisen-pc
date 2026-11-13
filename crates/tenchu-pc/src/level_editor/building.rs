@@ -230,8 +230,11 @@ impl Editor {
 
     pub(super) fn region_from_area(&mut self) -> Result<()> {
         let (a, b) = self.selection.ok_or("Drag an area first")?;
-        if self.project.events.len() >= 256 {
-            return Err("A project supports 256 events".into());
+        if self.project.events.len() >= self.project.limits.events {
+            return Err(format!(
+                "Event limit reached ({})",
+                self.project.limits.events
+            ));
         }
         let (a, b) = bounds(a, b);
         let height = i32::from(self.theme.as_ref().unwrap().height(

@@ -73,6 +73,12 @@ pub(super) struct View {
 }
 
 impl View {
+    #[cfg(all(test, target_os = "linux"))]
+    pub(super) fn weather_preview_state(&self, settings: &Settings) -> [f32; 4] {
+        let sample = self.weather.sample(&settings.graphics.weather, 0.0);
+        [sample.wet, sample.snow, sample.puddles, sample.time]
+    }
+
     pub(super) fn death_frame(&self) -> Option<&crate::visuals::interpolation::Frame> {
         self.deaths.frame.as_ref()
     }
@@ -737,19 +743,84 @@ impl View {
         error.map_or(Ok(()), Err)
     }
 
+    pub(super) fn refresh_studio_terrain(
+        &mut self,
+        previous: &Game,
+        game: &mut Game,
+        settings: &Settings,
+    ) -> Result<bool> {
+        let old = &previous.mission;
+        let next = &mut game.mission;
+        let scenery = self.studio_scenery.len();
+        let Some(old_scenery) = old
+            .objects
+            .len()
+            .checked_sub(scenery)
+            .map(|i| &old.objects[i..])
+        else {
+            return Ok(false);
+        };
+        let Some(next_scenery) = next
+            .objects
+            .len()
+            .checked_sub(scenery)
+            .map(|i| &next.objects[i..])
+        else {
+            return Ok(false);
+        };
+        if old_scenery != next_scenery
+            || self.model_options != ModelOptions::from(&settings.graphics)
+            || self.player_selection != self.selected_player(settings)
+            || old.stage.directory != next.stage.directory
+            || old.vram != next.vram
+            || old.world_vram != next.world_vram
+            || old.models != next.models
+            || old.common_models != next.common_models
+            || old.weapons.models != next.weapons.models
+            || old.weapons.grips != next.weapons.grips
+        {
+            return Ok(false);
+        }
+        // Equal immutable source assets keep their identity, and therefore their
+        // prepared meshes, across authoring rebuilds. The game state is still new.
+        next.models = old.models.clone();
+        next.common_models = old.common_models.clone();
+        next.weapons.models = old.weapons.models.clone();
+        next.weapons.grips = old.weapons.grips.clone();
+        if self.pack.extend_mission(next)? {
+            self.renderer.set_asset_pack(&self.pack);
+        }
+        self.models
+            .refresh_terrain(next, &self.pack, &settings.graphics, |meshes| {
+                self.renderer.bind_meshes(meshes)
+            })?;
+        self.models.rekey_scenery(old_scenery, next_scenery);
+        self.reset_stage(game);
+        self.reset_interpolation(game);
+        self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
+        self.renderer.set_emitters(&self.emitters);
+        Ok(true)
+    }
+
     fn set_models(&mut self, mut models: Models, game: &Game) {
         self.dirty = true;
         self.renderer.bind_models(&mut models);
+        self.models = models;
+        self.reset_stage(game);
+    }
+
+    fn reset_stage(&mut self, game: &Game) {
+        self.dirty = true;
         self.shadow_stage = None;
         self.surfaces = None;
         self.blood = Default::default();
         self.weather.invalidate_surfaces();
         self.motion = Default::default();
-        self.spray = if models.has_water() {
+        self.spray = if self.models.has_water() {
             crate::visuals::water::Spray::new(&render_mesh::shadow_stage(
                 &game.mission,
                 &game.math,
-                Some(&models),
+                Some(&self.models),
             ))
         } else {
             Default::default()
@@ -757,10 +828,9 @@ impl View {
         self.stage = self.renderer.upload(&render_mesh::stage(
             &game.mission,
             &game.math,
-            Some(&models),
+            Some(&self.models),
         ));
-        self.contact.canopies = models.canopies(game);
-        self.models = models;
+        self.contact.canopies = self.models.canopies(game);
     }
 
     pub(super) fn artwork_status(&self) -> String {

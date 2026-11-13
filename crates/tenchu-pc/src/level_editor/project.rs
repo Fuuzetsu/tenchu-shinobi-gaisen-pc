@@ -14,6 +14,8 @@ pub struct Project {
     pub build: super::provenance::Provenance,
     pub mission: Mission,
     #[serde(default)]
+    pub limits: super::limits::Limits,
+    #[serde(default)]
     pub campaign: Option<super::campaign::Campaign>,
     pub character: i16,
     pub graphics: Graphics,
@@ -131,9 +133,10 @@ impl Project {
     pub fn new(mission: Mission) -> Self {
         Self {
             format: FORMAT.into(),
-            version: 3,
+            version: 4,
             build: super::provenance::Provenance::new(),
             mission,
+            limits: Default::default(),
             campaign: None,
             character: 0,
             graphics: Graphics::default(),
@@ -147,12 +150,13 @@ impl Project {
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.format != FORMAT || !(1..=3).contains(&self.version) {
+        if self.format != FORMAT || !(1..=4).contains(&self.version) {
             return Err("Unsupported Level Studio project format or version".into());
         }
         self.build.validate()?;
         super::custom::validate(&self.assets)?;
         self.mission.validate()?;
+        self.limits.validate(self)?;
         if let Some(campaign) = &self.campaign {
             campaign.validate()?;
         }
@@ -166,8 +170,8 @@ impl Project {
                 .iter()
                 .any(|record| record.name.len() > 512)
             || self.actors.len() > self.actor_count()
-            || self.scenery.len() > 512
-            || self.events.len() > 256
+            || self.scenery.len() > self.limits.scenery
+            || self.events.len() > self.limits.events
             || self.stamps.len() > 32
             || self.views.len() > 16
         {
@@ -213,7 +217,7 @@ impl Project {
             }
         }
         for event in &self.events {
-            if event.name.len() > 512 || event.cues.len() > 128 {
+            if event.name.len() > 512 || event.cues.len() > self.limits.cues {
                 return Err("Event name or cue queue is too large".into());
             }
             match &event.trigger {
@@ -309,7 +313,7 @@ impl Project {
     }
 
     pub fn mark_saved(&mut self) {
-        self.version = 3;
+        self.version = 4;
         self.build.last_saved_with = Some(super::provenance::Build::current());
     }
 

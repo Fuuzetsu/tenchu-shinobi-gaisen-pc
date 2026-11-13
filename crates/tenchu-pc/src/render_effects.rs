@@ -746,6 +746,11 @@ pub fn build_presented(
             ),
         )
     {
+        if crate::fonts::trial::extended_counter(game).is_some()
+            && crate::fonts::trial::candle(game, sprite).is_some()
+        {
+            continue;
+        }
         if style.hd_hud
             && sprite.rotation == 0
             && let Some(frame) = crate::fonts::trial::candle(game, sprite)

@@ -193,7 +193,7 @@ impl Editor {
                         self.scenery_selection = None;
                     } else if input.modifiers.command
                         && input.key_pressed(egui::Key::D)
-                        && self.project.scenery.len() < 512
+                        && self.project.scenery.len() < self.project.limits.scenery
                     {
                         self.project
                             .scenery
@@ -337,6 +337,7 @@ impl Editor {
                 if let Some(campaign)=&self.project.campaign { ui.label(campaign.source.label()); ui.label(format!("X {} · Y {} · Z {}", self.campaign_cursor[0], self.campaign_cursor[1], self.campaign_cursor[2])); }
                 else { ui.label(format!("Cell {}, {}", self.cursor.x, self.cursor.z)); }
             });
+            self.limits_summary(ui);
             ui.small(if self.grid { "Scroll: zoom · middle drag: pan · click: edit · R: rotate" } else { "Right drag: look · right + WASD/QE: fly · middle drag: pan · scroll: dolly · F: frame selection" });
             if !self.notice.is_empty() { ui.colored_label(Color32::GOLD, &self.notice); }
         });
@@ -385,6 +386,7 @@ impl Editor {
             self.commit();
             self.last_cell = None;
         }
+        self.limits_window(ctx);
         self.pending.take()
     }
 
@@ -581,7 +583,7 @@ impl Editor {
                 if ui.button("Remove last").clicked() { route.pop(); if route.len() < 2 { route.clear(); } }
                 if ui.button("Clear route").clicked() { route.clear(); }
             });
-            ui.label(format!("{} / 64 waypoints", route.len()));
+            ui.label(format!("{} / {} waypoints", route.len(), self.project.mission.limits.patrol));
             for (i, point) in route.iter_mut().enumerate() {
                 ui.push_id(i, |ui| ui.horizontal(|ui| {
                     ui.label(format!("{i}: {}, {}", point.point.x, point.point.z));

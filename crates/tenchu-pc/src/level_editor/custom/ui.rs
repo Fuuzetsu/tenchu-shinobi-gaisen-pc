@@ -91,7 +91,7 @@ impl Editor {
                         if asset.kind == Kind::Model
                             && ui
                                 .add_enabled(
-                                    self.project.scenery.len() < 512,
+                                    self.project.scenery.len() < self.project.limits.scenery,
                                     egui::Button::new("Place model"),
                                 )
                                 .clicked()

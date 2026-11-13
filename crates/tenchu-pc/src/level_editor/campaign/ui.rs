@@ -8,17 +8,25 @@ impl Editor {
     ) {
         ui.collapsing("Campaign maps · T1 / T2", |ui| {
             ui.small("Open a disc map as an editable Studio project, including its terrain. The original disc stays unchanged.");
+            if self.campaign_sources.is_empty() {
+                match campaign_sources(assets) { Ok(sources) => self.campaign_sources = sources, Err(error) => self.notice = error }
+            }
             if ui.button("Browse / refresh connected discs").clicked() {
                 match campaign_sources(assets) { Ok(sources) => self.campaign_sources = sources, Err(e) => self.notice = e }
             }
-            ui.add(egui::TextEdit::singleline(&mut self.search).hint_text("Find campaign area or sequence…"));
+            ui.add(egui::TextEdit::singleline(&mut self.search).id(egui::Id::new("studio-campaign-search")).hint_text("Find campaign area or sequence…"));
             let mut selected = None;
             egui::ScrollArea::vertical().id_salt("campaign-browser").max_height(240.0).show(ui, |ui| {
                 for (source, name) in &self.campaign_sources {
                     if name.to_lowercase().contains(&self.search.to_lowercase()) && ui.button(name).clicked() { selected = Some(source.clone()); }
                 }
             });
-            if let Some(source) = selected && let Err(error) = self.open_campaign(assets, source) { self.notice = error; }
+            if let Some(source) = selected {
+                match self.open_campaign(assets, source) {
+                    Ok(()) => self.pending = Some(Command::Rebuild),
+                    Err(error) => self.notice = format!("Could not open campaign map: {error}"),
+                }
+            }
             ui.small("T2 maps need the matching connected disc edition. Campaign projects use Gaisen playtests and Studio events; retail scripts, cutscenes and T2 dynamic scenery are not imported.");
         });
     }
@@ -174,6 +182,15 @@ impl Editor {
             edit.node = original;
             campaign.edit_surface(edit, self.campaign_follow_terrain);
         } else if edit != before {
+            if !campaign.terrain.iter().any(|e| e.key == edit.key)
+                && campaign.terrain.len() >= self.project.limits.terrain
+            {
+                self.notice = format!(
+                    "Terrain edit limit reached ({}). Adjust project Limits to raise it.",
+                    self.project.limits.terrain
+                );
+                return;
+            }
             campaign.edit_surface(edit, self.campaign_follow_terrain);
         }
         ui.small(format!("{} edited surfaces", campaign.terrain.len()));
@@ -312,7 +329,7 @@ impl Editor {
             });
         if ui
             .add_enabled(
-                campaign.actors.len() < 64,
+                campaign.actors.len() < self.project.limits.characters,
                 egui::Button::new("Add character at cursor"),
             )
             .clicked()
@@ -365,7 +382,7 @@ impl Editor {
                 coordinates(ui,"source-prop",&mut prop.position);
                 ui.add(egui::DragValue::new(&mut prop.facing).range(0..=4095).clamp_existing_to_range(false).prefix("Yaw "));
                 ui.horizontal(|ui| {
-                    if ui.button("Duplicate").clicked() && campaign.props.len()<8192 { campaign.props.push(campaign.props[i].clone()); self.campaign_prop=Some(campaign.props.len()-1); }
+                    if ui.button("Duplicate").clicked() && campaign.props.len()<self.project.limits.props { campaign.props.push(campaign.props[i].clone()); self.campaign_prop=Some(campaign.props.len()-1); }
                     if ui.button("Delete").clicked() { campaign.props.remove(i); self.campaign_prop=None; }
                 });
                 if ui.button("Ground on terrain · End").clicked() { ground = true; }
@@ -394,7 +411,7 @@ impl Editor {
             if input.key_pressed(egui::Key::Delete) {
                 campaign.props.remove(i);
                 self.campaign_prop = None;
-            } else if campaign.props.len() < 8192 {
+            } else if campaign.props.len() < self.project.limits.props {
                 campaign.props.push(campaign.props[i].clone());
                 self.campaign_prop = Some(campaign.props.len() - 1);
             }
@@ -441,7 +458,9 @@ impl Editor {
                     self.campaign_pickup = Some(i);
                 }
             }
-            if ui.button("Add pickup at cursor").clicked() && campaign.pickups.len() < 256 {
+            if ui.button("Add pickup at cursor").clicked()
+                && campaign.pickups.len() < self.project.limits.pickups
+            {
                 campaign.pickups.push(Pickup {
                     kind: 0,
                     position: self.campaign_cursor,

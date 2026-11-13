@@ -4,7 +4,7 @@ mod mission;
 mod setup;
 pub use setup::Setup;
 mod terrain;
-pub use mission::{Cell, Mission, Objective, Placement, Point, Record, Waypoint};
+pub use mission::{Cell, Limits, Mission, Objective, Placement, Point, Record, Waypoint};
 
 use crate::{
     ReadAt, Result,

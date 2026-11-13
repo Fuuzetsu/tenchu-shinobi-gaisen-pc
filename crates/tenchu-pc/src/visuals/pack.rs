@@ -57,6 +57,8 @@ pub struct Manifest {
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Pack {
+    #[serde(skip)]
+    pub(crate) loaded: Option<Inputs>,
     pub textures: BTreeMap<String, Arc<Image>>,
     pub surfaces: BTreeMap<String, super::relief::Surface>,
     pub water: BTreeMap<String, super::water::Kind>,
@@ -73,6 +75,13 @@ pub struct Pack {
     pub player_models: BTreeMap<String, super::appearance::Body>,
 }
 
+#[derive(Clone, Default)]
+pub(crate) struct Inputs {
+    textures: BTreeSet<String>,
+    models: BTreeSet<String>,
+    player_models: bool,
+}
+
 struct Selection {
     max_pixels: usize,
     originals: BTreeMap<String, Image>,
@@ -82,6 +91,36 @@ struct Selection {
 }
 
 impl Selection {
+    fn inputs(&self) -> Inputs {
+        Inputs {
+            textures: self.textures.clone(),
+            models: self.models.clone(),
+            player_models: self.player_models,
+        }
+    }
+
+    fn models(vram: &tenchu_assets::texture::Vram, models: &[catalog::ModelSource<'_>]) -> Self {
+        let originals = catalog::model_regions(vram, models)
+            .into_iter()
+            .map(|(region, id)| {
+                (
+                    id,
+                    Image {
+                        size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
+                        rgba: region.original_pixels(vram),
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        Self {
+            max_pixels: MAX_PIXELS,
+            textures: originals.keys().cloned().collect(),
+            originals,
+            models: models.iter().map(|m| m.id.clone()).collect(),
+            player_models: false,
+        }
+    }
+
     fn interface(originals: BTreeMap<String, Image>) -> Self {
         Self {
             max_pixels: MAX_INTERFACE_PIXELS,
@@ -164,25 +203,12 @@ impl Pack {
         vram: &tenchu_assets::texture::Vram,
         models: &[catalog::ModelSource<'_>],
     ) -> Result<Self> {
-        let originals = catalog::model_regions(vram, models)
-            .into_iter()
-            .map(|(region, id)| {
-                (
-                    id,
-                    Image {
-                        size: [region.rect[2].into(), region.rect[3].into()],
-                        rgba: region.original_pixels(vram),
-                    },
-                )
-            })
-            .collect::<BTreeMap<_, _>>();
-        let selection = Selection {
-            max_pixels: MAX_PIXELS,
-            textures: originals.keys().cloned().collect(),
-            originals,
-            models: models.iter().map(|m| m.id.clone()).collect(),
-            player_models: false,
-        };
+        Self::model_selection(Selection::models(vram, models), models)
+    }
+
+    fn model_selection(selection: Selection, models: &[catalog::ModelSource<'_>]) -> Result<Self> {
+        #[cfg(target_arch = "wasm32")]
+        let _ = models;
         #[cfg(not(target_arch = "wasm32"))]
         if models
             .iter()
@@ -211,6 +237,74 @@ impl Pack {
         };
         let manifest = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
         Self::decode(manifest, Some(selection), crate::web::pack_file)
+    }
+
+    pub(crate) fn extend_mission(&mut self, mission: &MissionAssets) -> Result<bool> {
+        self.extend_selected(Selection::mission(mission), Self::configured)
+    }
+
+    pub(crate) fn extend_models(
+        &mut self,
+        vram: &tenchu_assets::texture::Vram,
+        models: &[catalog::ModelSource<'_>],
+    ) -> Result<bool> {
+        self.extend_selected(Selection::models(vram, models), |selection| {
+            Self::model_selection(selection, models)
+        })
+    }
+
+    fn extend_selected(
+        &mut self,
+        mut selection: Selection,
+        load: impl FnOnce(Selection) -> Result<Self>,
+    ) -> Result<bool> {
+        let requested = selection.inputs();
+        if let Some(loaded) = &self.loaded {
+            selection
+                .textures
+                .retain(|id| !loaded.textures.contains(id));
+            selection.models.retain(|id| !loaded.models.contains(id));
+            selection.player_models &= !loaded.player_models;
+        }
+        if selection.textures.is_empty() && selection.models.is_empty() && !selection.player_models
+        {
+            return Ok(false);
+        }
+        let extra = load(selection)?;
+        let mut images = BTreeSet::new();
+        let pixels: usize = self
+            .images
+            .values()
+            .chain(extra.images.values())
+            .chain(
+                self.surfaces
+                    .values()
+                    .chain(extra.surfaces.values())
+                    .filter_map(|s| s.height.as_ref()),
+            )
+            .filter(|image| images.insert(Arc::as_ptr(image)))
+            .map(|image| image.rgba.len() / 4)
+            .sum();
+        if pixels > MAX_PIXELS {
+            return Err("Editor artwork cache reached its decoded pixel budget".into());
+        }
+        self.textures.extend(extra.textures);
+        self.surfaces.extend(extra.surfaces);
+        self.water.extend(extra.water);
+        self.vegetation.extend(extra.vegetation);
+        self.motion.extend(extra.motion);
+        self.images.extend(extra.images);
+        self.models.extend(extra.models);
+        self.skins.extend(extra.skins);
+        self.model_patches.extend(extra.model_patches);
+        self.materials.extend(extra.materials);
+        self.lights = extra.lights;
+        self.player_models.extend(extra.player_models);
+        let loaded = self.loaded.get_or_insert_with(Default::default);
+        loaded.textures.extend(requested.textures);
+        loaded.models.extend(requested.models);
+        loaded.player_models |= requested.player_models;
+        Ok(true)
     }
 
     pub fn load(root: &Path) -> Result<Self> {
@@ -246,7 +340,10 @@ impl Pack {
                 .validate()
                 .map_err(|error| format!("Texture {id}: {error}"))?;
         }
-        let mut pack = Self::default();
+        let mut pack = Self {
+            loaded: selection.as_ref().map(Selection::inputs),
+            ..Self::default()
+        };
         if let Some(rules) = &manifest.lights {
             for rule in rules {
                 rule.validate()?;

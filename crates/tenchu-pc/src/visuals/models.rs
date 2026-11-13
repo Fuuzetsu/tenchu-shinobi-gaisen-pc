@@ -36,6 +36,8 @@ pub struct Models {
     // Identifies prepared meshes across settings, model swaps and mission reloads.
     pub(crate) pose_generation: Arc<()>,
     world: Meshes,
+    terrain: Meshes,
+    terrain_pack: Option<Pack>,
     weapons: Meshes,
     pub weapon_materials: bool,
     imported: Vec<Meshes>,
@@ -100,7 +102,8 @@ impl Models {
     }
 
     pub fn has_water(&self) -> bool {
-        std::iter::once(&self.world)
+        [&self.world, &self.terrain]
+            .into_iter()
             .chain(&self.imported)
             .flat_map(|meshes| meshes.meshes.values().flat_map(|mesh| &mesh.vertices))
             .any(|v| v.flags & render_mesh::WATER != 0)
@@ -120,7 +123,27 @@ impl Models {
             }));
             sources
         };
-        let world = Meshes::build(&mission.vram, pack, graphics, sources(), false)?;
+        let all = sources();
+        let regions = catalog::model_regions(&mission.vram, &all);
+        // Terrain uses the water/foliage budgets; actors and the grapple use the
+        // refinement budget. Splitting these groups preserves each source order.
+        let world = Meshes::build_regions(
+            &mission.vram,
+            pack,
+            graphics,
+            all.iter().filter(|s| !s.role.scenery()).cloned().collect(),
+            false,
+            &regions,
+        )?;
+        let mut terrain = Meshes::build_regions(
+            &mission.vram,
+            pack,
+            graphics,
+            all.into_iter().filter(|s| s.role.scenery()).collect(),
+            false,
+            &regions,
+        )?;
+        let mut terrain_pack = None;
         let weapons = Meshes::build(
             &mission.vram,
             pack,
@@ -145,10 +168,8 @@ impl Models {
             if graphics.asset_pack {
                 meshes.replace_textures(&pack);
             }
-            for part in mission.map.iter().chain(mission.objects.iter()) {
-                imported_geometry.insert(part.geometry.as_ptr() as usize, imported.len());
-            }
-            imported.push(meshes);
+            terrain = meshes;
+            terrain_pack = Some(pack);
         }
         for (&kind, source) in mission.imported_models.iter() {
             let parts = &mission.models[&kind];
@@ -194,9 +215,12 @@ impl Models {
         Ok(Self {
             pose_generation: Arc::default(),
             replacements: world.replacements
+                + terrain.replacements
                 + imported.iter().map(|m| m.replacements).sum::<usize>(),
             grapple: graphics.models.grapple,
             world,
+            terrain,
+            terrain_pack,
             weapons,
             weapon_materials: graphics.blood.weapons || graphics.weapon_reflections > 0,
             imported,
@@ -207,6 +231,75 @@ impl Models {
             cast: Default::default(),
             motion: Default::default(),
         })
+    }
+
+    pub(crate) fn rekey_scenery(
+        &mut self,
+        old: &[tenchu_assets::model::Part],
+        next: &[tenchu_assets::model::Part],
+    ) {
+        let keys: BTreeMap<_, _> = old
+            .iter()
+            .zip(next)
+            .map(|(a, b)| (a.geometry.as_ptr() as usize, b.geometry.as_ptr() as usize))
+            .collect();
+        fn rekey<T>(map: &mut BTreeMap<usize, T>, keys: &BTreeMap<usize, usize>) {
+            *map = std::mem::take(map)
+                .into_iter()
+                .map(|(key, value)| (keys.get(&key).copied().unwrap_or(key), value))
+                .collect();
+        }
+        rekey(&mut self.imported_geometry, &keys);
+        for meshes in &mut self.imported {
+            rekey(&mut meshes.meshes, &keys);
+            rekey(&mut meshes.variants, &keys);
+            rekey(&mut meshes.canopies, &keys);
+            rekey(&mut meshes.motion, &keys);
+        }
+    }
+
+    pub(crate) fn refresh_terrain(
+        &mut self,
+        mission: &MissionAssets,
+        pack: &Pack,
+        graphics: &Graphics,
+        mut bind: impl FnMut(&mut Meshes),
+    ) -> Result<()> {
+        let sources = catalog::world_models(mission);
+        let mut terrain = if let Some(vram) = &mission.world_vram {
+            let cached = self
+                .terrain_pack
+                .as_mut()
+                .ok_or("Missing imported terrain artwork")?;
+            if graphics.asset_pack {
+                cached.extend_models(vram, &sources)?;
+            }
+            let mut meshes = Meshes::build(vram, cached, graphics, sources, true)?;
+            meshes.detach_textures();
+            if graphics.asset_pack {
+                meshes.replace_textures(cached);
+            }
+            meshes
+        } else {
+            let mut all = catalog::models(mission);
+            all.extend(mission.weapons.grips.iter().map(|(&kind, geometry)| {
+                catalog::ModelSource {
+                    id: format!("weapons/{kind:04x}/grip"),
+                    role: catalog::Role::Other,
+                    hero_part: None,
+                    label: mission.weapons.names[&kind].clone(),
+                    geometry,
+                }
+            }));
+            let regions = catalog::model_regions(&mission.vram, &all);
+            Meshes::build_regions(&mission.vram, pack, graphics, sources, false, &regions)?
+        };
+        bind(&mut terrain);
+        self.replacements = self.replacements - self.terrain.replacements + terrain.replacements;
+        self.terrain = terrain;
+        self.pose_generation = Arc::default();
+        self.motion.clear();
+        Ok(())
     }
 
     pub fn with_player(
@@ -282,6 +375,7 @@ impl Models {
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
         self.pose_generation = Arc::default();
         self.world.bind(&mut bind);
+        self.terrain.bind(&mut bind);
         self.weapons.bind(&mut bind);
         for meshes in &mut self.imported {
             meshes.bind(&mut bind);
@@ -341,6 +435,8 @@ impl Models {
             &player.meshes
         } else if let Some(&index) = self.imported_geometry.get(&key) {
             &self.imported[index]
+        } else if self.terrain.meshes.contains_key(&key) {
+            &self.terrain
         } else if self.weapon_materials && self.weapons.meshes.contains_key(&key) {
             &self.weapons
         } else {
@@ -385,6 +481,7 @@ impl Models {
                     .and_then(|&i| self.imported[i].motion.get(&geometry))
             })
             .or_else(|| self.world.motion.get(&geometry))
+            .or_else(|| self.terrain.motion.get(&geometry))
             .map(Vec::as_slice)
     }
 
@@ -593,6 +690,18 @@ impl Meshes {
         sources: Vec<catalog::ModelSource<'_>>,
         force: bool,
     ) -> Result<Self> {
+        let regions = catalog::model_regions(vram, &sources);
+        Self::build_regions(vram, pack, graphics, sources, force, &regions)
+    }
+
+    fn build_regions(
+        vram: &tenchu_assets::texture::Vram,
+        pack: &Pack,
+        graphics: &Graphics,
+        sources: Vec<catalog::ModelSource<'_>>,
+        force: bool,
+        region_ids: &BTreeMap<catalog::Region, String>,
+    ) -> Result<Self> {
         let mut out = Self::default();
         let rules = super::lights::rules(pack, graphics.asset_pack);
         let water = super::water::rules(pack, graphics.asset_pack);
@@ -603,7 +712,6 @@ impl Meshes {
         let mut foliage_budget = 524_288;
         let motion = super::motion::rules(pack, graphics.asset_pack);
         let corrections = super::model_patch::corrections();
-        let region_ids = catalog::model_regions(vram, &sources);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
         let mut displayed_images = Vec::new();
@@ -612,7 +720,7 @@ impl Meshes {
             let emitter = rules
                 .iter()
                 .rev()
-                .find(|rule| rule.matches(&source, vram, &region_ids))
+                .find(|rule| rule.matches(&source, vram, region_ids))
                 .filter(|rule| rule.enabled);
             let replacement = graphics
                 .asset_pack
@@ -1192,6 +1300,65 @@ pub fn rotation(matrix: Matrix) -> Mat3 {
 mod tests {
     use super::*;
     use tenchu_assets::game::GameAssets;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; separated terrain preparation must match the previous combined budgets and materials"]
+    fn terrain_and_actor_preparation_matches_combined_source_order() {
+        use sha2::{Digest, Sha256};
+        let disc = std::env::var_os("TENCHU_DISC").unwrap();
+        let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+        let game = crate::session::Options::default().load(&assets).unwrap();
+        let mut graphics = Graphics::default();
+        graphics.set_preset(crate::settings::presets::MODERN_ULTRA);
+        let pack = Pack::from_env(&game.mission).unwrap();
+        let mut sources = catalog::models(&game.mission);
+        sources.extend(game.mission.weapons.grips.iter().map(|(&kind, geometry)| {
+            catalog::ModelSource {
+                id: format!("weapons/{kind:04x}/grip"),
+                role: catalog::Role::Other,
+                hero_part: None,
+                label: game.mission.weapons.names[&kind].clone(),
+                geometry,
+            }
+        }));
+        let combined =
+            Meshes::build(&game.mission.vram, &pack, &graphics, sources.clone(), false).unwrap();
+        let mut split = Models::build(&game.mission, &pack, &graphics).unwrap();
+        split.weapon_materials = false;
+        fn digest(meshes: &Meshes, geometry: &[Geometry]) -> Vec<u8> {
+            let mut hash = Sha256::new();
+            let materials: Vec<_> = meshes
+                .materials
+                .iter()
+                .map(|material| {
+                    let mut hash = Sha256::new();
+                    hash.update(material.id.as_bytes());
+                    hash.update(format!("{:?}", material.region).as_bytes());
+                    hash.update(&material.image.rgba);
+                    hash.finalize()
+                })
+                .collect();
+            meshes.visit(geometry, Matrix::default(), true, 0, None, |triangle| {
+                for v in triangle {
+                    let mut vertex = *v;
+                    if let Some(i) = vertex.material.checked_sub(1) {
+                        hash.update(materials[i as usize]);
+                    }
+                    vertex.material = 0;
+                    hash.update(bytemuck::bytes_of(&vertex));
+                }
+            });
+            hash.finalize().to_vec()
+        }
+        for source in sources {
+            assert_eq!(
+                digest(&combined, source.geometry),
+                digest(split.source(source.geometry), source.geometry),
+                "{}",
+                source.id
+            );
+        }
+    }
 
     #[test]
     fn palette_blending_keeps_hd_identity_and_replacement_blend_classes() {

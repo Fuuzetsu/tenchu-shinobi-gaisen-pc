@@ -22,6 +22,7 @@ impl Application {
             || self.settings.rewind_seconds == 0
             || self.demo.is_some()
             || self.benchmarks.run.is_some()
+            || self.studio_previous.is_some()
             || self.trial.open
             || self.randomizer.open
             || !self.campaign.scene_visible()

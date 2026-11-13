@@ -536,6 +536,9 @@ impl<S> Benchmarks<S> {
 
 impl Application {
     pub(super) fn start_benchmark(&mut self, options: Options) -> Result<()> {
+        if self.studio_previous.is_some() {
+            return Err("Return from Level Studio before starting a benchmark".into());
+        }
         self.clear_rewind();
         if self.campaign.randomized.is_some() {
             return Err("End the randomizer run before starting a benchmark".into());

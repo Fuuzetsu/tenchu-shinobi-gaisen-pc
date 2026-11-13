@@ -262,7 +262,7 @@ impl Theme {
                 }
                 for z in cz * 4..cz * 4 + 4 {
                     for x in cx * 4..cx * 4 + 4 {
-                        if out.ornaments.len() == 64 {
+                        if out.ornaments.len() == mission.limits.ornaments {
                             break;
                         }
                         let cell = mission.cell(x, z).unwrap();

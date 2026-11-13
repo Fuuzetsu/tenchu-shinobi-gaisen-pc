@@ -185,7 +185,7 @@ impl Editor {
                     }) {
                         if ui
                             .add_enabled(
-                                self.project.scenery.len() < 512,
+                                self.project.scenery.len() < self.project.limits.scenery,
                                 egui::Button::new(format!("+ {name}")),
                             )
                             .clicked()
@@ -281,7 +281,7 @@ impl Editor {
             }
             if ui
                 .add_enabled(
-                    self.project.scenery.len() < 512,
+                    self.project.scenery.len() < self.project.limits.scenery,
                     egui::Button::new("Duplicate"),
                 )
                 .clicked()

@@ -227,6 +227,25 @@ fn studio_shows_sleeping_actors_and_isolates_playtest_settings() {
     for item in [Item::SaveState, Item::LoadState, Item::Rewind] {
         assert!(app.apply_item(item, 1).is_err());
     }
+    let current = postcard::to_allocvec(&app.campaign.game).unwrap();
+    assert!(app.capture_state().unwrap_err().contains("Level Studio"));
+    assert!(
+        app.load_recording(&[])
+            .unwrap_err()
+            .contains("Level Studio")
+    );
+    assert!(app.import_rewind().unwrap_err().contains("Level Studio"));
+    assert!(app.select_campaign(0).unwrap_err().contains("Level Studio"));
+    assert!(
+        app.start_benchmark(Default::default())
+            .unwrap_err()
+            .contains("Level Studio")
+    );
+    app.settings.rewind_seconds = 30;
+    app.record_rewind(None);
+    assert!(app.rewind.entries.is_empty());
+    assert_eq!(app.settings.rewind_seconds, 30);
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), current);
     app.toggle_menu();
     assert!(!app.menu.open && !app.is_suspended());
     app.game_tick(0);
@@ -246,4 +265,101 @@ fn studio_shows_sleeping_actors_and_isolates_playtest_settings() {
     assert_eq!(app.settings, preferences);
     assert!(!app.settings_store.path.exists());
     std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; extended authoring must construct every ornament and actor, preserve routes and report the complete objective count"]
+fn studio_extended_limits_construct_every_placement_and_playtest() {
+    use tenchu_assets::trial::{Limits, Mission, Objective, Point, Waypoint, editing};
+    let mut app = super::super::tests::application(Default::default());
+    let path = std::env::temp_dir().join(format!("studio-extended-{}.json", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    app.studio = crate::level_editor::Editor::new(path.clone());
+    app.apply_studio(Command::Open).unwrap();
+    let kind = app.studio.tables.as_ref().unwrap().appearance[0][2];
+    app.studio.project.mission = Mission::new(0, Objective::EliminateEnemies, kind).unwrap();
+    app.studio.project.mission.limits = Limits::MAX;
+    let theme = app.studio.theme.as_ref().unwrap();
+    let ornament = theme
+        .tiles
+        .iter()
+        .position(|t| t.is_ornament() && t.flags & 0x3000 == 0)
+        .unwrap() as u8;
+    for i in 0..96 {
+        editing::paint(
+            &mut app.studio.project.mission,
+            theme,
+            Point {
+                x: i % 32,
+                z: i / 32,
+            },
+            true,
+            ornament,
+        )
+        .unwrap();
+    }
+    for x in 0..30 {
+        editing::add_actor(
+            &mut app.studio.project.mission,
+            theme,
+            Point { x, z: 5 },
+            kind,
+        )
+        .unwrap();
+    }
+    for _ in 0..70 {
+        editing::patrol(
+            &mut app.studio.project.mission,
+            theme,
+            2,
+            Waypoint {
+                point: Point { x: 0, z: 5 },
+                wait: 1,
+                facing: 0,
+            },
+        )
+        .unwrap();
+    }
+    let reopened =
+        crate::level_editor::Project::decode(&app.studio.project.encode().unwrap()).unwrap();
+    assert_eq!(reopened.mission, app.studio.project.mission);
+    app.apply_studio(Command::Rebuild).unwrap();
+    assert_eq!(app.campaign.game.roster.order.len(), 32);
+    assert_eq!(
+        app.campaign
+            .game
+            .mission
+            .trial
+            .as_ref()
+            .unwrap()
+            .ornaments
+            .len(),
+        96
+    );
+    assert!(app.studio.project.mission.encode().is_err());
+    app.apply_studio(Command::Play).unwrap();
+    for _ in 0..30 {
+        app.game_tick(0);
+    }
+    assert!(app.fault.is_none(), "{:?}", app.fault);
+    assert_eq!(
+        crate::fonts::trial::extended_counter(&app.campaign.game),
+        Some(31)
+    );
+    let texts = crate::fonts::game_text(&app.campaign.game, true, true, true, None);
+    assert!(texts.iter().any(|t| t.text == "Enemies remaining: 31"));
+    app.apply_studio(Command::Return).unwrap();
+    assert_eq!(
+        app.campaign
+            .game
+            .mission
+            .trial
+            .as_ref()
+            .unwrap()
+            .ornaments
+            .len(),
+        96
+    );
+    app.apply_studio(Command::Close).unwrap();
+    std::fs::remove_file(path).unwrap();
 }
