@@ -174,6 +174,16 @@ while placing it in front of the body. The PC renderer retains that deliberate
 depth placement rather than treating the cloth as an ordinary world surface.
 Imported-stage sprite retention uses the existing independent T2 material cache.
 
+The body transition in `800584b0` sets page bits `0x60` on the actor's MDL faces,
+selecting background + foreground/4; it does not change the separate weapon
+models. The TIM loader at `80017600` prepares eligible T2 palettes for blending.
+T1 and custom body materials bypass that loader and can retain opaque texels.
+Their concealment therefore blends every covered texel at draw time, preserving
+transparent cutouts and the original material when the effect ends. Filtered
+sampling combines both source texel classes for this case. The shared shader's
+flag excludes foliage, whose wind weights occupy the same high bits. Native T2
+palette masks and stage shading retain their original behavior.
+
 Retail BizHawk captures confirm the white cloth, subsequent translucent body
 with visible sword, and teleport's leaf burst, delayed relocation and failed
 use without a target. Controlled capture setup supplied inventory; one teleport

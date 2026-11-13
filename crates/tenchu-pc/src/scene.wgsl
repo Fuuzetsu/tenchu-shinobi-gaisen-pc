@@ -5,6 +5,7 @@ const SCREEN_WIDE: u32 = 8u;
 const DOUBLE_SIDED: u32 = 16u;
 const FOG: u32 = 32u;
 const BAKED_FOG: u32 = 268435456u;
+const BLEND_ALL: u32 = 536870912u;
 const DEBUG: u32 = 64u;
 const XRAY: u32 = 128u;
 const UI: u32 = 256u;
@@ -167,6 +168,7 @@ fn prepare_material(input: Fragment, front_facing: bool, translucent_pass: bool,
         color = mix(color, vec3(1.0), camera.detail.z);
     }
     var semi = (v.flags & TRANSLUCENT) != 0u;
+    let blend_all = (v.flags & (BLEND_ALL | FOLIAGE)) == BLEND_ALL;
     if (v.flags & TEXTURED) != 0u {
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
         var pixel = 0u;
@@ -184,25 +186,25 @@ fn prepare_material(input: Fragment, front_facing: bool, translucent_pass: bool,
             base = sample.rgb / max(coverage, 0.001);
         } else if replaced {
             if filtered_material && (v.flags & EMITTER) == 0u && (material_info(v.material).w & 128u) != 0u {
-                semi = false;
+                semi = semi && blend_all;
             } else {
                 let decoded = material_texel(v.material, coordinate);
                 if decoded.a == 0.0 { discard; }
-                semi = semi && decoded.a < 0.75;
+                semi = semi && (blend_all || decoded.a < 0.75);
                 base = decoded.rgb;
             }
         } else {
             pixel = texel(nearest, v.page, v.palette);
             if pixel == 0u { discard; }
             base = rgb(pixel);
-            semi = semi && (pixel & 32768u) != 0u;
+            semi = semi && (blend_all || (pixel & 32768u) != 0u);
         }
         if semi != translucent_pass { discard; }
         if !depth_only && (screen || camera.options.y != 0.0) {
             if blood_hd {
                 color *= base;
             } else if filtered_material {
-                color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, MATERIAL_FILTERING, MATERIAL_MAGNIFICATION, semi, (v.flags & TRANSLUCENT) != 0u, base);
+                color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, MATERIAL_FILTERING, MATERIAL_MAGNIFICATION, semi, (v.flags & TRANSLUCENT) != 0u && !blend_all, base);
             } else if !original_stain && FILTER_MATERIALS && !screen && MATERIAL_FILTERING != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);
             } else {

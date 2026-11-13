@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix T2 invisibility leaving T1 model overrides mostly opaque. Imported bodies
+  now use the same quarter-strength additive effect on native T2 and imported
+  T1 stages; separately selected weapons keep their normal appearance.
+
 - Restore T2's textured transformation, weapon and projectile trails, and draw
   the invisibility cloth in front of the character as in retail. Applies to
   native T2 stages and T1 stages played with T2 rules.

@@ -907,6 +907,11 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         140.0,
         render_mesh::TEXTURED | render_mesh::TRANSLUCENT,
     ));
+    let concealed = renderer.upload(&quad(
+        blocker_position,
+        140.0,
+        render_mesh::TEXTURED | render_mesh::TRANSLUCENT | render_mesh::BLEND_ALL,
+    ));
     let draw = |renderer: &mut Renderer, lights: &[Light], blockers: &[&Mesh]| {
         let mut casters = vec![&receiver];
         casters.extend_from_slice(blockers);
@@ -984,6 +989,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     renderer.update_vram(&vram);
     assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
     assert_eq!(draw(&mut renderer, &[light], &[&mixed]), shadowed);
+    assert_eq!(draw(&mut renderer, &[light], &[&concealed]), lit);
     vram.words[0] |= 0x8000;
     renderer.update_vram(&vram);
     assert_eq!(draw(&mut renderer, &[light], &[&mixed]), lit);
@@ -1023,6 +1029,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         };
         renderer.set_asset_pack(&pack);
         assert_eq!(draw(&mut renderer, &[light], &[&mixed]), expected);
+        assert_eq!(draw(&mut renderer, &[light], &[&concealed]), lit);
         assert_eq!(
             draw(&mut renderer, &[light], &[&transparent]),
             if alpha == 0 { lit } else { shadowed },
@@ -1360,19 +1367,28 @@ fn winding_and_original_texture_blends_render_correctly() {
     }
     let background = renderer.upload(&rectangle(1500, 102, None, false, false, false));
     let foreground = 15 | (15 << 5) | (15 << 10);
-    for (blend, pixel, expected) in [
-        (0, foreground | 0x8000, 123),
-        (1, foreground, 123),
-        (1, foreground | 0x8000, 113),
-        (2, foreground | 0x8000, 225),
-        (3, foreground | 0x8000, 0),
-        (4, foreground | 0x8000, 133),
-        (1, 0, 102),
-        (1, 0x8000, 51),
+    for (blend, pixel, expected, flags) in [
+        (0, foreground | 0x8000, 123, 0),
+        (1, foreground, 123, 0),
+        (1, foreground | 0x8000, 113, 0),
+        (2, foreground | 0x8000, 225, 0),
+        (3, foreground | 0x8000, 0, 0),
+        (4, foreground | 0x8000, 133, 0),
+        (1, 0, 102, 0),
+        (1, 0x8000, 51, 0),
+        (4, foreground, 133, render_mesh::BLEND_ALL),
+        (4, foreground | 0x8000, 133, render_mesh::BLEND_ALL),
+        (4, 0, 102, render_mesh::BLEND_ALL),
+        (
+            4,
+            foreground,
+            123,
+            render_mesh::BLEND_ALL | render_mesh::FOLIAGE,
+        ),
     ] {
         vram.words[0] = pixel;
         renderer.update_vram(&vram);
-        let vertices = rectangle(
+        let mut vertices = rectangle(
             1000,
             128,
             Some(Texture {
@@ -1383,6 +1399,9 @@ fn winding_and_original_texture_blends_render_correctly() {
             false,
             false,
         );
+        for vertex in &mut vertices {
+            vertex.flags |= flags;
+        }
         let count = vertices.len() as u32;
         let effects = renderer.upload_effects(render_effects::Geometry {
             vertices,
@@ -1391,16 +1410,21 @@ fn winding_and_original_texture_blends_render_correctly() {
                 range: 0..count,
             }],
         });
-        renderer
-            .draw(&view, camera, &[&background], Some(&effects))
-            .unwrap();
-        let color = read_pixel(&renderer, &target);
-        assert!(
-            color[..3]
-                .iter()
-                .all(|&v| i32::from(v).abs_diff(expected) <= 1),
-            "blend {blend}, pixel {pixel:04x}: {color:?}, expected {expected}"
-        );
+        for filtering in [0, 1, 2, 4] {
+            let mut graphics = crate::settings::Graphics::default();
+            graphics.set_filtering(filtering);
+            renderer.configure(&graphics);
+            renderer
+                .draw(&view, camera, &[&background], Some(&effects))
+                .unwrap();
+            let color = read_pixel(&renderer, &target);
+            assert!(
+                color[..3]
+                    .iter()
+                    .all(|&v| i32::from(v).abs_diff(expected) <= 1),
+                "blend {blend}, pixel {pixel:04x}, flags {flags:x}, filtering {filtering}: {color:?}, expected {expected}"
+            );
+        }
     }
 }
 

@@ -4,6 +4,7 @@ mod gaisen;
 mod ground;
 mod heroes;
 mod indexed;
+mod invisibility;
 mod items;
 
 #[test]

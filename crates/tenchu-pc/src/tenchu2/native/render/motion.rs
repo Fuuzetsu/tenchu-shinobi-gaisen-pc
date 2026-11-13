@@ -291,9 +291,7 @@ impl Models {
                             .get(name)
                             .is_some_and(|m| !m.source_id.starts_with("tenchu2/"))
                         {
-                            ModelStyle::Imported {
-                                concealed: instance.translucent,
-                            }
+                            ModelStyle::Imported { concealed: false }
                         } else {
                             ModelStyle::Actor
                         },

@@ -3,6 +3,7 @@ const SCREEN: u32 = 2u;
 const DEBUG: u32 = 64u;
 const ALPHA: u32 = 2048u;
 const WATER: u32 = 65536u;
+const BLEND_ALL: u32 = 536870912u;
 @group(0) @binding(0) var<uniform> face: Face;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -41,6 +42,7 @@ struct Fragment {
 fn cutout(v: Fragment) {
     if face.options.w != 0.0 && (v.flags & 1024u) == 0u { discard; }
     if (v.flags & (SCREEN | DEBUG | ALPHA | WATER)) != 0u { discard; }
+    if (v.flags & (4u | BLEND_ALL | FOLIAGE)) == (4u | BLEND_ALL) { discard; }
     // Attached flames emit around the burning body; walls still occlude them.
     if (v.flags & 1024u) == 0u && face.emission.x > 0.0 && distance(v.world, face.emitter.xyz) < face.emission.x { discard; }
     if (v.flags & 512u) != 0u && face.emitter.w > 0.0 && distance(v.world, face.emitter.xyz) < face.emitter.w * 4.0 { discard; }

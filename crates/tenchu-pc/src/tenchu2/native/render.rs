@@ -1496,6 +1496,11 @@ impl Builder {
                     for vertex in &mut triangle {
                         vertex.flags |= render_mesh::TRANSLUCENT;
                         vertex.page |= 0x60;
+                        // Imported bodies lack the blend-ready palettes supplied by
+                        // T2's loader. Conceal all covered texels, retaining cutouts.
+                        if matches!(style, ModelStyle::Imported { .. }) {
+                            vertex.flags |= render_mesh::BLEND_ALL;
+                        }
                     }
                 }
                 if terrain {

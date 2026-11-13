@@ -638,6 +638,12 @@ leaves, and relocates behind that enemy after a delay. A hit can interrupt it;
 without an eligible target or valid destination, the scroll is still consumed.
 These rules also apply on imported T1 stages.
 
+Body concealment uses the original additive blend (background plus one quarter
+of the character colour), so the silhouette stands out more against a dark
+background. Stage shading still applies; there is no separate invisibility
+strength for imported stages. T1 body overrides also support this effect while
+separate weapons retain their ordinary appearance.
+
 For a repeatable capture:
 
 ```sh

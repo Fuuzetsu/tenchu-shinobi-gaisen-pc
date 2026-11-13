@@ -46,6 +46,8 @@ pub const WEAPON_METAL: u32 = 1 << 26;
 pub const WEAPON_COAT: u32 = 1 << 27;
 #[cfg(not(target_arch = "wasm32"))]
 pub const BAKED_FOG: u32 = 1 << 28;
+#[cfg(not(target_arch = "wasm32"))]
+pub const BLEND_ALL: u32 = 1 << 29;
 pub const WIND_WEIGHT_SHIFT: u32 = 24;
 
 pub fn original_hd_blood(flags: u32) -> bool {

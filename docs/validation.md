@@ -66,6 +66,19 @@ and textured trails. Videos, exact retail setup writes, source disassembly and
 logs remain in `private/t2-item-review-20261113`; they are controlled item evidence,
 not a new ordinary-play route or a claim of pixel-perfect PS1 rendering.
 
+A follow-up body comparison reproduced mostly opaque T1 Rikimaru/Ayame overrides
+and incorrectly concealed imported weapons. Matched poses and cameras on native
+T2 and imported Gaisen stages now check both bodies against dark and bright
+backgrounds, with equipment rendered separately. Native T2 output is unchanged;
+increasing the backdrop by 96 levels increases every native-body output channel
+by exactly 96, confirming the same additive strength on both stages. Normal
+T1 body/equipment images also remain unchanged. Private before/after captures
+and observations are in `private/t2-invisibility-models-20261113`. The fixture
+passes 96 captures with nearest filtering and filtered replacement artwork.
+Existing GPU blend/cutout and shadow tests cover the shared shader changes;
+the guard-perception/snapshot test and 1,200 source item boundaries still pass.
+These are isolated fixtures; no new ordinary-play coverage is claimed.
+
 The imported-moveset attack-window check compares a basic swing for all three
 T2 heroes on both original T1 bodies with native JP T2. The active updates,
 motion frames, local contact offsets and sizes match exactly: Rikimaru has
