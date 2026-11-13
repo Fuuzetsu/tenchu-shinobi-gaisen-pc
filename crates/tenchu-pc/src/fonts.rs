@@ -1,3 +1,5 @@
+pub(crate) mod trial;
+
 use egui::{Color32, FontFamily, FontId, Pos2, Rect, Vec2};
 use tenchu_core::{game::Game, hud::Sprite};
 
@@ -97,6 +99,7 @@ pub fn caption_sprites(game: &Game) -> usize {
 pub fn game_text(
     game: &Game,
     show_hud: bool,
+    show_trial_timer: bool,
     sharp_text: bool,
     subtitles: Option<tenchu_assets::script::Language>,
 ) -> Vec<Text> {
@@ -115,6 +118,14 @@ pub fn game_text(
             });
         }
         for sprite in &game.hud.sprites {
+            if sprite.rotation == 0
+                && let Some(character) = trial::timer(game, sprite.image)
+            {
+                if show_trial_timer {
+                    text.push(trial::text(sprite, character));
+                }
+                continue;
+            }
             let Some(digit) = digit(game, sprite) else {
                 continue;
             };

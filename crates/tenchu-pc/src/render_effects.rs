@@ -3,6 +3,7 @@ mod combat;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use combat::{blood, gun_impact, impact_flash, soft_patch};
 mod style;
+mod trial;
 mod world;
 pub use style::Style;
 pub(crate) use style::metal_spark;
@@ -358,17 +359,6 @@ fn mesh_surfaces(
 
 pub fn build(game: &Game) -> Geometry {
     build_with_hud(game, true)
-}
-
-fn trial_timer_sprite(game: &Game, image: Image) -> bool {
-    game.mission.trial.as_ref().is_some_and(|trial| {
-        let digits = trial.digits;
-        image.page == digits.page
-            && image.palette == digits.palette
-            && image.uv[0] == digits.uv[0]
-            && image.size[0] == digits.size[0]
-            && u16::from(image.uv[1].wrapping_sub(digits.uv[1])) + image.size[1] <= digits.size[1]
-    })
 }
 
 pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
@@ -736,8 +726,11 @@ pub fn build_presented(
         // Retail prepends HUD packets, so equal-depth sprites draw in reverse submission order.
         .chain(game.hud.sprites.iter().rev().filter(|sprite| {
             show_hud
-                && (style.show_trial_timer || !trial_timer_sprite(game, sprite.image))
-                && !(sharp_text && crate::fonts::digit(game, sprite).is_some())
+                && (style.show_trial_timer
+                    || crate::fonts::trial::timer(game, sprite.image).is_none())
+                && !(sharp_text
+                    && (crate::fonts::digit(game, sprite).is_some()
+                        || crate::fonts::trial::timer(game, sprite.image).is_some()))
         }))
         .chain(
             game.cinematic.sprites.iter().skip(
@@ -753,6 +746,13 @@ pub fn build_presented(
             ),
         )
     {
+        if style.hd_hud
+            && sprite.rotation == 0
+            && let Some(frame) = crate::fonts::trial::candle(game, sprite)
+        {
+            surfaces.push(trial::candle(sprite, frame));
+            continue;
+        }
         let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();
         let points = std::array::from_fn(|i| {
             let x = ((i & 1) as f32 * f32::from(sprite.image.size[0])

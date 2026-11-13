@@ -240,11 +240,7 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
         );
         assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), scene);
         app.studio_action(Command::WeatherPreview(0));
-        let sample = app
-            .view
-            .as_ref()
-            .unwrap()
-            .renderer.weather;
+        let sample = app.view.as_ref().unwrap().renderer.weather;
         assert_eq!((sample.wet, sample.snow, sample.puddles), (0.0, 0.0, 0.0));
     }
     app.studio.open_mixed_example(&app.assets).unwrap();

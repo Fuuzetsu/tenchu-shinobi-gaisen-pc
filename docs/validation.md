@@ -1284,3 +1284,14 @@ chapters, offline mixer and video verifier. Non-playtest chapters execute zero
 logic ticks; playtest chapters use ordinary 30 Hz game updates. Its projects are
 held in memory and do not read/write the user's library. The staged video is
 feature evidence, not ordinary-play or retail input replay validation.
+
+Studio follow-up checks reproduce the viewport input deadlock with real egui
+pointer events (the old code times out), then exercise left/right/middle input,
+keyboard flight and scrolling. Disc fixtures check inherited graphics, saved-draft
+environments, T1/T2 return-state restoration, all original challenges and mixed
+assets. Weather seeks compare accumulation against nominal visual ticks and
+verify paused native T2/Studio state invariance, dry resets and subsequent updates.
+The TRIAL HUD fixture checks source glyphs/candle counts, timer visibility, removal
+of old textured candles, and unchanged serialized gameplay before/after rendering.
+Before/after visual evidence is kept outside Git; these optional-mode fixtures
+are not ordinary-play retail-parity evidence.

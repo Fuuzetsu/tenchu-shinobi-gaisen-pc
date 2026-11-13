@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Render the mission-editor clock with sharp text and remaining-enemy candles
+  with scalable artwork. Preserve the original clock spacing, leading-zero and
+  blink behavior, candle count and source flicker. Original sprites remain
+  available with Sharp text / Replacement artwork disabled.
+
 - Seek weather from dry ground to a selected elapsed time in Level Studio and
   **F1 → Weather** in both games. Preview snow cover, wetness, puddles and storm
   lighting immediately, including while paused, without advancing gameplay.

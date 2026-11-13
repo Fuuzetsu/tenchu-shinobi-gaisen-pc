@@ -250,8 +250,13 @@ impl super::Drawing {
             renderer,
         );
         self.scene.update_dynamic(geometry, renderer);
-        self.texts =
-            crate::fonts::game_text(source, false, self.sharp_text, self.subtitle_language);
+        self.texts = crate::fonts::game_text(
+            source,
+            false,
+            false,
+            self.sharp_text,
+            self.subtitle_language,
+        );
         self.view = source.rendered_view;
         renderer.visual_time = source.tick as f32 / 30.0;
         Ok(())

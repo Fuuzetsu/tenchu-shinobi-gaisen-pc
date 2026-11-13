@@ -1054,6 +1054,7 @@ impl View {
                     self.text = crate::fonts::game_text(
                         game,
                         settings.show_hud,
+                        settings.show_trial_timer,
                         settings.sharp_text,
                         settings.subtitle_language,
                     );

@@ -34,7 +34,7 @@ fn independent_scene_subtitles_follow_localized_cues_without_changing_the_scene(
         for tick in 0..2000 {
             game.step(0).unwrap();
             if game.cinematic.frame {
-                let expected = game_text(&game, false, true, None)
+                let expected = game_text(&game, false, true, true, None)
                     .into_iter()
                     .map(|text| text.text)
                     .collect::<Vec<_>>()
@@ -71,7 +71,7 @@ fn independent_scene_subtitles_follow_localized_cues_without_changing_the_scene(
         if game.cinematic.frame {
             for subtitle in languages {
                 if let Some(expected) = references[subtitle as usize].get(&game.cinematic.elapsed) {
-                    let text = game_text(&game, false, true, Some(subtitle))
+                    let text = game_text(&game, false, true, true, Some(subtitle))
                         .into_iter()
                         .map(|text| text.text)
                         .collect::<Vec<_>>()
@@ -113,8 +113,8 @@ fn independent_scene_subtitles_follow_localized_cues_without_changing_the_scene(
             };
             assert_eq!(world(&original), world(&translated));
             assert!(translated.vertices.len() < original.vertices.len());
-            assert!(game_text(&game, true, false, None).is_empty());
-            assert!(!game_text(&game, true, false, Some(Language::English)).is_empty());
+            assert!(game_text(&game, true, true, false, None).is_empty());
+            assert!(!game_text(&game, true, true, false, Some(Language::English)).is_empty());
             if let Some(directory) = std::env::var_os("TENCHU_FONT_CAPTURE_DIR") {
                 std::fs::create_dir_all(&directory).unwrap();
                 for (name, subtitle_language) in
@@ -139,7 +139,7 @@ fn independent_scene_subtitles_follow_localized_cues_without_changing_the_scene(
         }
     }
     game.step(0).unwrap();
-    assert!(game_text(&game, false, true, Some(Language::English)).is_empty());
+    assert!(game_text(&game, false, true, true, Some(Language::English)).is_empty());
 }
 
 #[test]
@@ -319,7 +319,7 @@ fn localized_captions_change_only_presentation_and_render_at_720p_and_4k() {
         };
         assert_eq!(world(&original), world(&sharp));
         assert!(sharp.vertices.len() < original.vertices.len());
-        let mut text = game_text(&game, false, true, None);
+        let mut text = game_text(&game, false, true, true, None);
         assert!(!text.is_empty());
         for line in &mut text {
             line.position.y = -80.0 + row as f32 * 45.0;

@@ -185,3 +185,8 @@ inspector, with grouped, aligned environment fields.
 selected accumulation time without advancing the mission. Choose rain or snow,
 then use the slider or quick times to inspect fully wet or snow-covered ground.
 The same control is available in **F1 → Weather** in both main games.
+
+Playtests and original challenges use a sharp mission timer when **Sharp text**
+is enabled. **Replacement artwork** enables scalable remaining-enemy candles,
+including their original flicker. The mission-timer visibility option hides both
+bitmap and sharp clocks. These controls do not affect timing or scoring.

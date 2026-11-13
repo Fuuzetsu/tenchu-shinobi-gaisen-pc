@@ -4111,3 +4111,11 @@ Studio authoring/playtest operations and the offline audio mixer. The new catalo
 contains authored scenes/captions and disc references only. It does not embed
 models, textures, samples, inputs captured from retail, or another input framework.
 Staged authoring changes and illustrative playtests do not establish retail parity.
+
+The scalable TRIAL HUD presentation consumes the existing core sprite packets.
+`tenchu-decomp/src/trial.exe/DrawTrialMissionTimer.c` and
+`DrawTrialEnemyCandles.c` were rechecked for glyph spacing, leading-zero/blink
+behavior, survivor counts and the three source RNG-selected candle frames.
+No gameplay code or artwork was imported. The clock uses the existing bundled
+UI font; the new candle is code-native vector geometry with the source sprite
+bounds and frame selection. Original sprites remain the fallback.
