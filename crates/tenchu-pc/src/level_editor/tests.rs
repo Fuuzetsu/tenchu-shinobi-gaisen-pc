@@ -474,3 +474,29 @@ fn studio_native_clipboard_events_copy_paste_and_rotate_terrain() {
     );
     assert!(!editor.path.exists());
 }
+
+#[test]
+fn saving_records_current_build_without_inventing_the_original_build() {
+    let mut original = project();
+    let initial = original.build.created_with.clone();
+    original.build.last_saved_with = Some(provenance::Build {
+        version: "old".into(),
+        revision: "old".into(),
+    });
+    let saved = Project::decode(&original.encode().unwrap()).unwrap();
+    assert_eq!(saved.build.created_with, initial);
+    assert_eq!(
+        saved.build.last_saved_with,
+        Some(provenance::Build::current())
+    );
+    let mut old = serde_json::to_value(&saved).unwrap();
+    old.as_object_mut().unwrap().remove("build");
+    let old = Project::decode(&serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(old.build, provenance::Provenance::default());
+    let saved = Project::decode(&old.encode().unwrap()).unwrap();
+    assert!(saved.build.created_with.is_none());
+    assert_eq!(
+        saved.build.last_saved_with,
+        Some(provenance::Build::current())
+    );
+}

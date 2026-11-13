@@ -90,6 +90,11 @@ version-one Studio files without these additions remain compatible.
 
 ## Missions and assets
 
+**Projects → Map format & build** shows the map schema and the game version and
+commit used to create and last save a project. These markers travel with exported
+maps so you can identify the corresponding build later. Older maps without
+markers retain an unknown creator; saving records the current build.
+
 All twelve original tile themes and sixteen challenges are available. Paint
 ground, ramps, walls, pits, water, ornaments and traps using the source editor's
 placement rules. Brushes support sizes from one to eight cells and four rotations.

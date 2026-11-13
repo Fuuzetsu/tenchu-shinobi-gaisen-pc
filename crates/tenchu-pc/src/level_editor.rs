@@ -4,6 +4,7 @@ mod events;
 mod example;
 mod history;
 mod project;
+mod provenance;
 mod showcase;
 mod store;
 #[cfg(test)]
@@ -369,6 +370,7 @@ impl Editor {
         }
         self.commit();
         self.project.validate()?;
+        self.project.mark_saved();
         self.library.draft = Some(self.project.clone());
         self.library.write(&self.path)
     }
@@ -387,6 +389,7 @@ impl Editor {
     fn save(&mut self, copy: bool) -> Result<()> {
         self.commit();
         self.project.validate()?;
+        self.project.mark_saved();
         let previous = self.library.clone();
         let selected = self.selected_save;
         if !copy && let Some(index) = selected {

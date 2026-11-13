@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Record map schema, game version and source commit in Studio projects, preserving
+  the creator build and updating the last-saved build on export and save. Inspect
+  these markers under **Projects → Map format & build**.
+
 - Render the mission-editor clock with sharp text and remaining-enemy candles
   with scalable artwork. Preserve the original clock spacing, leading-zero and
   blink behavior, candle count and source flicker. Original sprites remain

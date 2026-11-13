@@ -10,6 +10,8 @@ pub const MAX_BYTES: usize = 8 * 1024 * 1024;
 pub struct Project {
     pub format: String,
     pub version: u32,
+    #[serde(default)]
+    pub build: super::provenance::Provenance,
     pub mission: Mission,
     pub character: i16,
     pub graphics: Graphics,
@@ -114,6 +116,7 @@ impl Project {
         Self {
             format: FORMAT.into(),
             version: 1,
+            build: super::provenance::Provenance::new(),
             mission,
             character: 0,
             graphics: Graphics::default(),
@@ -129,6 +132,7 @@ impl Project {
         if self.format != FORMAT || self.version != 1 {
             return Err("Unsupported Level Studio project format or version".into());
         }
+        self.build.validate()?;
         self.mission.validate()?;
         if !(0..=1).contains(&self.character)
             || self.mission.title.len() > 512
@@ -261,9 +265,15 @@ impl Project {
         Ok(project)
     }
 
+    pub fn mark_saved(&mut self) {
+        self.build.last_saved_with = Some(super::provenance::Build::current());
+    }
+
     pub fn encode(&self) -> Result<Vec<u8>> {
         self.validate()?;
-        let bytes = serde_json::to_vec_pretty(self).map_err(|e| e.to_string())?;
+        let mut saved = self.clone();
+        saved.mark_saved();
+        let bytes = serde_json::to_vec_pretty(&saved).map_err(|e| e.to_string())?;
         if bytes.len() > MAX_BYTES {
             return Err("Project file is too large".into());
         }

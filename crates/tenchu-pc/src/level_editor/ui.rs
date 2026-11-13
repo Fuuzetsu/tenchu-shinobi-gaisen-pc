@@ -704,6 +704,7 @@ impl Editor {
 
     fn projects(&mut self, ui: &mut egui::Ui, assets: &GameAssets<DiscSource>) {
         ui.heading("Projects");
+        self.project.build.show(ui, self.project.version);
         if ui.button("Open T1 + T2 garden example").clicked()
             && let Err(error) = self.open_mixed_example(assets)
         {
