@@ -4104,3 +4104,10 @@ to reproduce original PS1 heap contents. The original-C sight-passage harness
 pads those extra entries with the same empty policy and therefore does not claim
 original out-of-bounds memory parity. See `docs/validation.md` for exact addresses,
 source-data provenance, the recorded consequence and coverage.
+
+
+The Level Studio showcase reuses `demo::Player`, `video::Export`, the ordinary
+Studio authoring/playtest operations and the offline audio mixer. The new catalog
+contains authored scenes/captions and disc references only. It does not embed
+models, textures, samples, inputs captured from retail, or another input framework.
+Staged authoring changes and illustrative playtests do not establish retail parity.

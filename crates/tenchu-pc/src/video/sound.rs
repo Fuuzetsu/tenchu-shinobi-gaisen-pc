@@ -120,6 +120,21 @@ impl Sound {
         }
     }
 
+    pub fn studio_sound(
+        &mut self,
+        bank: &Arc<tenchu_assets::audio::bank::Bank>,
+        id: i16,
+        volume: u8,
+        pan: u8,
+    ) {
+        self.mixer.play_from(bank, id, volume, pan);
+    }
+
+    pub fn studio_music(&mut self, clip: Option<Arc<Clip>>) {
+        self.track = None;
+        self.mixer.music(clip, true);
+    }
+
     pub fn flush(&mut self) -> Result<()> {
         self.file.flush().map_err(|e| e.to_string())
     }

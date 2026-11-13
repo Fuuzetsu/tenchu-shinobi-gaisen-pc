@@ -5,6 +5,7 @@ use tenchu_assets::Result;
 #[serde(rename_all = "kebab-case")]
 pub enum Feature {
     Randomizer,
+    Studio(super::studio::Feature),
     Remake(super::remake::Feature),
     Presets,
     Lanterns,
@@ -173,6 +174,18 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
         {
             return Err(format!(
                 "Invalid duration, scene, preset or caption for demo '{}'",
+                c.id
+            ));
+        }
+        if matches!(c.feature, Feature::Studio(_))
+            && (c.shot != Shot::Wide
+                || c.recording.is_some()
+                || c.frontend.is_some()
+                || c.randomizer.is_some()
+                || c.camera.is_some())
+        {
+            return Err(format!(
+                "Studio demo '{}' supplies its own scene and camera",
                 c.id
             ));
         }

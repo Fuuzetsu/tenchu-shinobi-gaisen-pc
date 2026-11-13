@@ -1,0 +1,184 @@
+[
+  {
+    "id": "studio-workspace",
+    "title": "A modern workspace",
+    "description": "Separate from the original editor. Fly through the scene, then switch to a zoomable map.",
+    "seconds": 4,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "workspace"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-terrain",
+    "title": "Build, undo, redo",
+    "description": "Fill a selected area with a terrain brush. Undo and redo the complete edit.",
+    "seconds": 4,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "terrain"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-stamps",
+    "title": "Copy a little. Build a lot.",
+    "description": "Reusable stamps copy both layers. Rotate the pattern and place it again.",
+    "seconds": 5,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "stamps"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-scenery",
+    "title": "Place scenery precisely",
+    "description": "Browse both discs, snap placements, nudge coordinates and ground objects on terrain.",
+    "seconds": 4,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "scenery"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-characters",
+    "title": "Two games. One map.",
+    "description": "Original T1 Rikimaru and imported T2 Rikimaru share this authored courtyard.",
+    "seconds": 5,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "characters"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-patrols",
+    "title": "Give characters a route",
+    "description": "Extend a patrol using the original adjacency, facing and wait rules.",
+    "seconds": 4,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "patrols"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-lighting",
+    "title": "Light the scene instantly",
+    "description": "Preview daylight, sunset and lantern-lit night, with modern lighting and shadows.",
+    "seconds": 6,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "lighting"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-weather",
+    "title": "Change the atmosphere",
+    "description": "Clear skies, a rainstorm and windblown snow. Preview animation leaves gameplay at tick zero.",
+    "seconds": 6,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "weather"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-regions",
+    "title": "Draw an event region",
+    "description": "Select map cells and create a 3D trigger. Add messages, flags and delayed actions.",
+    "seconds": 4,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "regions"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-sounds",
+    "title": "Queue sounds from both games",
+    "description": "Audition a T1 effect, then a T2 effect. Music, volume and pan are also editable.",
+    "seconds": 5,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "sounds"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-playtest",
+    "title": "Play what you build",
+    "description": "Run the actual mission and its timed storm, then return to the unchanged editing workspace.",
+    "seconds": 7,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "playtest"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-projects",
+    "title": "Keep and share your work",
+    "description": "Save projects with their events, views and stamps. Retail maps and share codes remain supported.",
+    "seconds": 4,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "projects"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-views",
+    "title": "Keep your best angles",
+    "description": "Switch between named camera views. Hide guides for clean scene previews.",
+    "seconds": 4,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "views"
+    },
+    "shot": "wide"
+  },
+  {
+    "id": "studio-mixed",
+    "title": "Your next mission starts here",
+    "description": "Open the editable T1 + T2 garden example. Both discs required; scenery is decorative.",
+    "seconds": 6,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "studio": "mixed"
+    },
+    "shot": "wide"
+  }
+]

@@ -415,3 +415,39 @@ fn weapon_sparks_comparison_contains_live_blocks() {
     );
     assert!(game.roster.get(guard).health > 0 && game.player().health > 0);
 }
+
+#[test]
+fn studio_showcase_keeps_editor_frames_separate_from_playtest_ticks() {
+    let mut player = player(&["--studio"]);
+    assert_eq!(player.catalog.len(), 14);
+    assert_eq!(
+        player
+            .catalog
+            .iter()
+            .map(|c| u64::from(c.seconds))
+            .sum::<u64>(),
+        68
+    );
+    for i in 0..player.playlist.len() {
+        player.reset(i);
+        let Feature::Studio(feature) = player.clip().feature else {
+            panic!("Studio catalog contains a different feature");
+        };
+        let seconds = u64::from(player.clip().seconds);
+        player.elapse(Duration::from_secs(seconds));
+        while player.step(false).is_some() {}
+        assert_eq!(player.frame, seconds * 60);
+        assert_eq!(
+            player.simulation_ticks,
+            if feature == studio::Feature::Playtest {
+                seconds * 30
+            } else {
+                0
+            }
+        );
+    }
+    let mut invalid: serde_json::Value =
+        serde_json::from_slice(include_bytes!("../../data/studio-demos.json")).unwrap();
+    invalid[0]["shot"] = "guard".into();
+    assert!(catalog::parse(&serde_json::to_vec(&invalid).unwrap()).is_err());
+}

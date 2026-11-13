@@ -4,6 +4,7 @@ mod events;
 mod example;
 mod history;
 mod project;
+mod showcase;
 mod store;
 #[cfg(test)]
 mod tests;
@@ -13,9 +14,10 @@ mod viewport;
 use crate::{debug::camera::Camera, source::DiscSource};
 pub use events::{Observation, Runtime};
 use history::History;
-pub use project::{Action, Game as AssetGame, Project};
 #[cfg(test)]
-pub use project::{Cue, Event, Scenery};
+pub use project::Scenery;
+pub use project::{Action, Game as AssetGame, Project};
+pub(crate) use project::{Cue, Event};
 use std::path::PathBuf;
 use tenchu_assets::{
     Result,
@@ -106,6 +108,7 @@ pub struct Editor {
     selection: Option<(Point, Point)>,
     clipboard: Option<building::Stamp>,
     snap: i32,
+    ephemeral: bool,
 }
 
 impl Editor {
@@ -167,12 +170,17 @@ impl Editor {
             selection: None,
             clipboard: None,
             snap: 500,
+            ephemeral: false,
         }
     }
 
     pub fn enter(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {
         if self.tables.is_none() {
-            let library = store::Library::load(&self.path)?;
+            let library = if self.ephemeral {
+                store::Library::default()
+            } else {
+                store::Library::load(&self.path)?
+            };
             let tables = Tables::load(assets)?;
             self.presets = tables.presets(assets)?;
             let music = tenchu_assets::audio::catalog::Catalog::load(
@@ -326,7 +334,7 @@ impl Editor {
     }
 
     pub fn persist(&mut self) -> Result<()> {
-        if self.tables.is_none() {
+        if self.ephemeral || self.tables.is_none() {
             return Ok(());
         }
         self.commit();

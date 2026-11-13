@@ -6,6 +6,7 @@ mod randomized;
 #[cfg(not(target_arch = "wasm32"))]
 mod recorded;
 pub mod remake;
+pub mod studio;
 #[cfg(test)]
 mod tests;
 
@@ -85,6 +86,9 @@ impl Player {
         let mut args = args.iter();
         while let Some(arg) = args.next() {
             match arg.to_str().ok_or("Invalid demo option")? {
+                "--studio" => {
+                    catalog = catalog::parse(include_bytes!("../data/studio-demos.json"))?
+                }
                 "--loop" => repeat = true,
                 "--clean" => clean = true,
                 "--exit" => exit_when_finished = true,
@@ -201,8 +205,12 @@ impl Player {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn list() -> Result<()> {
-        for clip in catalog::builtin()? {
+    pub fn list(studio: bool) -> Result<()> {
+        for clip in if studio {
+            catalog::parse(include_bytes!("../data/studio-demos.json"))?
+        } else {
+            catalog::builtin()?
+        } {
             println!(
                 "{:<18} {:>2}s  Mission {:>2}  {}\n    {}",
                 clip.id, clip.seconds, clip.mission, clip.title, clip.description
@@ -337,6 +345,7 @@ impl Player {
     pub fn speed(&self) -> u16 {
         let p = self.progress();
         match self.clip().feature {
+            Feature::Studio(feature) if feature != studio::Feature::Playtest => 0,
             Feature::Step => {
                 if self.frame.is_multiple_of(30) {
                     200

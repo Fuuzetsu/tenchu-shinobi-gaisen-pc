@@ -37,7 +37,11 @@ impl Application {
         Ok(ready)
     }
 
-    pub(super) fn studio_bank(&mut self, game: AssetGame, bank: usize) -> Result<Arc<Bank>> {
+    pub(in crate::window) fn studio_bank(
+        &mut self,
+        game: AssetGame,
+        bank: usize,
+    ) -> Result<Arc<Bank>> {
         let cache = &mut self
             .studio_previous
             .as_mut()
@@ -168,6 +172,23 @@ impl Application {
             self.studio.notice = "Audio preview ready".into();
         }
         let sounds = &self.studio_previous.as_ref().unwrap().sounds;
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
+            match action {
+                CueAction::Sound {
+                    game,
+                    bank,
+                    id,
+                    volume,
+                    pan,
+                } => sound.studio_sound(&sounds.banks[&(game, bank)], id as i16, volume, pan),
+                CueAction::Music { game, track } => {
+                    sound.studio_music(Some(sounds.music[&(game, track)].clone()))
+                }
+                CueAction::StopMusic => sound.studio_music(None),
+                _ => (),
+            }
+        }
         if let Some(audio) = &mut self.audio {
             match action {
                 CueAction::Sound {

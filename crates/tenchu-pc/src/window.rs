@@ -290,7 +290,7 @@ impl Application {
             || self.view.as_ref().is_some_and(View::preparing)
             || self.paused
             || self.trial.open
-            || self.studio.open
+            || self.studio.open && self.demo.is_none()
             || self.tenchu2.open
             || (self.randomizer.open && self.demo.is_none())
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
@@ -1102,6 +1102,13 @@ impl ApplicationHandler for Application {
                     }
                     return;
                 }
+                if self.studio.open
+                    && self.demo.is_some()
+                    && code != KeyCode::F9
+                    && self.demo_key(code, event.state == ElementState::Pressed)
+                {
+                    return;
+                }
                 if self.studio.open {
                     if event.state == ElementState::Pressed && code == KeyCode::F9 {
                         self.screenshot = true;
@@ -1407,7 +1414,9 @@ impl ApplicationHandler for Application {
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
-                self.advance_studio_preview(elapsed.as_secs_f64());
+                if self.demo.is_none() {
+                    self.advance_studio_preview(elapsed.as_secs_f64());
+                }
                 self.advance_navigation(elapsed.as_secs_f32());
                 if self.focused
                     && self.demo.is_none()

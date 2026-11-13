@@ -160,7 +160,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         g.fog = fog;
     }
     match player.clip().feature {
-        Feature::Randomizer => {}
+        Feature::Randomizer | Feature::Studio(_) => {}
         Feature::ShopLighting => {
             g.shop_lighting = p >= 0.12;
             g.sky.enabled = true;
@@ -820,6 +820,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
     };
     let on = |yes| if yes { "On" } else { "Off" };
     match player.clip().feature {
+        Feature::Studio(feature) => text(feature.readout().into()),
         Feature::Randomizer => {
             let (run, plan) = player.randomized.as_ref().unwrap();
             let body = plan

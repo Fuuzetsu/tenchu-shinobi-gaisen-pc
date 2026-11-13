@@ -8,10 +8,17 @@ mod additions;
 mod behavior;
 mod bleeding;
 mod remake;
+mod studio;
 mod tracking;
 
 impl Application {
     pub(super) fn start_demo_clip(&mut self) -> Result<()> {
+        if let Some(Feature::Studio(feature)) = self.demo.as_ref().map(|p| p.clip().feature) {
+            return self.start_studio_demo(feature);
+        }
+        if self.studio_previous.is_some() {
+            self.apply_studio(crate::level_editor::Command::Close)?;
+        }
         let Some(player) = &mut self.demo else {
             return Ok(());
         };
@@ -533,6 +540,24 @@ impl Application {
             let Some(ticks) = player.step(self.campaign.game.cinematic.active) else {
                 break;
             };
+            if matches!(player.clip().feature, Feature::Studio(_)) {
+                if let Err(error) = self.advance_studio_demo(ticks) {
+                    self.pause_error(error);
+                    return;
+                }
+                let player = self.demo.as_mut().unwrap();
+                if player.ended() {
+                    if player.next() {
+                        if let Err(error) = self.start_demo_clip() {
+                            self.pause_error(error);
+                        }
+                    } else if let Some(audio) = &mut self.audio {
+                        audio.pause(true, false);
+                    }
+                    break;
+                }
+                continue;
+            }
             if player.clip().feature == Feature::Cinematics
                 && !player.ended()
                 && player
@@ -691,7 +716,9 @@ impl Application {
                 break;
             }
         }
-        if let Some(player) = &self.demo {
+        if let Some(player) = &self.demo
+            && !matches!(player.clip().feature, Feature::Studio(_))
+        {
             self.debug.camera = demo::camera(
                 player,
                 &self.campaign.game,

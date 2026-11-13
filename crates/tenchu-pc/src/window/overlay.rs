@@ -158,7 +158,9 @@ impl Overlay {
                 .events
                 .retain(|event| !matches!(event, egui::Event::Paste(_)));
             let pasted = crate::web::clipboard_paste();
-            if self.editing() && !pasted.is_empty() {
+            if (self.editing() || extras.studio.as_ref().is_some_and(|(s, _, _)| s.open))
+                && !pasted.is_empty()
+            {
                 input
                     .events
                     .push(egui::Event::Paste(pasted.replace("\r\n", "\n")));
@@ -214,6 +216,15 @@ impl Overlay {
             if let Some((studio, assets, _)) = &mut extras.studio {
                 studio_action = studio.show(ctx, assets);
                 if studio.open {
+                    if let Some(demo) = &mut extras.demo {
+                        demo_action = crate::demo::overlay::show(
+                            ctx,
+                            demo,
+                            state.settings,
+                            state.debug,
+                            state.paused,
+                        );
+                    }
                     return;
                 }
                 if studio.testing {
@@ -635,7 +646,9 @@ impl super::Application {
                 },
             },
         );
-        if let Some(event) = updates.studio {
+        if let Some(event) = updates.studio
+            && self.demo.is_none()
+        {
             self.studio_action(event);
             return;
         }

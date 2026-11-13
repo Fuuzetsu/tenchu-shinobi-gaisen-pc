@@ -27,8 +27,10 @@ pub fn show(
             (player.index + 1, player.playlist.len())
         };
         let frontend = clip.frontend.is_some();
+        let studio = matches!(clip.feature, super::Feature::Studio(_));
         let randomizer_menu = player.randomizer_tab().is_some();
-        let right = randomizer_menu
+        let right = studio
+            || randomizer_menu
             || clip.randomizer.is_some() && clip.shot == super::Shot::Guard
             || matches!(
                 clip.feature,
@@ -62,7 +64,9 @@ pub fn show(
                 },
                 [
                     if right { -24.0 } else { 24.0 },
-                    if top {
+                    if studio {
+                        100.0
+                    } else if top {
                         24.0
                     } else {
                         -24.0
@@ -78,7 +82,7 @@ pub fn show(
                     .show(ui, |ui| {
                         let width = if frontend {
                             140.0
-                        } else if randomizer_menu {
+                        } else if randomizer_menu || studio {
                             390.0
                         } else if top {
                             460.0
@@ -89,6 +93,8 @@ pub fn show(
                         ui.label(
                             egui::RichText::new(if frontend {
                                 "TENCHU / INTERFACE".into()
+                            } else if studio {
+                                format!("TENCHU / LEVEL STUDIO    {number:02} / {total:02}")
                             } else if clip.randomizer.is_some() {
                                 format!("TENCHU / RANDOMIZER    {:02} / {:02}    MISSION {}", number, total, clip.mission)
                             } else {

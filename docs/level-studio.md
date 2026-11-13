@@ -19,6 +19,10 @@ F5 during a playtest restarts it. Success and failure return automatically.
 Exiting Studio restores the previous campaign or T2 title and its settings.
 Playtests use the current gameplay preferences and never change campaign progress.
 
+The built-in **demo --studio** tour demonstrates these features in fourteen
+short chapters and can export a 4K/60 video with synchronized source sound cues.
+See the [showcase commands](../DEMOS.md#brief-level-studio-showcase).
+
 ## Workspace and controls
 
 The scene uses the game's renderer. **Lighting & weather** provides graphical
@@ -69,6 +73,8 @@ rules and can be undone as one operation.
 Name a copied stamp and choose **Keep stamp** to save it in the project. Up to
 32 stamps can travel with a project; stamps only paste into their source theme.
 Copying another area replaces the temporary clipboard, not the saved stamps.
+Terrain stamps also use the system clipboard, so they can be pasted into another
+Studio session with the same terrain theme.
 
 Scenery placement in 3D follows the surface under the mouse, with **Free**, 0.1 m,
 0.5 m, 1 m or 2 m horizontal snapping. Arrow keys nudge X/Z and Page Up/Down change

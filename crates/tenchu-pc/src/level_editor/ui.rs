@@ -12,8 +12,9 @@ impl Editor {
             return None;
         }
         self.prepare_textures(ctx);
-        if !ctx.wants_keyboard_input() {
-            ctx.input(|input| {
+        if !self.ephemeral && !ctx.wants_keyboard_input() {
+            let input = ctx.input(Clone::clone);
+            {
                 if input.modifiers.alt {
                     for (key, panel) in [
                         (egui::Key::Num1, Panel::Terrain),
@@ -48,8 +49,23 @@ impl Editor {
                     self.notice = e;
                 }
                 if self.unlocked && self.panel == Panel::Terrain {
-                    if input.modifiers.command && input.key_pressed(egui::Key::C) {
-                        self.copy_area();
+                    for event in &input.events {
+                        if let egui::Event::Paste(text) = event
+                            && text.starts_with("tenchu-stamp-v1\n")
+                        {
+                            match building::Stamp::from_clipboard(text) {
+                                Ok(stamp) => {
+                                    self.clipboard = Some(stamp);
+                                    self.tool = Tool::Stamp;
+                                }
+                                Err(error) => self.notice = error,
+                            }
+                        }
+                    }
+                    if input.modifiers.command && input.key_pressed(egui::Key::C)
+                        || input.events.iter().any(|e| matches!(e, egui::Event::Copy))
+                    {
+                        self.copy_area(ctx);
                     }
                     if input.modifiers.command
                         && input.key_pressed(egui::Key::V)
@@ -155,7 +171,7 @@ impl Editor {
                     }
                     self.commit();
                 }
-            });
+            }
         }
         egui::TopBottomPanel::top("studio-toolbar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {

@@ -28,6 +28,36 @@ Studio starts with Modern High and offers Modern Ultra and the
 other visual presets. The existing showcase clips and Original preset keep
 their existing behavior; Studio project settings stay separate from game settings.
 
+## Brief Level Studio showcase
+
+With both discs connected, run the built-in 68-second editor tour:
+
+```sh
+./dev.sh cargo run --release -- demo '/path/to/gaisen.cue' --studio --exit
+./dev.sh cargo run --release -- demo --list --studio
+./dev.sh cargo run --release -- demo '/path/to/gaisen.cue' --studio --video "$HOME/Videos/level-studio.mp4" --sound
+```
+
+Fourteen chapters demonstrate the actual editor, including rectangular terrain
+fills and history, rotated stamps, precise placement, T1 and T2 characters in
+one map, patrols, lighting, weather, region events, both sound banks, isolated
+playtesting, project round trips and named camera views. Each chapter lasts
+4–7 seconds. `--clips studio-stamps,studio-scenery,studio-mixed` selects a subset;
+`--duration` adjusts lengths. These short chapters are embedded in the MP4 but
+do not meet YouTube's ten-second minimum unless duration is increased.
+
+The tour builds the same editable **Projects → Open T1 + T2 garden example**.
+It uses temporary projects in memory, never reads or writes the user's Studio
+library, and leaves campaign saves/preferences alone. Terrain/scenery changes
+use real editor operations. Captions identify the staged demonstration and
+Gaisen gameplay/decorative-scenery boundaries; it is not an ordinary-play input
+recording. The final editor view remains on screen unless `--exit` is requested.
+The catalog is [studio-demos.json](crates/tenchu-pc/data/studio-demos.json).
+
+Use the normal verifier with `--sound --catalog crates/tenchu-pc/data/studio-demos.json`
+for the default export. All frames, sound, metadata and chapters use the existing
+video pipeline; no screen recording or separate input framework is involved.
+
 ## Controls and recording
 
 | Control | Action |

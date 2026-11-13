@@ -1270,3 +1270,17 @@ are compared using matching captures. These are presentation checks, not a new
 ordinary-play input route or a campaign-completion claim. Workspace tests,
 formatting, strict native Clippy, Android library and WASM checks also pass;
 WASM retains its four existing renderer dead-code warnings.
+
+
+Level Studio's expanded building checks cover atomic stamp rollback, source
+patrol truncation, non-square rotation of both layers, backward project imports,
+saved-view bounds, and source-surface grounding with undo and misses. The ignored
+`studio_native_clipboard_events_copy_paste_and_rotate_terrain` fixture feeds egui's
+actual Copy/Paste events, rather than assuming the backend supplies raw C/V keys.
+The mixed-disc GPU fixture also captures the editable garden's three saved views.
+
+`demo --studio` uses the existing nominal presentation scheduler, renderer,
+chapters, offline mixer and video verifier. Non-playtest chapters execute zero
+logic ticks; playtest chapters use ordinary 30 Hz game updates. Its projects are
+held in memory and do not read/write the user's library. The staged video is
+feature evidence, not ordinary-play or retail input replay validation.

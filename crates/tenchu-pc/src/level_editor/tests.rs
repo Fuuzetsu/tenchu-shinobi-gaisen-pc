@@ -272,6 +272,12 @@ fn terrain_stamps_rotate_both_layers_and_preserve_old_projects() {
         stamp.rotate();
     }
     assert_eq!(stamp, original);
+    assert_eq!(
+        building::Stamp::from_clipboard(&stamp.clipboard_text().unwrap()).unwrap(),
+        stamp
+    );
+    assert!(building::Stamp::from_clipboard("tenchu-stamp-v1\n{}").is_err());
+    assert!(building::Stamp::from_clipboard("ordinary text").is_err());
     p.stamps.push(stamp);
     p.views.push(building::View::new(
         "Courtyard".into(),
@@ -355,4 +361,116 @@ fn blocked_stamp_paste_is_atomic_and_success_uses_original_patrol_rules() {
             .is_err()
     );
     assert_eq!(p.mission, before);
+}
+
+#[test]
+fn scenery_grounding_uses_source_surface_height_and_keeps_misses_unchanged() {
+    let mut editor = Editor::new(PathBuf::new());
+    editor.project.scenery.push(project::Scenery {
+        name: "Test prop".into(),
+        game: AssetGame::Tenchu,
+        stage: 0,
+        part: 0,
+        position: [500, -1800, -500],
+        yaw: 0,
+    });
+    editor.scenery_selection = Some(0);
+    let node = tenchu_assets::terrain::Node {
+        bounds: [0, -199, 199, 0],
+        y: 0,
+        dy: 0,
+        division: u16::MAX,
+        attributes: 0,
+    };
+    editor.surfaces.push(crate::debug::terrain::Surface {
+        node,
+        corners: [
+            glam::vec3(0.0, 0.0, -2000.0),
+            glam::vec3(2000.0, 0.0, -2000.0),
+            glam::vec3(0.0, 0.0, 0.0),
+            glam::vec3(2000.0, 0.0, 0.0),
+        ],
+        color: [1.0; 3],
+    });
+    editor.ground_scenery();
+    assert_eq!(editor.project.scenery[0].position, [500, 0, -500]);
+    editor.undo(false);
+    assert_eq!(editor.project.scenery[0].position, [500, -1800, -500]);
+    editor.project.scenery[0].position[0] = 3000;
+    let before = editor.project.clone();
+    editor.ground_scenery();
+    assert_eq!(editor.project, before);
+    assert!(editor.notice.contains("No solid terrain"));
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; actual egui clipboard events must reach terrain tools without raw keyboard events"]
+fn studio_native_clipboard_events_copy_paste_and_rotate_terrain() {
+    let assets = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    let mut editor = Editor::for_showcase();
+    editor.ephemeral = false;
+    editor.path =
+        std::env::temp_dir().join(format!("studio-clipboard-{}.json", std::process::id()));
+    editor.enter(&assets).unwrap();
+    editor.open = true;
+    editor.selection = Some((Point { x: 0, z: 0 }, Point { x: 1, z: 2 }));
+    let ctx = egui::Context::default();
+    let input = |events| egui::RawInput {
+        screen_rect: Some(egui::Rect::from_min_size(
+            egui::Pos2::ZERO,
+            egui::vec2(1280.0, 720.0),
+        )),
+        events,
+        ..Default::default()
+    };
+    let output = ctx.run(input(vec![egui::Event::Copy]), |ctx| {
+        editor.show(ctx, &assets);
+    });
+    let copied = output
+        .platform_output
+        .commands
+        .iter()
+        .find_map(|command| {
+            if let egui::OutputCommand::CopyText(text) = command {
+                Some(text.clone())
+            } else {
+                None
+            }
+        })
+        .expect("Native copy event must put the stamp on the clipboard");
+    editor.clipboard = None;
+    let _ = ctx.run(input(vec![egui::Event::Paste(copied)]), |ctx| {
+        editor.show(ctx, &assets);
+    });
+    assert!(editor.tool == Tool::Stamp);
+    assert_eq!(
+        (
+            editor.clipboard.as_ref().unwrap().width,
+            editor.clipboard.as_ref().unwrap().height
+        ),
+        (2, 3)
+    );
+    let _ = ctx.run(
+        input(vec![egui::Event::Key {
+            key: egui::Key::R,
+            physical_key: Some(egui::Key::R),
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }]),
+        |ctx| {
+            editor.show(ctx, &assets);
+        },
+    );
+    assert_eq!(
+        (
+            editor.clipboard.as_ref().unwrap().width,
+            editor.clipboard.as_ref().unwrap().height
+        ),
+        (3, 2)
+    );
+    assert!(!editor.path.exists());
 }

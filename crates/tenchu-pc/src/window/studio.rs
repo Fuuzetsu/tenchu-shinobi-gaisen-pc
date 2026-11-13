@@ -117,7 +117,7 @@ impl Application {
         Ok(game)
     }
 
-    fn apply_studio(&mut self, command: Command) -> Result<()> {
+    pub(super) fn apply_studio(&mut self, command: Command) -> Result<()> {
         match command {
             Command::Open => {
                 if self.studio_previous.is_some() {

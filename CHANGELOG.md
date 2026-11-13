@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add a built-in **demo --studio** tour with fourteen short feature chapters,
+  including T1/T2 assets in one map. Export it through the existing 4K/60 video
+  recorder with synchronized source sound cues. Demonstrations use temporary
+  projects and do not read or write the user's project library.
+
 - Build maps faster in Level Studio with rectangular selections, atomic area
   fills, tile sampling, rotated two-layer stamps saved in projects, and region
   events created from a selection. Add precise scenery snapping, keyboard

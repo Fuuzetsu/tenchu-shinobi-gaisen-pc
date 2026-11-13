@@ -70,6 +70,27 @@ pub fn bounds(a: Point, b: Point) -> (Point, Point) {
 }
 
 impl Stamp {
+    pub fn clipboard_text(&self) -> Result<String> {
+        self.validate()?;
+        Ok(format!(
+            "tenchu-stamp-v1\n{}",
+            serde_json::to_string(self).map_err(|e| e.to_string())?
+        ))
+    }
+
+    pub fn from_clipboard(text: &str) -> Result<Self> {
+        if text.len() > 128 * 1024 {
+            return Err("Terrain clipboard is too large".into());
+        }
+        let json = text
+            .strip_prefix("tenchu-stamp-v1\n")
+            .ok_or("Clipboard does not contain a terrain stamp")?;
+        let stamp: Self =
+            serde_json::from_str(json).map_err(|e| format!("Read terrain stamp: {e}"))?;
+        stamp.validate()?;
+        Ok(stamp)
+    }
+
     pub fn copy(mission: &Mission, a: Point, b: Point) -> Result<Self> {
         if !a.valid() || !b.valid() {
             return Err("Select an area inside the map".into());
@@ -148,7 +169,7 @@ impl Stamp {
 }
 
 impl Editor {
-    pub(super) fn copy_area(&mut self) {
+    pub(super) fn copy_area(&mut self, ctx: &egui::Context) {
         let result = self
             .selection
             .ok_or_else(|| "Drag an area first".into())
@@ -159,6 +180,9 @@ impl Editor {
                     "Copied {} × {} cells · Ctrl+V to place · R rotates",
                     stamp.width, stamp.height
                 );
+                if let Ok(text) = stamp.clipboard_text() {
+                    ctx.copy_text(text);
+                }
                 self.clipboard = Some(stamp);
             }
             Err(error) => self.notice = error,
@@ -240,13 +264,13 @@ impl Editor {
     }
 
     pub(super) fn area_controls(&mut self, ui: &mut egui::Ui) {
-        ui.collapsing("Areas & reusable stamps", |ui| {
+        egui::CollapsingHeader::new("Areas & reusable stamps").default_open(self.ephemeral).show(ui, |ui| {
             if ui.selectable_label(self.tool == Tool::Area, "Select rectangular area").clicked() { self.tool = Tool::Area; }
             if let Some((a, b)) = self.selection {
                 let (a, b) = bounds(a, b);
                 ui.label(format!("{}, {} → {}, {} · {} cells", a.x, a.z, b.x, b.z, (b.x-a.x+1)*(b.z-a.z+1)));
                 ui.horizontal(|ui| {
-                    if ui.button("Copy  Ctrl+C").clicked() { self.copy_area(); }
+                    if ui.button("Copy  Ctrl+C").clicked() { self.copy_area(ui.ctx()); }
                     if ui.button("Fill with brush").clicked() && let Err(e) = self.fill_area() { self.notice = e; }
                 });
                 if ui.button("Create region event").clicked() && let Err(e) = self.region_from_area() { self.notice = e; }
@@ -358,7 +382,15 @@ impl Editor {
             .filter(|&i| i < self.project.scenery.len())
         {
             let p = self.project.scenery[index].position;
-            let origin = glam::vec3(p[0] as f32, -320_000.0, p[2] as f32);
+            let top = self
+                .surfaces
+                .iter()
+                .flat_map(|s| s.corners)
+                .map(|v| v.y)
+                .reduce(f32::min)
+                .unwrap_or(0.0)
+                - 1000.0;
+            let origin = glam::vec3(p[0] as f32, top, p[2] as f32);
             if let Some(hit) = crate::debug::terrain::pick(&self.surfaces, origin, glam::Vec3::Y) {
                 self.history.begin(&self.project);
                 self.project.scenery[index].position[1] = hit.y;
