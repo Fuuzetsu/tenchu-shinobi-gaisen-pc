@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.33.0 — 2026-11-13
+
 - Add optional HD artwork to T2's title, mission selection, equipment, results,
   prologue and briefings, plus HUD and all 21 inventory icons. Download **Tenchu 2
   artwork v3** from **F1 → Visual assets** and enable **Replacement artwork**.
