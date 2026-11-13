@@ -6,7 +6,13 @@ Choose **Level Studio** on the Shinobi Gaisen or Tenchu 2 title, or press
 Shinobi Gaisen disc. Connect a Tenchu 2 disc through the game launcher to add
 its character, scenery and audio assets.
 
-**Projects → Open lighting & events example** loads an editable example.
+**Projects → Open T1 + T2 garden example** builds an editable courtyard from
+both connected discs: T1 terrain, cherry trees, lanterns and props, T2 scenery
+and Rikimaru, an original patrol, region messages and a delayed storm. Three
+saved camera views frame the garden and characters. The example contains only
+asset references and authored placements; it still needs both discs.
+
+**Projects → Open lighting & events example** loads a T1-only editable example.
 Press **F5** to play it: an arrival message appears immediately and a storm
 arrives three seconds later. **Esc / Return to editing** returns to the project;
 F5 during a playtest restarts it. Success and failure return automatically.
@@ -29,10 +35,15 @@ and other presets are available per project without changing global presets.
 | Middle drag | Pan the scene or map |
 | Wheel | Dolly in 3D, zoom around the pointer in Map view |
 | F | Frame the selected character/scenery, or current terrain cell |
+| G | Toggle editor guides for clean scene previews |
 | Left click / drag | Paint; select and drag character/scenery markers with Select / move |
 | R | Rotate the terrain brush or selected scenery by 90 degrees |
 | Delete | Remove the selected removable character or scenery |
 | Ctrl+D | Duplicate selected scenery |
+| Arrows / Page Up / Page Down | Nudge selected scenery horizontally / vertically |
+| End | Ground selected scenery on the solid terrain below it |
+| Ctrl+C / Ctrl+V | Copy a selected terrain area / arm the stamp tool |
+| I | Sample the terrain tile and rotation under the cursor |
 | Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y | Undo / redo, with a brush stroke as one edit |
 | Ctrl+S / Ctrl+Shift+S | Save / save a copy |
 | Alt+1 through Alt+7 | Terrain, characters, scenery, events, environment, mission, projects |
@@ -44,6 +55,32 @@ markers and patrol paths. The resizable inspector holds palettes and properties.
 Terrain strokes rebuild the 3D scene when released; environment controls update
 live. Text fields commit on leaving the field. Keyboard editing shortcuts leave
 text entry alone.
+
+## Building tools
+
+Choose **Area**, then drag a rectangle in Map or 3D view. **Terrain → Areas &
+reusable stamps** copies both terrain layers, fills the rectangle with the current
+brush, or creates an event region covering it. **Ctrl+V** arms placement; **R**
+rotates the stamp and both layers' tile orientations. Click to place. The complete
+stamp must fit and satisfy the original placement rules; a blocked fill or paste
+leaves the map unchanged. Successful edits use the original patrol truncation
+rules and can be undone as one operation.
+
+Name a copied stamp and choose **Keep stamp** to save it in the project. Up to
+32 stamps can travel with a project; stamps only paste into their source theme.
+Copying another area replaces the temporary clipboard, not the saved stamps.
+
+Scenery placement in 3D follows the surface under the mouse, with **Free**, 0.1 m,
+0.5 m, 1 m or 2 m horizontal snapping. Arrow keys nudge X/Z and Page Up/Down change
+height by the snap step (0.1 m in Free mode). **End / Ground on terrain** places
+the object's origin on the highest solid terrain beneath its X/Z position.
+Added scenery remains decorative and does not become a grounding surface.
+
+**Camera views → Save current view** stores an editable name and camera angle.
+Recall any of up to 16 views, or remove one. The first saved view opens when the
+project is loaded. Views and stamps use the existing undo/redo history and keep
+mission records intact; view changes never alter the playtest camera. Existing
+version-one Studio files without these additions remain compatible.
 
 ## Missions and assets
 

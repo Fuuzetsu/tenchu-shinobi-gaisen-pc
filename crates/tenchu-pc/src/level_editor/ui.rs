@@ -29,6 +29,9 @@ impl Editor {
                         }
                     }
                 }
+                if input.key_pressed(egui::Key::G) {
+                    self.guides = !self.guides;
+                }
                 if input.key_pressed(egui::Key::F5) {
                     self.pending = Some(Command::Play);
                 }
@@ -44,8 +47,43 @@ impl Editor {
                 {
                     self.notice = e;
                 }
+                if self.unlocked && self.panel == Panel::Terrain {
+                    if input.modifiers.command && input.key_pressed(egui::Key::C) {
+                        self.copy_area();
+                    }
+                    if input.modifiers.command
+                        && input.key_pressed(egui::Key::V)
+                        && self.clipboard.is_some()
+                    {
+                        self.tool = Tool::Stamp;
+                    }
+                    if input.key_pressed(egui::Key::I) {
+                        self.sample_cell();
+                    }
+                }
+                if self.unlocked && self.panel == Panel::Scenery {
+                    for (key, axis, direction) in [
+                        (egui::Key::ArrowLeft, 0, -1),
+                        (egui::Key::ArrowRight, 0, 1),
+                        (egui::Key::ArrowUp, 2, -1),
+                        (egui::Key::ArrowDown, 2, 1),
+                        (egui::Key::PageUp, 1, -1),
+                        (egui::Key::PageDown, 1, 1),
+                    ] {
+                        if input.key_pressed(key) {
+                            self.nudge_scenery(axis, direction);
+                        }
+                    }
+                    if input.key_pressed(egui::Key::End) {
+                        self.ground_scenery();
+                    }
+                }
                 if input.key_pressed(egui::Key::R) {
-                    if self.panel == Panel::Scenery && self.unlocked {
+                    if self.tool == Tool::Stamp && self.unlocked {
+                        if let Some(stamp) = &mut self.clipboard {
+                            stamp.rotate();
+                        }
+                    } else if self.panel == Panel::Scenery && self.unlocked {
                         self.history.begin(&self.project);
                         if let Some(prop) = self
                             .scenery_selection
@@ -162,6 +200,9 @@ impl Editor {
                     self.pending = Some(Command::Rebuild);
                 }
                 ui.checkbox(&mut self.grid, "Map view");
+                ui.checkbox(&mut self.guides, "Guides")
+                    .on_hover_text("G toggles markers and regions for clean previews");
+                self.camera_views(ui);
                 if ui.button("Exit studio").clicked() {
                     self.pending = Some(Command::Close);
                 }
@@ -172,13 +213,17 @@ impl Editor {
                     (Tool::Paint, "Paint"),
                     (Tool::Erase, "Erase"),
                     (Tool::Patrol, "Patrol"),
+                    (Tool::Area, "Area"),
+                    (Tool::Stamp, "Stamp"),
                 ] {
                     if ui.selectable_value(&mut self.tool, tool, label).clicked() {
-                        self.panel = if matches!(tool, Tool::Paint | Tool::Erase) {
-                            Panel::Terrain
-                        } else {
-                            Panel::Actors
-                        };
+                        self.panel =
+                            if matches!(tool, Tool::Paint | Tool::Erase | Tool::Area | Tool::Stamp)
+                            {
+                                Panel::Terrain
+                            } else {
+                                Panel::Actors
+                            };
                     }
                 }
                 ui.separator();
@@ -259,6 +304,8 @@ impl Editor {
 
     fn palette(&mut self, ui: &mut egui::Ui) {
         ui.heading("Terrain palette");
+        self.area_controls(ui);
+        ui.small("I samples the tile under the cursor, including its rotation.");
         ui.horizontal(|ui| {
             for (ground, label) in [(true, "Ground"), (false, "Ornaments / traps")] {
                 if ui
@@ -557,6 +604,11 @@ impl Editor {
 
     fn projects(&mut self, ui: &mut egui::Ui, assets: &GameAssets<DiscSource>) {
         ui.heading("Projects");
+        if ui.button("Open T1 + T2 garden example").clicked()
+            && let Err(error) = self.open_mixed_example(assets)
+        {
+            self.notice = error;
+        }
         if ui.button("Open lighting & events example").clicked() {
             let mut project = Project::new(self.presets[0].clone());
             project.mission.title = "Storm arrives".into();

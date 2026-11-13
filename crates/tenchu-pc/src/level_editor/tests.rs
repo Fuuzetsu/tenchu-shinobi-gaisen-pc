@@ -237,3 +237,122 @@ fn malformed_library_never_overwrites_previous_projects() {
     assert_eq!(crate::storage::read(&path).unwrap(), b"{bad project");
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn terrain_stamps_rotate_both_layers_and_preserve_old_projects() {
+    use tenchu_assets::trial::Cell;
+    let mut p = project();
+    p.mission.map[0] = Cell {
+        ground: 1,
+        ornament: 10 | 64,
+    };
+    p.mission.map[1] = Cell {
+        ground: 2 | 192,
+        ornament: 255,
+    };
+    p.mission.map[32] = Cell {
+        ground: 255,
+        ornament: 255,
+    };
+    let original =
+        building::Stamp::copy(&p.mission, Point { x: 0, z: 0 }, Point { x: 1, z: 2 }).unwrap();
+    let mut stamp = original.clone();
+    stamp.rotate();
+    assert_eq!((stamp.width, stamp.height), (3, 2));
+    assert_eq!(
+        stamp.cells[2],
+        Cell {
+            ground: 1 | 64,
+            ornament: 10 | 128
+        }
+    );
+    assert_eq!(stamp.cells[5].ground, 2);
+    assert_eq!(stamp.cells[1].ground, 255);
+    for _ in 0..3 {
+        stamp.rotate();
+    }
+    assert_eq!(stamp, original);
+    p.stamps.push(stamp);
+    p.views.push(building::View::new(
+        "Courtyard".into(),
+        Editor::new(PathBuf::new()).camera,
+    ));
+    p.mission.record(301, "Ninja".into());
+    let before = p.clone();
+    let mut history = History::default();
+    history.begin(&p);
+    p.views[0].name = "Courtyard, wide".into();
+    history.commit(&mut p);
+    assert_eq!(p.mission.records, before.mission.records);
+    assert_eq!(Project::decode(&p.encode().unwrap()).unwrap(), p);
+    let mut legacy = serde_json::to_value(&p).unwrap();
+    legacy.as_object_mut().unwrap().remove("views");
+    legacy.as_object_mut().unwrap().remove("stamps");
+    let decoded = Project::decode(&serde_json::to_vec(&legacy).unwrap()).unwrap();
+    assert!(decoded.stamps.is_empty() && decoded.views.is_empty());
+    p.views[0].pitch = f32::NAN;
+    assert!(p.validate().is_err());
+    p.views.clear();
+    p.stamps[0].cells.pop();
+    assert!(p.validate().is_err());
+}
+
+#[test]
+fn blocked_stamp_paste_is_atomic_and_success_uses_original_patrol_rules() {
+    let theme = Theme {
+        tiles: (0..10)
+            .map(|kind| tenchu_assets::trial::Tile {
+                flags: (kind + 1) << 4,
+                textures: [-1; 10],
+                ornament: None,
+                name: String::new(),
+            })
+            .collect(),
+        images: vec![],
+        ornaments: vec![],
+        vram: Default::default(),
+    };
+    let mut p = project();
+    let actor = editing::add_actor(&mut p.mission, &theme, Point { x: 3, z: 3 }, 140).unwrap();
+    for x in [4, 5] {
+        editing::patrol(
+            &mut p.mission,
+            &theme,
+            actor,
+            Waypoint {
+                point: Point { x, z: 3 },
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    }
+    let mut stamp =
+        building::Stamp::copy(&p.mission, Point { x: 0, z: 0 }, Point { x: 1, z: 0 }).unwrap();
+    stamp.cells[1].ground = 255;
+    let before = p.mission.clone();
+    assert!(
+        stamp
+            .paste(&mut p.mission, &theme, Point { x: 2, z: 3 })
+            .is_err()
+    );
+    assert_eq!(p.mission, before);
+    assert!(
+        stamp
+            .paste(&mut p.mission, &theme, Point { x: 31, z: 0 })
+            .is_err()
+    );
+    assert_eq!(p.mission, before);
+    stamp
+        .paste(&mut p.mission, &theme, Point { x: 4, z: 3 })
+        .unwrap();
+    assert_eq!(p.mission.placements[actor].route.len(), 2);
+    assert_eq!(p.mission.cell(5, 3).unwrap().ground, 255);
+    stamp.theme = 1;
+    let before = p.mission.clone();
+    assert!(
+        stamp
+            .paste(&mut p.mission, &theme, Point { x: 0, z: 0 })
+            .is_err()
+    );
+    assert_eq!(p.mission, before);
+}

@@ -4,18 +4,18 @@ use tenchu_assets::{model::Part, stage::MissionAssets, texture::Vram};
 
 #[derive(Default)]
 pub(super) struct SceneryLibrary {
-    sources: BTreeMap<(AssetGame, usize), Source>,
+    pub(super) sources: BTreeMap<(AssetGame, usize), Source>,
 }
 
-struct Source {
+pub(super) struct Source {
     model_prefix: String,
-    parts: Vec<Part>,
-    names: Vec<String>,
+    pub(super) parts: Vec<Part>,
+    pub(super) names: Vec<String>,
     vram: Arc<Vram>,
 }
 
 impl SceneryLibrary {
-    fn load(
+    pub(super) fn load(
         &mut self,
         assets: &GameAssets<DiscSource>,
         game: AssetGame,
@@ -105,6 +105,7 @@ impl Editor {
 
     pub(super) fn scenery(&mut self, ui: &mut egui::Ui, assets: &GameAssets<DiscSource>) {
         ui.heading("Scenery from your discs");
+        ui.collapsing("Browse disc assets", |ui| {
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.scenery_game, AssetGame::Tenchu, "Tenchu");
             ui.selectable_value(&mut self.scenery_game, AssetGame::Tenchu2, "Tenchu 2");
@@ -170,6 +171,7 @@ impl Editor {
                     }
                 });
         }
+        });
         ui.separator();
         ui.heading("Placed scenery");
         for (i, prop) in self.project.scenery.iter().enumerate() {
@@ -187,11 +189,37 @@ impl Editor {
         else {
             return;
         };
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Snap");
+            for (step, label) in [
+                (0, "Free"),
+                (100, "0.1 m"),
+                (500, "0.5 m"),
+                (1000, "1 m"),
+                (2000, "2 m"),
+            ] {
+                ui.selectable_value(&mut self.snap, step, label);
+            }
+        });
+        ui.small("Arrows: nudge X/Z · Page Up/Down: height · End: ground on terrain");
+        if ui.button("Ground on terrain  End").clicked() {
+            self.ground_scenery();
+        }
         let prop = &mut self.project.scenery[index];
         ui.separator();
         ui.text_edit_singleline(&mut prop.name);
+        ui.label(format!(
+            "{} · source area {} · object {}",
+            if prop.game == AssetGame::Tenchu {
+                "Tenchu"
+            } else {
+                "Tenchu 2"
+            },
+            prop.stage,
+            prop.part
+        ));
         ui.small(
-            "Click a cell to move the selected instance; coordinates use 1000 units per metre.",
+            "Click or drag in 3D to place precisely; map view uses cell centres. Coordinates use 1000 units per metre.",
         );
         for (value, axis) in prop.position.iter_mut().zip(["X ", "Y ", "Z "]) {
             ui.add(

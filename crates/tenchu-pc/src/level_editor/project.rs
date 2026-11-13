@@ -16,6 +16,10 @@ pub struct Project {
     pub actors: BTreeMap<usize, String>,
     pub scenery: Vec<Scenery>,
     pub events: Vec<Event>,
+    #[serde(default)]
+    pub stamps: Vec<super::building::Stamp>,
+    #[serde(default)]
+    pub views: Vec<super::building::View>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -118,6 +122,8 @@ impl Project {
             actors: BTreeMap::new(),
             scenery: vec![],
             events: vec![],
+            stamps: vec![],
+            views: vec![],
         }
     }
 
@@ -138,8 +144,16 @@ impl Project {
             || self.actors.len() > 10
             || self.scenery.len() > 512
             || self.events.len() > 256
+            || self.stamps.len() > 32
+            || self.views.len() > 16
         {
             return Err("Project exceeds the supported authoring limits".into());
+        }
+        for stamp in &self.stamps {
+            stamp.validate()?;
+        }
+        for view in &self.views {
+            view.validate()?;
         }
         for (&slot, model) in &self.actors {
             if slot >= self.mission.placements.len() || model.is_empty() || model.len() > 256 {

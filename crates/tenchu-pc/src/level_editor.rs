@@ -1,5 +1,7 @@
 mod assets;
+mod building;
 mod events;
+mod example;
 mod history;
 mod project;
 mod store;
@@ -37,6 +39,8 @@ enum Tool {
     Paint,
     Erase,
     Patrol,
+    Area,
+    Stamp,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -88,6 +92,7 @@ pub struct Editor {
     password: String,
     unlocked: bool,
     grid: bool,
+    guides: bool,
     zoom: f32,
     pan: egui::Vec2,
     last_cell: Option<Point>,
@@ -98,6 +103,9 @@ pub struct Editor {
     pub asset_names: Vec<(String, String)>,
     pub sound_catalog: std::collections::BTreeMap<(AssetGame, usize), Vec<(u16, String)>>,
     music_names: Vec<String>,
+    selection: Option<(Point, Point)>,
+    clipboard: Option<building::Stamp>,
+    snap: i32,
 }
 
 impl Editor {
@@ -145,6 +153,7 @@ impl Editor {
             password: String::new(),
             unlocked: true,
             grid: false,
+            guides: true,
             zoom: 1.0,
             pan: egui::Vec2::ZERO,
             last_cell: None,
@@ -155,6 +164,9 @@ impl Editor {
             asset_names: vec![],
             sound_catalog: Default::default(),
             music_names: vec![],
+            selection: None,
+            clipboard: None,
+            snap: 500,
         }
     }
 
@@ -200,6 +212,9 @@ impl Editor {
         self.unlocked = project.mission.password.is_empty();
         self.password.clear();
         self.cursor = project.mission.placements[0].point;
+        if let Some(view) = project.views.first() {
+            self.camera = view.camera();
+        }
         self.project = project;
         self.theme = Some(theme);
         self.textures.clear();
@@ -207,6 +222,7 @@ impl Editor {
         self.actor = 0;
         self.scenery_selection = None;
         self.event = 0;
+        self.selection = None;
         self.selected_save = None;
         self.revision = self.revision.wrapping_add(1);
         Ok(())
@@ -255,6 +271,15 @@ impl Editor {
         let mission = &mut self.project.mission;
         let theme = self.theme.as_ref().unwrap();
         let result = match self.tool {
+            Tool::Area => {
+                self.selection = Some((self.selection.map_or(point, |(a, _)| a), point));
+                Ok(())
+            }
+            Tool::Stamp => self
+                .clipboard
+                .as_ref()
+                .ok_or_else(|| "Copy a terrain area first".into())
+                .and_then(|stamp| stamp.paste(mission, theme, point)),
             Tool::Paint | Tool::Erase => {
                 let tile = if self.tool == Tool::Erase {
                     255

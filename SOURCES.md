@@ -22,6 +22,12 @@ retains its source VRAM and artwork identity and is added after source game
 construction, so decorative instances do not consume gameplay RNG or collision
 slots. No additional sibling-repository code, game assets or RAM was imported.
 
+Area fills and two-layer stamps use those same TRIAL operations on a temporary
+mission and commit only on success, including source patrol truncation. Snapping,
+camera views, stored stamps and the mixed-disc example are new authoring tools;
+they contain no retail geometry or texture data. The example resolves scenery
+against the existing disc loaders and retains each game's material identities.
+
 Studio's versioned projects, history and ordered event queues are newly authored
 optional features. They do not implement another retail scripting VM or T2's
 unported TRIAL editor. Event timing uses nominal game ticks; preview weather and

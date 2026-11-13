@@ -183,6 +183,33 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
         );
         assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), scene);
     }
+    app.studio.open_mixed_example(&app.assets).unwrap();
+    app.studio_action(Command::Rebuild);
+    assert_eq!(app.view.as_ref().unwrap().studio_scenery.len(), 7);
+    assert!(
+        app.studio
+            .project
+            .actors
+            .values()
+            .any(|id| id.starts_with("tenchu2"))
+    );
+    for i in 0..app.studio.project.views.len() {
+        app.studio.camera = app.studio.project.views[i].camera();
+        app.refresh_studio().unwrap();
+        app.update_view();
+        let view = app.view.as_mut().unwrap();
+        for _ in 0..3 {
+            view.overlay.custom(&view.window, &view.renderer, |ctx| {
+                app.studio.show(ctx, &app.assets);
+            });
+        }
+        view.capture(
+            &app.campaign.game,
+            &app.debug,
+            &output.join(format!("mixed-garden-{i}.png")),
+        )
+        .unwrap();
+    }
     for game in [AssetGame::Tenchu, AssetGame::Tenchu2] {
         app.studio_action(Command::BrowseSounds(game, 0));
         let sounds = &app.studio.sound_catalog[&(game, 0)];
@@ -198,7 +225,7 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
     }
     app.studio_action(Command::Play);
     assert!(app.studio.testing, "{}", app.studio.notice);
-    for _ in 0..65 {
+    for _ in 0..95 {
         app.game_tick(0);
     }
     assert!(app.studio.testing);

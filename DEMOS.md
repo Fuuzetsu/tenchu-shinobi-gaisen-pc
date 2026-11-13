@@ -22,7 +22,9 @@ model folder are used; `TENCHU_ASSET_PACK` and `TENCHU_MODEL_DIR` work normally.
 To author a scene with the demonstrated lighting, shadows and weather, open
 [Level Studio](docs/level-studio.md) from either title. **Projects → Open lighting
 & events example** provides an editable example whose weather changes during
-playtesting. Studio starts with Modern High and offers Modern Ultra and the
+playtesting. **Open T1 + T2 garden example** combines both discs in an editable
+courtyard, with saved camera views, a reusable terrain stamp and region events.
+Studio starts with Modern High and offers Modern Ultra and the
 other visual presets. The existing showcase clips and Original preset keep
 their existing behavior; Studio project settings stay separate from game settings.
 

@@ -52,6 +52,7 @@ impl Editor {
             .input(|i| i.pointer.hover_pos())
             .filter(|pos| rect.contains(*pos));
         let mut cell = None;
+        let mut surface_point = None;
         let mut targets = vec![];
         if self.grid {
             painter.rect_filled(rect, 0.0, Color32::from_rgb(15, 20, 26));
@@ -146,8 +147,19 @@ impl Editor {
                     StrokeKind::Inside,
                 );
             }
+            if let Some((a, b)) = self.selection {
+                let (a, b) = building::bounds(a, b);
+                let area = cell_rect(a).union(cell_rect(b));
+                painter.rect_filled(area, 0.0, Color32::from_rgba_unmultiplied(70, 170, 230, 45));
+                painter.rect_stroke(
+                    area,
+                    0.0,
+                    Stroke::new(2.0_f32, Color32::LIGHT_BLUE),
+                    StrokeKind::Inside,
+                );
+            }
             let selected = &self.project.mission.placements[self.actor];
-            for pair in selected.route.windows(2) {
+            for pair in selected.route.windows(2).filter(|_| self.guides) {
                 painter.line_segment(
                     [
                         cell_rect(pair[0].point).center(),
@@ -158,12 +170,14 @@ impl Editor {
             }
             for (i, actor) in self.project.mission.placements.iter().enumerate() {
                 targets.push((false, i, cell_rect(actor.point).center()));
-                marker(
-                    &painter,
-                    cell_rect(actor.point).center(),
-                    i,
-                    self.actor == i,
-                );
+                if self.guides {
+                    marker(
+                        &painter,
+                        cell_rect(actor.point).center(),
+                        i,
+                        self.actor == i,
+                    );
+                }
             }
             for (i, prop) in self.project.scenery.iter().enumerate() {
                 let pos = origin
@@ -218,7 +232,11 @@ impl Editor {
                     - 50.0;
                 Vec3::from_array(position)
             };
-            for pair in self.project.mission.placements[self.actor].route.windows(2) {
+            for pair in self.project.mission.placements[self.actor]
+                .route
+                .windows(2)
+                .filter(|_| self.guides)
+            {
                 if let (Some(a), Some(b)) =
                     (project(world(pair[0].point)), project(world(pair[1].point)))
                 {
@@ -228,7 +246,9 @@ impl Editor {
             for (i, actor) in self.project.mission.placements.iter().enumerate() {
                 if let Some(pos) = project(world(actor.point)) {
                     targets.push((false, i, pos));
-                    marker(&painter, pos, i, self.actor == i);
+                    if self.guides {
+                        marker(&painter, pos, i, self.actor == i);
+                    }
                 }
             }
             for (i, prop) in self.project.scenery.iter().enumerate() {
@@ -236,7 +256,12 @@ impl Editor {
                     targets.push((true, i, pos));
                 }
             }
-            for event in &self.project.events {
+            for event in self
+                .project
+                .events
+                .iter()
+                .filter(|_| self.guides && self.panel == Panel::Events)
+            {
                 if let project::Trigger::Enter { min, max } = event.trigger {
                     for axis in 0..3 {
                         let a = (axis + 1) % 3;
@@ -263,6 +288,30 @@ impl Editor {
                     }
                 }
             }
+            if let Some((a, b)) = self.selection {
+                let (a, b) = building::bounds(a, b);
+                let corners: Vec<_> = [
+                    (a.x, a.z),
+                    (b.x + 1, a.z),
+                    (b.x + 1, b.z + 1),
+                    (a.x, b.z + 1),
+                ]
+                .into_iter()
+                .filter_map(|(x, z)| {
+                    project(glam::vec3(
+                        f32::from(x) * 2000.0,
+                        world(a).y,
+                        -f32::from(z) * 2000.0,
+                    ))
+                })
+                .collect();
+                if corners.len() == 4 {
+                    painter.add(egui::Shape::closed_line(
+                        corners,
+                        Stroke::new(2.0_f32, Color32::LIGHT_BLUE),
+                    ));
+                }
+            }
             if let Some(pos) = position {
                 let ndc = [
                     (pos.x - screen.min.x) / screen.width() * 2.0 - 1.0,
@@ -277,6 +326,7 @@ impl Editor {
                             .then_some(origin + direction * distance)
                     });
                 if let Some(point) = point {
+                    surface_point = Some(point.to_array());
                     let cursor = Point {
                         x: (point.x / 2000.0).floor() as i16,
                         z: (-point.z / 2000.0).floor() as i16,
@@ -309,7 +359,7 @@ impl Editor {
             if !rect.contains(point) || scenery && self.panel != Panel::Scenery {
                 continue;
             }
-            if scenery {
+            if scenery && self.guides {
                 let color = if self.scenery_selection == Some(index) {
                     Color32::GOLD
                 } else {
@@ -350,10 +400,36 @@ impl Editor {
         }
         if let Some(point) = cell {
             self.cursor = point;
+            if self.tool == Tool::Area
+                && (response.drag_started_by(egui::PointerButton::Primary) || response.clicked())
+            {
+                self.selection = Some((point, point));
+            }
+            if self.tool == Tool::Stamp
+                && let Some(stamp) = &self.clipboard
+            {
+                painter.text(
+                    rect.right_top() + Vec2::new(-16.0, 16.0),
+                    egui::Align2::RIGHT_TOP,
+                    format!("Place {} × {} stamp · R rotates", stamp.width, stamp.height),
+                    egui::FontId::proportional(18.0),
+                    Color32::LIGHT_BLUE,
+                );
+            }
+            if self.tool == Tool::Select
+                && self.panel == Panel::Scenery
+                && !self.grid
+                && !selected
+                && (response.clicked() || dragging)
+                && let Some(target) = surface_point
+            {
+                self.move_scenery(target);
+                return;
+            }
             if !selected
                 && (response.clicked()
                     || dragging
-                    || matches!(self.tool, Tool::Paint | Tool::Erase)
+                    || matches!(self.tool, Tool::Paint | Tool::Erase | Tool::Area)
                         && response.dragged_by(egui::PointerButton::Primary))
             {
                 if matches!(self.tool, Tool::Paint | Tool::Erase)

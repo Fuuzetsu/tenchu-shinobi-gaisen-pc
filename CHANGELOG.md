@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Build maps faster in Level Studio with rectangular selections, atomic area
+  fills, tile sampling, rotated two-layer stamps saved in projects, and region
+  events created from a selection. Add precise scenery snapping, keyboard
+  nudging, grounding and named camera views. Older Studio projects still open.
+- Add **Projects → Open T1 + T2 garden example**, an editable mixed-disc map with
+  cherry trees, lanterns, T2 scenery and Rikimaru, patrols and weather events.
+
 - Add **Level Studio**, a separate editor integrated into the game. Open it from
   either title or with **Shift+F10** in the menus. Includes a 3D workspace and
   zoomable map, terrain brushes, character and patrol editing, undo/redo,
