@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.32.2 — 2026-11-13
+
 - Add **F1 → Overlays → Sound triggers** for native T2: instruction-sign entry
   regions, spatial lesson targets and sound-producing scenery. Click or tap a
   cyan marker to preview its audio, including while paused or in free camera,

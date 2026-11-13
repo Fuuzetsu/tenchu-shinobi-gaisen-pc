@@ -2930,7 +2930,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-assets"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "encoding_rs",
  "serde",
@@ -2940,7 +2940,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-audio"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "serde",
  "tenchu-assets",
@@ -2948,7 +2948,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-core"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "serde",
  "serde-big-array",
@@ -2959,7 +2959,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-pc"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "bytemuck",
  "console_error_panic_hook",
