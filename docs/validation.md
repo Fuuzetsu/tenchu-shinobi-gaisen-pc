@@ -1198,3 +1198,36 @@ loop. Pending/completed/cancelled/failed-dialog checks cover pause lifetime;
 a game fixture checks normal ticks, rewind and manual stepping while pending.
 Evidence and screenshots remain outside Git in
 `private/release-fixes-20261113`.
+
+### T2 replacement UI (v0.33.0)
+
+The separate `tenchu2-artwork-v3` pack adds 64 Japanese UI identities. Native
+menu fixtures cover title, mission selection, equipment, results, prologue and
+all six narrated briefing backgrounds, with both confirm/cancel conventions.
+Paused original → HD → original rebuilds produce identical original PNGs and
+leave serialized menu state unchanged. The HUD fixture covers all 21 item icons,
+four Ki states, digit slices, reticle, selector and zero/partial health fills;
+vertex placement, tint and blend mode remain unchanged. A full transition fade
+is black, and Hide HUD matches an empty HUD. The displayed VRAM blend classes,
+not the pre-upload palette copy, provide the same identities as equipment icons.
+
+Commands use the user's disc and the published pack:
+
+```sh
+TENCHU2_DISC=/path/to/tenchu2-jp.cue \
+TENCHU2_ASSET_PACK=/path/to/tenchu2-hd.tar.zst \
+TENCHU2_UI_REVIEW=/private/review \
+./dev.sh cargo test -p tenchu-pc --lib native_hd_interface_restores_original_and_preserves_state -- --ignored
+
+TENCHU2_DISC=/path/to/tenchu2-jp.cue \
+TENCHU2_ASSET_PACK=/path/to/tenchu2-hd.tar.zst \
+TENCHU2_UI_REVIEW=/private/review \
+./dev.sh cargo test -p tenchu-pc --lib hd_hud_keeps_layout_blending_and_game_state -- --ignored
+```
+
+The local review is `private/t2-hd-ui-20261113`; generated paintings, prompts,
+source references and screenshots remain outside Git. Folder and archive loading
+are compared using matching captures. These are presentation checks, not a new
+ordinary-play input route or a campaign-completion claim. Workspace tests,
+formatting, strict native Clippy, Android library and WASM checks also pass;
+WASM retains its four existing renderer dead-code warnings.

@@ -9,27 +9,30 @@ use tenchu_core::tenchu2::title::Choice;
 pub(crate) struct Drawing {
     pub frame: Arc<Frame>,
     tick: u32,
+    artwork: Arc<Artwork>,
 }
 
 impl Drawing {
-    pub fn new(title: &Title) -> Self {
-        Self {
-            frame: build(title),
+    pub fn new(title: &Title, graphics: &crate::settings::Graphics) -> tenchu_assets::Result<Self> {
+        let artwork = Arc::new(super::artwork::load(&title.resources.images, graphics)?);
+        Ok(Self {
+            frame: build(title, artwork.clone()),
+            artwork,
             tick: title.state.tick,
-        }
+        })
     }
 
     pub fn update(&mut self, title: &Title) {
         if self.tick != title.state.tick {
-            self.frame = build(title);
+            self.frame = build(title, self.artwork.clone());
             self.tick = title.state.tick;
         }
     }
 }
 
-fn build(title: &Title) -> Arc<Frame> {
+fn build(title: &Title, artwork: Arc<Artwork>) -> Arc<Frame> {
     let mut canvas = Canvas::new(320);
-    canvas.frame = Some(Frame::new([320, 240], Arc::new(Artwork::new())));
+    canvas.frame = Some(Frame::new([320, 240], artwork));
     let state = &title.state;
     for (i, descriptor) in title.resources.sprites.iter().enumerate() {
         if i >= 3 && !state.active {

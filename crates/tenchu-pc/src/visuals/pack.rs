@@ -82,6 +82,16 @@ struct Selection {
 }
 
 impl Selection {
+    fn interface(originals: BTreeMap<String, Image>) -> Self {
+        Self {
+            max_pixels: MAX_INTERFACE_PIXELS,
+            textures: originals.keys().cloned().collect(),
+            originals,
+            models: BTreeSet::new(),
+            player_models: false,
+        }
+    }
+
     fn mission(mission: &MissionAssets) -> Self {
         let mut originals: BTreeMap<_, _> = catalog::regions(mission)
             .into_iter()
@@ -136,14 +146,16 @@ impl Pack {
         Ok(Arc::new(pack))
     }
     pub fn interface_from_env(originals: BTreeMap<String, Image>) -> Result<Self> {
-        Self::configured(Selection {
-            max_pixels: MAX_INTERFACE_PIXELS,
-            textures: originals.keys().cloned().collect(),
-            originals,
-            models: BTreeSet::new(),
-            player_models: false,
-        })
+        Self::configured(Selection::interface(originals))
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn tenchu2_interface(originals: BTreeMap<String, Image>) -> Result<Self> {
+        match configured_tenchu2_root() {
+            Some(path) => Self::load_selected(&path, Some(Selection::interface(originals))),
+            None => Ok(Self::default()),
+        }
+    }
+
     pub fn from_env(mission: &MissionAssets) -> Result<Self> {
         Self::configured(Selection::mission(mission))
     }

@@ -2,7 +2,7 @@ use super::{Content, ContentDrawing};
 use crate::{renderer::Renderer, settings::Settings, tenchu2::native};
 use tenchu_core::tenchu2::{introduction::Frame, progress};
 
-fn state(content: &Content) -> Vec<u8> {
+pub(super) fn state(content: &Content) -> Vec<u8> {
     match content {
         Content::Title(value) => postcard::to_allocvec(&(
             value.state.choice,

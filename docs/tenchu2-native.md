@@ -640,8 +640,15 @@ For a repeatable capture:
 Tenchu 2 pad mask for the requested ticks. `TENCHU_SETTINGS` selects a settings
 file for rendering; the separate `tenchu2-hd.tar.zst` pack is discovered normally.
 
-For JP HD mission textures, install [Tenchu 2 artwork v2](../artwork/tenchu2/README.md).
-It covers the native terrain, props, character costumes, weapons and items.
+For optional HD textures and UI, install [Tenchu 2 artwork v3](../artwork/tenchu2/README.md)
+using **F1 → Visual assets → Download / update Tenchu 2 artwork**, then enable
+**Replacement artwork**. Game v0.33.0 adds the title, mission/equipment/results
+screens, prologue and briefing backgrounds, HUD and all 21 item icons. The same
+icons work in native T2 and T1 maps under T2 rules. **High-definition text** is
+independent and still works without a pack. Older or incomplete packs retain the
+original for missing entries; disabling replacements restores the disc artwork.
+Modern presets keep your artwork preference and enable sharp text. Mission
+artwork still covers terrain, props, costumes, weapons and items.
 The Gaisen `tenchu-hd.tar.zst` pack remains separate; installing that pack alone
 does not replace T2 textures. F1 shows the T2 pack path independently.
 

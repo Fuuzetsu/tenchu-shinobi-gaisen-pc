@@ -1,8 +1,8 @@
 {
   "format": "tenchu-artwork-provenance",
   "version": 1,
-  "description": "Newly painted Tenchu 2 Europe and Japan replacement materials; retail textures used only as private layout references. Original alpha is reconstructed from the supplied disc, never shipped.",
-  "manifest_sha256": "cb973b1942c46df68eae0fabe30ce27bca3b16a2ccbc48c67fa15e2b7485a8f7",
+  "description": "Tenchu 2 Europe/Japan materials plus optional Japanese UI. Generated paintings and authored type/shapes use private retail layout references. Original title/calligraphy and HUD glyphs are reconstructed from the user disc at runtime, never shipped.",
+  "manifest_sha256": "c04c36079d024eb0810fc28eb07aa364d7f5c65f45f2c2bf0cbcd35d86d8e7a5",
   "generator": "OpenAI image generation tool",
   "atlases": {
     "actors-00": {
@@ -508,6 +508,27 @@
       "prompt_sha256": "70717cfd778ecde5668cc07a690e5cf45d69903070de9c1601866b3758d17263",
       "grid": 8,
       "entries": 25
+    },
+    "interface-items": {
+      "image_sha256": "26c781d2f7887e0a1d530657937ba32ccbc155226efa5e18a99ac2f42eabe629",
+      "prompt_sha256": "0d3ef42f1f3f6fc53f03158610d663831a569498adb4f04485a1001795a7809a",
+      "columns": 5,
+      "rows": 5,
+      "entries": 21
+    },
+    "interface-backgrounds": {
+      "image_sha256": "12a64af2c0cbb936d0b366a482188d6670ad897103cfd08060eb1113dc363a88",
+      "prompt_sha256": "51cc11bcdbe81e1de3945eb21a8edcb6a1e531abbd7ac984c1f179d9dfa53464",
+      "columns": 2,
+      "rows": 2,
+      "entries": 4
+    },
+    "interface-stories": {
+      "image_sha256": "6f6ae88c5bc91093ace5b1848206911bd161b85b7db743ddce240af683d81a52",
+      "prompt_sha256": "12929525e49e320f0ff528cee7d6256151ac3f6b929f891d2348bed168f6a236",
+      "columns": 2,
+      "rows": 4,
+      "entries": 7
     }
   },
   "entries": {
@@ -92467,6 +92488,827 @@
         "seq186/map0/sky1"
       ],
       "runtime_original": "alpha only"
+    },
+    "bac7fc46de3570f2c701036812f270b6": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-0",
+        "hud-42"
+      ],
+      "atlas": "interface-items",
+      "cell": 0,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "3874222265a947bfe2bb806edc79b04b": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-1",
+        "hud-43"
+      ],
+      "atlas": "interface-items",
+      "cell": 1,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "5df83eee6b94d6267ae7fb45ad69b35e": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-2",
+        "hud-44"
+      ],
+      "atlas": "interface-items",
+      "cell": 2,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "899bbdffb85d481e2c318621763c8b04": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-3",
+        "hud-45"
+      ],
+      "atlas": "interface-items",
+      "cell": 3,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "244e734215ea1ffa6592900e2bf5fc4b": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-4",
+        "hud-46"
+      ],
+      "atlas": "interface-items",
+      "cell": 4,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "ea769c3158ff45511a9a616adbbd320d": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-5",
+        "hud-47"
+      ],
+      "atlas": "interface-items",
+      "cell": 5,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "a327eb51802c1147cfb26ac8623608db": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-6",
+        "hud-48"
+      ],
+      "atlas": "interface-items",
+      "cell": 6,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "f63c4802e12e2cb67085995acc29ceb2": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-7",
+        "hud-49"
+      ],
+      "atlas": "interface-items",
+      "cell": 7,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "292c50f6c5a2a9df9b56bb62293c12da": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-8",
+        "hud-50"
+      ],
+      "atlas": "interface-items",
+      "cell": 8,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "2a7af6f9ded7b10cfa5d63cdd3cf0336": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-9",
+        "hud-51"
+      ],
+      "atlas": "interface-items",
+      "cell": 9,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "f32dea0eb65f4f290e3a8a541ed46ad8": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-10",
+        "hud-52"
+      ],
+      "atlas": "interface-items",
+      "cell": 10,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "2391cf26e251bb295a60d59293a33046": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-11",
+        "hud-53"
+      ],
+      "atlas": "interface-items",
+      "cell": 11,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "4c806b3f6f8ff26747c00985d7b40d55": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-12",
+        "hud-54"
+      ],
+      "atlas": "interface-items",
+      "cell": 12,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "c75fef006a3d50e0573230367f5afec3": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-13",
+        "hud-55"
+      ],
+      "atlas": "interface-items",
+      "cell": 13,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "dd709ff42c214b56b71a3493197105ff": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-14",
+        "hud-56"
+      ],
+      "atlas": "interface-items",
+      "cell": 14,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "823a698c832e84479fc99a2f12fd90a4": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-15",
+        "hud-57"
+      ],
+      "atlas": "interface-items",
+      "cell": 15,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "c0c7bccc136dee067c79b3355ce19845": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-16",
+        "hud-58"
+      ],
+      "atlas": "interface-items",
+      "cell": 16,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "d0566ef9d0d28b6772eb999b3234f9f7": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-17",
+        "hud-59"
+      ],
+      "atlas": "interface-items",
+      "cell": 17,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "d4719c0ced8b8f851903e7f037a5757d": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-18",
+        "hud-60"
+      ],
+      "atlas": "interface-items",
+      "cell": 18,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "9d31690e0a4fd838714501f63e0c21e5": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-19",
+        "hud-61"
+      ],
+      "atlas": "interface-items",
+      "cell": 19,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "d040bfb506b33102d12161b570a79862": {
+      "origin": "generated-painting",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "item-20",
+        "hud-62"
+      ],
+      "atlas": "interface-items",
+      "cell": 20,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "dfd13410f18d206b78d19fadaaefedf6": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "selection-0"
+      ],
+      "atlas": "interface-backgrounds",
+      "cell": 0,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "735562068244ad32dc40c0eff3cbd9f3": {
+      "origin": "generated-painting",
+      "source_size": [
+        120,
+        112
+      ],
+      "sources": [
+        "selection-1"
+      ],
+      "atlas": "interface-backgrounds",
+      "cell": 1,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "1bd500ac60348c1a31d6b9fa9019aeed": {
+      "origin": "generated-painting",
+      "source_size": [
+        300,
+        72
+      ],
+      "sources": [
+        "selection-5"
+      ],
+      "atlas": "interface-backgrounds",
+      "cell": 2,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "c28df529d2f7a1e1e481c65250d7b06e": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "equipment-background"
+      ],
+      "atlas": "interface-backgrounds",
+      "cell": 3,
+      "runtime_original": "none",
+      "authored_labels": true
+    },
+    "c427bb076667460c66601b010783259b": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        256
+      ],
+      "sources": [
+        "prologue-background"
+      ],
+      "atlas": "interface-stories",
+      "cell": 0,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "01be17c25e94325036e2e79904513554": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "intro-2-background"
+      ],
+      "atlas": "interface-stories",
+      "cell": 1,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "e2f9d299f66a1ce29887c9bee90468a8": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "intro-3-background"
+      ],
+      "atlas": "interface-stories",
+      "cell": 2,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "617fa8ab29edbbb6762f98bd312f85d1": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "intro-4-background"
+      ],
+      "atlas": "interface-stories",
+      "cell": 3,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "8dece8d7fff0e7a081df170829c3f6d2": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "intro-8-background"
+      ],
+      "atlas": "interface-stories",
+      "cell": 4,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "a321bac4f5dbd0fea5ce77a3b7c3877e": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "intro-10-background"
+      ],
+      "atlas": "interface-stories",
+      "cell": 5,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "0af8d8bd3c36a526f44eaf66e5bfc3cb": {
+      "origin": "generated-painting",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "intro-11-background"
+      ],
+      "atlas": "interface-stories",
+      "cell": 6,
+      "runtime_original": "none",
+      "authored_labels": false
+    },
+    "caa22904e3170b3a0a92160183960c8e": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "title-0"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "b273c2da9001bb52aabee18a21c903d8": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "title-2"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "f1d76c0a31775b1218d2b37357e609aa": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "title-3"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "d865b47ac0a481d6895e23d245b12f9d": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "intro-2-heading",
+        "intro-3-heading",
+        "intro-4-heading",
+        "intro-8-heading",
+        "intro-9-heading",
+        "intro-10-heading",
+        "intro-11-heading"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "af9dd44560e6c1de3edba64b80209c86": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "intro-2-subtitle",
+        "intro-3-subtitle",
+        "intro-4-subtitle",
+        "intro-8-subtitle",
+        "intro-9-subtitle",
+        "intro-10-subtitle",
+        "intro-11-subtitle"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "4ba5a84c8f79cac368301395f45e62e4": {
+      "origin": "authored typography",
+      "source_size": [
+        208,
+        240
+      ],
+      "sources": [
+        "selection-names"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b",
+      "text": [
+        "\u5fcd\u3073\u306e\u91cc",
+        "\u76d7\u8cca\u56e3\u3092\u59cb\u672b\u305b\u3088",
+        "\u90f7\u7530\u57ce\u3000\u5185\u4e71",
+        "\u6238\u7530\u306e\u9663",
+        "\u5929\u72d7\u306e\u8b0e\u3092\u66b4\u3051",
+        "\u96a0\u3057\u6e2f",
+        "\u6731\u5dbd\u5bfa\u596a\u9084",
+        "\u91cc\u3092\u8972\u3044\u3057\u967d\u708e\u5ea7",
+        "\u9f8d\u4e38\u8ffd\u8de1",
+        "\u6f5c\u6d41\u6d1e\u7a9f",
+        "\u6d77\u4e0a\u6c7a\u6226",
+        "\u5c71\u8cca\u3092\u9000\u6cbb\u305b\u3088",
+        "\u5965\u65b9\u306e\u5143\u3078\u5411\u304b\u3048",
+        "\u83ca\u59eb\u3092\u6551\u51fa\u305b\u3088",
+        "\u4e5d\u9811\u5cf6\u6f5c\u5165",
+        "\u4e5d\u9811\u5cf6\u306e\u7826",
+        "\u9589\u3056\u3055\u308c\u3057\u6751",
+        "\u685c\u4e18",
+        "\u5de8\u5927\u8239\u3000\u7114\u53e3\u9b3c",
+        "\u5f71\u3092\u8ffd\u3048",
+        "\u6238\u7530\u306e\u9996\u3092\u53d6\u308c",
+        "\u753a\u4eba\u3092\u8a98\u62d0\u305b\u3088",
+        "\u96a0\u3057\u6e2f\u3092\u8b77\u885b\u305b\u3088",
+        "\u975e\u9053\u306a\u308b\u6bba\u622e",
+        "\u5fcd\u3073\u306e\u91cc\u8972\u6483",
+        "\u7d42\u7109\u306e\u967d\u708e"
+      ]
+    },
+    "9ef918b57dbf8654060e443c0984df66": {
+      "origin": "authored typography",
+      "source_size": [
+        256,
+        160
+      ],
+      "sources": [
+        "equipment-names"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b",
+      "text": [
+        "\u624b\u88cf\u5263",
+        "\u795e\u547d\u4e39",
+        "\u6bd2\u547d\u4e39",
+        "\u606f\u5439\u7b52",
+        "\u6492\u304d\u83f1",
+        "\u7647\u766a\u7389",
+        "\u5730\u96f7",
+        "\u5439\u304d\u77e2",
+        "\u706b\u77e2",
+        "\u7159\u7389",
+        "\u7720\u308a\u85ac",
+        "\u5fcd\u3073\u93a7",
+        "\u7a7a\u8749\u306e\u8853",
+        "\u75fa\u308c\u56e3\u5b50",
+        "\u4e94\u8272\u7c73",
+        "\u96a0\u308c\u8eab\u5e03",
+        "\u76ee\u3064\u3076\u3057",
+        "\u6728\u306e\u8449\u96a0\u308c\u306e\u8853",
+        "\u5fc3\u773c\u306e\u8853"
+      ]
+    },
+    "0a4a5b8f6cdc66179a48cbc7c1171484": {
+      "origin": "authored typography",
+      "source_size": [
+        96,
+        42
+      ],
+      "sources": [
+        "title-1"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "3afb5083bf7cd55c7ede2f9c6833ddad": {
+      "origin": "authored typography",
+      "source_size": [
+        48,
+        192
+      ],
+      "sources": [
+        "selection-labels"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "41e290822e2d13450b487b0e4946b8c1": {
+      "origin": "authored typography",
+      "source_size": [
+        16,
+        160
+      ],
+      "sources": [
+        "equipment-capacity"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "2259d7e236c116f351543ac449155c9c": {
+      "origin": "authored typography",
+      "source_size": [
+        12,
+        144
+      ],
+      "sources": [
+        "results-numbers"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "c91bae24ca030c406577c5d2cf47c680": {
+      "origin": "authored typography",
+      "source_size": [
+        40,
+        5
+      ],
+      "sources": [
+        "equipment-digits"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "45facea62bd229c9e3d3c87a18297c29": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        16,
+        80
+      ],
+      "sources": [
+        "selection-buttons"
+      ]
+    },
+    "ed17df9214b941285d5bf8e0136add44": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        16,
+        64
+      ],
+      "sources": [
+        "selection-4"
+      ]
+    },
+    "83e9fb8dee7aeff19868d1ead4d47c31": {
+      "origin": "authored typography and vector plaque",
+      "source_size": [
+        92,
+        72
+      ],
+      "sources": [
+        "selection-2"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "d3e7a15c9b7d46bf17c0c0d1115bb9bc": {
+      "origin": "authored typography and vector plaque",
+      "source_size": [
+        88,
+        112
+      ],
+      "sources": [
+        "results-ranks"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "5d4b0df5bb80bb5e9548ce2777c50191": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        164,
+        24
+      ],
+      "sources": [
+        "selection-3"
+      ]
+    },
+    "b5310450119c725114ab369ac03356d4": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        16,
+        16
+      ],
+      "sources": [
+        "selection-6"
+      ]
+    },
+    "66bcc2e69259db4f4966f481af23d6a1": {
+      "origin": "authored typography and vector shapes",
+      "source_size": [
+        320,
+        240
+      ],
+      "sources": [
+        "results-panel"
+      ],
+      "font_sha256": "3133963df85727deb44b528114871520241128de1f85920f8d524f45fcb5138b"
+    },
+    "985af1ef242936eefef3c1b6bafcef11": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-34"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "e805f347c27cbb09cfd5a70fb0a1948c": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-35"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "0cb80ccc001fd1798d261830b451fb4d": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-40"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "f450977634068da2321faffe36512dcd": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-41"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "ef8dea11e086dd49195b2fb8f24bce96": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-36"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "807863fa1cec0ee6806d30eb3abf27ae": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-37"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "ef924dc73ba973e45a4ffc7ba090d8f3": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-38"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "d425266506a1300205668215e1cf9dd6": {
+      "origin": "disc-backed lettering reconstruction",
+      "sources": [
+        "hud-39"
+      ],
+      "runtime_original": "original lettering, colors and blend classes; no source pixels shipped"
+    },
+    "3d4afa70e8e6bade09572bcc21541ca0": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        32,
+        32
+      ],
+      "sources": [
+        "hud-63"
+      ]
+    },
+    "27e41312f6158cbcd732c78e4f7666dd": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        24,
+        24
+      ],
+      "sources": [
+        "aim"
+      ]
+    },
+    "ef424341be3cf69d10836001d441a1eb": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        60,
+        60
+      ],
+      "sources": [
+        "ring-0"
+      ]
+    },
+    "60a039d573e6e3ca113ed2cfb0f4b5a6": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        60,
+        60
+      ],
+      "sources": [
+        "ring-1"
+      ]
+    },
+    "49826f6b886d4164257f060f45a67c99": {
+      "origin": "authored vector shapes",
+      "source_size": [
+        60,
+        60
+      ],
+      "sources": [
+        "ring-2"
+      ]
     }
   },
   "files": {
@@ -97045,6 +97887,62 @@
     "paintings/bede91efb17fac09b780937e3134ac4e.png": "20347ce1aa36939a065531c456fb09023d5ce97de8b3baee734545fa964a3a03",
     "paintings/ec2e3f1b377c3bb6513bd1c65b35d1f5.png": "d6325bd24a66141e9be518d303852fab10d39cbbf9ed21765cd7e771d51fc5c3",
     "paintings/05380543fdafe6dffe491d031af540d9.png": "9b9d347b6494f2ff3ee29ec1d39e52b0cf00975f402b24f6c4c6b047551d82d4",
-    "paintings/e2d3e45b812b279fbd9facf7c216c6b0.png": "14478c31a4bd31c936279a4cb6ab57bc10375d4e3e3f80481375d3ac719545de"
+    "paintings/e2d3e45b812b279fbd9facf7c216c6b0.png": "14478c31a4bd31c936279a4cb6ab57bc10375d4e3e3f80481375d3ac719545de",
+    "interface/bac7fc46de3570f2c701036812f270b6.png": "6f9c7a319e113273b6903ce9da45fd56687b8b4156302ee19ffbc770be8e5d24",
+    "interface/3874222265a947bfe2bb806edc79b04b.png": "82434b30b6d592a6003680ae7a5245333c9be05b508702bd4e4c1092620c00ad",
+    "interface/5df83eee6b94d6267ae7fb45ad69b35e.png": "d90ea46ad7ca8b864d4be68edb39ff3a7bb045be44f028f0cd5d3304091848d8",
+    "interface/899bbdffb85d481e2c318621763c8b04.png": "986aa0f19b142c661819ec6dd622b623d404f46c295b73780b06ac5840964c5a",
+    "interface/244e734215ea1ffa6592900e2bf5fc4b.png": "b36e0111e09301782656f02ac051dce61669fa16932d5be3356e5480542ea75e",
+    "interface/ea769c3158ff45511a9a616adbbd320d.png": "8a2731c83a36bf9e0dff4e842517ed4f6555a2384f378524ad080d99be3412cc",
+    "interface/a327eb51802c1147cfb26ac8623608db.png": "ef253dfb8951309a67b8fda98d03c742073475bb48432cbfe9313a5b991b30ee",
+    "interface/f63c4802e12e2cb67085995acc29ceb2.png": "0d350298391672166b0a8c4b04a85eecd2c3fae03eef1d24dac8fcc26883e25a",
+    "interface/292c50f6c5a2a9df9b56bb62293c12da.png": "281bab3baacfc9691be0f26ce1cd8299629bfad2026b66aa04e462bee3f8c0a0",
+    "interface/2a7af6f9ded7b10cfa5d63cdd3cf0336.png": "2749cc41cfde0cd825b27e0c86c5eec85894b2bdddb0036e8a62d0aec7404c47",
+    "interface/f32dea0eb65f4f290e3a8a541ed46ad8.png": "833cd401865971969123ed554bdf2ad442d2a7169fcecf73ffc162edb1a55a9e",
+    "interface/2391cf26e251bb295a60d59293a33046.png": "dde65e5ebc5c35edea3cfd18cc9fe892a4c060d449a5d27a53e562944936a0d7",
+    "interface/4c806b3f6f8ff26747c00985d7b40d55.png": "3cde3b2b11c821de40c8ebfbbf12a72a9005833b8f281bc62575eaa5ec1a6c6e",
+    "interface/c75fef006a3d50e0573230367f5afec3.png": "14d0e1f5185a18fc8d863ffa792f88334d35644c726c32cfb9a63d9db2574772",
+    "interface/dd709ff42c214b56b71a3493197105ff.png": "f4b80055d3beeccab2a10290b59f0a866138f9e1146dcbd8e708ee1ed5aad98c",
+    "interface/823a698c832e84479fc99a2f12fd90a4.png": "6064c75d62a3523559d4eb52fea7328fad60c9b8f21843bccc8489a59c36cf6b",
+    "interface/c0c7bccc136dee067c79b3355ce19845.png": "aa7829cddf827da0345447cf228bc4e7506e50c4faac32a18c93e31c5299ec56",
+    "interface/d0566ef9d0d28b6772eb999b3234f9f7.png": "9066ff995a85f489dc53186e2a55d837f3bf3ae362ef2493fc9a34bf52c2bd1d",
+    "interface/d4719c0ced8b8f851903e7f037a5757d.png": "d7c775032c2fe33c81335d23e6596dba30d5f7d98e09a3afc5017c155ade2fec",
+    "interface/9d31690e0a4fd838714501f63e0c21e5.png": "115e85b4084f73c48490dc3be19677b869b8654c861e1cc1ea9aa2e166c8ac3d",
+    "interface/d040bfb506b33102d12161b570a79862.png": "b2c213b73b8833b3b9710201da58d78fbdf628e9fcb7e9f4b5750418cc60f621",
+    "interface/dfd13410f18d206b78d19fadaaefedf6.png": "e3c2103c3385a9d6ee7688c88dfcfc362773104b033f526f5c81b0c658b9bb7e",
+    "interface/735562068244ad32dc40c0eff3cbd9f3.png": "68ee1b599a574c6a25b8c3bbef429da11056620b2e131b019ef5d063ec0c24ab",
+    "interface/1bd500ac60348c1a31d6b9fa9019aeed.png": "129a2ddbc070b68c17447159dbd89cf631096e1d064e40e6174255c304576cc4",
+    "interface/c28df529d2f7a1e1e481c65250d7b06e.png": "dd6419fe079e098d99f0debb5210e0890aea3ea3dfb32ff2a8f89ab9c41eabe5",
+    "interface/c427bb076667460c66601b010783259b.png": "38d0c9f15e68a7590cf6bcba627b5bbd38392a6f4314dcb766193ba956d2859e",
+    "interface/01be17c25e94325036e2e79904513554.png": "5642b1aec30a3abad33ed53e3d06e08403768d6980b26a80c8007f3ba63f8415",
+    "interface/e2f9d299f66a1ce29887c9bee90468a8.png": "8d72fb08f78691adf4bbc2d6268a19d248d6dfdb99337af218129f1f250fd7c5",
+    "interface/617fa8ab29edbbb6762f98bd312f85d1.png": "de97f2f1982fec537c570edebcf69855f915e7ef0e833df4c9b229e93b89593e",
+    "interface/8dece8d7fff0e7a081df170829c3f6d2.png": "dbc9c86db58de82faa8d21d63ca7599bfbf0935dd4cf678c87e42b86a02a3d81",
+    "interface/a321bac4f5dbd0fea5ce77a3b7c3877e.png": "fb9b8b266e966166b57816bb56e78e1761aa3f585b18aa4e45e4b544471fb943",
+    "interface/0af8d8bd3c36a526f44eaf66e5bfc3cb.png": "b357db5a92df6724ccc499e3dd067dc75b95a9b6e431d9f3ce490b750e539d9f",
+    "interface/4ba5a84c8f79cac368301395f45e62e4.png": "03108948e63d378ba38b4286df11596b90573813747a113af708709c41bae9e6",
+    "interface/9ef918b57dbf8654060e443c0984df66.png": "813a0d26a4a098b9f68a6963eaacf32fab1eb77924140232955b6d17def840f5",
+    "interface/0a4a5b8f6cdc66179a48cbc7c1171484.png": "f7d5f68ede0fd20bbb84765f86a788026577f218d1a9e2d34d187c1873fee3ae",
+    "interface/3afb5083bf7cd55c7ede2f9c6833ddad.png": "aa2ae2f5d3eebe567df725e07ceb71fcbb51e026f213b94f6fb01b878cc6e061",
+    "interface/41e290822e2d13450b487b0e4946b8c1.png": "48913d779f138c78f0a5407876ff9b7c0ffd8971096b197f8d475814f3fe243e",
+    "interface/2259d7e236c116f351543ac449155c9c.png": "6c248e0f515c901ff6e22952a1f39e8935d68e7dd47d3b69aaecd63b25a9643a",
+    "interface/c91bae24ca030c406577c5d2cf47c680.png": "1ec3c7bb32320b16adcea3e7a9ce2d7d79b3a5f6cd5f8c5baeaefb84327f3071",
+    "interface/45facea62bd229c9e3d3c87a18297c29.png": "2a38cbfcf48b7830d5930a81d63a94b1a3293b9642cd895ca352c9bd81ce04f8",
+    "interface/ed17df9214b941285d5bf8e0136add44.png": "d4f8d97b2c7c239524f20da717c6b389b5d7b631d32c9c5f071c34ba118db34b",
+    "interface/83e9fb8dee7aeff19868d1ead4d47c31.png": "5d1c9b692328d57d142f1000dc8126119921db08c0b8623e076f04fdf4525a02",
+    "interface/d3e7a15c9b7d46bf17c0c0d1115bb9bc.png": "843b35c52b75f646cc6eb69e4d95a10dbbdc77ab8640f84e85e139930d7d4b2b",
+    "interface/5d4b0df5bb80bb5e9548ce2777c50191.png": "e4d1986883df93b42d729e55a1a28b13d8ea2a54b3b2c94554e0fd3b596cd412",
+    "interface/b5310450119c725114ab369ac03356d4.png": "10abc7d1ad0df3d703cc34d1dfc958e4d0df0c0b275d306b273fafec8ebf00e8",
+    "interface/66bcc2e69259db4f4966f481af23d6a1.png": "c48a6b390eca1000cadf1e9ead221a632cb481e65d8f05e04304568b3cb82680",
+    "interface/3d4afa70e8e6bade09572bcc21541ca0.png": "26012a65e0fe8d227113cf5c23e3b3ebc61ad438741b092199fa4e6ebc6bca81",
+    "interface/27e41312f6158cbcd732c78e4f7666dd.png": "bb8d58369a966b3ba4ae3c3707af418fe5d6f18eac31c710a78809e539f1253d",
+    "interface/ef424341be3cf69d10836001d441a1eb.png": "1d0a54970e4a6a581cc8ed96a7da884944c959f0c7d12f4cf79accb79153a4c7",
+    "interface/60a039d573e6e3ca113ed2cfb0f4b5a6.png": "33c8a509dc88ddb5c17233a8bf2afee636e03d9c7bd0f2f27e1b9a148a9c9431",
+    "interface/49826f6b886d4164257f060f45a67c99.png": "a439680fa2313052cfb43a86a1fcf8e368d1c056458dc10926e195699f5971ee"
+  },
+  "interface": {
+    "authoring_script_sha256": "5aabccfce31485dcf70a73ea847efabb7695337f3cc724b7d50fe25827af4871",
+    "font": "TenchuUISans-Regular, existing OFL font; output glyph rasterization only",
+    "coverage": "21 shared equipment/HUD icons, Japanese title/mission/equipment/results, prologue and six briefing paintings, HUD chrome and brush glyphs; no movie replacements"
   }
 }

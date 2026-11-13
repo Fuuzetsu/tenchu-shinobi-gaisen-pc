@@ -144,3 +144,21 @@ review captures remain outside Git under `private/story-completion-20261112`.
 The sibling Gaisen research repositories were consulted read-only; these T2
 behaviors were checked directly against the JP executable instead of inferred
 from the related T1 routines.
+
+## HD interface (v0.33.0)
+
+T2 menus reuse `frontend::draw::Frame`, its content identities, filtered artwork
+and GPU cache; HUD sprites bind through the shared material renderer and pack
+recipes. T2 resolves its own archive, including on Gaisen stages under T2 rules.
+The existing Japanese resource readers provide layout/UVs and item identities;
+health fills and digit slices retain source texture coordinates. Only presentation
+changes. The source blend classes (opaque black Ki strokes versus additive colour)
+remain separate. Button-legend swapping applies the same coordinates to original
+and replacement images, scaled to the authored resolution.
+
+The read-only sibling viewer's `src/items.rs` and Gaisen decomp's
+`src/main.exe/INFOVIEW.C` confirm the shared item-sprite/layout convention; their
+T1 item IDs and viewer alpha simplification are not imported into T2. Existing
+T2 asset/HUD source comparisons remain authoritative. No sibling code or retail
+art was copied. Artwork provenance is tracked in `artwork/tenchu2/`; generated
+paintings and authored type are separate from runtime disc-derived lettering.

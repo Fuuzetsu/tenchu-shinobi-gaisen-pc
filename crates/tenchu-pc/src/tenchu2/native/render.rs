@@ -765,6 +765,7 @@ pub struct Models {
     imported_weapons: BTreeMap<String, Meshes>,
     items: Meshes,
     weapon_names: BTreeMap<usize, String>,
+    hud: hud::Artwork,
 }
 
 pub struct Geometry {
@@ -984,6 +985,7 @@ impl Models {
             imported_weapons,
             items,
             weapon_names: BTreeMap::new(),
+            hud: hud::Artwork::new(&assets.sprites, graphics, renderer)?,
         };
         models.rebind_weapons(assets, world)?;
         Ok(models)
@@ -1205,6 +1207,7 @@ impl Models {
                 &assets.sprites,
                 &world.controls.hud.frame,
                 sharp_text,
+                &self.hud,
             );
         }
         if let Some(fade) = frame.fade {

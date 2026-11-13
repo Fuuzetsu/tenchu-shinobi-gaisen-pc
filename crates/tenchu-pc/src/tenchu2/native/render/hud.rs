@@ -2,6 +2,73 @@ use super::{Builder, render_mesh};
 use tenchu_assets::tenchu2::effects::Sprites;
 use tenchu_core::tenchu2::hud::{Image, Primitive, Sprite};
 
+#[derive(Default)]
+pub(super) struct Artwork(std::collections::BTreeMap<tenchu_assets::texture::Image, u32>);
+
+impl Artwork {
+    pub fn new(
+        sprites: &Sprites,
+        graphics: &crate::settings::Graphics,
+        renderer: &mut crate::renderer::Renderer,
+    ) -> tenchu_assets::Result<Self> {
+        use crate::visuals::{catalog, models::Material, pack::Pack, pixels};
+        if !graphics.asset_pack {
+            return Ok(Self::default());
+        }
+        let images: Vec<_> = sprites.items[34..64]
+            .iter()
+            .copied()
+            .chain([sprites.effects[27], sprites.effects[30]])
+            .map(|sprite| {
+                let region = catalog::Region::sprite(&sprites.vram, sprite);
+                let image = pixels::Image {
+                    size: [region.rect[2].into(), region.rect[3].into()],
+                    rgba: region.pixels(&sprites.vram),
+                };
+                let id = catalog::image_id(image.size.map(|v| v as u16), &image.rgba);
+                (sprite, id, image)
+            })
+            .collect();
+        let pack = Pack::tenchu2_interface(
+            images
+                .iter()
+                .map(|(_, id, image)| (id.clone(), image.clone()))
+                .collect(),
+        )?;
+        Ok(Self(
+            images
+                .into_iter()
+                .filter_map(|(sprite, id, _)| {
+                    let image = pack.textures.get(&id)?.clone();
+                    let handle = renderer.bind_material(&Material {
+                        id: format!("{id}:interface"),
+                        image,
+                        region: None,
+                        animation: None,
+                    });
+                    Some((sprite, handle))
+                })
+                .collect(),
+        ))
+    }
+
+    fn bind(
+        &self,
+        surface: &mut crate::render_effects::Surface,
+        image: tenchu_assets::texture::Image,
+    ) {
+        let Some(&material) = self.0.get(&image) else {
+            return;
+        };
+        for vertex in &mut surface.vertices {
+            vertex.material = material;
+            vertex.uv = std::array::from_fn(|axis| {
+                (vertex.uv[axis] - f32::from(image.uv[axis])) / f32::from(image.size[axis]) - 0.5
+            });
+        }
+    }
+}
+
 fn digit(sprite: &Sprite) -> Option<u8> {
     match sprite.image {
         Image::Digit(value) if sprite.rotation == 0 && sprite.scale > 0 => Some(value),
@@ -101,6 +168,7 @@ pub(super) fn append(
     sprites: &Sprites,
     frame: &[Primitive],
     sharp_text: bool,
+    artwork: &Artwork,
 ) {
     for primitive in frame.iter().rev() {
         if let Primitive::Sprite(sprite) = primitive
@@ -138,6 +206,7 @@ pub(super) fn append(
                     Image::Aim => sprites.effects[30],
                     Image::Bandage => unreachable!("handled above"),
                 };
+                let original_image = image;
                 let mut center = sprite.position.map(f32::from);
                 let scale = f32::from(sprite.scale) / 4096.0;
                 let mut pivot = image.size.map(|n| f32::from(n / 2));
@@ -168,6 +237,7 @@ pub(super) fn append(
                     Some(image),
                     blend,
                 );
+                artwork.bind(output.surfaces.last_mut().unwrap(), original_image);
             }
             Primitive::Breath(width) => {
                 output.screen_sprite(
@@ -191,6 +261,146 @@ pub(super) fn append(
 mod tests {
     use crate::settings::{Graphics, Settings};
     use tenchu_core::tenchu2::{ai::status::Ki, inventory::Inventory};
+
+    #[test]
+    #[ignore = "requires TENCHU2_DISC, TENCHU2_ASSET_PACK, TENCHU2_UI_REVIEW and GPU; all item icons, clipped health fills, Ki blend classes, digit slices and exact original restoration"]
+    fn hd_hud_keeps_layout_blending_and_game_state() {
+        use super::super::{Builder, Models, Presentation, SceneDrawing, capture_frame};
+        use tenchu_core::tenchu2::hud::{Image, Primitive, Sprite};
+        let disc =
+            crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+        let output = std::path::PathBuf::from(std::env::var_os("TENCHU2_UI_REVIEW").unwrap())
+            .join("screenshots");
+        std::fs::create_dir_all(&output).unwrap();
+        let mut session = super::super::super::Session::load(&disc, 9, 17).unwrap();
+        for _ in 0..30 {
+            session.step(0).unwrap();
+        }
+        session.world.controls.hud.frame.clear();
+        let mut add = |image, position, width| {
+            session
+                .world
+                .controls
+                .hud
+                .frame
+                .push(Primitive::Sprite(Sprite {
+                    image,
+                    position,
+                    width,
+                    scale: 4096,
+                    rotation: 0,
+                    color: [128; 3],
+                }))
+        };
+        for i in 0..21 {
+            add(
+                Image::Item(i),
+                [-120 + (i % 7) as i16 * 40, -50 + (i / 7) as i16 * 40],
+                None,
+            );
+        }
+        for i in 0..4 {
+            add(Image::Ki(i), [-130 + i as i16 * 32, 85], None);
+        }
+        for (i, width) in [0, 1, 27, 54].into_iter().enumerate() {
+            add(Image::PlayerFill, [30 + i as i16 * 38, 85], Some(width));
+        }
+        add(Image::PlayerFrame, [-112, -90], None);
+        add(Image::EnemyFrame, [72, -90], None);
+        add(Image::EnemyFill, [72, -90], Some(23));
+        add(Image::Selection, [0, 100], None);
+        add(Image::Aim, [130, 110], None);
+        for i in 0..10 {
+            add(Image::Digit(i), [-20 + i as i16 * 8, -90], None);
+        }
+        let before = postcard::to_allocvec(&session.world).unwrap();
+        let graphics = Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        let mut captures = Vec::new();
+        for (i, enabled) in [false, true, false].into_iter().enumerate() {
+            let path = output.join(format!("hud-icons-{i}-hd-{enabled}.png"));
+            capture_frame(&session.assets.sprites.vram, &graphics, &path, |renderer| {
+                let mut models = Models::new(&session.assets, &session.world, &graphics, renderer)?;
+                let mut hd = graphics.clone();
+                hd.asset_pack = enabled;
+                models.hud = super::Artwork::new(&session.assets.sprites, &hd, renderer)?;
+                if enabled {
+                    for image in &session.assets.sprites.items[34..64] {
+                        assert!(
+                            models.hud.0.contains_key(image),
+                            "Missing HUD artwork: {image:?}"
+                        );
+                    }
+                    let mut original =
+                        Builder::new(session.world.camera.view, &session.assets.level, &graphics);
+                    let mut replaced =
+                        Builder::new(session.world.camera.view, &session.assets.level, &graphics);
+                    super::append(
+                        &mut original,
+                        &session.assets.sprites,
+                        &session.world.controls.hud.frame,
+                        false,
+                        &Default::default(),
+                    );
+                    super::append(
+                        &mut replaced,
+                        &session.assets.sprites,
+                        &session.world.controls.hud.frame,
+                        false,
+                        &models.hud,
+                    );
+                    assert_eq!(original.surfaces.len(), replaced.surfaces.len());
+                    for (a, b) in original.surfaces.iter().zip(&replaced.surfaces) {
+                        assert_eq!(a.blend, b.blend);
+                        for (a, b) in a.vertices.iter().zip(&b.vertices) {
+                            assert_eq!(a.position, b.position);
+                            assert_eq!(a.color, b.color);
+                            assert_eq!(a.flags, b.flags);
+                            assert_ne!(b.material, 0);
+                        }
+                    }
+                }
+                let geometry = models.geometry(
+                    &session.world,
+                    &session.assets,
+                    &session.frame,
+                    &graphics,
+                    Presentation {
+                        show_hud: true,
+                        ..Default::default()
+                    },
+                )?;
+                Ok((
+                    SceneDrawing::new(geometry, renderer, &session.assets.level),
+                    session.world.camera.view,
+                    Vec::new(),
+                ))
+            })
+            .unwrap();
+            captures.push(std::fs::read(path).unwrap());
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), before);
+        }
+        assert!(captures[0] != captures[1]);
+        assert!(captures[0] == captures[2]);
+        let mut settings = Settings::default();
+        settings.graphics.asset_pack = true;
+        session.frame.transition_fade = Some(255);
+        let path = output.join("hud-icons-faded.png");
+        super::super::capture(&session, &settings, &path).unwrap();
+        let faded = crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap();
+        assert!(faded.rgba.chunks_exact(4).all(|p| p[..3] == [0; 3]));
+        session.frame.transition_fade = None;
+        settings.show_hud = false;
+        let path = output.join("hud-icons-hidden.png");
+        super::super::capture(&session, &settings, &path).unwrap();
+        let hidden = std::fs::read(&path).unwrap();
+        session.world.controls.hud.frame.clear();
+        settings.show_hud = true;
+        super::super::capture(&session, &settings, &path).unwrap();
+        assert!(std::fs::read(path).unwrap() == hidden);
+    }
 
     #[test]
     #[ignore = "requires TENCHU2_DISC, TENCHU2_HUD_REVIEW and GPU; optional bandages render with original/HD text, hide and fade without advancing gameplay"]

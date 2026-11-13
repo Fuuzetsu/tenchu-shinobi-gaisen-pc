@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional HD artwork to T2's title, mission selection, equipment, results,
+  prologue and briefings, plus HUD and all 21 inventory icons. Download **Tenchu 2
+  artwork v3** from **F1 → Visual assets** and enable **Replacement artwork**.
+  Item icons also work on T1 stages with T2 rules. Sharp text stays independent;
+  original artwork remains available, including with older or partial packs.
+- T2 HD menu legends follow the selected confirm/cancel button convention,
+  including live changes while paused.
+
 ## 0.32.2 — 2026-11-13
 
 - Add **F1 → Overlays → Sound triggers** for native T2: instruction-sign entry

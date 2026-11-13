@@ -1,5 +1,5 @@
 use crate::frontend::{
-    draw::Frame,
+    draw::{Artwork, Frame},
     raster::{Blend, Canvas, Sprite},
 };
 use std::sync::Arc;
@@ -90,18 +90,38 @@ pub(crate) struct Drawing {
     pub text: Vec<crate::fonts::Text>,
     sharp_text: bool,
     circle_confirm: bool,
+    artwork: Arc<Artwork>,
+    western_panel: Image,
 }
 
 impl Drawing {
-    pub fn new(results: &super::super::results::Results, backdrop: Option<Arc<Image>>) -> Self {
-        let (frame, text) = build(results, backdrop.as_deref(), false, true);
-        Self {
+    pub fn new(
+        results: &super::super::results::Results,
+        backdrop: Option<Arc<Image>>,
+        graphics: &crate::settings::Graphics,
+    ) -> Result<Self> {
+        let images = &results.resources;
+        let mut artwork =
+            super::artwork::load([&images.panel, &images.numbers, &images.ranks], graphics)?;
+        let western_panel =
+            super::artwork::swap_icons(&images.panel, &mut artwork, [84, 195], 204, [16, 20]);
+        let artwork = Arc::new(artwork);
+        let (frame, text) = build(
+            results,
+            backdrop.as_deref(),
+            false,
+            &images.panel,
+            artwork.clone(),
+        );
+        Ok(Self {
             frame,
             backdrop,
             text,
+            artwork,
+            western_panel,
             sharp_text: false,
             circle_confirm: true,
-        }
+        })
     }
 
     pub fn update(
@@ -117,7 +137,12 @@ impl Drawing {
             results,
             self.backdrop.as_deref(),
             sharp_text,
-            circle_confirm,
+            if circle_confirm {
+                &results.resources.panel
+            } else {
+                &self.western_panel
+            },
+            self.artwork.clone(),
         );
         self.sharp_text = sharp_text;
         self.circle_confirm = circle_confirm;
@@ -128,22 +153,15 @@ fn build(
     results: &super::super::results::Results,
     backdrop: Option<&Image>,
     sharp_text: bool,
-    circle_confirm: bool,
+    panel: &Image,
+    artwork: Arc<Artwork>,
 ) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
     let mut canvas = Canvas::new(320);
-    canvas.frame = Some(Frame::new([320, 240], Arc::default()));
+    canvas.frame = Some(Frame::new([320, 240], artwork));
     canvas.sharp_text = sharp_text;
     if let Some(image) = backdrop {
         canvas.sprite(Sprite::new(image, 0.0, 0.0));
     }
-    let panel;
-    let panel = if circle_confirm {
-        &results.resources.panel
-    } else {
-        // The two face-button icons are baked into result.tim's bottom legend.
-        panel = super::swap_menu_icons(&results.resources.panel, [84, 195], 204, [16, 20]);
-        &panel
-    };
     append(&mut canvas, results, panel);
     (Arc::new(canvas.frame.unwrap()), canvas.text)
 }

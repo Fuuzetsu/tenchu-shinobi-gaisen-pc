@@ -1,7 +1,7 @@
 use super::*;
 use crate::frontend::{
     calligraphy,
-    draw::Frame,
+    draw::{Artwork, Frame},
     raster::{Blend, Canvas, Sprite},
 };
 use tenchu_assets::frontend::Image;
@@ -9,21 +9,43 @@ use tenchu_assets::frontend::Image;
 pub(crate) struct Drawing {
     pub frame: Arc<Frame>,
     columns: Vec<Vec<Image>>,
+    artwork: Arc<Artwork>,
 }
 
 impl Drawing {
-    pub fn introduction(intro: &super::super::film::Introduction) -> Self {
-        Self {
-            frame: introduction(intro, None),
+    pub fn introduction(
+        intro: &super::super::film::Introduction,
+        graphics: &Graphics,
+    ) -> Result<Self> {
+        let resources = &intro.resources;
+        let artwork = Arc::new(super::artwork::load(
+            [&resources.heading, &resources.subtitle].into_iter().chain(
+                resources
+                    .narration
+                    .iter()
+                    .flat_map(|n| [&n.background, &n.text]),
+            ),
+            graphics,
+        )?);
+        Ok(Self {
+            frame: introduction(intro, None, artwork.clone()),
             columns: Vec::new(),
-        }
+            artwork,
+        })
     }
 
-    pub fn prologue(intro: &super::super::film::Prologue) -> Self {
-        Self {
-            frame: prologue(intro, None),
+    pub fn prologue(intro: &super::super::film::Prologue, graphics: &Graphics) -> Result<Self> {
+        let artwork = Arc::new(super::artwork::load(
+            [&intro.resources.background]
+                .into_iter()
+                .chain(&intro.resources.text),
+            graphics,
+        )?);
+        Ok(Self {
+            frame: prologue(intro, None, artwork.clone()),
             columns: Vec::new(),
-        }
+            artwork,
+        })
     }
 
     pub fn update_introduction(
@@ -43,6 +65,7 @@ impl Drawing {
                 .first()
                 .filter(|_| sharp_text)
                 .map(Vec::as_slice),
+            self.artwork.clone(),
         );
     }
 
@@ -55,13 +78,21 @@ impl Drawing {
                 .map(calligraphy::sharpen)
                 .collect();
         }
-        self.frame = prologue(intro, sharp_text.then_some(self.columns.as_slice()));
+        self.frame = prologue(
+            intro,
+            sharp_text.then_some(self.columns.as_slice()),
+            self.artwork.clone(),
+        );
     }
 }
 
-fn introduction(intro: &super::super::film::Introduction, columns: Option<&[Image]>) -> Arc<Frame> {
+fn introduction(
+    intro: &super::super::film::Introduction,
+    columns: Option<&[Image]>,
+    artwork: Arc<Artwork>,
+) -> Arc<Frame> {
     let mut canvas = Canvas::new(320);
-    canvas.frame = Some(Frame::new([320, 240], Arc::default()));
+    canvas.frame = Some(Frame::new([320, 240], artwork));
     let resources = &intro.resources;
     if intro.state.frame.title {
         canvas.sprite(Sprite::new(&resources.subtitle, 0.0, 0.0).row(resources.section, 3));
@@ -97,9 +128,13 @@ pub(super) fn rect(ctx: &egui::Context) -> egui::Rect {
     egui::Rect::from_center_size(screen.center(), egui::vec2(320.0, 240.0) * scale)
 }
 
-fn prologue(intro: &super::super::film::Prologue, columns: Option<&[Vec<Image>]>) -> Arc<Frame> {
+fn prologue(
+    intro: &super::super::film::Prologue,
+    columns: Option<&[Vec<Image>]>,
+    artwork: Arc<Artwork>,
+) -> Arc<Frame> {
     let mut canvas = Canvas::new(320);
-    canvas.frame = Some(Frame::new([320, 240], Arc::default()));
+    canvas.frame = Some(Frame::new([320, 240], artwork));
     canvas.sprite(Sprite::new(&intro.resources.background, 0.0, 0.0));
     for &(index, x, intensity) in intro.state.frame.columns.iter().rev() {
         let sheet = usize::from(index >= 16);

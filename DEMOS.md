@@ -386,3 +386,18 @@ and opening scripts are skipped.
 The catalog's mission/character must match its roll. Editor demonstrations never
 write randomizer preferences or campaign progress. Each nested `run` can also be
 imported through F7 to play that challenge normally.
+
+### Tenchu 2 HD interface review
+
+T2's native close/wide demo and benchmark clips use the shared replacement-artwork
+preference and HUD. Modern High/Ultra already enable sharp text while preserving
+that preference; Original's settings are unchanged. Install T2 artwork v3 to show
+its new HUD/icons. T1's existing `interface` demo remains specific to T1.
+
+The disc-backed `native_hd_interface_restores_original_and_preserves_state` and
+`hd_hud_keeps_layout_blending_and_game_state` fixtures capture paired original/HD
+views of the T2 menus, every inventory icon, Ki states and partially filled bars.
+Set `TENCHU2_DISC`, `TENCHU2_ASSET_PACK` and `TENCHU2_UI_REVIEW` to private paths.
+The first includes both confirm/cancel conventions and all briefing paintings;
+each verifies unchanged game state and exact original restoration. These are
+isolated presentation fixtures, not ordinary-play recordings.

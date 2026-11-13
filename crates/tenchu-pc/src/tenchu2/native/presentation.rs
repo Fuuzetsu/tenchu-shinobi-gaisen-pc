@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tenchu_assets::Result;
 use tenchu_core::tenchu2::campaign::Run;
 
+mod artwork;
 mod equipment;
 mod film;
 mod results;
@@ -436,28 +437,32 @@ impl ContentDrawing {
 
     pub fn new(content: &Content, graphics: &Graphics, renderer: &mut Renderer) -> Result<Self> {
         match content {
-            Content::Title(title) => Ok(Self::Title(title::Drawing::new(title))),
+            Content::Title(title) => Ok(Self::Title(title::Drawing::new(title, graphics)?)),
             Content::MissionSelection(selection) => Ok(Self::MissionSelection(
                 selection::Drawing::new(selection, graphics)?,
             )),
-            Content::Prologue(intro) => Ok(Self::Prologue(film::Drawing::prologue(intro))),
-            Content::Equipment(selection) => {
-                Ok(Self::Equipment(equipment::Drawing::new(selection)))
+            Content::Prologue(intro) => {
+                Ok(Self::Prologue(film::Drawing::prologue(intro, graphics)?))
             }
+            Content::Equipment(selection) => Ok(Self::Equipment(equipment::Drawing::new(
+                selection, graphics,
+            )?)),
             Content::Gameplay(session) => Ok(Self::Gameplay(Box::new(Drawing::new(
                 session, graphics, renderer,
             )?))),
             Content::Story { story, .. } => Ok(Self::Story(Box::new(StoryDrawing::new(
                 story, graphics, renderer,
             )?))),
-            Content::Introduction(intro) => {
-                Ok(Self::Introduction(film::Drawing::introduction(intro)))
-            }
+            Content::Introduction(intro) => Ok(Self::Introduction(film::Drawing::introduction(
+                intro, graphics,
+            )?)),
             Content::Movie(_) | Content::TitleMovie { .. } => Ok(Self::Movie {
                 texture: None,
                 frame: None,
             }),
-            Content::Results(results) => Ok(Self::Results(results::Drawing::new(results, None))),
+            Content::Results(results) => Ok(Self::Results(results::Drawing::new(
+                results, None, graphics,
+            )?)),
             _ => Ok(Self::Empty),
         }
     }
@@ -479,7 +484,7 @@ impl ContentDrawing {
             renderer.reset_vram(vram);
         }
         let mut replacement = if let Content::Results(results) = content {
-            Self::Results(results::Drawing::new(results, backdrop))
+            Self::Results(results::Drawing::new(results, backdrop, graphics)?)
         } else {
             Self::new(content, graphics, renderer)?
         };

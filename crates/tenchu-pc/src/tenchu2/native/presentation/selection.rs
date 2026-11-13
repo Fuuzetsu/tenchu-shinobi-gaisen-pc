@@ -28,7 +28,15 @@ pub(crate) struct Drawing {
 
 impl Drawing {
     pub fn new(selection: &Selection, graphics: &Graphics) -> Result<Self> {
-        let mut artwork = Artwork::new();
+        let resources = &selection.resources;
+        let mut artwork = super::artwork::load(
+            resources.images.iter().chain([
+                &resources.names,
+                &resources.buttons,
+                &resources.labels,
+            ]),
+            graphics,
+        )?;
         if graphics.asset_pack {
             for (name, model) in ["rikimaru", "ayame", "tatumaru"]
                 .into_iter()

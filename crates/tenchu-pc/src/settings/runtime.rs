@@ -106,7 +106,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && item == Item::DetectionDamage {
             "GAMEPLAY EDIT: each guard's first direct sighting deals normal damage. After fully calming down, seeing the player again increases that guard's melee and projectile damage. Shared alarms and brief sight loss do not count. Turning this off, setting the maximum to zero, or starting a new area resets encounters."
         } else if self == Self::Tenchu2 && item == Item::SharpText {
-            "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. Authored title and rank artwork stays original."
+            "Sharp health, Ki and item digits, equipment counts, results numbers and clearer disc-derived briefing calligraphy. Story dialogue and menu descriptions already use outline text. HUD icons and menu artwork use the independent Replacement artwork switch and T2 pack."
         } else if self == Self::Tenchu2 && item == Item::SaveState {
             "F11 saves native T2 gameplay or a 3D cutscene, including imported T1 stages. Overwrites the selected T2 slot, separate from Gaisen slots. Retains campaign/retry context, overrides and presentation effects."
         } else if self == Self::Tenchu2 && item == Item::LoadState {

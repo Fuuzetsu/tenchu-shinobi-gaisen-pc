@@ -3,7 +3,7 @@ use super::super::{
     equipment::{Edit, Selection},
 };
 use crate::frontend::{
-    draw::Frame,
+    draw::{Artwork, Frame},
     raster::{Blend, Canvas, Sprite},
 };
 use std::sync::Arc;
@@ -12,25 +12,43 @@ pub(crate) struct Drawing {
     pub frame: Arc<Frame>,
     pub text: Vec<crate::fonts::Text>,
     tick: u32,
+    artwork: Arc<Artwork>,
     sharp_text: bool,
     circle_confirm: bool,
     western_background: tenchu_assets::frontend::Image,
 }
 
 impl Drawing {
-    pub fn new(selection: &Selection) -> Self {
-        let (frame, text) = build(selection, false, &selection.images.background);
-        // The equipment background embeds its face-button legend below the grid.
+    pub fn new(
+        selection: &Selection,
+        graphics: &crate::settings::Graphics,
+    ) -> tenchu_assets::Result<Self> {
+        let images = &selection.images;
+        let mut artwork = super::artwork::load(
+            [
+                &images.background,
+                &images.names,
+                &images.capacity,
+                &images.digits,
+            ]
+            .into_iter()
+            .chain(&images.rings)
+            .chain(&images.items),
+            graphics,
+        )?;
         let western_background =
-            super::swap_menu_icons(&selection.images.background, [7, 55], 197, [16, 16]);
-        Self {
+            super::artwork::swap_icons(&images.background, &mut artwork, [7, 55], 197, [16, 16]);
+        let artwork = Arc::new(artwork);
+        let (frame, text) = build(selection, false, &images.background, artwork.clone());
+        Ok(Self {
             frame,
             text,
+            artwork,
             tick: selection.state.tick,
             sharp_text: false,
             circle_confirm: true,
             western_background,
-        }
+        })
     }
 
     pub fn update(&mut self, selection: &Selection, sharp_text: bool, circle_confirm: bool) {
@@ -43,7 +61,8 @@ impl Drawing {
             } else {
                 &self.western_background
             };
-            (self.frame, self.text) = build(selection, sharp_text, background);
+            (self.frame, self.text) =
+                build(selection, sharp_text, background, self.artwork.clone());
             self.tick = selection.state.tick;
             self.sharp_text = sharp_text;
             self.circle_confirm = circle_confirm;
@@ -55,12 +74,13 @@ fn build(
     selection: &Selection,
     sharp_text: bool,
     background: &tenchu_assets::frontend::Image,
+    artwork: Arc<Artwork>,
 ) -> (Arc<Frame>, Vec<crate::fonts::Text>) {
     let state = &selection.state;
     let images = &selection.images;
     let mut canvas = Canvas::new(320);
     canvas.sharp_text = sharp_text;
-    canvas.frame = Some(Frame::new([320, 240], Arc::default()));
+    canvas.frame = Some(Frame::new([320, 240], artwork));
     canvas.sprite(Sprite::new(background, 0.0, 0.0));
     for (i, image) in images.rings.iter().enumerate() {
         let [x, y] = selection.rules.cells[state.cursors[i]]
