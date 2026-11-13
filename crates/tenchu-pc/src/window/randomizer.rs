@@ -6,6 +6,7 @@ impl Application {
         if self.demo.is_some()
             || self.benchmarks.run.is_some()
             || self.trial.open
+            || self.studio_previous.is_some()
             || self.campaign.game.trial.is_some()
         {
             return;
@@ -42,6 +43,7 @@ impl Application {
         if self.demo.is_some()
             || self.benchmarks.run.is_some()
             || self.trial.open
+            || self.studio_previous.is_some()
             || self.campaign.game.trial.is_some()
         {
             return Err("Finish the demo or benchmark first".into());

@@ -190,3 +190,60 @@ fn studio_campaign_holes_preserve_authored_spawn_positions() {
     app.apply_studio(Command::Close).unwrap();
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; preview visibility and temporary F1 settings must not change playtest activation or the campaign"]
+fn studio_shows_sleeping_actors_and_isolates_playtest_settings() {
+    let mut app = super::super::tests::application(Default::default());
+    let directory = std::env::temp_dir().join(format!("studio-menu-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    app.studio = crate::level_editor::Editor::new(directory.join("library.json"));
+    app.settings_store.path = directory.join("settings.json");
+    let original = postcard::to_allocvec(&app.campaign.game).unwrap();
+    let preferences = app.settings.clone();
+    app.apply_studio(Command::Open).unwrap();
+    assert!(
+        app.campaign
+            .game
+            .roster
+            .actors
+            .iter()
+            .flatten()
+            .all(|actor| actor.attribute & tenchu_core::ids::ATTR_SUSPEND == 0)
+    );
+    app.studio.project.graphics.sky.time = 932;
+    app.apply_studio(Command::Play).unwrap();
+    let playtest = postcard::to_allocvec(&app.campaign.game).unwrap();
+    let project = app.studio.project.clone();
+    app.toggle_menu();
+    assert!(app.menu.open && app.is_suspended());
+    let previous = app.settings.clone();
+    app.settings.graphics.weather.mode = settings::WeatherMode::Snow;
+    app.settings.graphics.sky.time = 120;
+    app.settings.independent_attacks = !preferences.independent_attacks;
+    app.apply_settings(&previous);
+    assert_eq!(app.studio.project, project);
+    assert!(!app.settings_store.path.exists());
+    for item in [Item::SaveState, Item::LoadState, Item::Rewind] {
+        assert!(app.apply_item(item, 1).is_err());
+    }
+    app.toggle_menu();
+    assert!(!app.menu.open && !app.is_suspended());
+    app.game_tick(0);
+    assert_eq!(app.campaign.game.tick, 1);
+    app.toggle_menu();
+    app.apply_studio(Command::Return).unwrap();
+    assert!(!app.menu.open);
+    assert_eq!(app.settings.graphics, project.graphics);
+    assert_eq!(
+        app.settings.independent_attacks,
+        preferences.independent_attacks
+    );
+    app.apply_studio(Command::Play).unwrap();
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), playtest);
+    app.apply_studio(Command::Close).unwrap();
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), original);
+    assert_eq!(app.settings, preferences);
+    assert!(!app.settings_store.path.exists());
+    std::fs::remove_dir_all(directory).unwrap();
+}

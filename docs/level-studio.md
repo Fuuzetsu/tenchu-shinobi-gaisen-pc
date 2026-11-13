@@ -249,3 +249,10 @@ Playtests and original challenges use a sharp mission timer when **Sharp text**
 is enabled. **Replacement artwork** enables scalable remaining-enemy candles,
 including their original flicker. The mission-timer visibility option hides both
 bitmap and sharp clocks. These controls do not affect timing or scoring.
+
+During F5 playtests, F1 opens the normal settings and inspection menu. Changes
+made there last for that playtest; restarting or returning to Studio restores the
+project environment and your previous gameplay preferences. Save the project to
+keep edits; campaign savestates remain separate from Studio playtests.
+The 3D editor displays all placed characters, including those that start dormant
+in playtests under the original activation rules.

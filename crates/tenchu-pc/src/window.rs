@@ -1150,9 +1150,6 @@ impl ApplicationHandler for Application {
                     return;
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F1 {
-                    if self.studio.testing {
-                        return;
-                    }
                     self.controls.close_editor();
                     self.toggle_menu();
                     return;

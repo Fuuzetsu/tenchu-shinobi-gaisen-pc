@@ -5,6 +5,8 @@ use crate::{
 use winit::{event::WindowEvent, window::Window};
 
 #[cfg(all(test, target_os = "linux"))]
+mod studio_regressions;
+#[cfg(all(test, target_os = "linux"))]
 mod studio_tests;
 
 pub(crate) struct Overlay {
@@ -227,12 +229,12 @@ impl Overlay {
                     }
                     return;
                 }
-                if studio.testing {
+                if studio.testing && !menu.open {
                     egui::Area::new("studio-playtest".into())
                         .anchor(egui::Align2::CENTER_TOP, [0.0, 8.0])
                         .show(ctx, |ui| {
                             egui::Frame::window(ui.style()).show(ui, |ui| {
-                                ui.label("Level Studio playtest · Esc returns · F5 restarts");
+                                ui.label("Level Studio playtest · F1 settings · Esc returns · F5 restarts");
                                 if !studio.notice.is_empty() {
                                     ui.label(&studio.notice);
                                 }

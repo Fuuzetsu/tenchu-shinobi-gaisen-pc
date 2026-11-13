@@ -394,6 +394,7 @@ impl Application {
             }
         }
         if self.demo.is_none()
+            && self.studio_previous.is_none()
             && self.settings != *previous
             && let Err(error) = self.settings_store.write(&self.settings)
         {
@@ -486,6 +487,14 @@ impl Application {
     }
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
+        if self.studio_previous.is_some()
+            && matches!(item, Item::SaveState | Item::LoadState | Item::Rewind)
+        {
+            return Err(
+                "Save the Studio project to keep this mission; playtests restart from that project"
+                    .into(),
+            );
+        }
         if let Some(reason) = settings::runtime::Runtime::Gaisen.unavailable(item) {
             return Err(reason.into());
         }

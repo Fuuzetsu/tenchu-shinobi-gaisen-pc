@@ -10,7 +10,9 @@ impl Application {
             unarmed_style: tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,
             ..self.settings.sheathing
         })?;
-        self.settings_store.write(&self.settings)?;
+        if self.studio_previous.is_none() {
+            self.settings_store.write(&self.settings)?;
+        }
         self.menu.notice = "Imported Tatsumaru punches and kicks. Sheathe your weapons to use them (H by default).".into();
         self.clock.discard_host_backlog();
         self.last_frame = Instant::now();

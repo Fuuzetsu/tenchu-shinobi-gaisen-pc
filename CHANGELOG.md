@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Level Studio shows every placed character in the 3D editor, including actors
+  that start dormant under the original gameplay rules. Playtests retain those rules.
+- F1 opens the normal settings and inspection menu during Studio playtests.
+  Temporary playtest settings are discarded on restart or return to editing.
+
 - Use physical WASD/QE positions for Studio camera movement, matching in-game
   free camera and default playtest controls on Dvorak and other keyboard layouts.
   Text entry and editor shortcuts continue to follow the keyboard layout.

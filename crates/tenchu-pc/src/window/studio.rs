@@ -54,7 +54,7 @@ impl Application {
         self.update_view();
     }
 
-    fn build_studio(&mut self) -> Result<Game> {
+    fn build_studio(&mut self, preview: bool) -> Result<Game> {
         self.studio.project.validate()?;
         let project = self.studio.project.clone();
         let mut random = tenchu_core::random::Random::new(1);
@@ -166,6 +166,14 @@ impl Application {
                 game.collision.compute(&mut game.scene)?;
             }
         }
+        if preview {
+            // This world is never ticked or reused for playtests. Show every
+            // authored placement, including actors sleeping under retail rules.
+            for actor in game.roster.actors.iter_mut().flatten() {
+                actor.attribute &= !tenchu_core::ids::ATTR_SUSPEND;
+                actor.initialize_rendered(&game.scene, &game.math);
+            }
+        }
         self.studio.surfaces = crate::debug::terrain::surfaces(&game.mission.terrain)?;
         if let Some(view) = &mut self.view {
             view.studio_scenery = materials;
@@ -207,7 +215,7 @@ impl Application {
                         .map(|b| (b.id.clone(), b.name.clone()))
                         .collect();
                 }
-                let game = self.build_studio()?;
+                let game = self.build_studio(true)?;
                 let mut campaign = Campaign::new(&self.assets, self.campaign.options, None)?;
                 campaign.game = game;
                 campaign.options.character = self.studio.project.character;
@@ -293,7 +301,7 @@ impl Application {
                     return Ok(());
                 }
                 self.studio.persist()?;
-                let game = self.build_studio()?;
+                let game = self.build_studio(!playing)?;
                 self.campaign.game = game;
                 self.campaign.options.character = self.studio.project.character;
                 self.campaign.screen = Screen::Playing;
@@ -343,6 +351,9 @@ impl Application {
     }
 
     fn studio_present(&mut self, playing: bool) -> Result<()> {
+        self.menu.open = false;
+        self.controls.close_editor();
+        self.settings = self.studio_previous.as_ref().unwrap().settings.clone();
         self.settings.graphics = self.studio.project.graphics.clone();
         self.settings.graphics.validate();
         self.settings.retro = false;
