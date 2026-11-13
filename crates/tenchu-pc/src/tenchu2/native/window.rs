@@ -727,6 +727,10 @@ impl Application {
             if action.clear_blood {
                 view.drawing.clear_blood();
             }
+            if let Some(seconds) = action.weather_preview {
+                view.drawing
+                    .seek_weather(seconds, &self.settings.graphics.weather);
+            }
             if action.clear_weather || action.clear_footprints {
                 view.drawing.clear_weather(!action.clear_weather);
             }

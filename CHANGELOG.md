@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Seek weather from dry ground to a selected elapsed time in Level Studio and
+  **F1 → Weather** in both games. Preview snow cover, wetness, puddles and storm
+  lighting immediately, including while paused, without advancing gameplay.
+
 - Fix Level Studio freezing on viewport clicks and drags. Align the title tools
   in a themed panel and reorganize Studio into clear workspace tabs, view modes
   and grouped environment controls.

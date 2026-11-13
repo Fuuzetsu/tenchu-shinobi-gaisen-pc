@@ -180,3 +180,8 @@ reapplies the preferences you had when entering Studio. Leaving Studio restores
 your main-game settings. **3D view / Map view** selects one view mode; **Guides**
 independently controls editing markers. The workspace tabs remain above the
 inspector, with grouped, aligned environment fields.
+
+**Environment → Weather & surfaces → Preview weather elapsed time** jumps to the
+selected accumulation time without advancing the mission. Choose rain or snow,
+then use the slider or quick times to inspect fully wet or snow-covered ground.
+The same control is available in **F1 → Weather** in both main games.

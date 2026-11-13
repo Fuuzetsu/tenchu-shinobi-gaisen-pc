@@ -1,5 +1,6 @@
 mod actors;
 mod rewind;
+pub(crate) mod weather;
 use super::{
     Settings,
     menu::{self, Item, Menu, Page, Row},
@@ -11,6 +12,7 @@ use egui::{Color32, RichText, Ui};
 pub use super::edit::Preference;
 
 pub enum Edit {
+    WeatherPreview(u16),
     Campaign(u64),
     Preference(Preference),
     Change(Item, i32),
@@ -219,6 +221,14 @@ pub fn show(
                     if menu.page == Page::Tenchu2 {
                         ui.label("Native JP mission selection and integration tools.");
                         ui.weak("Cutscene speed is in Simulation. Display, artwork, post-processing and controls use the shared categories.");
+                    }
+                    if menu.page == Page::Weather {
+                        ui.add_enabled_ui(settings.graphics.weather.mode != super::WeatherMode::Original, |ui| {
+                            if let Some(seconds) = weather::preview(ui, &mut menu.weather_preview_seconds) {
+                                edits.push(Edit::WeatherPreview(seconds));
+                            }
+                        });
+                        ui.separator();
                     }
                     if menu.page == Page::Assets {
                         ui.label(&menu.artwork_status);

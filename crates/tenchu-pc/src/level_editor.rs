@@ -33,6 +33,7 @@ pub enum Command {
     Return,
     Preview(Action),
     BrowseSounds(AssetGame, usize),
+    WeatherPreview(u16),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -110,6 +111,8 @@ pub struct Editor {
     snap: i32,
     ephemeral: bool,
     default_graphics: crate::settings::Graphics,
+    weather_preview_seconds: u16,
+    environment_weather: bool,
 }
 
 impl Editor {
@@ -173,10 +176,15 @@ impl Editor {
             snap: 500,
             ephemeral: false,
             default_graphics: Default::default(),
+            weather_preview_seconds: 0,
+            environment_weather: false,
         }
     }
 
     pub fn inherit_graphics(&mut self, graphics: &crate::settings::Graphics) {
+        if self.ephemeral {
+            return;
+        }
         self.default_graphics = graphics.clone();
         if self.tables.is_none() {
             self.project.graphics = graphics.clone();

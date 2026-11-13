@@ -301,7 +301,7 @@ impl Runtime {
             Edit::Preference(change) => change.capability().and_then(|item| self.unavailable(item)),
             Edit::Preset(_) | Edit::PresetLibrary | Edit::Controls | Edit::Campaign(_) => None,
             Edit::Coordinate(axis, _) => self.unavailable(Item::Target(*axis)),
-            Edit::Benchmark => None,
+            Edit::Benchmark | Edit::WeatherPreview(_) => None,
             Edit::Diagnostics => None,
             Edit::ImportUnarmed => Some(
                 "This imports Tatsumaru moves into T1. Native T2 already reads them from the running JP disc; select Tatsumaru under Unarmed style. Export is available here for use in T1 on other devices.",

@@ -156,6 +156,29 @@ impl View {
         self.dirty = true;
     }
 
+    pub(super) fn seek_weather(
+        &mut self,
+        seconds: u16,
+        tick: u64,
+        game: &Game,
+        settings: &Settings,
+        debug: &crate::debug::Debug,
+    ) {
+        let surfaces = self.surfaces.get_or_insert_with(|| {
+            crate::visuals::surfaces::Surfaces::stage(&game.mission, &game.math, Some(&self.models))
+        });
+        self.weather.seek(
+            seconds,
+            tick,
+            debug.eye(game),
+            surfaces,
+            &settings.graphics.weather,
+        );
+        self.footprints.clear();
+        self.contact.clear_weather();
+        self.dirty = true;
+    }
+
     pub(super) fn studio_preview_tick(
         &mut self,
         tick: u64,

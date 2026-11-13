@@ -682,6 +682,13 @@ impl Application {
             if actions.clear_blood {
                 native.drawing.as_mut().unwrap().clear_blood();
             }
+            if let Some(seconds) = actions.weather_preview {
+                native
+                    .drawing
+                    .as_mut()
+                    .unwrap()
+                    .seek_weather(seconds, &self.settings.graphics.weather);
+            }
             if actions.clear_weather || actions.clear_footprints {
                 native
                     .drawing

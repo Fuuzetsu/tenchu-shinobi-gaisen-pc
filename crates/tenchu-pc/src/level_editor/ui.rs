@@ -564,65 +564,85 @@ impl Editor {
                     }
                 }
             });
-        egui::CollapsingHeader::new("Sun, moon & lighting")
-            .default_open(true)
-            .show(ui, |ui| {
-                ui.checkbox(&mut g.sky.enabled, "Sun and moon lighting");
-                egui::Grid::new("studio-lighting-fields")
-                    .num_columns(2)
-                    .spacing([12.0, 9.0])
-                    .show(ui, |ui| {
-                        ui.label("Time of day");
+        ui.horizontal(|ui| {
+            ui.selectable_value(&mut self.environment_weather, false, "Lighting");
+            ui.selectable_value(&mut self.environment_weather, true, "Weather");
+        });
+        if !self.environment_weather {
+            egui::CollapsingHeader::new("Sun, moon & lighting")
+                .default_open(true)
+                .show(ui, |ui| {
+                    ui.checkbox(&mut g.sky.enabled, "Sun and moon lighting");
+                    egui::Grid::new("studio-lighting-fields")
+                        .num_columns(2)
+                        .spacing([12.0, 9.0])
+                        .show(ui, |ui| {
+                            ui.label("Time of day");
+                            ui.add(
+                                egui::Slider::new(&mut g.sky.time, 0..=1439).custom_formatter(
+                                    |n, _| format!("{:02}:{:02}", n as u32 / 60, n as u32 % 60),
+                                ),
+                            );
+                            ui.end_row();
+                            slider(ui, "Sun heading", &mut g.sky.heading, 0..=359);
+                            slider(ui, "Sun strength", &mut g.sky.sun, 0..=200);
+                            slider(ui, "Night ambient", &mut g.sky.night_ambient, 0..=100);
+                            slider(
+                                ui,
+                                "Directional light",
+                                &mut g.lighting.directional.intensity,
+                                0..=200,
+                            );
+                        });
+                    ui.horizontal(|ui| {
+                        ui.checkbox(&mut g.lighting.enabled, "Local lights");
+                        ui.checkbox(&mut g.lighting.shadows, "Cast shadows");
+                    });
+                    ui.checkbox(&mut g.fog, "Fog");
+                    ui.add_enabled_ui(g.fog, |ui| {
                         ui.add(
-                            egui::Slider::new(&mut g.sky.time, 0..=1439).custom_formatter(
-                                |n, _| format!("{:02}:{:02}", n as u32 / 60, n as u32 % 60),
-                            ),
-                        );
-                        ui.end_row();
-                        slider(ui, "Sun heading", &mut g.sky.heading, 0..=359);
-                        slider(ui, "Sun strength", &mut g.sky.sun, 0..=200);
-                        slider(ui, "Night ambient", &mut g.sky.night_ambient, 0..=100);
-                        slider(
-                            ui,
-                            "Directional light",
-                            &mut g.lighting.directional.intensity,
-                            0..=200,
+                            egui::Slider::new(&mut g.fog_distance, 25..=400).text("Fog distance"),
                         );
                     });
-                ui.horizontal(|ui| {
-                    ui.checkbox(&mut g.lighting.enabled, "Local lights");
-                    ui.checkbox(&mut g.lighting.shadows, "Cast shadows");
                 });
-                ui.checkbox(&mut g.fog, "Fog");
-                ui.add_enabled_ui(g.fog, |ui| {
-                    ui.add(egui::Slider::new(&mut g.fog_distance, 25..=400).text("Fog distance"));
+        } else {
+            egui::CollapsingHeader::new("Weather & surfaces")
+                .default_open(true)
+                .show(ui, |ui| {
+                    egui::ComboBox::from_id_salt("studio-weather")
+                        .width(ui.available_width())
+                        .selected_text(g.weather.mode.name())
+                        .show_ui(ui, |ui| {
+                            for mode in crate::settings::WeatherMode::ALL {
+                                ui.selectable_value(&mut g.weather.mode, mode, mode.name());
+                            }
+                        });
+                    ui.add_enabled_ui(
+                        g.weather.mode != crate::settings::WeatherMode::Original,
+                        |ui| {
+                            if let Some(seconds) = crate::settings::overlay::weather::preview(
+                                ui,
+                                &mut self.weather_preview_seconds,
+                            ) {
+                                self.pending = Some(Command::WeatherPreview(seconds));
+                            }
+                        },
+                    );
+                    ui.separator();
+                    egui::Grid::new("studio-weather-fields")
+                        .num_columns(2)
+                        .spacing([12.0, 9.0])
+                        .show(ui, |ui| {
+                            slider(ui, "Precipitation", &mut g.weather.amount, 0..=100);
+                            slider(ui, "Wind", &mut g.weather.wind, 0..=100);
+                            slider(ui, "Wetness", &mut g.weather.wetness, 0..=100);
+                            slider(ui, "Snow cover", &mut g.weather.snow, 0..=100);
+                            slider(ui, "Lightning", &mut g.weather.lightning, 0..=100);
+                            slider(ui, "Thunder", &mut g.weather.thunder, 0..=100);
+                        });
+                    ui.checkbox(&mut g.weather.storm_bolts, "Lightning bolts");
                 });
-            });
-        ui.separator();
-        egui::CollapsingHeader::new("Weather & surfaces")
-            .default_open(true)
-            .show(ui, |ui| {
-                egui::ComboBox::from_id_salt("studio-weather")
-                    .width(ui.available_width())
-                    .selected_text(g.weather.mode.name())
-                    .show_ui(ui, |ui| {
-                        for mode in crate::settings::WeatherMode::ALL {
-                            ui.selectable_value(&mut g.weather.mode, mode, mode.name());
-                        }
-                    });
-                egui::Grid::new("studio-weather-fields")
-                    .num_columns(2)
-                    .spacing([12.0, 9.0])
-                    .show(ui, |ui| {
-                        slider(ui, "Precipitation", &mut g.weather.amount, 0..=100);
-                        slider(ui, "Wind", &mut g.weather.wind, 0..=100);
-                        slider(ui, "Wetness", &mut g.weather.wetness, 0..=100);
-                        slider(ui, "Snow cover", &mut g.weather.snow, 0..=100);
-                        slider(ui, "Lightning", &mut g.weather.lightning, 0..=100);
-                        slider(ui, "Thunder", &mut g.weather.thunder, 0..=100);
-                    });
-                ui.checkbox(&mut g.weather.storm_bolts, "Lightning bolts");
-            });
+        }
     }
 
     fn mission(&mut self, ui: &mut egui::Ui) {

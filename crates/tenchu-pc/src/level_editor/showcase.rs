@@ -25,6 +25,7 @@ impl Editor {
 
     pub(crate) fn prepare_showcase(&mut self, feature: Feature) {
         self.notice.clear();
+        self.environment_weather = feature == Feature::Weather;
         self.grid = matches!(
             feature,
             Feature::Terrain | Feature::Stamps | Feature::Patrols | Feature::Regions

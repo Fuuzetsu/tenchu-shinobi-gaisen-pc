@@ -247,6 +247,18 @@ impl Application {
                     self.studio_tick()?;
                 }
             }
+            Command::WeatherPreview(seconds) => {
+                self.refresh_studio()?;
+                if let (Some(view), Some(session)) = (&mut self.view, &self.studio_previous) {
+                    view.seek_weather(
+                        seconds,
+                        session.preview_tick,
+                        &self.campaign.game,
+                        &self.settings,
+                        &self.debug,
+                    );
+                }
+            }
             Command::Preview(action) => self.studio_cue(action, true)?,
             Command::BrowseSounds(game, bank) => {
                 let source = self.studio_bank(game, bank)?;

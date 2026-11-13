@@ -99,6 +99,7 @@ pub struct Action {
     pub select_mission: bool,
     pub step: bool,
     pub clear_weather: bool,
+    pub weather_preview: Option<u16>,
     pub clear_blood: bool,
     pub clear_footprints: bool,
     pub models: Option<std::sync::Arc<crate::visuals::pack::Pack>>,
@@ -677,6 +678,10 @@ impl Menu {
             }
             Edit::ExportUnarmed => {
                 action.export_unarmed = true;
+                Ok(())
+            }
+            Edit::WeatherPreview(seconds) => {
+                action.weather_preview = Some(seconds);
                 Ok(())
             }
             Edit::SeekRewind(tick) => {

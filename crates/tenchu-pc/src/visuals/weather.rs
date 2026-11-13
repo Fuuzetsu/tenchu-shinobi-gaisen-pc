@@ -12,6 +12,7 @@ const HEIGHT: f32 = 8000.0;
 const RUNOFF_LIMIT: usize = 192;
 const EAVE_LIMIT: usize = 96;
 
+mod preview;
 mod runoff;
 mod storm;
 const SPLASH_LIMIT: usize = 192;
@@ -36,6 +37,8 @@ struct Splash {
 pub struct Weather {
     mode: WeatherMode,
     tick: Option<u64>,
+    #[serde(default)]
+    elapsed: Option<u64>,
     center: Option<Vec3>,
     direction: Option<Vec3>,
     particles: Vec<Particle>,
@@ -99,7 +102,9 @@ impl Weather {
             wet: self.wet * f32::from(settings.wetness) / 100.0,
             puddles: self.puddles * f32::from(settings.puddles) / 100.0,
             snow: self.snow * f32::from(settings.snow) / 100.0,
-            time: ((self.tick.unwrap_or(0) % 36000) as f32 + alpha.clamp(0.0, 1.0)) / 30.0,
+            time: ((self.elapsed.or(self.tick).unwrap_or(0) % 36000) as f32
+                + alpha.clamp(0.0, 1.0))
+                / 30.0,
             flash: self.storm.flash(settings, alpha),
         }
     }
@@ -116,6 +121,9 @@ impl Weather {
             *self = Self::default();
         }
         self.tick = Some(tick);
+        if let Some(elapsed) = &mut self.elapsed {
+            *elapsed += 1;
+        }
         self.storm.tick(settings, center);
         if self.mode != settings.mode
             || self
@@ -125,28 +133,7 @@ impl Weather {
             self.reset_particles(settings.mode);
         }
         self.center = Some(center);
-        let intensity = f32::from(settings.amount) / 100.0;
-        self.wet = (self.wet
-            + if self.mode.rain() {
-                intensity * f32::from(settings.pooling) / 60000.0
-            } else {
-                -1.0 / 3600.0
-            })
-        .clamp(0.0, 1.0);
-        self.puddles = (self.puddles
-            + if self.mode.rain() {
-                intensity * self.wet * f32::from(settings.pooling) / 180000.0
-            } else {
-                -1.0 / 5400.0
-            })
-        .clamp(0.0, 1.0);
-        self.snow = (self.snow
-            + if self.mode.snow() {
-                intensity / 900.0
-            } else {
-                -1.0 / 1800.0
-            })
-        .clamp(0.0, 1.0);
+        self.accumulate(settings);
         self.splashes.iter_mut().for_each(|s| s.age += 1);
         self.splashes.retain(|s| s.age < 14);
         let direction = settings.direction();
@@ -189,6 +176,31 @@ impl Weather {
         for _ in 0..missing.min(192) {
             self.spawn(center, surfaces, settings);
         }
+    }
+
+    fn accumulate(&mut self, settings: &Settings) {
+        let intensity = f32::from(settings.amount) / 100.0;
+        self.wet = (self.wet
+            + if self.mode.rain() {
+                intensity * f32::from(settings.pooling) / 60000.0
+            } else {
+                -1.0 / 3600.0
+            })
+        .clamp(0.0, 1.0);
+        self.puddles = (self.puddles
+            + if self.mode.rain() {
+                intensity * self.wet * f32::from(settings.pooling) / 180000.0
+            } else {
+                -1.0 / 5400.0
+            })
+        .clamp(0.0, 1.0);
+        self.snow = (self.snow
+            + if self.mode.snow() {
+                intensity / 900.0
+            } else {
+                -1.0 / 1800.0
+            })
+        .clamp(0.0, 1.0);
     }
 
     fn spawn(&mut self, center: Vec3, surfaces: &Surfaces, settings: &Settings) {

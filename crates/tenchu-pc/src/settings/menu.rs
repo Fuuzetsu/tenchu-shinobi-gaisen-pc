@@ -368,6 +368,7 @@ pub struct Row {
 
 #[derive(Default)]
 pub struct Menu {
+    pub weather_preview_seconds: u16,
     pub campaigns: crate::campaign_saves::Manager,
     pub touch_controls: bool,
     pub model_picker: bool,

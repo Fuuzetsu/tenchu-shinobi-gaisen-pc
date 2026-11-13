@@ -715,6 +715,18 @@ impl super::Application {
                     Ok(())
                 }
                 Edit::Change(item, steps) => self.apply_item(item, steps),
+                Edit::WeatherPreview(seconds) => {
+                    if let Some(view) = &mut self.view {
+                        view.seek_weather(
+                            seconds,
+                            self.campaign.game.tick,
+                            &self.campaign.game,
+                            &self.settings,
+                            &self.debug,
+                        );
+                    }
+                    Ok(())
+                }
                 Edit::SeekRewind(tick) => self.seek_rewind(tick),
                 Edit::SelectRewind(range) => {
                     self.reverse.selection = Some(range);

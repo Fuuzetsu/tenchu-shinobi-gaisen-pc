@@ -393,6 +393,14 @@ impl ContentDrawing {
         }
     }
 
+    pub fn seek_weather(&mut self, seconds: u16, settings: &crate::settings::Weather) {
+        match self {
+            Self::Gameplay(d) => d.seek_weather(seconds, settings),
+            Self::Story(d) => d.seek_weather(seconds, settings),
+            _ => {}
+        }
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         match self {
             Self::Gameplay(d) => d.clear_weather(tracks_only),

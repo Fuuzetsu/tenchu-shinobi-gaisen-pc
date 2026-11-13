@@ -1172,6 +1172,13 @@ Near and whole-stage shelter maps respect scenery cutouts. Moving actors cast
 lighting shadows without erasing snow beneath them. Fog and particle distance do
 not limit accumulated ground coverage. Model/artwork changes preserve accumulation.
 
+**Preview weather elapsed time** seeks from dry ground to any point up to one
+hour at the current weather settings, including snow, wetness and puddles. Use the
+slider or Dry / 30 s / 1 min / 5 min buttons, even while paused. This works in T1,
+T2 and Studio's Environment inspector; mission time, AI and gameplay do not advance.
+Seeking replaces the weather history and clears footprints, then accumulation
+continues normally when play resumes. Original weather keeps its original behavior.
+
 **Clear weather now** removes accumulation, tracks, runoff and airborne particles
 immediately and selects Clear. Select Rain or Snow again to restart precipitation.
 **Snow drift softness** broadens shelter silhouettes in world units to approximate

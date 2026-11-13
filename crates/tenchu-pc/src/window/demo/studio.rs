@@ -94,6 +94,11 @@ impl Application {
         let frame = player.frame;
         let total = u64::from(player.clip().seconds) * 60;
         self.studio.showcase_frame(feature, frame, total)?;
+        if feature == demo::studio::Feature::Weather
+            && (frame == total / 4 || frame == total * 65 / 100)
+        {
+            self.apply_studio(Command::WeatherPreview(120))?;
+        }
         if feature == demo::studio::Feature::Sounds && (frame == total / 4 || frame == total / 2) {
             let cue = self.studio.project.events.last().unwrap().cues
                 [usize::from(frame == total / 2)]

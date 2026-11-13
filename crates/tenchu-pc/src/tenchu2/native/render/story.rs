@@ -66,6 +66,10 @@ impl Drawing {
         self.scene.lighting.count(settings)
     }
 
+    pub fn seek_weather(&mut self, seconds: u16, settings: &crate::settings::Weather) {
+        self.scene.seek_weather(seconds, settings);
+    }
+
     pub fn clear_weather(&mut self, tracks_only: bool) {
         self.scene.clear_weather(tracks_only);
     }

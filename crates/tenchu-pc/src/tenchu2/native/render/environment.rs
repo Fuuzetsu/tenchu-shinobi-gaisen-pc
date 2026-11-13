@@ -179,6 +179,15 @@ impl Environment {
         self.thunder = None;
     }
 
+    pub fn seek_weather(&mut self, seconds: u16, settings: &crate::settings::Weather) {
+        self.weather
+            .seek_at_current_view(seconds, &self.surfaces, settings);
+        self.footprints.clear();
+        self.contact.clear_weather();
+        self.thunder = None;
+        self.stale = true;
+    }
+
     pub fn clear_footprints(&mut self) {
         self.footprints.clear();
     }
@@ -522,19 +531,17 @@ mod tests {
                     let mut drawing = super::super::Drawing::new(&session, &graphics, renderer)?;
                     drawing.update(&session, renderer, None)?;
                     if mode != WeatherMode::Original {
+                        drawing.seek_weather(0, &graphics.weather);
+                        drawing.update(&session, renderer, None)?;
+                        assert_eq!(renderer.weather.snow, 0.0);
+                        assert_eq!(renderer.weather.wet, 0.0);
+                        drawing.seek_weather(60, &graphics.weather);
                         let e = drawing.scene.environment.as_mut().unwrap();
                         let eye = crate::debug::camera::Camera::from_view(
                             session.world.camera.view,
                             300.0,
                         )
                         .position;
-                        e.weather.prewarm(
-                            u64::from(session.world.tick),
-                            eye,
-                            &e.surfaces,
-                            &graphics.weather,
-                            20,
-                        );
                         assert!(
                             e.surfaces
                                 .cast(eye - Vec3::Y * 5000.0, eye + Vec3::Y * 20000.0)

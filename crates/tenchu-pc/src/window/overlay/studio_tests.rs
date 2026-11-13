@@ -224,6 +224,29 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
         );
         assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), scene);
     }
+    for mode in [settings::WeatherMode::Rain, settings::WeatherMode::Snow] {
+        app.studio.project.graphics.weather.mode = mode;
+        app.studio.project.graphics.weather.wetness = 100;
+        app.studio.project.graphics.weather.snow = 100;
+        app.studio_action(Command::WeatherPreview(120));
+        let view = app.view.as_ref().unwrap();
+        let sample = view.renderer.weather;
+        assert!(
+            if mode == settings::WeatherMode::Rain {
+                sample.wet
+            } else {
+                sample.snow
+            } > 0.99
+        );
+        assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), scene);
+        app.studio_action(Command::WeatherPreview(0));
+        let sample = app
+            .view
+            .as_ref()
+            .unwrap()
+            .renderer.weather;
+        assert_eq!((sample.wet, sample.snow, sample.puddles), (0.0, 0.0, 0.0));
+    }
     app.studio.open_mixed_example(&app.assets).unwrap();
     app.studio_action(Command::Rebuild);
     assert_eq!(app.view.as_ref().unwrap().studio_scenery.len(), 7);

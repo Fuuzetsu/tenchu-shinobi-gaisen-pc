@@ -93,7 +93,7 @@
   {
     "id": "studio-weather",
     "title": "Change the atmosphere",
-    "description": "Clear skies, a rainstorm and windblown snow. Preview animation leaves gameplay at tick zero.",
+    "description": "Clear skies, a rainstorm and windblown snow. Seek two minutes of ground accumulation instantly while gameplay stays at tick zero.",
     "seconds": 6,
     "mission": 0,
     "character": 0,
