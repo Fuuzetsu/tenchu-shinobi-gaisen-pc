@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.34.0 — 2026-11-13
+
 - Add a built-in **demo --studio** tour with fourteen short feature chapters,
   including T1/T2 assets in one map. Export it through the existing 4K/60 video
   recorder with synchronized source sound cues. Demonstrations use temporary
