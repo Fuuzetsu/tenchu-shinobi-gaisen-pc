@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.0 — 2026-11-13
+
 - Reuse prepared characters, weapons, scenery and decoded artwork during Studio
   terrain edits. Rebuild source terrain/collision without reloading unchanged
   assets, and keep weather accumulation running across edits.

@@ -3080,7 +3080,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-assets"
-version = "0.34.0"
+version = "0.35.0"
 dependencies = [
  "encoding_rs",
  "serde",
@@ -3090,7 +3090,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-audio"
-version = "0.34.0"
+version = "0.35.0"
 dependencies = [
  "serde",
  "tenchu-assets",
@@ -3098,7 +3098,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-core"
-version = "0.34.0"
+version = "0.35.0"
 dependencies = [
  "serde",
  "serde-big-array",
@@ -3109,7 +3109,7 @@ dependencies = [
 
 [[package]]
 name = "tenchu-pc"
-version = "0.34.0"
+version = "0.35.0"
 dependencies = [
  "base64",
  "bytemuck",
