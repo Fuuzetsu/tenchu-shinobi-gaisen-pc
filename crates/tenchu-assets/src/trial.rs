@@ -1,4 +1,5 @@
 //! TRIAL.EXE mission files and theme resources. See SOURCES.md.
+pub mod editing;
 mod mission;
 mod setup;
 pub use setup::Setup;

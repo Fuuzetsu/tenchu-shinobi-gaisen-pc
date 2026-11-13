@@ -1848,6 +1848,12 @@ screen layout. Imported file bounds, supporting tiles and adjacent patrol
 segments are checked before edits are accepted. All sixteen challenges are
 available without the original unlock gate. Campaign saves remain independent.
 
+The modern editor shares these same authoring rules through
+`tenchu-assets/src/trial/editing.rs` (2026-11-13 extraction from the existing
+port). Ground support, pit covers, source-facing ramp connections, wait units
+and obstructed-route truncation remain common to both interfaces. No new
+sibling-repository code or game data was imported for this extraction.
+
 Validation includes decoding/encoding every disc preset, geometry and collision
 for every theme, both heroes through all presets and five outcomes, arrow and
 collapsing-floor traps, all-theme combat/audio, editor undo and save roundtrips,

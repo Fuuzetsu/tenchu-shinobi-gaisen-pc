@@ -1,6 +1,6 @@
 use super::*;
 use egui::{Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, StrokeKind, Vec2};
-use tenchu_assets::trial::{Placement, Waypoint};
+use tenchu_assets::trial::{Waypoint, editing};
 
 impl Editor {
     pub(super) fn prepare_textures(&mut self, ctx: &egui::Context) {
@@ -252,74 +252,18 @@ impl Editor {
         let before = self.mission.as_ref().unwrap().clone();
         let mission = self.mission.as_mut().unwrap();
         let theme = self.theme.as_ref().unwrap();
-        let at = self.cursor.z as usize * 32 + self.cursor.x as usize;
-        match self.tab {
-            Tab::Terrain => {
-                if mission.placements.iter().any(|p| p.point == self.cursor) {
-                    let allowed = !self.ornament
-                        && !erase
-                        && theme.tile(self.brush).is_some_and(|t| t.supports_actor());
-                    if !allowed {
-                        self.notice =
-                            "Move the character before removing its supporting ground".into();
-                        return;
-                    }
-                }
-                if self.ornament {
-                    if !erase
-                        && mission.map[at].ornament == 255
-                        && mission.map.iter().filter(|c| c.ornament != 255).count() >= 64
-                    {
-                        self.notice = "The original mission format supports 64 ornaments".into();
-                        return;
-                    }
-                    let supported = theme.tile(mission.map[at].ground).is_some_and(|t| {
-                        t.supports_actor()
-                            || t.kind() == 8
-                                && theme
-                                    .tile(self.brush)
-                                    .is_some_and(|t| t.flags & 0x2000 != 0)
-                    });
-                    if !erase && !supported {
-                        self.notice =
-                            "Ornaments need level ground; disguised covers can go over pits".into();
-                        return;
-                    }
-                    mission.map[at].ornament = if erase {
-                        255
-                    } else {
-                        self.brush | self.rotation << 6
-                    };
+        let result = match self.tab {
+            Tab::Terrain => editing::paint(
+                mission,
+                theme,
+                self.cursor,
+                self.ornament,
+                if erase {
+                    255
                 } else {
-                    mission.map[at].ground = if erase {
-                        255
-                    } else {
-                        self.brush | self.rotation << 6
-                    };
-                    let supported = theme.tile(mission.map[at].ground).is_some_and(|t| {
-                        t.supports_actor()
-                            || t.kind() == 8
-                                && theme
-                                    .tile(mission.map[at].ornament)
-                                    .is_some_and(|t| t.flags & 0x2000 != 0)
-                    });
-                    if !supported {
-                        mission.map[at].ornament = 255;
-                    }
-                }
-                for placement in &mut mission.placements {
-                    let end = placement.route.windows(2).position(|p| {
-                        p[0].wait == 0
-                            && blocked(theme, &mission.map, p[0].point, p[1].point, p[0].facing)
-                    });
-                    if let Some(index) = end {
-                        placement.route.truncate(index + 1);
-                        if placement.route.len() < 2 {
-                            placement.route.clear();
-                        }
-                    }
-                }
-            }
+                    self.brush | self.rotation << 6
+                },
+            ),
             Tab::Actors => {
                 if let Some(index) = mission
                     .placements
@@ -331,70 +275,39 @@ impl Editor {
                         mission.placements.remove(index);
                         self.actor = 0;
                     }
+                    Ok(())
                 } else if !erase {
-                    if mission.map[at].ornament != 255
-                        || !theme
-                            .tile(mission.map[at].ground)
-                            .is_some_and(|t| t.supports_actor())
-                    {
-                        self.notice = "Characters need clear, level ground".into();
-                        return;
-                    }
-                    mission.placements[self.actor].point = self.cursor;
-                    mission.placements[self.actor].route.clear();
+                    editing::move_actor(mission, theme, self.actor, self.cursor)
+                } else {
+                    Ok(())
                 }
             }
             Tab::Patrols if self.actor != 0 => {
-                let placement = &mut mission.placements[self.actor];
                 if erase {
-                    placement.route.pop();
-                    if placement.route.len() < 2 {
-                        placement.route.clear();
+                    let route = &mut mission.placements[self.actor].route;
+                    route.pop();
+                    if route.len() < 2 {
+                        route.clear();
                     }
+                    Ok(())
                 } else {
-                    let previous = placement.route.last().map_or(placement.point, |p| p.point);
-                    let delta = (self.cursor.x - previous.x, self.cursor.z - previous.z);
-                    let facing = match delta {
-                        (0, -1) => 0,
-                        (1, 0) => 1,
-                        (0, 1) => 2,
-                        (-1, 0) => 3,
-                        (0, 0) => self.patrol_facing,
-                        _ => {
-                            self.notice = "Add adjacent tiles one step at a time".into();
-                            return;
-                        }
-                    };
-                    if placement.route.len() >= 64 {
-                        self.notice = "A patrol supports at most 64 points".into();
-                        return;
-                    }
-                    if delta != (0, 0)
-                        && blocked(theme, &mission.map, previous, self.cursor, facing)
-                    {
-                        self.notice =
-                            "Patrol step blocked: use connected ground or an aligned ramp".into();
-                        return;
-                    }
-                    if placement.route.is_empty() {
-                        placement.route.push(Waypoint {
-                            point: placement.point,
-                            ..Default::default()
-                        });
-                    }
-                    let last = placement.route.last_mut().unwrap();
-                    last.facing = facing;
-                    if delta == (0, 0) {
-                        last.wait = self.patrol_wait.max(1);
-                    }
-                    placement.route.push(Waypoint {
-                        point: self.cursor,
-                        facing: self.patrol_facing,
-                        wait: self.patrol_wait,
-                    });
+                    editing::patrol(
+                        mission,
+                        theme,
+                        self.actor,
+                        Waypoint {
+                            point: self.cursor,
+                            facing: self.patrol_facing,
+                            wait: self.patrol_wait,
+                        },
+                    )
                 }
             }
-            _ => (),
+            _ => Ok(()),
+        };
+        if let Err(error) = result {
+            self.notice = error;
+            return;
         }
         if self.mission.as_ref() != Some(&before) && self.stroke.is_none() {
             self.stroke = Some(before);
@@ -403,64 +316,20 @@ impl Editor {
     pub(super) fn add_actor(&mut self) {
         let before = self.mission.as_ref().unwrap().clone();
         let mission = self.mission.as_mut().unwrap();
-        if mission.placements.len() >= 10 {
-            self.notice =
-                "A mission supports ten characters, including player and objectives".into();
-            return;
+        match editing::add_actor(
+            mission,
+            self.theme.as_ref().unwrap(),
+            self.cursor,
+            self.actor_kind,
+        ) {
+            Ok(actor) => self.actor = actor,
+            Err(error) => {
+                self.notice = error;
+                return;
+            }
         }
-        let cell = mission.cell(self.cursor.x, self.cursor.z).unwrap();
-        if mission.placements.iter().any(|p| p.point == self.cursor)
-            || cell.ornament != 255
-            || !self
-                .theme
-                .as_ref()
-                .unwrap()
-                .tile(cell.ground)
-                .is_some_and(|t| t.supports_actor())
-        {
-            self.notice = "Choose an empty, level tile on the map first".into();
-            return;
-        }
-        mission.placements.push(Placement {
-            kind: self.actor_kind,
-            point: self.cursor,
-            route: vec![],
-        });
-        self.actor = mission.placements.len() - 1;
         self.edit(before);
     }
-}
-
-fn blocked(
-    theme: &Theme,
-    map: &[tenchu_assets::trial::Cell],
-    from: Point,
-    to: Point,
-    facing: i16,
-) -> bool {
-    let a = map[from.z as usize * 32 + from.x as usize];
-    let b = map[to.z as usize * 32 + to.x as usize];
-    if b.ornament != 255 {
-        return true;
-    }
-    let (Some(a_kind), Some(b_kind)) = (
-        theme.tile(a.ground).map(|t| t.kind()),
-        theme.tile(b.ground).map(|t| t.kind()),
-    ) else {
-        return true;
-    };
-    if matches!(a_kind, 0 | 5 | 6) && matches!(b_kind, 5 | 6) && facing == i16::from(b.ground >> 6)
-        || ((a_kind == 5 && b_kind == 1) || (a_kind == 6 && b_kind == 2))
-            && facing == i16::from(a.ground >> 6)
-        || ((b_kind == 5 && a_kind == 1) || (b_kind == 6 && a_kind == 2))
-            && (facing + 2) % 4 == i16::from(b.ground >> 6)
-        || matches!(b_kind, 0 | 5 | 6)
-            && matches!(a_kind, 5 | 6)
-            && (facing + 2) % 4 == i16::from(a.ground >> 6)
-    {
-        return false;
-    }
-    a_kind != b_kind
 }
 
 #[cfg(test)]
