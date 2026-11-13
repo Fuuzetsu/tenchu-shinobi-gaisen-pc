@@ -322,23 +322,20 @@ impl Overlay {
                     egui::Area::new("randomizer-launcher".into())
                         .fixed_pos([14.0, 14.0])
                         .show(ctx, |ui| {
-                            if ui
-                                .add(
-                                    egui::Button::new("Randomizer…  F7")
-                                        .wrap_mode(egui::TextWrapMode::Extend),
-                                )
-                                .clicked()
-                            {
-                                edits.push(Edit::Randomizer);
-                            }
-                            if ui.button("Level Studio…  Shift+F10").clicked() {
-                                studio_action = Some(crate::level_editor::Command::Open);
-                            }
-                            if extras.launcher.is_none()
-                                && ui.button("Quick launcher…  F6").clicked()
-                            {
-                                tenchu2_action = Some(crate::tenchu2::menu::Event::Quick);
-                            }
+                            crate::ui::theme::tools(ui, |ui| {
+                                if crate::ui::theme::tool(ui, "Randomizer", "F7").clicked() {
+                                    edits.push(Edit::Randomizer);
+                                }
+                                if crate::ui::theme::tool(ui, "Level Studio", "Shift+F10").clicked()
+                                {
+                                    studio_action = Some(crate::level_editor::Command::Open);
+                                }
+                                if extras.launcher.is_none()
+                                    && crate::ui::theme::tool(ui, "Quick launcher", "F6").clicked()
+                                {
+                                    tenchu2_action = Some(crate::tenchu2::menu::Event::Quick);
+                                }
+                            });
                         });
                 }
                 randomizer_action = randomizer.editor.show(

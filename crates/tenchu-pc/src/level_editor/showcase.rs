@@ -3,10 +3,15 @@ use crate::demo::studio::Feature;
 
 impl Editor {
     pub(crate) fn for_showcase() -> Self {
-        Self {
+        let mut editor = Self {
             ephemeral: true,
             ..Self::new(PathBuf::new())
-        }
+        };
+        editor
+            .default_graphics
+            .set_preset(crate::settings::presets::MODERN_HIGH);
+        editor.project.graphics = editor.default_graphics.clone();
+        editor
     }
 
     pub(crate) fn load_showcase(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {

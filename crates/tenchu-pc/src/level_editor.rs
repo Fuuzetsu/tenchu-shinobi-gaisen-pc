@@ -109,6 +109,7 @@ pub struct Editor {
     clipboard: Option<building::Stamp>,
     snap: i32,
     ephemeral: bool,
+    default_graphics: crate::settings::Graphics,
 }
 
 impl Editor {
@@ -171,6 +172,21 @@ impl Editor {
             clipboard: None,
             snap: 500,
             ephemeral: false,
+            default_graphics: Default::default(),
+        }
+    }
+
+    pub fn inherit_graphics(&mut self, graphics: &crate::settings::Graphics) {
+        self.default_graphics = graphics.clone();
+        if self.tables.is_none() {
+            self.project.graphics = graphics.clone();
+        }
+    }
+
+    fn new_project(&self, mission: Mission) -> Project {
+        Project {
+            graphics: self.default_graphics.clone(),
+            ..Project::new(mission)
         }
     }
 
@@ -222,6 +238,12 @@ impl Editor {
         self.cursor = project.mission.placements[0].point;
         if let Some(view) = project.views.first() {
             self.camera = view.camera();
+        } else if project.graphics.fog {
+            let point = project.mission.placements[0].point;
+            let mut target = point.world();
+            target[1] = i32::from(theme.height(&project.mission, point.x, point.z, false)) * 1000;
+            self.camera
+                .focus(glam::Vec3::from_array(target.map(|v| v as f32)), false);
         }
         self.project = project;
         self.theme = Some(theme);

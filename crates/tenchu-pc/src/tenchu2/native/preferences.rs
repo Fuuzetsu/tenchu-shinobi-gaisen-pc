@@ -120,23 +120,31 @@ impl Menu {
             || self.benchmarks.running()
     }
 
-    pub fn campaign_button(&mut self, ctx: &egui::Context, title: bool) {
+    pub fn title_tools(&mut self, ctx: &egui::Context, title: bool, studio: bool) -> bool {
+        let mut open_studio = false;
         if title && !self.panel.open && !self.modal_open() {
-            egui::Area::new("native-campaign-saves".into())
-                .anchor(egui::Align2::LEFT_TOP, [12.0, 12.0])
+            egui::Area::new("native-title-tools".into())
+                .anchor(egui::Align2::LEFT_TOP, [14.0, 14.0])
                 .show(ctx, |ui| {
-                    if ui.button("Campaign saves…").clicked() {
-                        self.panel.open = true;
-                        if let Err(error) = self
-                            .panel
-                            .campaigns
-                            .open(crate::campaign_saves::Game::Tenchu2)
-                        {
-                            self.panel.notice = error;
+                    crate::ui::theme::tools(ui, |ui| {
+                        if crate::ui::theme::tool(ui, "Campaign saves", "").clicked() {
+                            self.panel.open = true;
+                            if let Err(error) = self
+                                .panel
+                                .campaigns
+                                .open(crate::campaign_saves::Game::Tenchu2)
+                            {
+                                self.panel.notice = error;
+                            }
                         }
-                    }
+                        if studio {
+                            open_studio =
+                                crate::ui::theme::tool(ui, "Level Studio", "Shift+F10").clicked();
+                        }
+                    })
                 });
         }
+        open_studio
     }
 
     pub fn select_campaign(

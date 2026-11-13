@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix Level Studio freezing on viewport clicks and drags. Align the title tools
+  in a themed panel and reorganize Studio into clear workspace tabs, view modes
+  and grouped environment controls.
+- New Studio maps and imported retail challenges inherit your current graphics
+  settings. Saved projects keep their environment; **Use my game settings** in
+  Environment restores your preferences for the current project.
+
 ## 0.34.0 — 2026-11-13
 
 - Add a built-in **demo --studio** tour with fourteen short feature chapters,

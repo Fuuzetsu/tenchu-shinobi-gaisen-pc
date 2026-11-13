@@ -144,7 +144,7 @@ impl View {
         let output = self
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
-                menu.campaign_button(ctx, matches!(session.content, Content::Title(_)));
+                menu.title_tools(ctx, matches!(session.content, Content::Title(_)), false);
                 self.drawing.paint(&session.content, ctx);
                 if !menu.panel.open && !menu.modal_open() {
                     session.action = session

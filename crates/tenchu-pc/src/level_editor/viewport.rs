@@ -454,7 +454,8 @@ impl Editor {
     }
 
     fn navigate(&mut self, ui: &egui::Ui, response: &egui::Response) {
-        ui.input(|input| {
+        let input = ui.input(Clone::clone);
+        {
             let delta = input.pointer.delta();
             if response.dragged_by(egui::PointerButton::Secondary)
                 || response.hovered() && input.pointer.secondary_down()
@@ -490,7 +491,7 @@ impl Editor {
                 .camera
                 .position
                 .clamp(Vec3::splat(-320_000.0), Vec3::splat(320_000.0));
-        });
+        }
     }
 }
 
@@ -515,4 +516,74 @@ fn marker(painter: &egui::Painter, point: Pos2, index: usize, selected: bool) {
         egui::FontId::monospace(12.0),
         color,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pointer_navigation_releases_input_before_querying_response() {
+        let mut editor = Editor::new(std::path::PathBuf::new());
+        let context = egui::Context::default();
+        let mut frame = |events| {
+            let _ = context.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0))),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        let (_, response) =
+                            ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
+                        editor.navigate(ui, &response);
+                    });
+                },
+            );
+            editor.camera
+        };
+        let start = egui::pos2(400.0, 300.0);
+        let end = start + egui::vec2(35.0, 25.0);
+        let button = |button, pressed| egui::Event::PointerButton {
+            pos: start,
+            button,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        frame(vec![egui::Event::PointerMoved(start)]);
+        for pointer in [
+            egui::PointerButton::Primary,
+            egui::PointerButton::Secondary,
+            egui::PointerButton::Middle,
+        ] {
+            let before = frame(vec![egui::Event::PointerMoved(start)]);
+            frame(vec![button(pointer, true)]);
+            let after = frame(vec![egui::Event::PointerMoved(end)]);
+            if pointer == egui::PointerButton::Secondary {
+                assert_ne!(before.yaw, after.yaw);
+            }
+            if pointer == egui::PointerButton::Middle {
+                assert_ne!(before.position, after.position);
+            }
+            frame(vec![button(pointer, false)]);
+        }
+        let before = frame(vec![button(egui::PointerButton::Secondary, true)]);
+        let after = frame(vec![egui::Event::Key {
+            key: egui::Key::W,
+            physical_key: Some(egui::Key::W),
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }]);
+        assert_ne!(before.position, after.position);
+        frame(vec![button(egui::PointerButton::Secondary, false)]);
+        let before = frame(vec![]);
+        let after = frame(vec![egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            delta: egui::vec2(0.0, 80.0),
+            modifiers: egui::Modifiers::NONE,
+        }]);
+        assert_ne!(before.position, after.position);
+    }
 }

@@ -588,19 +588,11 @@ impl Application {
         let was_paused = self.paused;
         let previous_settings = self.settings.clone();
         view.overlay.custom(&view.window, &view.renderer, |ctx| {
-            native
-                .menu
-                .campaign_button(ctx, matches!(native.playback.content, Content::Title(_)));
-            if matches!(native.playback.content, Content::Title(_))
-                && !native.menu.panel.open
-                && !native.menu.modal_open()
-            {
-                egui::Area::new("native-level-studio".into())
-                    .anchor(egui::Align2::LEFT_BOTTOM, [12.0, -12.0])
-                    .show(ctx, |ui| {
-                        open_studio = ui.button("Level Studio…  Shift+F10").clicked();
-                    });
-            }
+            open_studio = native.menu.title_tools(
+                ctx,
+                matches!(native.playback.content, Content::Title(_)),
+                true,
+            );
             native
                 .drawing
                 .as_mut()

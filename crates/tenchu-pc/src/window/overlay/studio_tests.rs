@@ -34,6 +34,42 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
         ))
         .unwrap(),
     );
+    app.campaign.screen = Screen::Frontend;
+    app.frontend = Some(
+        crate::frontend::Frontend::new(
+            &app.assets,
+            &app.disc,
+            &app.campaign,
+            app.settings.frontend.clone(),
+        )
+        .unwrap(),
+    );
+    app.frontend
+        .as_mut()
+        .unwrap()
+        .stage_showcase(
+            &crate::frontend::showcase::Scene {
+                page: crate::frontend::showcase::Menu::Title,
+                language: "en".into(),
+            },
+            &app.assets,
+            &mut app.campaign,
+        )
+        .unwrap();
+    for _ in 0..20 {
+        app.update_overlay();
+    }
+    app.view
+        .as_mut()
+        .unwrap()
+        .capture(
+            &app.campaign.game,
+            &app.debug,
+            &output.join("title-tools.png"),
+        )
+        .unwrap();
+    app.frontend = None;
+    app.campaign.screen = Screen::Playing;
     app.studio = crate::level_editor::Editor::new(path.clone());
     app.studio_action(Command::Open);
     assert!(app.studio.open, "{}", app.studio.notice);
@@ -45,9 +81,14 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
         .presets(&app.assets)
         .unwrap()[0]
         .clone();
+    let mut project = Project::new(mission);
+    project
+        .graphics
+        .set_preset(crate::settings::presets::MODERN_HIGH);
     app.studio
-        .import(&Project::new(mission).encode().unwrap(), &app.assets)
+        .import(&project.encode().unwrap(), &app.assets)
         .unwrap();
+    app.studio.camera = crate::level_editor::Editor::for_showcase().camera;
     let t1 = tenchu_assets::stage::MissionAssets::load(&app.assets, 0, 0, 1).unwrap();
     let disc =
         crate::source::open_disc(&crate::tenchu2::menu::disc_path().expect("Connect a T2 disc"))

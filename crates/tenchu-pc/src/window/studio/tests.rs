@@ -9,10 +9,16 @@ fn studio_playtests_restore_campaign_and_keep_editor_drafts_separate() {
     app.studio = crate::level_editor::Editor::new(path.clone());
     let original = postcard::to_allocvec(&app.campaign.game).unwrap();
     let progress = app.campaign.progress.clone();
+    app.settings
+        .graphics
+        .set_preset(crate::settings::presets::MODERN_ULTRA);
+    app.settings.graphics.sky.time = 243;
+    app.settings.graphics.weather.mode = crate::settings::WeatherMode::Snow;
     let settings = app.settings.clone();
     let seed = app.campaign.seed;
     app.apply_studio(Command::Open).unwrap();
     assert!(app.studio.open);
+    assert_eq!(app.studio.project.graphics, settings.graphics);
     assert!(app.campaign.game.trial.is_some());
     let preview = postcard::to_allocvec(&app.campaign.game).unwrap();
     for _ in 0..3 {
@@ -37,6 +43,13 @@ fn studio_playtests_restore_campaign_and_keep_editor_drafts_separate() {
     assert!(!app.trial.open);
     assert!(app.trial.mission.is_none());
     assert!(path.exists());
+    app.studio.project.graphics.sky.time = 1023;
+    app.studio.persist().unwrap();
+    app.studio = crate::level_editor::Editor::new(path.clone());
+    app.apply_studio(Command::Open).unwrap();
+    assert_eq!(app.studio.project.graphics.sky.time, 1023);
+    app.apply_studio(Command::Close).unwrap();
+    assert_eq!(app.settings, settings);
     std::fs::remove_file(path).unwrap();
 }
 

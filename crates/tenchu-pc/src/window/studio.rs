@@ -136,6 +136,7 @@ impl Application {
                         return Err("Preparing editor assets in the background; open Level Studio again in a moment".into());
                     }
                 }
+                self.studio.inherit_graphics(&self.settings.graphics);
                 self.studio.enter(&self.assets)?;
                 if let Some(view) = &mut self.view {
                     if view.model_library.is_none() {

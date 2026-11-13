@@ -53,7 +53,7 @@ impl Editor {
                 },
             )?;
         }
-        let mut project = Project::new(mission);
+        let mut project = self.new_project(mission);
         project.actors.insert(actor, body);
         project.graphics.sky.enabled = true;
         project.graphics.sky.time = 900;

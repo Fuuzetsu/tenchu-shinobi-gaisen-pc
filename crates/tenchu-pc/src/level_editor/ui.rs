@@ -173,85 +173,126 @@ impl Editor {
                 }
             }
         }
-        egui::TopBottomPanel::top("studio-toolbar").show(ctx, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.heading("Level Studio");
-                ui.separator();
-                if ui.button("Projects").clicked() {
-                    self.panel = Panel::Library;
-                }
-                if ui.button("Save  Ctrl+S").clicked()
-                    && let Err(e) = self.save(false)
-                {
-                    self.notice = e;
-                }
-                if ui.button("Save copy").clicked()
-                    && let Err(e) = self.save(true)
-                {
-                    self.notice = e;
-                }
-                if ui
-                    .add_enabled(
-                        self.unlocked && self.history.can_undo(),
-                        egui::Button::new("Undo"),
-                    )
-                    .clicked()
-                {
-                    self.undo(false);
-                }
-                if ui
-                    .add_enabled(
-                        self.unlocked && self.history.can_redo(),
-                        egui::Button::new("Redo"),
-                    )
-                    .clicked()
-                {
-                    self.undo(true);
-                }
-                ui.separator();
-                if ui.button("▶ Playtest  F5").clicked() {
-                    self.pending = Some(Command::Play);
-                }
-                if ui.button("Refresh preview").clicked() {
-                    self.pending = Some(Command::Rebuild);
-                }
-                ui.checkbox(&mut self.grid, "Map view");
-                ui.checkbox(&mut self.guides, "Guides")
-                    .on_hover_text("G toggles markers and regions for clean previews");
-                self.camera_views(ui);
-                if ui.button("Exit studio").clicked() {
-                    self.pending = Some(Command::Close);
-                }
-            });
-            ui.horizontal_wrapped(|ui| {
-                for (tool, label) in [
-                    (Tool::Select, "Select / move"),
-                    (Tool::Paint, "Paint"),
-                    (Tool::Erase, "Erase"),
-                    (Tool::Patrol, "Patrol"),
-                    (Tool::Area, "Area"),
-                    (Tool::Stamp, "Stamp"),
-                ] {
-                    if ui.selectable_value(&mut self.tool, tool, label).clicked() {
-                        self.panel =
-                            if matches!(tool, Tool::Paint | Tool::Erase | Tool::Area | Tool::Stamp)
-                            {
+        egui::TopBottomPanel::top("studio-toolbar")
+            .frame(
+                egui::Frame::new()
+                    .fill(crate::ui::theme::INK)
+                    .inner_margin(10),
+            )
+            .show(ctx, |ui| {
+                crate::ui::theme::style(ui);
+                ui.horizontal_wrapped(|ui| {
+                    ui.heading("Level Studio");
+                    ui.separator();
+                    if ui.button("Projects").clicked() {
+                        self.panel = Panel::Library;
+                    }
+                    if ui.button("Save  Ctrl+S").clicked()
+                        && let Err(e) = self.save(false)
+                    {
+                        self.notice = e;
+                    }
+                    if ui.button("Save copy").clicked()
+                        && let Err(e) = self.save(true)
+                    {
+                        self.notice = e;
+                    }
+                    if ui
+                        .add_enabled(
+                            self.unlocked && self.history.can_undo(),
+                            egui::Button::new("Undo"),
+                        )
+                        .clicked()
+                    {
+                        self.undo(false);
+                    }
+                    if ui
+                        .add_enabled(
+                            self.unlocked && self.history.can_redo(),
+                            egui::Button::new("Redo"),
+                        )
+                        .clicked()
+                    {
+                        self.undo(true);
+                    }
+                    ui.separator();
+                    if ui.button("▶ Playtest  F5").clicked() {
+                        self.pending = Some(Command::Play);
+                    }
+                    if ui.button("Refresh preview").clicked() {
+                        self.pending = Some(Command::Rebuild);
+                    }
+                    if ui.button("Exit studio").clicked() {
+                        self.pending = Some(Command::Close);
+                    }
+                });
+                ui.horizontal_wrapped(|ui| {
+                    for (tool, label) in [
+                        (Tool::Select, "Select / move"),
+                        (Tool::Paint, "Paint"),
+                        (Tool::Erase, "Erase"),
+                        (Tool::Patrol, "Patrol"),
+                        (Tool::Area, "Area"),
+                        (Tool::Stamp, "Stamp"),
+                    ] {
+                        if ui.selectable_value(&mut self.tool, tool, label).clicked() {
+                            self.panel = if matches!(
+                                tool,
+                                Tool::Paint | Tool::Erase | Tool::Area | Tool::Stamp
+                            ) {
                                 Panel::Terrain
                             } else {
                                 Panel::Actors
                             };
+                        }
                     }
-                }
-                ui.separator();
-                ui.label(RichText::new(&self.project.mission.title).strong());
-                ui.label(format!(
-                    "· {}",
-                    tenchu_assets::trial::THEMES[self.project.mission.theme]
-                ));
+                    ui.separator();
+                    ui.selectable_value(&mut self.grid, false, "3D view");
+                    ui.selectable_value(&mut self.grid, true, "Map view");
+                    ui.checkbox(&mut self.guides, "Guides")
+                        .on_hover_text("G toggles markers and regions for clean previews");
+                    self.camera_views(ui);
+                });
             });
-        });
+        egui::TopBottomPanel::top("studio-sections")
+            .frame(
+                egui::Frame::new()
+                    .fill(crate::ui::theme::PANEL)
+                    .inner_margin(8),
+            )
+            .show(ctx, |ui| {
+                crate::ui::theme::style(ui);
+                let width = ((ui.available_width() - 6.0 * 8.0) / 7.0).max(90.0);
+                ui.horizontal_wrapped(|ui| {
+                    for (index, (panel, label)) in [
+                        (Panel::Terrain, "Terrain"),
+                        (Panel::Actors, "Characters"),
+                        (Panel::Scenery, "Scenery"),
+                        (Panel::Events, "Events & audio"),
+                        (Panel::Environment, "Environment"),
+                        (Panel::Mission, "Mission"),
+                        (Panel::Library, "Projects"),
+                    ]
+                    .into_iter()
+                    .enumerate()
+                    {
+                        if ui
+                            .add_sized(
+                                [width, 32.0],
+                                egui::Button::new(label).selected(self.panel == panel),
+                            )
+                            .on_hover_text(format!("Alt+{}", index + 1))
+                            .clicked()
+                        {
+                            self.panel = panel;
+                        }
+                    }
+                });
+            });
         egui::TopBottomPanel::bottom("studio-status").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new(&self.project.mission.title).color(crate::ui::theme::GOLD));
+                ui.separator();
                 ui.label(format!("Cell {}, {}", self.cursor.x, self.cursor.z));
                 ui.separator();
                 ui.small(if self.grid { "Scroll: zoom · middle drag: pan · click: edit · R: rotate" } else { "Right drag: look · right + WASD/QE: fly · middle drag: pan · scroll: dolly · F: frame selection" });
@@ -259,26 +300,13 @@ impl Editor {
             if !self.notice.is_empty() { ui.colored_label(Color32::GOLD, &self.notice); }
         });
         egui::SidePanel::left("studio-inspector")
-            .default_width(300.0)
-            .min_width(240.0)
+            .default_width(350.0)
+            .min_width(310.0)
             .max_width(470.0)
             .resizable(true)
             .show(ctx, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    for (panel, label) in [
-                        (Panel::Terrain, "Terrain"),
-                        (Panel::Actors, "Characters"),
-                        (Panel::Scenery, "Scenery"),
-                        (Panel::Events, "Events"),
-                        (Panel::Environment, "Lighting & weather"),
-                        (Panel::Mission, "Mission"),
-                        (Panel::Library, "Projects"),
-                    ] {
-                        ui.selectable_value(&mut self.panel, panel, label)
-                            .on_hover_text("Alt+1…7 switches inspector tabs");
-                    }
-                });
-                ui.separator();
+                crate::ui::theme::style(ui);
+                ui.spacing_mut().slider_width = (ui.available_width() - 210.0).clamp(70.0, 140.0);
                 if !self.unlocked {
                     ui.label("This mission has an editing password");
                     ui.add(egui::TextEdit::singleline(&mut self.password).password(true));
@@ -515,50 +543,86 @@ impl Editor {
     }
 
     fn environment(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Preview environment");
+        ui.heading("Environment");
+        ui.small("New maps start with your game settings. Changes here belong to this project.");
+        if ui.button("Use my game settings").clicked() {
+            self.project.graphics = self.default_graphics.clone();
+        }
         let g = &mut self.project.graphics;
+        ui.add_space(4.0);
+        ui.label(RichText::new("Graphics preset").color(crate::ui::theme::GOLD));
         let mut preset = g.preset();
         egui::ComboBox::from_id_salt("studio-preset")
+            .width(ui.available_width())
             .selected_text(crate::settings::presets::NAMES[preset as usize])
             .show_ui(ui, |ui| {
                 for (i, name) in crate::settings::presets::NAMES.iter().enumerate() {
-                    if ui.selectable_value(&mut preset, i as u16, *name).changed() {
+                    if i as u16 != crate::settings::presets::CUSTOM
+                        && ui.selectable_value(&mut preset, i as u16, *name).changed()
+                    {
                         g.set_preset(preset);
                     }
                 }
             });
-        ui.checkbox(&mut g.sky.enabled, "Sun and moon lighting");
-        ui.add(
-            egui::Slider::new(&mut g.sky.time, 0..=1439)
-                .text("Time of day")
-                .custom_formatter(|n, _| format!("{:02}:{:02}", n as u32 / 60, n as u32 % 60)),
-        );
-        ui.add(egui::Slider::new(&mut g.sky.heading, 0..=359).text("Sun heading"));
-        ui.add(egui::Slider::new(&mut g.sky.sun, 0..=200).text("Sun strength"));
-        ui.add(egui::Slider::new(&mut g.sky.night_ambient, 0..=100).text("Night ambient"));
-        ui.checkbox(&mut g.lighting.enabled, "Local lights");
-        ui.checkbox(&mut g.lighting.shadows, "Local shadows");
-        ui.add(
-            egui::Slider::new(&mut g.lighting.directional.intensity, 0..=200)
-                .text("Directional light"),
-        );
-        ui.checkbox(&mut g.fog, "Fog");
-        ui.add(egui::Slider::new(&mut g.fog_distance, 25..=400).text("Fog distance"));
-        egui::ComboBox::from_id_salt("studio-weather")
-            .selected_text(g.weather.mode.name())
-            .show_ui(ui, |ui| {
-                for mode in crate::settings::WeatherMode::ALL {
-                    ui.selectable_value(&mut g.weather.mode, mode, mode.name());
-                }
+        egui::CollapsingHeader::new("Sun, moon & lighting")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.checkbox(&mut g.sky.enabled, "Sun and moon lighting");
+                egui::Grid::new("studio-lighting-fields")
+                    .num_columns(2)
+                    .spacing([12.0, 9.0])
+                    .show(ui, |ui| {
+                        ui.label("Time of day");
+                        ui.add(
+                            egui::Slider::new(&mut g.sky.time, 0..=1439).custom_formatter(
+                                |n, _| format!("{:02}:{:02}", n as u32 / 60, n as u32 % 60),
+                            ),
+                        );
+                        ui.end_row();
+                        slider(ui, "Sun heading", &mut g.sky.heading, 0..=359);
+                        slider(ui, "Sun strength", &mut g.sky.sun, 0..=200);
+                        slider(ui, "Night ambient", &mut g.sky.night_ambient, 0..=100);
+                        slider(
+                            ui,
+                            "Directional light",
+                            &mut g.lighting.directional.intensity,
+                            0..=200,
+                        );
+                    });
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut g.lighting.enabled, "Local lights");
+                    ui.checkbox(&mut g.lighting.shadows, "Cast shadows");
+                });
+                ui.checkbox(&mut g.fog, "Fog");
+                ui.add_enabled_ui(g.fog, |ui| {
+                    ui.add(egui::Slider::new(&mut g.fog_distance, 25..=400).text("Fog distance"));
+                });
             });
-        ui.add(egui::Slider::new(&mut g.weather.amount, 0..=100).text("Precipitation"));
-        ui.add(egui::Slider::new(&mut g.weather.wind, 0..=100).text("Wind"));
-        ui.add(egui::Slider::new(&mut g.weather.wetness, 0..=100).text("Wetness"));
-        ui.add(egui::Slider::new(&mut g.weather.snow, 0..=100).text("Snow cover"));
-        ui.add(egui::Slider::new(&mut g.weather.lightning, 0..=100).text("Lightning"));
-        ui.add(egui::Slider::new(&mut g.weather.thunder, 0..=100).text("Thunder"));
-        ui.checkbox(&mut g.weather.storm_bolts, "Lightning bolts");
-        ui.small("Saved with this project. Playtests use this environment; leaving Studio restores your game settings.");
+        ui.separator();
+        egui::CollapsingHeader::new("Weather & surfaces")
+            .default_open(true)
+            .show(ui, |ui| {
+                egui::ComboBox::from_id_salt("studio-weather")
+                    .width(ui.available_width())
+                    .selected_text(g.weather.mode.name())
+                    .show_ui(ui, |ui| {
+                        for mode in crate::settings::WeatherMode::ALL {
+                            ui.selectable_value(&mut g.weather.mode, mode, mode.name());
+                        }
+                    });
+                egui::Grid::new("studio-weather-fields")
+                    .num_columns(2)
+                    .spacing([12.0, 9.0])
+                    .show(ui, |ui| {
+                        slider(ui, "Precipitation", &mut g.weather.amount, 0..=100);
+                        slider(ui, "Wind", &mut g.weather.wind, 0..=100);
+                        slider(ui, "Wetness", &mut g.weather.wetness, 0..=100);
+                        slider(ui, "Snow cover", &mut g.weather.snow, 0..=100);
+                        slider(ui, "Lightning", &mut g.weather.lightning, 0..=100);
+                        slider(ui, "Thunder", &mut g.weather.thunder, 0..=100);
+                    });
+                ui.checkbox(&mut g.weather.storm_bolts, "Lightning bolts");
+            });
     }
 
     fn mission(&mut self, ui: &mut egui::Ui) {
@@ -626,7 +690,7 @@ impl Editor {
             self.notice = error;
         }
         if ui.button("Open lighting & events example").clicked() {
-            let mut project = Project::new(self.presets[0].clone());
+            let mut project = self.new_project(self.presets[0].clone());
             project.mission.title = "Storm arrives".into();
             project.mission.password.clear();
             project.mission.records.clear();
@@ -678,7 +742,7 @@ impl Editor {
                         self.tables.as_ref().unwrap().appearance[self.new_theme][2],
                     )
                 })
-                .and_then(|m| self.select(Project::new(m), assets));
+                .and_then(|m| self.select(self.new_project(m), assets));
             if let Err(e) = result {
                 self.notice = e;
             } else {
@@ -724,7 +788,7 @@ impl Editor {
                     .button(format!("{:02} · {}", i + 1, mission.title))
                     .clicked()
                 {
-                    chosen = Some((Project::new(mission.clone()), None));
+                    chosen = Some((self.new_project(mission.clone()), None));
                 }
             }
         });
@@ -799,4 +863,10 @@ fn objective(ui: &mut egui::Ui, objective: &mut Objective) {
                 ui.selectable_value(objective, value, value.label());
             }
         });
+}
+
+fn slider(ui: &mut egui::Ui, label: &str, value: &mut u16, range: std::ops::RangeInclusive<u16>) {
+    ui.label(label);
+    ui.add(egui::Slider::new(value, range));
+    ui.end_row();
 }

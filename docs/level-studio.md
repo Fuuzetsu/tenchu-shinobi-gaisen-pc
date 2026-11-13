@@ -172,3 +172,11 @@ while paused, controlled disc-backed records/playtest/return fixtures, mixed T1/
 GPU captures, and native/WASM compilation. These editor fixtures and screenshots
 do not establish ordinary-play retail parity; that remains the existing
 BizHawk capture/replay workflow described in [validation](validation.md).
+
+New projects and imported retail missions start with your current graphics
+settings. Saved projects retain their own environment. **Environment** contains
+the graphics preset, lighting and weather controls; **Use my game settings**
+reapplies the preferences you had when entering Studio. Leaving Studio restores
+your main-game settings. **3D view / Map view** selects one view mode; **Guides**
+independently controls editing markers. The workspace tabs remain above the
+inspector, with grouped, aligned environment fields.

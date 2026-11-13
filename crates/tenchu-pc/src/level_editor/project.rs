@@ -111,14 +111,12 @@ impl Default for Event {
 
 impl Project {
     pub fn new(mission: Mission) -> Self {
-        let mut graphics = Graphics::default();
-        graphics.set_preset(crate::settings::presets::MODERN_HIGH);
         Self {
             format: FORMAT.into(),
             version: 1,
             mission,
             character: 0,
-            graphics,
+            graphics: Graphics::default(),
             actors: BTreeMap::new(),
             scenery: vec![],
             events: vec![],

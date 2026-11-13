@@ -1,3 +1,5 @@
+pub(crate) mod theme;
+
 use crate::{
     campaign::{Campaign, Screen},
     render_effects::{self, Geometry},

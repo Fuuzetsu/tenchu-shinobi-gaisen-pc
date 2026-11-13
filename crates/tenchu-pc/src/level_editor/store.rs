@@ -56,7 +56,7 @@ impl Editor {
         let project = if bytes.iter().find(|b| !b.is_ascii_whitespace()) == Some(&b'{') {
             Project::decode(bytes)?
         } else {
-            Project::new(Mission::decode(bytes)?)
+            self.new_project(Mission::decode(bytes)?)
         };
         self.save(true)?;
         self.select(project, assets)?;
