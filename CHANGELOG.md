@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.33.1 — 2026-11-13
+
 - Fix T2 invisibility leaving T1 model overrides mostly opaque. Imported bodies
   now use the same quarter-strength additive effect on native T2 and imported
   T1 stages; separately selected weapons keep their normal appearance.
