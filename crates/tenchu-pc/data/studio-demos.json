@@ -145,7 +145,7 @@
   {
     "id": "studio-projects",
     "title": "Keep and share your work",
-    "description": "Save events, views and stamps with build provenance. The Assets workspace bundles custom models, textures and audio into shared maps.",
+    "description": "Save events, views and stamps with build provenance. Projects also opens campaign maps for terrain editing; Assets bundles custom models, textures and audio into shared maps.",
     "seconds": 4,
     "mission": 0,
     "character": 0,

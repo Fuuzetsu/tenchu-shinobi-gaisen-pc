@@ -98,7 +98,7 @@ impl Layout {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct MissionAssets {
     pub trial: Option<crate::trial::Setup>,
     pub misc: crate::misc::Misc,

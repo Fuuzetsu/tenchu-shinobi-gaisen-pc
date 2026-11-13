@@ -49,7 +49,8 @@ impl Editor {
                 {
                     self.notice = e;
                 }
-                if self.unlocked && self.panel == Panel::Terrain {
+                if self.unlocked && self.panel == Panel::Terrain && self.project.campaign.is_none()
+                {
                     for event in &input.events {
                         if let egui::Event::Paste(text) = event
                             && text.starts_with("tenchu-stamp-v1\n")
@@ -107,6 +108,13 @@ impl Editor {
                             .and_then(|i| self.project.scenery.get_mut(i))
                         {
                             prop.yaw = (prop.yaw + 1024) % 4096;
+                        } else if let Some(prop) = self
+                            .project
+                            .campaign
+                            .as_mut()
+                            .and_then(|c| self.campaign_prop.and_then(|i| c.props.get_mut(i)))
+                        {
+                            prop.facing = (prop.facing + 1024).rem_euclid(4096);
                         }
                         self.commit();
                     } else {
@@ -114,13 +122,31 @@ impl Editor {
                     }
                 }
                 if input.key_pressed(egui::Key::F) {
-                    let mut target = self.cursor.world();
+                    let mut target = self.world_cursor();
                     if self.panel == Panel::Scenery
                         && let Some(prop) = self
                             .scenery_selection
                             .and_then(|i| self.project.scenery.get(i))
                     {
                         target = prop.position;
+                    } else if let Some(campaign) = &self.project.campaign {
+                        if self.panel == Panel::Actors {
+                            target = self
+                                .actor
+                                .checked_sub(1)
+                                .and_then(|i| campaign.actors.get(i))
+                                .map_or(campaign.start, |a| a.spawn.position);
+                        } else if self.panel == Panel::Scenery
+                            && let Some(prop) =
+                                self.campaign_prop.and_then(|i| campaign.props.get(i))
+                        {
+                            target = prop.position;
+                        } else if self.panel == Panel::Mission
+                            && let Some(p) =
+                                self.campaign_pickup.and_then(|i| campaign.pickups.get(i))
+                        {
+                            target = p.position;
+                        }
                     } else if self.panel == Panel::Actors {
                         let point = self.project.mission.placements[self.actor].point;
                         target = point.world();
@@ -148,6 +174,9 @@ impl Editor {
                         self.actor = 0;
                     }
                     self.commit();
+                }
+                if self.panel == Panel::Scenery && self.unlocked {
+                    self.campaign_prop_keys(&input);
                 }
                 if self.panel == Panel::Scenery
                     && self.unlocked
@@ -236,6 +265,11 @@ impl Editor {
                         (Tool::Area, "Area"),
                         (Tool::Stamp, "Stamp"),
                     ] {
+                        if self.project.campaign.is_some()
+                            && !matches!(tool, Tool::Select | Tool::Patrol)
+                        {
+                            continue;
+                        }
                         if ui.selectable_value(&mut self.tool, tool, label).clicked() {
                             self.panel = if matches!(
                                 tool,
@@ -299,7 +333,8 @@ impl Editor {
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new(&self.project.mission.title).color(crate::ui::theme::GOLD));
                 ui.separator();
-                ui.label(format!("Cell {}, {}", self.cursor.x, self.cursor.z));
+                if let Some(campaign)=&self.project.campaign { ui.label(campaign.source.label()); ui.label(format!("X {} · Y {} · Z {}", self.campaign_cursor[0], self.campaign_cursor[1], self.campaign_cursor[2])); }
+                else { ui.label(format!("Cell {}, {}", self.cursor.x, self.cursor.z)); }
             });
             ui.small(if self.grid { "Scroll: zoom · middle drag: pan · click: edit · R: rotate" } else { "Right drag: look · right + WASD/QE: fly · middle drag: pan · scroll: dolly · F: frame selection" });
             if !self.notice.is_empty() { ui.colored_label(Color32::GOLD, &self.notice); }
@@ -353,6 +388,10 @@ impl Editor {
     }
 
     fn palette(&mut self, ui: &mut egui::Ui) {
+        if self.project.campaign.is_some() {
+            self.campaign_terrain(ui);
+            return;
+        }
         ui.heading("Terrain palette");
         self.area_controls(ui);
         ui.small("I samples the tile under the cursor, including its rotation.");
@@ -408,6 +447,10 @@ impl Editor {
     }
 
     fn characters(&mut self, ui: &mut egui::Ui) {
+        if self.project.campaign.is_some() {
+            self.campaign_characters(ui);
+            return;
+        }
         ui.heading("Scene characters");
         for (i, actor) in self.project.mission.placements.iter().enumerate() {
             let name = if i == 0 {
@@ -652,6 +695,10 @@ impl Editor {
     }
 
     fn mission(&mut self, ui: &mut egui::Ui) {
+        if self.project.campaign.is_some() {
+            self.campaign_mission_ui(ui);
+            return;
+        }
         ui.heading("Mission settings");
         let mission = &mut self.project.mission;
         ui.label("Title");
@@ -711,6 +758,7 @@ impl Editor {
     fn projects(&mut self, ui: &mut egui::Ui, assets: &GameAssets<DiscSource>) {
         ui.heading("Projects");
         self.project.build.show(ui, self.project.version);
+        self.campaign_projects(ui, assets);
         if ui.button("Open T1 + T2 garden example").clicked()
             && let Err(error) = self.open_mixed_example(assets)
         {
@@ -838,12 +886,17 @@ impl Editor {
         {
             self.notice = e;
         }
-        if ui.button("Export retail map only…").clicked()
+        if ui
+            .add_enabled(
+                self.project.campaign.is_none(),
+                egui::Button::new("Export retail map only…"),
+            )
+            .clicked()
             && let Err(e) = self.export_file(true)
         {
             self.notice = e;
         }
-        ui.small("Projects contain references to your discs, never game assets. Retail .msn keeps the terrain, original characters, patrols and mission rules; Studio appearances, scenery, events and environment need a project.");
+        ui.small("Projects reference your discs and bundle your custom imports. Retail .msn keeps the terrain, original characters, patrols and mission rules; Studio appearances, scenery, events and environment need a project.");
         if ui.button("Copy project").clicked() {
             match self.project.encode() {
                 Ok(bytes) => {
@@ -853,7 +906,13 @@ impl Editor {
                 Err(e) => self.notice = e,
             }
         }
-        if ui.button("Copy retail share code").clicked() {
+        if ui
+            .add_enabled(
+                self.project.campaign.is_none(),
+                egui::Button::new("Copy retail share code"),
+            )
+            .clicked()
+        {
             match self.project.mission.encode() {
                 Ok(bytes) => {
                     self.share = crate::trial::library::share(&bytes);

@@ -1,5 +1,7 @@
 use crate::{Result, i16_le, slice, u16_le, u32_le};
 
+mod editing;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Node {
     pub y: i16,

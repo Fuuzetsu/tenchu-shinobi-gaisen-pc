@@ -289,3 +289,83 @@ fn material_changed(previous: u16, current: u16) -> bool {
         current & 0xf00 == 0x300
     }
 }
+
+#[cfg(test)]
+mod editing_tests {
+    use super::*;
+    use tenchu_assets::tenchu2::collision::Cell;
+
+    #[test]
+    fn edited_native_surface_reindexes_height_and_keeps_neighbour_cells() {
+        let node = Node {
+            y: 0,
+            dy: 0,
+            bounds: [0, 0, 100, 100],
+            attributes: 0,
+            division: u16::MAX,
+        };
+        let source = Collision {
+            origin: [0, 0],
+            dimensions: [2, 1],
+            cell_size: 100,
+            gaisen: None,
+            cells: vec![
+                Cell {
+                    minimum: 0,
+                    maximum: 100,
+                    starts: [0, 1, 1, 1],
+                    nodes: vec![node, Node { y: 100, ..node }],
+                },
+                Cell {
+                    minimum: 0,
+                    maximum: 0,
+                    starts: [0; 4],
+                    nodes: vec![Node {
+                        bounds: [100, 0, 200, 100],
+                        ..node
+                    }],
+                },
+            ],
+        };
+        let changed = source.edited(&[(0, 1, Node { y: -100, ..node })]).unwrap();
+        assert_eq!(source.edited(&[]).unwrap(), source);
+        assert_eq!(source.cells[1], changed.cells[1]);
+        let query = |map: &Collision, x| {
+            level(
+                map,
+                &mut Cursor::default(),
+                Position::new(x, -2000, 500),
+                Query::Uncached,
+            )
+            .unwrap()
+        };
+        assert_eq!(query(&source, 500), Some(0));
+        assert_eq!(query(&changed, 500), Some(-1000));
+        assert_eq!(query(&source, 1500), query(&changed, 1500));
+        let slope = source
+            .edited(&[(
+                0,
+                1,
+                Node {
+                    y: -100,
+                    dy: 100,
+                    attributes: 0x8000,
+                    ..node
+                },
+            )])
+            .unwrap();
+        assert_eq!(query(&slope, 500), Some(-500));
+        let hole = source
+            .edited(&[(
+                0,
+                0,
+                Node {
+                    division: 0,
+                    ..node
+                },
+            )])
+            .unwrap();
+        assert_eq!(query(&hole, 500), None);
+        assert_eq!(source.cells[0].nodes[0], node);
+    }
+}

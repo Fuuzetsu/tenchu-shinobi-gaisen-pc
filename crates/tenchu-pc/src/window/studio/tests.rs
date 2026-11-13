@@ -121,3 +121,72 @@ fn studio_restores_native_tenchu2_title() {
     assert_eq!(native.playback.run.sequence, sequence);
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; deleting the floor beneath a campaign actor must keep the editor and playtest usable"]
+fn studio_campaign_holes_preserve_authored_spawn_positions() {
+    use crate::level_editor::campaign::{Edit, Source};
+    let path = std::env::temp_dir().join(format!("tenchu-studio-hole-{}.json", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let mut app = super::super::tests::application(Default::default());
+    app.studio = crate::level_editor::Editor::new(path.clone());
+    app.apply_studio(Command::Open).unwrap();
+    app.studio
+        .open_campaign(
+            &app.assets,
+            Source::Tenchu {
+                stage: 1,
+                layout: 1,
+            },
+        )
+        .unwrap();
+    app.apply_studio(Command::Rebuild).unwrap();
+    let (index, actor) = app
+        .studio
+        .project
+        .campaign
+        .as_ref()
+        .unwrap()
+        .actors
+        .iter()
+        .enumerate()
+        .find(|(_, a)| a.enabled && !a.story)
+        .unwrap();
+    let point = actor.spawn.position;
+    let id = app.studio.campaign_slots[index + 1];
+    let mut edits = vec![];
+    for (row, r) in app.campaign.game.mission.terrain.rows.iter().enumerate() {
+        for i in 0..r.count {
+            let node = app
+                .campaign
+                .game
+                .mission
+                .terrain
+                .node(r.list + i * 16)
+                .unwrap();
+            if node.contains(point[0] / 10, point[2] / 10) {
+                edits.push(Edit {
+                    key: [row, i],
+                    original: node,
+                    node: tenchu_assets::terrain::Node {
+                        division: 0,
+                        ..node
+                    },
+                    geometry: false,
+                });
+            }
+        }
+    }
+    assert!(!edits.is_empty());
+    app.studio.project.campaign.as_mut().unwrap().terrain = edits;
+    app.apply_studio(Command::Rebuild).unwrap();
+    assert_eq!(app.campaign.game.roster.get(id).position.to_array(), point);
+    app.apply_studio(Command::Play).unwrap();
+    for _ in 0..30 {
+        app.game_tick(0);
+    }
+    assert!(app.fault.is_none(), "{:?}", app.fault);
+    app.apply_studio(Command::Return).unwrap();
+    app.apply_studio(Command::Close).unwrap();
+    std::fs::remove_file(path).unwrap();
+}

@@ -126,7 +126,7 @@ impl Cutscenes {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Scripts {
     pub language: Language,
     pub events: Vec<Event>,
@@ -134,10 +134,10 @@ pub struct Scripts {
     pub subtitles: [Subtitles; 4],
 }
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Subtitles(std::collections::BTreeMap<i16, Vec<Subtitle>>);
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Subtitle {
     frame: i16,
     text: String,

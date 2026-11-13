@@ -49,6 +49,82 @@ pub struct Cell {
 }
 
 impl Collision {
+    pub fn edited(&self, changes: &[(usize, usize, Node)]) -> Result<Self> {
+        if self.gaisen.is_some() {
+            return Err("Edit imported Gaisen terrain through its source map".into());
+        }
+        let mut out = self.clone();
+        let mut changed = std::collections::BTreeSet::new();
+        let mut moved =
+            std::collections::BTreeMap::<usize, std::collections::BTreeSet<usize>>::new();
+        let mut seen = std::collections::BTreeSet::new();
+        for &(cell, index, node) in changes {
+            if !seen.insert((cell, index)) {
+                return Err("Duplicate terrain surface edit".into());
+            }
+            let original = self
+                .cells
+                .get(cell)
+                .and_then(|c| c.nodes.get(index))
+                .ok_or("Missing Tenchu 2 terrain surface")?;
+            if node.bounds != original.bounds {
+                return Err("Keep the source surface footprint when editing terrain".into());
+            }
+            let end = i32::from(node.y) + i32::from(node.dy);
+            if !(-32_000..=32_000).contains(&node.y) || !(-32_000..=32_000).contains(&end) {
+                return Err("Edited terrain exceeds the supported coordinate range".into());
+            }
+            if &node != original {
+                out.cells[cell].nodes[index] = node;
+                if node.y != original.y || node.dy != original.dy {
+                    moved.entry(cell).or_default().insert(index);
+                }
+                changed.insert(cell);
+            }
+        }
+        for index in changed {
+            let cell = &mut out.cells[index];
+            if let Some(indices) = moved.get(&index) {
+                let mut additions = Vec::new();
+                cell.nodes = std::mem::take(&mut cell.nodes)
+                    .into_iter()
+                    .enumerate()
+                    .filter_map(|(i, node)| {
+                        if indices.contains(&i) {
+                            additions.push(node);
+                            None
+                        } else {
+                            Some(node)
+                        }
+                    })
+                    .collect();
+                for node in additions {
+                    let height = i32::from(node.y) + i32::from(node.dy).min(0);
+                    let index = cell
+                        .nodes
+                        .iter()
+                        .position(|n| i32::from(n.y) + i32::from(n.dy).min(0) > height)
+                        .unwrap_or(cell.nodes.len());
+                    cell.nodes.insert(index, node);
+                }
+            }
+            cell.minimum = cell
+                .nodes
+                .iter()
+                .map(|n| n.y.min(n.y.saturating_add(n.dy)))
+                .min()
+                .unwrap_or(0);
+            cell.maximum = cell
+                .nodes
+                .iter()
+                .map(|n| n.y.max(n.y.saturating_add(n.dy)))
+                .max()
+                .unwrap_or(0);
+            cell.starts = [0; 4];
+        }
+        Ok(out)
+    }
+
     pub fn into_terrain(self) -> Result<crate::terrain::AreaMap> {
         if let Some(source) = self.gaisen {
             return Ok(source.map);

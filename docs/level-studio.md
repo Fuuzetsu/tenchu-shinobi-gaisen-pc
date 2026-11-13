@@ -23,14 +23,47 @@ The built-in **demo --studio** tour demonstrates these features in fourteen
 short chapters and can export a 4K/60 video with synchronized source sound cues.
 See the [showcase commands](../DEMOS.md#brief-level-studio-showcase).
 
+## Campaign maps
+
+Open **Projects → Campaign maps · T1 / T2 → Browse / refresh connected discs**.
+Choose a T1 stage and layout or a T2 map/sequence from the connected disc edition.
+The source map opens at its original scale. The 16 built-in Gaisen challenges
+remain under **Projects → Original challenges**.
+
+In **Terrain**, click a floor or roof in either view. Raise/lower it, make an X/Z
+ramp, or cut quarters out of its solid area. The source footprint is retained;
+visible floor polygons are clipped to that footprint, moved with collision, and
+joined to their old elevation by side walls using the source material. Original
+terrain textures remain. **Restore this surface from disc** removes the edit.
+For invisible collision surfaces, clear **Move visible terrain with collision**.
+**Keep characters / source props on surface** moves nearby starts, characters,
+patrol points, original props and pickups with height edits. Turn it off to keep
+their positions fixed; additional scenery can be grounded with **End**.
+This edits existing surfaces; it does not draw arbitrary new terrain meshes.
+
+**Characters** edits the player start, source character placements, appearance
+and patrol waypoints. **Scenery → Original map props** moves, duplicates and
+removes source static props; extra disc/custom props use the usual scenery
+browser. Solid collision is edited separately under Terrain. **Mission** edits
+metadata, the player and item pickups. Use **Events & audio** for objectives,
+regions, timers and cues. All edits support project save/export/reopen and undo.
+
+Campaign templates use Studio's Gaisen playtest rules. T2 characters use the
+existing appearance/behavior adapter. Original campaign scripts, cutscenes,
+T2 dynamic scenery and native T2 AI are not imported into these templates.
+The original campaign/disc stays unchanged, and leaving Studio restores it.
+Projects store source-disc references, layout placements and terrain edits, not
+retail geometry, textures or audio. Recipients need the same disc edition.
+
 ## Workspace and controls
 
 The scene uses the game's renderer. **Lighting & weather** provides graphical
 presets, time of day, sun direction and strength, ambient light, local lighting
 and shadows, fog, rain, snow, wind, wetness and lightning. Changes preview in
 the scene; weather and shader animation continue while gameplay stays at tick
-zero. New projects start with **Modern High**. **Modern Ultra**, **Original**
-and other presets are available per project without changing global presets.
+zero. New projects inherit your game graphics settings. **Modern High**,
+**Modern Ultra**, **Original** and other presets are available per project
+without changing global preferences.
 
 | Control | Action |
 | --- | --- |
@@ -50,7 +83,7 @@ and other presets are available per project without changing global presets.
 | I | Sample the terrain tile and rotation under the cursor |
 | Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y | Undo / redo, with a brush stroke as one edit |
 | Ctrl+S / Ctrl+Shift+S | Save / save a copy |
-| Alt+1 through Alt+7 | Terrain, characters, scenery, events, environment, mission, projects |
+| Alt+1 through Alt+8 | Terrain, characters, scenery, events, environment, mission, projects, assets |
 | F5 | Start/restart a playtest |
 | F9 | Capture a screenshot |
 
@@ -118,8 +151,8 @@ identity. A T2 body does not switch the mission to native T2 gameplay.
 instances have editable position and yaw, can be duplicated, and use their source
 textures and installed artwork overrides. They receive lighting and cast shadows.
 They are decorative: solid geometry and interactive traps come from the terrain
-palette. Studio does not import complete campaign maps as editable terrain or
-port T2's original TRIAL editor. The mission grid retains Gaisen's original size
+palette. Campaign projects are described below; Studio does not port T2's original TRIAL
+editor. Tile missions retain Gaisen's original size
 and collision behavior. Projects allow up to 512 added scenery instances.
 
 ## Events and cue queues
@@ -176,8 +209,8 @@ events, disc references and embedded custom files. **Copy project** supports tex
 sharing; file export is more convenient for large bundles. Recipients still need
 the corresponding game discs and any separately selected character artwork
 packs. Source-disc artwork/audio is never copied into the bundle. Missing
-references produce an error. Schema 2 reads older version-one projects; opening
-maps with bundled assets requires this build or later.
+references produce an error. Schema 3 reads version-one and version-two projects. Campaign projects require
+this build or later.
 
 **Import** accepts Studio projects, retail `.msn` missions, or the existing
 single-block `.mcs` format. Retail share codes also work. **Export retail map

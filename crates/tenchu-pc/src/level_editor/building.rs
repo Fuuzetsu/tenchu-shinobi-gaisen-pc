@@ -364,40 +364,50 @@ impl Editor {
         }
     }
 
-    pub(super) fn nudge_scenery(&mut self, axis: usize, direction: i32) {
-        if let Some(index) = self
-            .scenery_selection
-            .filter(|&i| i < self.project.scenery.len())
-        {
-            self.history.begin(&self.project);
-            let value = &mut self.project.scenery[index].position[axis];
-            *value = (*value + direction * self.snap.max(100)).clamp(-320_000, 320_000);
-            self.commit();
+    fn scenery_position(&mut self) -> Option<&mut [i32; 3]> {
+        if let Some(i) = self.campaign_prop {
+            return self
+                .project
+                .campaign
+                .as_mut()?
+                .props
+                .get_mut(i)
+                .map(|p| &mut p.position);
         }
+        self.project
+            .scenery
+            .get_mut(self.scenery_selection?)
+            .map(|p| &mut p.position)
+    }
+
+    pub(super) fn nudge_scenery(&mut self, axis: usize, direction: i32) {
+        let step = self.snap.max(100);
+        self.history.begin(&self.project);
+        if let Some(position) = self.scenery_position() {
+            position[axis] = (position[axis] + direction * step).clamp(-320_000, 320_000);
+        }
+        self.commit();
     }
 
     pub(super) fn ground_scenery(&mut self) {
-        if let Some(index) = self
-            .scenery_selection
-            .filter(|&i| i < self.project.scenery.len())
-        {
-            let p = self.project.scenery[index].position;
-            let top = self
-                .surfaces
-                .iter()
-                .flat_map(|s| s.corners)
-                .map(|v| v.y)
-                .reduce(f32::min)
-                .unwrap_or(0.0)
-                - 1000.0;
-            let origin = glam::vec3(p[0] as f32, top, p[2] as f32);
-            if let Some(hit) = crate::debug::terrain::pick(&self.surfaces, origin, glam::Vec3::Y) {
-                self.history.begin(&self.project);
-                self.project.scenery[index].position[1] = hit.y;
-                self.commit();
-            } else {
-                self.notice = "No solid terrain below this scenery".into();
-            }
+        let Some(p) = self.scenery_position().copied() else {
+            return;
+        };
+        let top = self
+            .surfaces
+            .iter()
+            .flat_map(|s| s.corners)
+            .map(|v| v.y)
+            .reduce(f32::min)
+            .unwrap_or(0.0)
+            - 1000.0;
+        let origin = glam::vec3(p[0] as f32, top, p[2] as f32);
+        if let Some(hit) = crate::debug::terrain::pick(&self.surfaces, origin, glam::Vec3::Y) {
+            self.history.begin(&self.project);
+            self.scenery_position().unwrap()[1] = hit.y;
+            self.commit();
+        } else {
+            self.notice = "No solid terrain below this scenery".into();
         }
     }
 }

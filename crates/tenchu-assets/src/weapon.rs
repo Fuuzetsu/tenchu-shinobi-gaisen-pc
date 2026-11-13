@@ -140,7 +140,7 @@ pub struct Equipment {
     pub attachments: Vec<Attachment>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Weapons {
     pub models: Arc<BTreeMap<i16, Vec<Geometry>>>,
     pub grips: Arc<BTreeMap<i16, Vec<Geometry>>>,

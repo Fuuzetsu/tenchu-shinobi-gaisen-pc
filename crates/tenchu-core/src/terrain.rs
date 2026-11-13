@@ -479,4 +479,50 @@ mod tests {
         node.attributes = 0x4000;
         assert_eq!(node_level(node, -20000, -100).unwrap(), 32760);
     }
+
+    #[test]
+    fn authoring_moves_surfaces_between_layers_and_preserves_other_floors() {
+        let node = Node {
+            y: 0,
+            dy: 0,
+            bounds: [0, 0, 199, 99],
+            attributes: 1,
+            division: u16::MAX,
+        };
+        let bottom = Node {
+            y: 100,
+            bounds: [0, 0, 99, 99],
+            ..node
+        };
+        let remote = Node {
+            y: 200,
+            bounds: [300, 0, 399, 99],
+            ..node
+        };
+        let source = AreaMap::from_nodes(vec![
+            (0, vec![node]),
+            (100, vec![bottom]),
+            (200, vec![remote]),
+        ])
+        .unwrap();
+        assert_eq!(source.edited(&[]).unwrap(), source);
+        let raised = Node { y: -100, ..bottom };
+        let changed = source.edited(&[(1, 0, raised)]).unwrap();
+        assert_eq!(changed.rows[2], source.rows[2]);
+        let query = |map: &AreaMap, x, y| {
+            level(map, &mut Cursor::new(map), Position::new(x, y, 500), 0).unwrap()
+        };
+        assert_eq!(query(&source, 500, -2000), 0);
+        assert_eq!(query(&changed, 500, -2000), -1000);
+        assert_eq!(query(&changed, 1500, -2000), query(&source, 1500, -2000));
+        assert_eq!(query(&changed, 3500, -2000), query(&source, 3500, -2000));
+        let slope = Node {
+            dy: 100,
+            attributes: 0x4001,
+            ..raised
+        };
+        let changed = source.edited(&[(1, 0, slope)]).unwrap();
+        assert_eq!(query(&changed, 500, -2000), -500);
+        assert_eq!(source.node(source.rows[1].list).unwrap(), bottom);
+    }
 }

@@ -33,7 +33,7 @@ pub struct Sandbox {
     pub guard: Option<i16>,
     pub source_models: bool,
     pub music: Music,
-    characters: Vec<tenchu_assets::tenchu2::characters::Character>,
+    pub(crate) characters: Vec<tenchu_assets::tenchu2::characters::Character>,
 }
 
 #[derive(Clone)]
@@ -108,7 +108,11 @@ impl Sandbox {
         })
     }
 
-    pub fn load(&self, assets: &GameAssets<DiscSource>, options: Options) -> Result<Game> {
+    pub(crate) fn mission(
+        &self,
+        assets: &GameAssets<DiscSource>,
+        options: Options,
+    ) -> Result<MissionAssets> {
         let executable = Executable::new(&assets.executable)?;
         let mut mission = MissionAssets::load_localized(
             assets,
@@ -183,6 +187,15 @@ impl Sandbox {
         mission.misc.spawns.clear();
         mission.scripts.events.clear();
         mission.scripts.cutscenes = tenchu_assets::script::Cutscenes::parse(vec![255; 2])?;
+        Ok(mission)
+    }
+
+    pub fn load(&self, assets: &GameAssets<DiscSource>, options: Options) -> Result<Game> {
+        let executable = Executable::new(&assets.executable)?;
+        let math = Math {
+            tables: executable.math_tables()?,
+        };
+        let mut mission = self.mission(assets, options)?;
         let mut cursor = Cursor::new(&mission.terrain);
         let mut source_models = Vec::new();
         if let Some(layout) = &self.layout {

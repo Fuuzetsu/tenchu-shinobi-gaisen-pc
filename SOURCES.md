@@ -4130,3 +4130,14 @@ queues and resampling use this port's existing scalar mixer. Release dependency
 notices include MPL-2.0 and the source archive includes every pinned Symphonia
 crate and checksum. No sibling code, game assets or generated recordings were
 imported into the repository.
+
+Campaign authoring reuses the existing MissionAssets and T2 Sandbox scene loader,
+ACM/MCD readers, scalar collision queries and source model triangulation. The
+read-only references `tenchu-decomp/src/main.exe/CONFLICT.C::GetAreaMapLevel`,
+`tenchu-viewer/src/collision.rs` and the terrain query in
+`tenchu-decomp-glitch-research/tools/tenchu-worker/src/terrain.rs` were rechecked
+for height layers, node order, slope directions and subdivision masks. No sibling
+code was imported or modified. New authoring-only routines rebuild affected
+collision lists and clip source presentation polygons; original gameplay query
+arithmetic is unchanged. Projects retain source node identities and authored
+placements/edits; retail mesh, texture and audio bytes are not bundled.

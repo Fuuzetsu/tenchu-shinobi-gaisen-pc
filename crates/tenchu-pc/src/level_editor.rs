@@ -1,5 +1,6 @@
 mod assets;
 mod building;
+pub(crate) mod campaign;
 pub(crate) mod custom;
 mod events;
 mod example;
@@ -117,6 +118,14 @@ pub struct Editor {
     weather_preview_seconds: u16,
     environment_weather: bool,
     custom_kind: custom::Kind,
+    campaign_cache: Option<campaign::Cache>,
+    campaign_surface: Option<[usize; 2]>,
+    campaign_cursor: [i32; 3],
+    campaign_sources: Vec<(campaign::Source, String)>,
+    campaign_prop: Option<usize>,
+    campaign_pickup: Option<usize>,
+    campaign_follow_terrain: bool,
+    pub(crate) campaign_slots: Vec<usize>,
 }
 
 impl Editor {
@@ -183,6 +192,14 @@ impl Editor {
             weather_preview_seconds: 0,
             environment_weather: false,
             custom_kind: custom::Kind::Model,
+            campaign_cache: None,
+            campaign_surface: None,
+            campaign_cursor: [0; 3],
+            campaign_sources: vec![],
+            campaign_prop: None,
+            campaign_pickup: None,
+            campaign_follow_terrain: true,
+            campaign_slots: vec![],
         }
     }
 
@@ -243,6 +260,15 @@ impl Editor {
         project.validate()?;
         let theme = Theme::load(assets, project.mission.theme)?;
         theme.validate(&project.mission)?;
+        if let Some(campaign) = &project.campaign {
+            self.load_campaign_cache(assets, &campaign.source, project.character)?;
+            self.campaign_cursor = campaign.start;
+        }
+        self.zoom = 1.0;
+        self.pan = egui::Vec2::ZERO;
+        self.campaign_surface = None;
+        self.campaign_prop = None;
+        self.campaign_pickup = None;
         self.new_theme = project.mission.theme;
         self.new_objective = project.mission.objective;
         self.brush = tenchu_assets::trial::DEFAULT_TILES[project.mission.theme];
@@ -251,6 +277,11 @@ impl Editor {
         self.cursor = project.mission.placements[0].point;
         if let Some(view) = project.views.first() {
             self.camera = view.camera();
+        } else if let Some(campaign) = &project.campaign {
+            self.camera.focus(
+                glam::Vec3::from_array(campaign.start.map(|v| v as f32)),
+                false,
+            );
         } else if project.graphics.fog {
             let point = project.mission.placements[0].point;
             let mut target = point.world();
@@ -284,7 +315,7 @@ impl Editor {
             self.history.undo(&mut self.project)
         };
         if changed {
-            self.actor = self.actor.min(self.project.mission.placements.len() - 1);
+            self.actor = self.actor.min(self.project.actor_count() - 1);
             self.event = self.event.min(self.project.events.len().saturating_sub(1));
             self.revision = self.revision.wrapping_add(1);
         }

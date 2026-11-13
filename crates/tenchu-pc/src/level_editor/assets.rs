@@ -140,6 +140,10 @@ impl Editor {
     }
 
     pub(super) fn scenery(&mut self, ui: &mut egui::Ui, assets: &GameAssets<DiscSource>) {
+        if self.project.campaign.is_some() {
+            self.campaign_scenery(ui);
+        }
+        let cursor = self.world_cursor();
         ui.heading("Scenery from your discs");
         ui.collapsing("Browse disc assets", |ui| {
         ui.horizontal(|ui| {
@@ -186,13 +190,8 @@ impl Editor {
                             )
                             .clicked()
                         {
-                            let mut position = self.cursor.world();
-                            position[1] = i32::from(self.theme.as_ref().unwrap().height(
-                                &self.project.mission,
-                                self.cursor.x,
-                                self.cursor.z,
-                                false,
-                            )) * 1000;
+                            let position = cursor;
+                            self.campaign_prop = None;
                             self.scenery_selection = Some(self.project.scenery.len());
                             self.project.scenery.push(project::Scenery {
             custom: None,
@@ -217,6 +216,7 @@ impl Editor {
                 .clicked()
             {
                 self.scenery_selection = Some(i);
+                self.campaign_prop = None;
                 self.tool = Tool::Select;
             }
         }

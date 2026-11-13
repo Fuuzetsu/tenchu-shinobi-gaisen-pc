@@ -96,6 +96,12 @@ impl Editor {
     }
 
     pub(super) fn export_file(&mut self, retail: bool) -> Result<()> {
+        if retail && self.project.campaign.is_some() {
+            return Err(
+                "Campaign maps need a Studio project; retail .msn only supports tile challenges"
+                    .into(),
+            );
+        }
         let bytes = if retail {
             self.project.mission.encode()?
         } else {

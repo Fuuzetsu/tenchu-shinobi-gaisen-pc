@@ -46,6 +46,10 @@ impl Editor {
     }
 
     pub(super) fn viewport(&mut self, ui: &mut egui::Ui) {
+        if self.project.campaign.is_some() {
+            self.campaign_viewport(ui);
+            return;
+        }
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
         let painter = ui.painter_at(rect);
         let position = ui
@@ -453,7 +457,7 @@ impl Editor {
         }
     }
 
-    fn navigate(&mut self, ui: &egui::Ui, response: &egui::Response) {
+    pub(super) fn navigate(&mut self, ui: &egui::Ui, response: &egui::Response) {
         let input = ui.input(Clone::clone);
         {
             let delta = input.pointer.delta();

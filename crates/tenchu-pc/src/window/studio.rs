@@ -56,28 +56,58 @@ impl Application {
 
     fn build_studio(&mut self) -> Result<Game> {
         self.studio.project.validate()?;
-        let tables = self
-            .studio
-            .tables
-            .as_ref()
-            .ok_or("Open Level Studio first")?;
-        let theme = self.studio.theme.as_ref().ok_or("Theme is not loaded")?;
         let project = self.studio.project.clone();
         let mut random = tenchu_core::random::Random::new(1);
-        let mission = MissionAssets::load_trial(
-            &self.assets,
-            tables,
-            theme,
-            &project.mission,
-            project.character,
-            || random.next15() as u16,
-        )?;
+        let mission = if project.campaign.is_some() {
+            self.studio.campaign_mission(&self.assets)?
+        } else {
+            let tables = self
+                .studio
+                .tables
+                .as_ref()
+                .ok_or("Open Level Studio first")?;
+            let theme = self.studio.theme.as_ref().ok_or("Theme is not loaded")?;
+            MissionAssets::load_trial(
+                &self.assets,
+                tables,
+                theme,
+                &project.mission,
+                project.character,
+                || random.next15() as u16,
+            )?
+        };
         let mut game = Game::with_random(
             mission,
             &Executable::new(&self.assets.executable)?,
             project.character,
             random,
         )?;
+        self.studio.campaign_slots.clear();
+        if let Some(campaign) = &project.campaign {
+            self.studio.campaign_slots.push(game.player_id);
+            for actor in &campaign.actors {
+                if !actor.enabled {
+                    self.studio.campaign_slots.push(usize::MAX);
+                    continue;
+                }
+                let id = game
+                    .roster
+                    .order
+                    .iter()
+                    .copied()
+                    .find(|id| {
+                        let candidate = game.roster.get(*id);
+                        !self.studio.campaign_slots.contains(id)
+                            && candidate.kind == actor.spawn.kind
+                            && candidate.position.x == actor.spawn.position[0]
+                            && candidate.position.z == actor.spawn.position[2]
+                    })
+                    .ok_or_else(|| {
+                        format!("Could not construct campaign character {}", actor.name)
+                    })?;
+                self.studio.campaign_slots.push(id);
+            }
+        }
         let materials = self.studio.add_scenery(&mut game.mission, &self.assets)?;
         if !project.actors.is_empty() {
             let library = self
@@ -87,6 +117,9 @@ impl Application {
                 .ok_or("Character catalogue has not finished loading")?;
             let mut imported = Default::default();
             for (&slot, model) in &project.actors {
+                if project.campaign.is_some() && self.studio.campaign_slots[slot] == usize::MAX {
+                    continue;
+                }
                 if library.get(model).is_none() {
                     return Err(format!(
                         "Character asset {model} is unavailable; connect its source disc before opening this project"
@@ -95,8 +128,12 @@ impl Application {
                 if slot == 0 {
                     continue;
                 }
-                let id = game.roster.order[slot];
-                if matches!(game.roster.get(id).kind, 5 | 6 | 170) {
+                let id = if project.campaign.is_some() {
+                    self.studio.campaign_slots[slot]
+                } else {
+                    game.roster.order[slot]
+                };
+                if project.campaign.is_none() && matches!(game.roster.get(id).kind, 5 | 6 | 170) {
                     return Err("Keep original appearances for Lord Gohda, Princess Kiku and the objective herb".into());
                 }
                 let source = crate::visuals::appearance::library::import_actor(
@@ -109,6 +146,25 @@ impl Application {
                 game.roster.get_mut(id).voice_program = source.voice;
             }
             game.collision.compute(&mut game.scene)?;
+        }
+        if let Some(campaign) = &project.campaign {
+            let mut moved = false;
+            for (&id, actor) in self.studio.campaign_slots[1..].iter().zip(&campaign.actors) {
+                // A deleted floor must not turn an editor placement into the
+                // source query's sentinel coordinate during actor construction.
+                if id != usize::MAX && game.roster.get(id).position.y == tenchu_core::terrain::NONE
+                {
+                    let placed = game.roster.get_mut(id);
+                    placed.position.y = actor.spawn.position[1];
+                    game.scene
+                        .update(placed.root_model, placed.root(&game.math));
+                    placed.initialize_rendered(&game.scene, &game.math);
+                    moved = true;
+                }
+            }
+            if moved {
+                game.collision.compute(&mut game.scene)?;
+            }
         }
         self.studio.surfaces = crate::debug::terrain::surfaces(&game.mission.terrain)?;
         if let Some(view) = &mut self.view {
@@ -307,7 +363,11 @@ impl Application {
         self.studio.testing = playing;
         self.studio.preview_revision = self.studio.revision;
         self.studio.runtime = Runtime::default();
-        self.studio_previous.as_mut().unwrap().slots = self.campaign.game.roster.order.clone();
+        self.studio_previous.as_mut().unwrap().slots = if self.studio.project.campaign.is_some() {
+            self.studio.campaign_slots.clone()
+        } else {
+            self.campaign.game.roster.order.clone()
+        };
         self.studio_previous.as_mut().unwrap().message_until = None;
         self.studio_previous.as_mut().unwrap().preview_project = Some(self.studio.project.clone());
         self.studio_previous.as_mut().unwrap().preview_tick = 0;
@@ -325,6 +385,7 @@ impl Application {
             view.prewarm_weather(&self.campaign.game, &self.settings, &self.debug, 2);
         }
         self.studio_previous.as_mut().unwrap().eligible = playing
+            && self.studio.project.campaign.is_none()
             && self.studio.project.actors.is_empty()
             && !self.studio.project.events.iter().any(|event| event.enabled)
             && self.trial_records_eligible();
@@ -357,6 +418,7 @@ impl Application {
                 .and_then(|s| s.preview_project.as_ref())
                 .is_none_or(|previous| {
                     previous.mission != current.mission
+                        || previous.campaign != current.campaign
                         || previous.character != current.character
                         || previous.actors != current.actors
                         || previous.scenery != current.scenery
@@ -420,11 +482,13 @@ impl Application {
             .slots
             .iter()
             .map(|&id| {
-                game.roster
-                    .actors
-                    .get(id)
-                    .and_then(Option::as_ref)
-                    .is_none_or(|a| a.health <= 0 && a.max_health >= 0)
+                id != usize::MAX
+                    && game
+                        .roster
+                        .actors
+                        .get(id)
+                        .and_then(Option::as_ref)
+                        .is_none_or(|a| a.health == 0 && a.max_health >= 0)
             })
             .collect();
         let actions = self.studio.runtime.step(

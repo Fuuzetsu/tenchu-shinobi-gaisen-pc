@@ -30,6 +30,18 @@ then exercises its queued custom music/effect and campaign restoration. Native
 strict Clippy and the WASM build pass; packaged notices and matching Symphonia
 source inventories are verified. No retail-behavior claim follows from these tests.
 
+Campaign Studio fixtures construct 178 source/hero/layout combinations: all T1
+stages with both heroes and three layouts, and all available gameplay layouts
+on the connected European and Japanese T2 discs. They check source cast mapping,
+model imports and initial updates. Separate real-disc fixtures raise source
+floors, compare rendered ray hits with Gaisen and native T2 collision queries,
+and export/reopen the edits. Portable tests cover clipped floors, slopes, holes,
+side walls, unchanged neighbours, moved collision layers and placement-following
+undo. GPU before/after captures exercise edited T1/T2 maps, saved projects,
+weather seeking, playtest/return and exact restoration of the previous game and
+settings. These are editor/template checks, not campaign playthroughs or proof
+of native T2 script compatibility. Original gameplay collision queries are unchanged.
+
 `check-retail` supports T1's `MAIN.EXE` and bounded native Japanese T2 gameplay
 through the same observer and TNRUN002 format. Both initialize once and stop at
 the first divergence, without correcting state from later snapshots. T2 uses

@@ -29,6 +29,8 @@ impl Editor {
         for (i, event) in self.project.events.iter().enumerate() {
             ui.selectable_value(&mut self.event, i, &event.name);
         }
+        let count = self.project.actor_count();
+        let cursor = self.world_cursor();
         let Some(event) = self.project.events.get_mut(self.event) else {
             return;
         };
@@ -71,15 +73,15 @@ impl Editor {
                 }
             });
         if trigger != before {
-            let [x, _, z] = self.cursor.world();
+            let [x, y, z] = cursor;
             event.trigger = match trigger {
                 0 => Trigger::Start,
                 1 => Trigger::AfterTicks(30),
                 2 => Trigger::Enter {
-                    min: [x - 1000, -10_000, z - 1000],
-                    max: [x + 1000, 1000, z + 1000],
+                    min: [x - 1000, y - 3000, z - 1000],
+                    max: [x + 1000, y + 1000, z + 1000],
                 },
-                3 => Trigger::Defeated(self.actor.max(1)),
+                3 if count > 1 => Trigger::Defeated(self.actor.max(1).min(count - 1)),
                 _ => Trigger::Flag {
                     name: "gate_open".into(),
                     value: true,
@@ -114,7 +116,7 @@ impl Editor {
             Trigger::Defeated(slot) => {
                 ui.add(
                     egui::DragValue::new(slot)
-                        .range(1..=self.project.mission.placements.len() - 1)
+                        .range(1..=count.saturating_sub(1).max(1))
                         .prefix("Character "),
                 );
             }

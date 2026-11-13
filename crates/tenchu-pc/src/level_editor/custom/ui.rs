@@ -138,6 +138,7 @@ impl Editor {
                 .iter()
                 .map(|t| (t.material.clone(), None))
                 .collect();
+            self.campaign_prop = None;
             self.scenery_selection = Some(self.project.scenery.len());
             self.project.scenery.push(Scenery {
                 custom: Some(Model {
@@ -150,7 +151,7 @@ impl Editor {
                 game: AssetGame::Tenchu,
                 stage: 0,
                 part: 0,
-                position: self.cursor.world(),
+                position: self.world_cursor(),
                 yaw: 0,
             });
             self.ground_scenery();

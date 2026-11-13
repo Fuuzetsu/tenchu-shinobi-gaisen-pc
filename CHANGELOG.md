@@ -5,11 +5,17 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Open T1 campaign layouts and connected T2 map/sequences as Level Studio projects.
+  Edit source terrain elevation, ramps and holes with matching visible geometry
+  and collision, plus characters, patrols, static props and pickups. Campaign
+  projects use Gaisen playtests and authored events; retail scripts/cutscenes,
+  native T2 AI and dynamic T2 scenery are not imported. Schema 3 reads existing
+  Studio projects and keeps source-disc assets as references.
+
 - Import custom PNG textures, triangulated OBJ models, and WAV/Ogg Vorbis/MP3/FLAC
   music and effects into Level Studio. Set model scale and material textures,
   place models, audition audio and queue it in events. Custom files are embedded
-  in shared `.tenchu` maps; source-disc assets remain references. Map schema 2
-  still reads version-one projects.
+  in shared `.tenchu` maps; source-disc assets remain references. Earlier Studio projects remain readable.
 
 - Record map schema, game version and source commit in Studio projects, preserving
   the creator build and updating the last-saved build on export and save. Inspect

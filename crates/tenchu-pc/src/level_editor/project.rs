@@ -13,6 +13,8 @@ pub struct Project {
     #[serde(default)]
     pub build: super::provenance::Provenance,
     pub mission: Mission,
+    #[serde(default)]
+    pub campaign: Option<super::campaign::Campaign>,
     pub character: i16,
     pub graphics: Graphics,
     pub actors: BTreeMap<usize, String>,
@@ -129,9 +131,10 @@ impl Project {
     pub fn new(mission: Mission) -> Self {
         Self {
             format: FORMAT.into(),
-            version: 2,
+            version: 3,
             build: super::provenance::Provenance::new(),
             mission,
+            campaign: None,
             character: 0,
             graphics: Graphics::default(),
             actors: BTreeMap::new(),
@@ -144,12 +147,15 @@ impl Project {
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.format != FORMAT || !matches!(self.version, 1 | 2) {
+        if self.format != FORMAT || !(1..=3).contains(&self.version) {
             return Err("Unsupported Level Studio project format or version".into());
         }
         self.build.validate()?;
         super::custom::validate(&self.assets)?;
         self.mission.validate()?;
+        if let Some(campaign) = &self.campaign {
+            campaign.validate()?;
+        }
         if !(0..=1).contains(&self.character)
             || self.mission.title.len() > 512
             || self.mission.author.len() > 512
@@ -159,7 +165,7 @@ impl Project {
                 .records
                 .iter()
                 .any(|record| record.name.len() > 512)
-            || self.actors.len() > 10
+            || self.actors.len() > self.actor_count()
             || self.scenery.len() > 512
             || self.events.len() > 256
             || self.stamps.len() > 32
@@ -174,10 +180,11 @@ impl Project {
             view.validate()?;
         }
         for (&slot, model) in &self.actors {
-            if slot >= self.mission.placements.len() || model.is_empty() || model.len() > 256 {
+            if slot >= self.actor_count() || model.is_empty() || model.len() > 256 {
                 return Err("Invalid actor asset reference".into());
             }
-            if matches!(self.mission.placements[slot].kind, 5 | 6 | 170) {
+            if self.campaign.is_none() && matches!(self.mission.placements[slot].kind, 5 | 6 | 170)
+            {
                 return Err("Objective characters must keep their original appearance".into());
             }
         }
@@ -218,7 +225,7 @@ impl Project {
                 {
                     return Err("Invalid event region".into());
                 }
-                Trigger::Defeated(slot) if *slot == 0 || *slot >= self.mission.placements.len() => {
+                Trigger::Defeated(slot) if *slot == 0 || *slot >= self.actor_count() => {
                     return Err("Event refers to a missing character".into());
                 }
                 Trigger::Flag { name, .. } => flag_name(name)?,
@@ -302,7 +309,7 @@ impl Project {
     }
 
     pub fn mark_saved(&mut self) {
-        self.version = 2;
+        self.version = 3;
         self.build.last_saved_with = Some(super::provenance::Build::current());
     }
 
@@ -317,8 +324,21 @@ impl Project {
         Ok(bytes)
     }
 
+    pub fn actor_count(&self) -> usize {
+        self.campaign
+            .as_ref()
+            .map_or(self.mission.placements.len(), |c| c.actors.len() + 1)
+    }
+
     pub fn remove_actor(&mut self, slot: usize) -> Result<()> {
-        if slot < self.mission.objective.reserved() || slot >= self.mission.placements.len() {
+        if slot
+            < if self.campaign.is_some() {
+                1
+            } else {
+                self.mission.objective.reserved()
+            }
+            || slot >= self.actor_count()
+        {
             return Err("Keep the player and objective characters".into());
         }
         if self
@@ -328,7 +348,11 @@ impl Project {
         {
             return Err("Remove this character's event triggers before deleting it".into());
         }
-        self.mission.placements.remove(slot);
+        if let Some(campaign) = &mut self.campaign {
+            campaign.actors.remove(slot - 1);
+        } else {
+            self.mission.placements.remove(slot);
+        }
         self.actors = std::mem::take(&mut self.actors)
             .into_iter()
             .filter_map(|(i, model)| (i != slot).then_some((i - usize::from(i > slot), model)))

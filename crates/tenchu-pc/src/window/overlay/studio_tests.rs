@@ -389,3 +389,143 @@ fn studio_mixed_assets_and_animated_preview_preserve_game_state() {
         .poll(wgpu::Maintain::Wait);
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC, connected T2 disc and X11 GPU; controlled campaign Studio authoring/playtest fixtures"]
+fn studio_campaign_terrain_preview_reopen_and_restore() {
+    use crate::level_editor::campaign::Source;
+    let output = PathBuf::from(
+        std::env::var_os("TENCHU_STUDIO_CAPTURE").expect("private capture directory"),
+    );
+    std::fs::create_dir_all(&output).unwrap();
+    let path = output.join("campaign-test-library.json");
+    let _ = std::fs::remove_file(&path);
+    let mut app = super::super::tests::application(Default::default());
+    let original = postcard::to_allocvec(&app.campaign.game).unwrap();
+    let original_settings = app.settings.clone();
+    let mut builder = EventLoop::builder();
+    builder.with_x11().with_any_thread(true);
+    let events = builder.build().unwrap();
+    #[allow(deprecated)]
+    let window = events
+        .create_window(
+            Window::default_attributes()
+                .with_visible(false)
+                .with_inner_size(winit::dpi::PhysicalSize::new(1440, 900)),
+        )
+        .unwrap();
+    app.view = Some(
+        pollster::block_on(View::from_window(
+            Arc::new(window),
+            &app.assets,
+            &app.campaign.game,
+            &app.settings,
+        ))
+        .unwrap(),
+    );
+    app.studio = crate::level_editor::Editor::new(path.clone());
+    app.apply_studio(Command::Open).unwrap();
+    let mut sources = vec![(
+        "t1",
+        Source::Tenchu {
+            stage: 1,
+            layout: 1,
+        },
+    )];
+    let (edition, disc_path) = crate::tenchu2::menu::known_discs()
+        .into_iter()
+        .find(|(e, _)| *e == tenchu_assets::tenchu2::Edition::Japan)
+        .unwrap();
+    let disc = crate::source::open_disc(&disc_path).unwrap();
+    let layout = tenchu_assets::tenchu2::layout::Layout::available(&disc)
+        .unwrap()
+        .into_iter()
+        .find(|l| l.map == 0)
+        .unwrap();
+    sources.push((
+        "t2",
+        Source::Tenchu2 {
+            map: 0,
+            sequence: layout.sequence,
+            edition,
+        },
+    ));
+    for (name, source) in sources {
+        app.studio.open_campaign(&app.assets, source).unwrap();
+        app.studio
+            .project
+            .graphics
+            .set_preset(crate::settings::presets::MODERN_HIGH);
+        app.studio.project.graphics.fog = false;
+        app.apply_studio(Command::Rebuild).unwrap();
+        assert!(app.campaign.game.trial.is_none());
+        let (edit, point) = app.studio.campaign_test_floor(&app.campaign.game);
+        app.studio.camera.focus(point, false);
+        let original_preview = postcard::to_allocvec(&app.campaign.game).unwrap();
+        for after in [false, true] {
+            if after {
+                app.studio
+                    .project
+                    .campaign
+                    .as_mut()
+                    .unwrap()
+                    .edit_surface(edit.clone(), true);
+                let bytes = app.studio.project.encode().unwrap();
+                app.studio.import(&bytes, &app.assets).unwrap();
+                app.studio.camera.focus(point, false);
+                app.apply_studio(Command::Rebuild).unwrap();
+                let hit = crate::visuals::surfaces::Surfaces::stage(
+                    &app.campaign.game.mission,
+                    &app.campaign.game.math,
+                    None,
+                )
+                .cast(point - glam::Vec3::Y * 1100., point - glam::Vec3::Y * 900.)
+                .unwrap();
+                assert!((hit.position.y - point.y + 1000.).abs() < 150.);
+                assert_eq!(
+                    app.studio.project.campaign.as_ref().unwrap().terrain[0],
+                    edit
+                );
+            }
+            app.studio.campaign_test_selection(edit.key);
+            app.studio.notice.clear();
+            app.debug.camera = Some(app.studio.camera);
+            app.update_view();
+            for _ in 0..3 {
+                app.update_overlay();
+            }
+            let view = app.view.as_mut().unwrap();
+            view.capture(
+                &app.campaign.game,
+                &app.debug,
+                &output.join(format!(
+                    "campaign-{name}-{}.png",
+                    if after { "after" } else { "before" }
+                )),
+            )
+            .unwrap();
+        }
+        let preview = postcard::to_allocvec(&app.campaign.game).unwrap();
+        assert_ne!(preview, original_preview);
+        app.apply_studio(Command::WeatherPreview(120)).unwrap();
+        assert_eq!(preview, postcard::to_allocvec(&app.campaign.game).unwrap());
+        app.apply_studio(Command::Play).unwrap();
+        for _ in 0..30 {
+            app.game_tick(0);
+        }
+        assert!(app.fault.is_none(), "{:?}", app.fault);
+        app.apply_studio(Command::Return).unwrap();
+        assert_eq!(app.campaign.game.tick, 0);
+        assert_eq!(
+            app.studio.project.campaign.as_ref().unwrap().terrain[0],
+            edit
+        );
+        eprintln!(
+            "{name}: campaign geometry, imported cast, export/reopen, weather preview, playtest/return verified"
+        );
+    }
+    app.apply_studio(Command::Close).unwrap();
+    assert_eq!(original, postcard::to_allocvec(&app.campaign.game).unwrap());
+    assert_eq!(original_settings, app.settings);
+    std::fs::remove_file(path).unwrap();
+}
