@@ -299,8 +299,34 @@ pub(crate) struct Textures {
     models: HashMap<(usize, usize), BTreeSet<String>>,
 }
 
+#[derive(Default)]
+pub(crate) struct TextureCache {
+    vram: Option<Vram>,
+    regions: BTreeMap<Region, String>,
+}
+
+impl TextureCache {
+    pub fn build(&mut self, vram: &Vram, models: &[ModelSource<'_>]) -> Textures {
+        let unchanged = self.vram.as_ref() == Some(vram);
+        let out = Textures::with_regions(vram, models, unchanged.then_some(&self.regions));
+        if !unchanged {
+            self.vram = Some(vram.clone());
+        }
+        self.regions.clone_from(&out.regions);
+        out
+    }
+}
+
 impl Textures {
     pub fn new(vram: &Vram, models: &[ModelSource<'_>]) -> Self {
+        Self::with_regions(vram, models, None)
+    }
+
+    fn with_regions(
+        vram: &Vram,
+        models: &[ModelSource<'_>],
+        cached: Option<&BTreeMap<Region, String>>,
+    ) -> Self {
         let mut out = Self {
             regions: BTreeMap::new(),
             faces: HashMap::new(),
@@ -324,10 +350,15 @@ impl Textures {
                         )
                     });
                     out.regions.entry(region).or_insert_with(|| {
-                        image_id(
-                            [region.rect[2], region.rect[3]],
-                            &region.original_pixels(vram),
-                        )
+                        cached
+                            .and_then(|regions| regions.get(&region))
+                            .cloned()
+                            .unwrap_or_else(|| {
+                                image_id(
+                                    [region.rect[2], region.rect[3]],
+                                    &region.original_pixels(vram),
+                                )
+                            })
                     });
                     textures.insert(region);
                 }
@@ -401,8 +432,13 @@ mod tests {
             hero_part: None,
             geometry: &geometry,
         };
+        let mut cache = TextureCache::default();
         for _ in 0..2 {
             let indexed = Textures::new(&vram, std::slice::from_ref(&model));
+            let cached = cache.build(&vram, std::slice::from_ref(&model));
+            assert_eq!(cached.regions, indexed.regions);
+            assert_eq!(cached.faces, indexed.faces);
+            assert_eq!(cached.models, indexed.models);
             let expected: BTreeMap<_, _> = geometry[0].faces[..3]
                 .iter()
                 .map(|f| {
@@ -422,8 +458,24 @@ mod tests {
                 indexed.regions[&indexed.face(&geometry[0].faces[0]).unwrap()],
                 indexed.regions[&indexed.face(&geometry[0].faces[1]).unwrap()]
             );
+            let mut edited = geometry.clone();
+            edited[0].faces[2].corners[1].uv = [3, 0];
+            let moved = ModelSource {
+                geometry: &edited,
+                ..model.clone()
+            };
+            let fresh = Textures::new(&vram, std::slice::from_ref(&moved));
+            let cached = cache.build(&vram, std::slice::from_ref(&moved));
+            assert_eq!(cached.regions, fresh.regions);
+            assert_eq!(cached.faces, fresh.faces);
+            assert_eq!(cached.models, fresh.models);
             vram.words[1024] = 31 << 10;
         }
+        vram.authored_colors.insert(1024, 31 << 5);
+        let fresh = Textures::new(&vram, std::slice::from_ref(&model));
+        let cached = cache.build(&vram, std::slice::from_ref(&model));
+        assert_eq!(cached.regions, fresh.regions);
+        assert_eq!(cached.models, fresh.models);
     }
 
     #[test]

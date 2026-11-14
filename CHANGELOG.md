@@ -8,6 +8,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Speed up campaign terrain sculpting in Level Studio by skipping faces outside
   the edited footprint and reusing temporary polygon storage. Preserve surface
   clipping, side walls, UVs and collision alignment.
+- Reduce repeated Studio edit stalls, especially on imported T2 maps, by reusing
+  texture analysis while source texture data is unchanged. New UV regions and
+  changed palettes or source images still refresh normally.
 
 ## 0.35.6 — 2026-11-14
 

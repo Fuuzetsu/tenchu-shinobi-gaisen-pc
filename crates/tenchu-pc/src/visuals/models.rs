@@ -44,6 +44,8 @@ pub struct Models {
     world: Meshes,
     terrain: Meshes,
     terrain_pack: Option<Pack>,
+    studio_textures: catalog::TextureCache,
+    studio_terrain_textures: catalog::TextureCache,
     weapons: Meshes,
     pub weapon_materials: bool,
     imported: Vec<Meshes>,
@@ -219,6 +221,8 @@ impl Models {
             world,
             terrain,
             terrain_pack,
+            studio_textures: Default::default(),
+            studio_terrain_textures: Default::default(),
             weapons,
             weapon_materials: graphics.blood.weapons || graphics.weapon_reflections > 0,
             imported,
@@ -256,6 +260,11 @@ impl Models {
         }
     }
 
+    pub(crate) fn studio_textures(&mut self, mission: &MissionAssets) -> catalog::Textures {
+        self.studio_textures
+            .build(&mission.vram, &catalog::models(mission))
+    }
+
     pub(crate) fn refresh_terrain(
         &mut self,
         mission: &MissionAssets,
@@ -266,7 +275,7 @@ impl Models {
     ) -> Result<()> {
         let sources = catalog::world_models(mission);
         let mut terrain = if let Some(vram) = &mission.world_vram {
-            let textures = catalog::Textures::new(vram, &sources);
+            let textures = self.studio_terrain_textures.build(vram, &sources);
             let cached = self
                 .terrain_pack
                 .as_mut()

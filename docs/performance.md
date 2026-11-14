@@ -166,6 +166,29 @@ stage hashes and both edited-campaign hashes match. Eight screenshots are
 identical; T1 differs at 38 pixels by one channel unit. Evidence:
 `private/studio-sculpt-allocation-20261114` outside Git.
 
+Repeated Studio edits now retain texture-region identities while the complete
+source VRAM is unchanged. Each edit rebuilds face and model lookups for its new
+geometry; unseen UV regions are decoded normally. The caches initialize lazily,
+keep only the current regions and invalidate on changes to pixels, palettes,
+scrolling or image metadata. Original texture data and authored colour overrides
+are included in the comparison.
+
+Two further comparisons against `79ad328` use the same hardware, saved graphics,
+30 alternating edits and two excluded warm-ups:
+
+| Campaign terrain edit | Baseline medians, two runs | Cached medians, two runs |
+| --- | ---: | ---: |
+| T1 | 44.34 / 46.88 ms | 43.31 / 41.96 ms |
+| T2 | 53.93 / 54.76 ms | 45.60 / 45.59 ms |
+
+T2 improves by about 15–17%; T1's smaller improvement varies between runs.
+These are synchronous edit times with warm caches, not preview frame rates.
+All nine stage hashes and both edited-campaign hashes match across the four
+runs. Eight captures are identical; T1 differs at 12 pixels by one channel unit.
+Cached/fresh catalog checks cover moved geometry, new UV bounds, changed palette
+pixels without a revision bump and changed authored palette colours. Evidence:
+`private/studio-texture-reuse-20261114` outside Git.
+
 ## Translucent effects (2026-11-14)
 
 Effect sorting now caches each surface's depth/layer key and reserves the output

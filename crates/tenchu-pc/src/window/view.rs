@@ -785,10 +785,7 @@ impl View {
         next.common_models = old.common_models.clone();
         next.weapons.models = old.weapons.models.clone();
         next.weapons.grips = old.weapons.grips.clone();
-        let textures = crate::visuals::catalog::Textures::new(
-            &next.vram,
-            &crate::visuals::catalog::models(next),
-        );
+        let textures = self.models.studio_textures(next);
         if self.pack.extend_mission(next, &textures)? {
             self.renderer.set_asset_pack(&self.pack);
         }
