@@ -454,20 +454,9 @@ impl View {
         surface.configure(&renderer.device, &config);
         #[cfg(target_os = "android")]
         crate::android::graphics_stage("Uploading terrain, actors and effects");
-        let stage = renderer.upload(&render_mesh::stage(
-            &game.mission,
-            &game.math,
-            Some(&models),
-        ));
-        let spray = if models.has_water() {
-            crate::visuals::water::Spray::new(&render_mesh::shadow_stage(
-                &game.mission,
-                &game.math,
-                Some(&models),
-            ))
-        } else {
-            Default::default()
-        };
+        let stage =
+            renderer.upload_owned(render_mesh::stage(&game.mission, &game.math, Some(&models)));
+        let spray = crate::visuals::water::Spray::stage(&game.mission, &game.math, &models);
         let mut actor = renderer.upload(&[]);
         let mut actor_vertices = render_mesh::Indexed {
             poses: renderer.pose_frame(),
@@ -816,16 +805,8 @@ impl View {
         self.blood = Default::default();
         self.weather.invalidate_surfaces();
         self.motion = Default::default();
-        self.spray = if self.models.has_water() {
-            crate::visuals::water::Spray::new(&render_mesh::shadow_stage(
-                &game.mission,
-                &game.math,
-                Some(&self.models),
-            ))
-        } else {
-            Default::default()
-        };
-        self.stage = self.renderer.upload(&render_mesh::stage(
+        self.spray = crate::visuals::water::Spray::stage(&game.mission, &game.math, &self.models);
+        self.stage = self.renderer.upload_owned(render_mesh::stage(
             &game.mission,
             &game.math,
             Some(&self.models),

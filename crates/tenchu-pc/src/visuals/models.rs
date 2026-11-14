@@ -101,14 +101,6 @@ impl Models {
         out
     }
 
-    pub fn has_water(&self) -> bool {
-        [&self.world, &self.terrain]
-            .into_iter()
-            .chain(&self.imported)
-            .flat_map(|meshes| meshes.meshes.values().flat_map(|mesh| &mesh.vertices))
-            .any(|v| v.flags & render_mesh::WATER != 0)
-    }
-
     pub fn build(mission: &MissionAssets, pack: &Pack, graphics: &Graphics) -> Result<Self> {
         let sources = || {
             let mut sources = catalog::models(mission);

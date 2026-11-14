@@ -75,13 +75,35 @@ fn curve_skinned(
         })
         .collect();
     let mut neighbors: BTreeMap<Point, Vec<usize>> = BTreeMap::new();
+    for (face, triangle) in vertices.chunks_exact(3).enumerate() {
+        for vertex in triangle {
+            neighbors
+                .entry(key(vertex.position))
+                .or_default()
+                .push(face);
+        }
+    }
+    if lighting {
+        for (index, vertex) in vertices.iter_mut().enumerate() {
+            if Vec3::from(vertex.normal).length_squared() > 0.5 {
+                continue;
+            }
+            let face = faces[index / 3];
+            vertex.normal = neighbors[&key(vertex.position)]
+                .iter()
+                .map(|&i| faces[i])
+                .filter(|n| n.dot(face) >= 0.5)
+                .sum::<Vec3>()
+                .normalize_or_zero()
+                .to_array();
+        }
+    }
+    if divisions <= 1 {
+        return;
+    }
     let mut edges: BTreeMap<[Point; 2], Vec<usize>> = BTreeMap::new();
     for (face, triangle) in vertices.chunks_exact(3).enumerate() {
         for i in 0..3 {
-            neighbors
-                .entry(key(triangle[i].position))
-                .or_default()
-                .push(face);
             edges
                 .entry(edge(
                     key(triangle[i].position),
@@ -104,24 +126,6 @@ fn curve_skinned(
             )
         })
         .collect();
-    if lighting {
-        for (index, vertex) in vertices.iter_mut().enumerate() {
-            if Vec3::from(vertex.normal).length_squared() > 0.5 {
-                continue;
-            }
-            let face = faces[index / 3];
-            vertex.normal = neighbors[&key(vertex.position)]
-                .iter()
-                .map(|&i| faces[i])
-                .filter(|n| n.dot(face) >= 0.5)
-                .sum::<Vec3>()
-                .normalize_or_zero()
-                .to_array();
-        }
-    }
-    if divisions <= 1 {
-        return;
-    }
     let mut curved = Vec::with_capacity(vertices.len() * divisions * divisions);
     let mut curved_skin = Vec::with_capacity(skin.len() * divisions * divisions);
     for (face, triangle) in vertices.chunks_exact(3).enumerate() {
@@ -221,6 +225,36 @@ mod tests {
                 ..Vertex::zeroed()
             })
             .collect()
+    }
+
+    #[test]
+    fn lighting_only_keeps_authored_normals_and_hard_edges_without_moving_vertices() {
+        let mut vertices = mesh(
+            &[
+                [0., 0., 0.],
+                [1., 0., 0.],
+                [0., 1., 0.],
+                [0., 1., 1.],
+                [0., 0., 1.],
+            ],
+            &[[0, 1, 2], [0, 1, 3], [0, 2, 4]],
+        );
+        vertices[1].normal = Vec3::Y.to_array();
+        let original = vertices.clone();
+        prepare(&mut vertices, true, 0);
+        let blended = (Vec3::Z + Vec3::new(0., -1., 1.).normalize()).normalize();
+        for index in [0, 3, 4] {
+            assert!(Vec3::from(vertices[index].normal).distance(blended) < 0.000001);
+        }
+        assert_eq!(vertices[1].normal, Vec3::Y.to_array());
+        assert!(vertices[6..].iter().all(|v| v.normal == Vec3::X.to_array()));
+        for (vertex, source) in vertices.iter_mut().zip(&original) {
+            vertex.normal = source.normal;
+        }
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(&vertices),
+            bytemuck::cast_slice::<_, u8>(&original)
+        );
     }
 
     #[test]

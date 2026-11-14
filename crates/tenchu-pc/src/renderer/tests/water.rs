@@ -158,7 +158,8 @@ fn water_and_waterfalls_on_actual_geometry() {
             let stage = review.renderer.upload(&vertices);
             let shadow_vertices =
                 render_mesh::shadow_stage(&game.mission, &game.math, Some(&models));
-            let spray = crate::visuals::water::Spray::new(&shadow_vertices);
+            let full_spray = crate::visuals::water::Spray::new(&shadow_vertices);
+            let spray = crate::visuals::water::Spray::stage(&game.mission, &game.math, &models);
             let water: Vec<_> = shadow_vertices
                 .iter()
                 .filter(|v| v.flags & render_mesh::WATER != 0)
@@ -209,7 +210,14 @@ fn water_and_waterfalls_on_actual_geometry() {
                     None,
                     crate::render_effects::Style::default(),
                 );
-                geometry.append(spray.geometry(5.0, camera, &graphics.water));
+                let mist = spray.geometry(5.0, camera, &graphics.water);
+                let expected = full_spray.geometry(5.0, camera, &graphics.water);
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&mist.vertices),
+                    bytemuck::cast_slice::<_, u8>(&expected.vertices),
+                    "filtered waterfall geometry must preserve the complete spray"
+                );
+                geometry.append(mist);
                 geometry.hide_ui();
                 eprintln!(
                     "{label}/{shot}: {} cosmetic vertices",

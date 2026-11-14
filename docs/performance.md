@@ -56,6 +56,25 @@ Raw timings, settings and screenshots remain outside Git under
 `private/studio-performance-20261114`. These are controlled authoring/presentation
 fixtures, not ordinary-play retail comparisons.
 
+The next preparation pass restricts mist setup to waterfall meshes, sorts
+references to shadow triangles before copying them once, transfers owned stage
+geometry directly to upload, and skips curvature adjacency for lighting-only
+smoothing. A fresh v0.35.2 baseline on the same hardware/settings measures:
+
+| Authoring operation | v0.35.2 | Further preparation changes |
+| --- | ---: | ---: |
+| Lighting/events trap/pit edit, median of three | 28.5 ms | 26.5 ms |
+| T1 campaign terrain elevation edit | 86.7 ms | 72.1 ms |
+| T2 campaign terrain elevation edit | 102.4 ms | 85.5 ms |
+| Mixed garden ornament placement | 20.3 ms | 19.9 ms |
+
+Campaign/mixed entries remain individual edits. Preview CPU/GPU p95 is
+2.62/2.55 ms versus 2.73/2.53 ms before; the improvement is scene preparation.
+Eight captures are identical; T1 differs at nine pixels by one channel unit.
+Filtered waterfall spray matches the full-scene calculation byte for byte on
+the village and waterfall missions at every tested water-detail setting.
+Evidence remains outside Git in `private/studio-performance-continuous-20261114`.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.

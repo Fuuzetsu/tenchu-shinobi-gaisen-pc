@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce Studio terrain-edit and scene-loading stalls by preparing mist only
+  from waterfall geometry, avoiding redundant geometry copies during uploads,
+  and skipping unused curvature data for meshes that only need smooth lighting.
+  Geometry, effects and graphics presets are preserved.
+
 ## 0.35.2 — 2026-11-14
 
 - Speed up Level Studio terrain edits and scene loading by sharing texture

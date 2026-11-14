@@ -116,6 +116,26 @@ fn root(parents: &mut [usize], mut index: usize) -> usize {
 }
 
 impl Spray {
+    pub fn stage(
+        mission: &tenchu_assets::stage::MissionAssets,
+        math: &tenchu_core::math::Math,
+        models: &super::models::Models,
+    ) -> Self {
+        let mut vertices = Vec::new();
+        render_mesh::visit_stage(mission, math, |geometry, matrix| {
+            models.visit_filtered(
+                geometry,
+                matrix,
+                false,
+                render_mesh::WATERFALL,
+                |triangle| {
+                    vertices.extend(triangle);
+                },
+            );
+        });
+        Self::new(&vertices)
+    }
+
     pub fn new(vertices: &[Vertex]) -> Self {
         let mut edges: BTreeMap<[[i32; 3]; 2], (Edge, u32, bool)> = BTreeMap::new();
         let mut triangles = std::collections::BTreeSet::new();

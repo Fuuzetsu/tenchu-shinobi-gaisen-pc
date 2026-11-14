@@ -501,11 +501,14 @@ impl Renderer {
     }
 
     pub fn upload_shadow(&mut self, vertices: &[Vertex]) -> Mesh {
-        self.upload(&culling::spatial(vertices))
+        self.upload_owned(culling::spatial(vertices))
     }
 
     pub fn upload(&mut self, vertices: &[Vertex]) -> Mesh {
-        let mut vertices = vertices.to_vec();
+        self.upload_owned(vertices.to_vec())
+    }
+
+    pub fn upload_owned(&mut self, mut vertices: Vec<Vertex>) -> Mesh {
         self.materials.annotate(&mut vertices);
         let mut mesh = Mesh {
             posed: None,

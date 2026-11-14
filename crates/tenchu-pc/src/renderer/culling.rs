@@ -347,22 +347,57 @@ impl Frustum {
 }
 
 pub(super) fn spatial(vertices: &[Vertex]) -> Vec<Vertex> {
-    let mut triangles: Vec<_> = vertices
-        .chunks_exact(3)
-        .map(|v| [v[0], v[1], v[2]])
-        .collect();
+    let mut triangles: Vec<_> = vertices.chunks_exact(3).collect();
     triangles.sort_by_cached_key(|t| {
         let center = t.iter().map(|v| Vec3::from(v.position)).sum::<Vec3>() / 3.0;
         let cell = (center / 5000.0).floor().as_ivec3();
         let foliage = t.iter().any(|v| v.flags & render_mesh::FOLIAGE != 0);
         (foliage, cell.x, cell.z, cell.y)
     });
-    triangles.into_iter().flatten().collect()
+    let mut sorted = Vec::with_capacity(triangles.len() * 3);
+    for triangle in triangles {
+        sorted.extend_from_slice(triangle);
+    }
+    sorted
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spatial_order_preserves_triangle_data_and_equal_cell_order() {
+        use bytemuck::Zeroable;
+
+        let mut vertices = Vec::new();
+        for (index, (position, flags)) in [
+            ([5000., 0., 0.], 0),
+            ([-1., 0., 0.], 0),
+            ([0., 0., 0.], render_mesh::TRANSLUCENT),
+            ([50., 0., 0.], 0),
+            ([-5001., 0., 0.], render_mesh::FOLIAGE),
+            ([0., -1., 0.], 0),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            vertices.extend([-20., 20., 0.].map(|offset| Vertex {
+                position: [position[0] + offset, position[1], position[2]],
+                material: index as u32,
+                uv: [offset, index as f32],
+                flags,
+                ..Vertex::zeroed()
+            }));
+        }
+        let expected: Vec<_> = [1, 5, 2, 3, 0, 4]
+            .into_iter()
+            .flat_map(|index| vertices[index * 3..index * 3 + 3].iter().copied())
+            .collect();
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(&spatial(&vertices)),
+            bytemuck::cast_slice::<_, u8>(&expected)
+        );
+    }
 
     #[test]
     fn receiver_volumes_keep_containment_crossings_and_clip_boundaries() {
