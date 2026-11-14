@@ -1338,6 +1338,22 @@ mod tests {
             Meshes::build(&game.mission.vram, &pack, &graphics, sources.clone(), false).unwrap();
         let mut split = Models::build(&game.mission, &pack, &graphics).unwrap();
         split.weapon_materials = false;
+        if let Some(count) = std::env::var("TENCHU_MODEL_PROFILE_REPEATS")
+            .ok()
+            .and_then(|s| s.parse::<usize>().ok())
+        {
+            let count = count.clamp(3, 100);
+            let mut times = Vec::with_capacity(count);
+            for i in 0..count + 2 {
+                let start = std::time::Instant::now();
+                let models = Models::build(&game.mission, &pack, &graphics).unwrap();
+                if i >= 2 {
+                    times.push(start.elapsed().as_secs_f64() * 1000.0);
+                }
+                std::hint::black_box(models);
+            }
+            eprintln!("MODEL PREPARATION MS: {times:?}");
+        }
         fn digest(meshes: &Meshes, geometry: &[Geometry]) -> Vec<u8> {
             let mut hash = Sha256::new();
             let materials: Vec<_> = meshes
@@ -1363,14 +1379,14 @@ mod tests {
             });
             hash.finalize().to_vec()
         }
+        let mut aggregate = Sha256::new();
         for source in sources {
-            assert_eq!(
-                digest(&combined, source.geometry),
-                digest(split.source(source.geometry), source.geometry),
-                "{}",
-                source.id
-            );
+            let actual = digest(split.source(source.geometry), source.geometry);
+            assert_eq!(digest(&combined, source.geometry), actual, "{}", source.id);
+            aggregate.update(source.id.as_bytes());
+            aggregate.update(actual);
         }
+        eprintln!("MODEL PREPARATION SHA256: {:x}", aggregate.finalize());
     }
 
     #[test]

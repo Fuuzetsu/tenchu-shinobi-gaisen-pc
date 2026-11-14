@@ -81,6 +81,18 @@ fn capture(app: &mut Application, output: &std::path::Path, name: &str) {
             &output.join(format!("{name}.png")),
         )
         .unwrap();
+    if std::env::var_os("TENCHU_STUDIO_GEOMETRY_DIGESTS").is_some() {
+        std::fs::write(
+            output.join(format!("{name}.geometry.sha256")),
+            geometry_digest(app),
+        )
+        .unwrap();
+    }
+}
+
+fn geometry_digest(app: &Application) -> String {
+    use sha2::{Digest, Sha256};
+    format!("{:x}", Sha256::digest(geometry(app)))
 }
 
 fn geometry(app: &Application) -> Vec<u8> {
@@ -199,7 +211,7 @@ fn profile_preview(app: &mut Application, output: &std::path::Path) {
     assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), state);
 }
 
-fn edit_campaign_surface(app: &mut Application) {
+fn edit_campaign_surface(app: &mut Application, offset: i16) -> f64 {
     let (key, original) = app.studio.first_campaign_surface().unwrap();
     let campaign = app.studio.project.campaign.as_mut().unwrap();
     campaign.edit_surface(
@@ -207,7 +219,7 @@ fn edit_campaign_surface(app: &mut Application) {
             key,
             original,
             node: tenchu_assets::terrain::Node {
-                y: original.y.saturating_sub(50),
+                y: original.y.saturating_sub(offset),
                 ..original
             },
             geometry: true,
@@ -217,9 +229,46 @@ fn edit_campaign_surface(app: &mut Application) {
     app.studio.revision += 1;
     let start = Instant::now();
     app.refresh_studio().unwrap();
+    start.elapsed().as_secs_f64() * 1000.
+}
+
+fn profile_campaign_edits(app: &mut Application, output: &std::path::Path, name: &str) {
+    let Some(count) = std::env::var("TENCHU_STUDIO_PROFILE_EDITS")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+    else {
+        return;
+    };
+    let count = count.clamp(3, 100);
+    let state = postcard::to_allocvec(&app.campaign.game).unwrap();
+    let mut times = Vec::with_capacity(count);
+    for i in 0..count + 2 {
+        let time = edit_campaign_surface(app, if i % 2 == 0 { 100 } else { 50 });
+        if i >= 2 {
+            times.push(time);
+        }
+        app.update_overlay();
+        let view = app.view.as_mut().unwrap();
+        view.draw(&app.campaign.game, &app.debug).unwrap().unwrap();
+        view.renderer.device.poll(wgpu::Maintain::Wait);
+    }
+    edit_campaign_surface(app, 50);
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), state);
+    std::fs::write(
+        output.join(format!("{name}.edits.json")),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "milliseconds": times,
+            "geometry_sha256": geometry_digest(app),
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    times.sort_by(f64::total_cmp);
     eprintln!(
-        "CAMPAIGN TERRAIN EDIT: {:.3} ms",
-        start.elapsed().as_secs_f64() * 1000.
+        "REPEATED {name} EDITS: {count} samples, median {:.3} ms, range {:.3}..{:.3} ms",
+        (times[(count - 1) / 2] + times[count / 2]) * 0.5,
+        times[0],
+        times[count - 1]
     );
 }
 
@@ -393,7 +442,11 @@ fn studio_browser_and_tile_edit_regressions() {
     assert_eq!(app.campaign.game.mission.stage.directory, stage.directory);
     assert!(app.campaign.game.trial.is_none());
     capture(&mut app, &output, "campaign-t1-ui");
-    edit_campaign_surface(&mut app);
+    eprintln!(
+        "CAMPAIGN TERRAIN EDIT: {:.3} ms",
+        edit_campaign_surface(&mut app, 50)
+    );
+    profile_campaign_edits(&mut app, &output, "campaign-t1");
     compare_full_rebuild(&mut app);
     click(&mut app, &ctx, "Projects");
     let output_ui = frame(&mut app, &ctx, vec![]);
@@ -438,7 +491,11 @@ fn studio_browser_and_tile_edit_regressions() {
     );
     assert!(app.campaign.game.trial.is_none());
     capture(&mut app, &output, "campaign-t2-ui");
-    edit_campaign_surface(&mut app);
+    eprintln!(
+        "CAMPAIGN TERRAIN EDIT: {:.3} ms",
+        edit_campaign_surface(&mut app, 50)
+    );
+    profile_campaign_edits(&mut app, &output, "campaign-t2");
     compare_full_rebuild(&mut app);
     click(&mut app, &ctx, "Projects");
     if std::env::var_os("TENCHU_STUDIO_SCAN_CAMPAIGNS").is_some() {

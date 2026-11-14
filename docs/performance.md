@@ -134,6 +134,21 @@ serialized game state match full reloads, 525 original texture inputs match
 exported pixels, and shared/fresh light detection agrees across all ten T1
 missions. Evidence: `private/studio-shared-analysis-20261114` outside Git.
 
+Normal generation and curved-surface preparation now reuse compact adjacency
+indices instead of repeatedly looking up positions. Face accumulation order and
+edge classification are unchanged. Against `578fa93`, 20 builds of the Mission 1
+models at Modern Ultra, with artwork already loaded, measure median 61.8 →
+57.3 ms. This excludes disc loading and GPU uploads. Twenty alternating terrain
+edits per campaign measure median 44.6 → 43.3 ms for T1 and 55.9 → 53.4 ms for T2.
+Two warm-ups are excluded; rendering and GPU completion between edits happen
+outside the measured interval, and the full game returns to its prior state.
+Preview CPU/GPU p95 remains approximately 2.59/2.97 ms with this extended fixture.
+
+All nine captured stage geometry hashes, both edited campaign hashes and the
+complete model/material hash match before/after. Eight captures are identical;
+T1 differs at 27 pixels by one channel unit. Evidence:
+`private/studio-normal-preparation-20261114` outside Git.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.

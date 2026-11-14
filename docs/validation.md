@@ -1330,4 +1330,13 @@ expanded shadow upload only in test builds for matched A/B measurements.
 The fixture saves its own library and captures under `TENCHU_STUDIO_CAPTURE`,
 leaving user data untouched. Visible and shadow indices are expanded and compared
 byte for byte against the original triangle builders, including mixed-disc maps.
+`TENCHU_STUDIO_PROFILE_EDITS=20` additionally alternates campaign terrain heights,
+excludes two warm-up edits, and records individual timings and an expanded
+geometry hash. Each edit is followed by rendering and GPU completion outside the
+timed interval; the full serialized game must return to its initial edited state.
+`TENCHU_STUDIO_GEOMETRY_DIGESTS=1` also saves geometry hashes beside the captures.
+Material handles are normalized in these hashes so fresh renderer allocations
+do not obscure geometry changes. The combined/split model-preparation fixture
+prints a geometry/material hash; `TENCHU_MODEL_PROFILE_REPEATS=20` additionally
+measures repeated Modern Ultra preparation after two warm-up builds.
 See [performance measurements](performance.md) for the comparison and its scope.

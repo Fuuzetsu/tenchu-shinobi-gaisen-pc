@@ -8,6 +8,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Reduce Studio edit stalls by sharing texture analysis between artwork,
   terrain and lighting preparation. Cached artwork avoids decoding unchanged
   model textures again while new assets retain their sprite and recipe inputs.
+- Speed up smooth-model and waterfall geometry preparation by reusing vertex
+  adjacency indices, preserving normal calculations, curved surfaces and seams.
 
 ## 0.35.4 — 2026-11-14
 

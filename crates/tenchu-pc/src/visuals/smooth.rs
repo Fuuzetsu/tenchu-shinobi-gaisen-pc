@@ -11,7 +11,7 @@ fn key(point: [f32; 3]) -> Point {
     point.map(|n| if n == 0.0 { 0 } else { n.to_bits() })
 }
 
-fn edge(a: Point, b: Point) -> [Point; 2] {
+fn edge(a: usize, b: usize) -> [usize; 2] {
     if a < b { [a, b] } else { [b, a] }
 }
 
@@ -74,13 +74,20 @@ fn curve_skinned(
             (b - a).cross(c - a).normalize_or_zero()
         })
         .collect();
-    let mut neighbors: BTreeMap<Point, Vec<usize>> = BTreeMap::new();
-    for (face, triangle) in vertices.chunks_exact(3).enumerate() {
-        for vertex in triangle {
-            neighbors
-                .entry(key(vertex.position))
-                .or_default()
-                .push(face);
+    let mut neighbors: Vec<Vec<usize>> = Vec::new();
+    let mut corners = Vec::with_capacity(vertices.len());
+    {
+        let mut points = BTreeMap::new();
+        for (face, triangle) in vertices.chunks_exact(3).enumerate() {
+            for vertex in triangle {
+                let point = *points.entry(key(vertex.position)).or_insert_with(|| {
+                    let point = neighbors.len();
+                    neighbors.push(Vec::new());
+                    point
+                });
+                neighbors[point].push(face);
+                corners.push(point);
+            }
         }
     }
     if lighting {
@@ -89,7 +96,7 @@ fn curve_skinned(
                 continue;
             }
             let face = faces[index / 3];
-            vertex.normal = neighbors[&key(vertex.position)]
+            vertex.normal = neighbors[corners[index]]
                 .iter()
                 .map(|&i| faces[i])
                 .filter(|n| n.dot(face) >= 0.5)
@@ -101,35 +108,30 @@ fn curve_skinned(
     if divisions <= 1 {
         return;
     }
-    let mut edges: BTreeMap<[Point; 2], Vec<usize>> = BTreeMap::new();
-    for (face, triangle) in vertices.chunks_exact(3).enumerate() {
+    let mut edges: BTreeMap<[usize; 2], Vec<usize>> = BTreeMap::new();
+    for (face, triangle) in corners.chunks_exact(3).enumerate() {
         for i in 0..3 {
             edges
-                .entry(edge(
-                    key(triangle[i].position),
-                    key(triangle[(i + 1) % 3].position),
-                ))
+                .entry(edge(triangle[i], triangle[(i + 1) % 3]))
                 .or_default()
                 .push(face);
         }
     }
-    let normals: BTreeMap<_, _> = neighbors
+    let normals: Vec<_> = neighbors
         .iter()
-        .map(|(&point, indices)| {
-            (
-                point,
-                indices
-                    .iter()
-                    .map(|&face| faces[face])
-                    .sum::<Vec3>()
-                    .normalize_or_zero(),
-            )
+        .map(|indices| {
+            indices
+                .iter()
+                .map(|&face| faces[face])
+                .sum::<Vec3>()
+                .normalize_or_zero()
         })
         .collect();
     let mut curved = Vec::with_capacity(vertices.len() * divisions * divisions);
     let mut curved_skin = Vec::with_capacity(skin.len() * divisions * divisions);
     for (face, triangle) in vertices.chunks_exact(3).enumerate() {
         let points: [Vec3; 3] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
+        let ids = &corners[face * 3..face * 3 + 3];
         let mut tangent = [[Vec3::ZERO; 3]; 3];
         let mut sum = Vec3::ZERO;
         for i in 0..3 {
@@ -137,9 +139,9 @@ fn curve_skinned(
                 if i == j {
                     continue;
                 }
-                let normal = normals[&key(triangle[i].position)];
+                let normal = normals[ids[i]];
                 let delta = points[j] - points[i];
-                let adjacent = &edges[&edge(key(triangle[i].position), key(triangle[j].position))];
+                let adjacent = &edges[&edge(ids[i], ids[j])];
                 let smooth =
                     adjacent.len() == 2 && faces[adjacent[0]].dot(faces[adjacent[1]]) > -0.5;
                 tangent[i][j] = points[i]
@@ -306,5 +308,29 @@ mod tests {
             );
         }
         assert!(open.iter().all(|v| Vec3::from(v.normal).is_finite()));
+
+        let mut nonmanifold = mesh(
+            &[
+                [-1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 1.0],
+                [0.0, -1.0, 1.0],
+                [0.0, 1.0, -1.0],
+                [-1.0, 1.0, 0.0],
+                [-1.0, 0.0, 1.0],
+            ],
+            &[[0, 1, 2], [1, 0, 3], [0, 1, 4], [0, 5, 6]],
+        );
+        prepare(&mut nonmanifold, true, 2);
+        for x in [-0.5, 0.0, 0.5] {
+            assert!(
+                nonmanifold
+                    .iter()
+                    .filter(|v| Vec3::from(v.position).distance(Vec3::new(x, 0.0, 0.0)) < 0.00001)
+                    .count()
+                    >= 3,
+                "The edge shared by three faces must remain linear"
+            );
+        }
     }
 }
