@@ -112,6 +112,28 @@ weather, water, wind, cutouts, emission, HDR and MSAA, and both games' animated
 character poses. Evidence: `private/studio-indexed-stage-20261114` and
 `private/studio-shadow-indices-20261114` outside Git.
 
+Studio also shares its base texture analysis between artwork selection, terrain
+preparation and light detection. Artwork cache hits no longer decode the model
+originals a second time; new selections retain all source recipe dependencies
+and sprite inputs. Imported T2 terrain continues to use its separate VRAM.
+A fresh v0.35.4 (`3feab794`) comparison on the same hardware/settings measures:
+
+| Authoring operation | v0.35.4 | Shared texture analysis |
+| --- | ---: | ---: |
+| Lighting/events placement, median of three | 26.6 ms | 21.4 ms |
+| T1 campaign terrain elevation edit | 50.1 ms | 46.8 ms |
+| T2 campaign terrain elevation edit | 56.2 ms | 54.4 ms |
+| Mixed garden ornament placement | 19.3 ms | 14.9 ms |
+
+Campaign/mixed entries are individual samples. The first candidate measured
+T1/T2 at 43.4/56.5 ms, illustrating that small single-edit differences vary.
+Across 1,200 preview frames, CPU p50/p95 remains 2.07/2.58 → 2.07/2.57 ms and
+GPU 2.22/2.74 → 2.21/2.74 ms. Idle refresh remains 0.27 ms. Eight captures are
+identical; T1 differs at eight pixels by one channel unit. Source geometry and
+serialized game state match full reloads, 525 original texture inputs match
+exported pixels, and shared/fresh light detection agrees across all ten T1
+missions. Evidence: `private/studio-shared-analysis-20261114` outside Git.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.

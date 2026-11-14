@@ -261,6 +261,7 @@ impl Models {
         mission: &MissionAssets,
         pack: &Pack,
         graphics: &Graphics,
+        base_textures: &catalog::Textures,
         mut bind: impl FnMut(&mut Meshes),
     ) -> Result<()> {
         let sources = catalog::world_models(mission);
@@ -281,18 +282,7 @@ impl Models {
             }
             meshes
         } else {
-            let mut all = catalog::models(mission);
-            all.extend(mission.weapons.grips.iter().map(|(&kind, geometry)| {
-                catalog::ModelSource {
-                    id: format!("weapons/{kind:04x}/grip"),
-                    role: catalog::Role::Other,
-                    hero_part: None,
-                    label: mission.weapons.names[&kind].clone(),
-                    geometry,
-                }
-            }));
-            let regions = catalog::Textures::new(&mission.vram, &all);
-            Meshes::build_regions(&mission.vram, pack, graphics, sources, false, &regions)?
+            Meshes::build_regions(&mission.vram, pack, graphics, sources, false, base_textures)?
         };
         bind(&mut terrain);
         self.replacements = self.replacements - self.terrain.replacements + terrain.replacements;

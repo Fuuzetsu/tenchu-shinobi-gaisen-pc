@@ -9,17 +9,36 @@ use tenchu_core::game::Game;
 
 impl Emitters {
     pub fn build(game: &Game, pack: &Pack, artwork: bool) -> Self {
-        let mut out = Self::new(
+        Self::new(
             &game.mission.vram,
             catalog::models(&game.mission),
             &rules(pack, artwork),
-        );
+        )
+        .place(game)
+    }
+
+    pub(crate) fn build_with_textures(
+        game: &Game,
+        pack: &Pack,
+        artwork: bool,
+        textures: &catalog::Textures,
+    ) -> Self {
+        Self::with_textures(
+            &game.mission.vram,
+            catalog::models(&game.mission),
+            &rules(pack, artwork),
+            textures,
+        )
+        .place(game)
+    }
+
+    fn place(mut self, game: &Game) -> Self {
         render_mesh::visit_stage(&game.mission, &game.math, |geometry, matrix| {
-            if let Some(source) = out.source(geometry, || matrix) {
-                out.placed.push(source);
+            if let Some(source) = self.source(geometry, || matrix) {
+                self.placed.push(source);
             }
         });
-        out
+        self
     }
 
     pub fn sources(&self, game: &Game) -> Vec<Source> {

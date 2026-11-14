@@ -133,17 +133,26 @@ impl Emitters {
         models: impl IntoIterator<Item = catalog::ModelSource<'a>>,
         rules: &[Rule],
     ) -> Self {
-        let mut out = Self::default();
         let models: Vec<_> = models.into_iter().collect();
         let textures = catalog::Textures::new(vram, &models);
+        Self::with_textures(vram, models, rules, &textures)
+    }
+
+    fn with_textures<'a>(
+        vram: &tenchu_assets::texture::Vram,
+        models: impl IntoIterator<Item = catalog::ModelSource<'a>>,
+        rules: &[Rule],
+        textures: &catalog::Textures,
+    ) -> Self {
+        let mut out = Self::default();
         for model in models {
-            let Some(rule) = rules.iter().rev().find(|r| r.matches(&model, &textures)) else {
+            let Some(rule) = rules.iter().rev().find(|r| r.matches(&model, textures)) else {
                 continue;
             };
             if !rule.enabled || model.geometry.is_empty() {
                 continue;
             }
-            if let Some(emitter) = detect(&model, rule, vram, &textures, &mut out.emissions) {
+            if let Some(emitter) = detect(&model, rule, vram, textures, &mut out.emissions) {
                 out.models.insert(model.geometry.as_ptr() as usize, emitter);
             }
         }
@@ -319,6 +328,16 @@ mod tests {
                     })
                     .collect::<Vec<_>>()
             };
+            let textures =
+                catalog::Textures::new(&game.mission.vram, &catalog::models(&game.mission));
+            let shared = Emitters::build_with_textures(&game, &Pack::default(), true, &textures);
+            assert_eq!(shared.emissions, emitters.emissions);
+            assert_eq!(shared.material_emissions, emitters.material_emissions);
+            assert_eq!(fields(shared.sources(&game)), fields(sources.clone()));
+            assert_eq!(
+                fields(shared.sources_presented(&game, Some(&frame))),
+                fields(expected.clone())
+            );
             assert_eq!(
                 fields(emitters.sources_presented(&game, Some(&frame))),
                 fields(expected)

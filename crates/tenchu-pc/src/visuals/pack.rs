@@ -126,18 +126,12 @@ impl Selection {
         vram: &tenchu_assets::texture::Vram,
         regions: &BTreeMap<catalog::Region, String>,
     ) {
-        self.originals = regions
-            .iter()
-            .map(|(&region, id)| {
-                (
-                    id.clone(),
-                    Image {
-                        size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
-                        rgba: region.original_pixels(vram),
-                    },
-                )
-            })
-            .collect();
+        for (&region, id) in regions {
+            self.originals.entry(id.clone()).or_insert_with(|| Image {
+                size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
+                rgba: region.original_pixels(vram),
+            });
+        }
     }
 
     fn interface(originals: BTreeMap<String, Image>) -> Self {
@@ -151,39 +145,29 @@ impl Selection {
     }
 
     fn mission(mission: &MissionAssets) -> Self {
-        let mut originals: BTreeMap<_, _> = catalog::regions(mission)
-            .into_iter()
-            .map(|(region, id)| {
-                (
-                    id,
-                    Image {
-                        size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
-                        rgba: region.original_pixels(&mission.vram),
-                    },
-                )
-            })
-            .collect();
+        let regions = catalog::regions(mission);
+        let mut selection = Self::mission_inputs(mission, &regions);
+        selection.read_originals(&mission.vram, &regions);
+        selection
+    }
+
+    fn mission_inputs(
+        mission: &MissionAssets,
+        regions: &BTreeMap<catalog::Region, String>,
+    ) -> Self {
+        let mut selection = Self::model_inputs(regions, &catalog::models(mission));
+        selection.player_models = true;
         for &sprite in &mission.images {
             let region = catalog::Region::sprite(&mission.vram, sprite);
             let image = Image {
                 size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
                 rgba: region.original_pixels(&mission.vram),
             };
-            originals.insert(
-                catalog::image_id(image.size.map(|n| n as u16), &image.rgba),
-                image,
-            );
+            let id = catalog::image_id(image.size.map(|n| n as u16), &image.rgba);
+            selection.textures.insert(id.clone());
+            selection.originals.insert(id, image);
         }
-        Self {
-            max_pixels: MAX_PIXELS,
-            textures: originals.keys().cloned().collect(),
-            originals,
-            player_models: true,
-            models: catalog::models(mission)
-                .into_iter()
-                .map(|model| model.id)
-                .collect(),
-        }
+        selection
     }
 }
 
@@ -258,8 +242,18 @@ impl Pack {
         Self::decode(manifest, Some(selection), crate::web::pack_file)
     }
 
-    pub(crate) fn extend_mission(&mut self, mission: &MissionAssets) -> Result<bool> {
-        self.extend_selected(Selection::mission(mission), Self::configured)
+    pub(crate) fn extend_mission(
+        &mut self,
+        mission: &MissionAssets,
+        textures: &catalog::Textures,
+    ) -> Result<bool> {
+        self.extend_selected(
+            Selection::mission_inputs(mission, &textures.regions),
+            |mut selection| {
+                selection.read_originals(&mission.vram, &textures.regions);
+                Self::configured(selection)
+            },
+        )
     }
 
     pub(crate) fn extend_models(
@@ -739,11 +733,16 @@ mod tests {
         super::super::export(&game.mission, &directory).unwrap();
         let manifest: Manifest =
             serde_json::from_slice(&fs::read(directory.join("pack.json")).unwrap()).unwrap();
+        let selection = Selection::mission(&game.mission);
+        for (id, file) in &manifest.textures {
+            let exported = decode_png(&fs::read(directory.join(file)).unwrap()).unwrap();
+            assert!(
+                selection.originals[id] == exported,
+                "Source pixels for {id}"
+            );
+        }
         fs::remove_dir_all(directory).unwrap();
-        assert_eq!(
-            Selection::mission(&game.mission).textures,
-            manifest.textures.into_keys().collect()
-        );
+        assert_eq!(selection.textures, manifest.textures.into_keys().collect());
     }
 
     #[test]

@@ -779,17 +779,26 @@ impl View {
         next.common_models = old.common_models.clone();
         next.weapons.models = old.weapons.models.clone();
         next.weapons.grips = old.weapons.grips.clone();
-        if self.pack.extend_mission(next)? {
+        let textures = crate::visuals::catalog::Textures::new(
+            &next.vram,
+            &crate::visuals::catalog::models(next),
+        );
+        if self.pack.extend_mission(next, &textures)? {
             self.renderer.set_asset_pack(&self.pack);
         }
         self.models
-            .refresh_terrain(next, &self.pack, &settings.graphics, |meshes| {
+            .refresh_terrain(next, &self.pack, &settings.graphics, &textures, |meshes| {
                 self.renderer.bind_meshes(meshes)
             })?;
         self.models.rekey_scenery(old_scenery, next_scenery);
         self.reset_stage(game);
         self.reset_interpolation(game);
-        self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
+        self.emitters = Emitters::build_with_textures(
+            game,
+            &self.pack,
+            settings.graphics.asset_pack,
+            &textures,
+        );
         self.renderer.set_emitters(&self.emitters);
         Ok(true)
     }
