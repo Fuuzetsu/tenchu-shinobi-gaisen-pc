@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.11 — 2026-11-14
+
 - Keep object identifiers visible on T2 scenery gallery cards instead of
   shortening every label to the game name.
 
