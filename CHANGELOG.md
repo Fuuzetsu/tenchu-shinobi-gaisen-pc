@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.2 — 2026-11-14
+
 - Speed up Level Studio terrain edits and scene loading by sharing texture
   lookups across material and lighting preparation, and skipping archive reads
   for absent artwork overrides. Existing graphics settings and rendered output
