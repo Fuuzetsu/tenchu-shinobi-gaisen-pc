@@ -210,6 +210,30 @@ edited-campaign hashes and the model/material aggregate match. Eight captures
 are identical; T1 differs at 14 pixels by one channel unit. Evidence:
 `private/mesh-index-keys-20261114` outside Git.
 
+Refined models now resolve point and edge connections once per subdivision pass.
+Neighbor accumulation retains the original position-key order; edge endpoints,
+opposite faces, last-seen positions, interpolation and budgets retain their
+previous semantics. A private same-binary comparison against `54f75a0` checks
+28,272 cases from three T1 missions, five native T2 character rigs, levels 0–3,
+budget boundaries, height-preserving refinement and degenerate/nonmanifold
+geometry with signed zero. Vertex bytes, skin weights and remaining budgets all
+match exactly. The temporary reference implementation is excluded from the final
+build.
+
+Two 100-build Modern Ultra measurements reduce median model preparation from
+57.10 / 57.26 to 49.80 / 49.62 ms, about 13%. The complete model/material digest
+is unchanged. This measures CPU preparation during loading or graphics changes,
+not steady-state frame rate. Studio edits are largely unaffected: T2 medians
+43.88 / 44.41 → 43.73 / 44.50 ms; T1 varies between 40.80 / 44.43 →
+40.42 / 40.82 ms. These comparisons use the same 30-edit harness, warm-ups and
+CPU cache group as above, without overlapping local compilation.
+
+All nine stage and two edited-campaign hashes match. Eight captures are identical;
+T1 differs at 16 pixels by one channel unit. Indexed geometry/state checks,
+about 4.78 million rigid/weighted GPU pose vertices, 315 workspace tests and the
+native/Android/WASM checks pass. Evidence:
+`private/refinement-topology-20261114` outside Git.
+
 ## Translucent effects (2026-11-14)
 
 Effect sorting now caches each surface's depth/layer key and reserves the output

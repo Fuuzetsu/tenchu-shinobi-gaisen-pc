@@ -7,6 +7,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Reduce terrain rebuild work in Level Studio with smaller vertex-sharing
   lookups for rigid meshes, preserving seams, normals and triangle order.
+- Reduce CPU work when preparing refined models during scene loading and
+  graphics changes, while preserving geometry and skinning.
 
 ## 0.35.7 — 2026-11-14
 

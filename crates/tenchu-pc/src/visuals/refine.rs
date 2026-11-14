@@ -1,7 +1,7 @@
 use super::appearance::skin::Influence;
 use crate::render_mesh::Vertex;
 use glam::Vec3;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 type Point = [u32; 3];
 
@@ -16,7 +16,7 @@ fn edge(a: Point, b: Point) -> [Point; 2] {
     if a < b { [a, b] } else { [b, a] }
 }
 
-fn continuous(adjacent: &[(Point, Vec3)]) -> bool {
+fn continuous(adjacent: &[(usize, Vec3)]) -> bool {
     adjacent.len() == 2 && adjacent[0].1.dot(adjacent[1].1) > -0.5
 }
 
@@ -79,6 +79,17 @@ fn subdivide(
     preserve_height: bool,
     skin: &mut Vec<Influence>,
 ) {
+    struct Node {
+        key: Point,
+        position: Vec3,
+        neighbors: Vec<usize>,
+        pinned: bool,
+    }
+    struct Edge {
+        points: [usize; 2],
+        adjacent: Vec<(usize, Vec3)>,
+    }
+
     let relax = |from: Vec3, to: Vec3| {
         let mut delta = (to - from) * 0.7;
         if preserve_height {
@@ -86,64 +97,105 @@ fn subdivide(
         }
         from + delta.clamp_length_max(limit)
     };
-    let mut positions = BTreeMap::new();
-    let mut neighbors: BTreeMap<Point, BTreeSet<Point>> = BTreeMap::new();
-    let mut opposite: BTreeMap<[Point; 2], Vec<(Point, Vec3)>> = BTreeMap::new();
+    let mut point_indices = BTreeMap::new();
+    let mut nodes: Vec<Node> = Vec::new();
+    let mut edge_indices = BTreeMap::new();
+    let mut edges: Vec<Edge> = Vec::new();
+    let mut faces = Vec::with_capacity(vertices.len() / 3);
     for triangle in vertices.chunks_exact(3) {
         let keys: [_; 3] = std::array::from_fn(|i| key(triangle[i].position));
+        let points: [_; 3] = std::array::from_fn(|i| {
+            let index = *point_indices.entry(keys[i]).or_insert_with(|| {
+                let index = nodes.len();
+                nodes.push(Node {
+                    key: keys[i],
+                    position: Vec3::ZERO,
+                    neighbors: Vec::new(),
+                    pinned: false,
+                });
+                index
+            });
+            nodes[index].position = Vec3::from(triangle[i].position);
+            index
+        });
         let [a, b, c] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
         let normal = (b - a).cross(c - a).normalize_or_zero();
-        for i in 0..3 {
-            positions.insert(keys[i], Vec3::from(triangle[i].position));
-            neighbors
-                .entry(keys[i])
-                .or_default()
-                .extend([keys[(i + 1) % 3], keys[(i + 2) % 3]]);
-            opposite
-                .entry(edge(keys[i], keys[(i + 1) % 3]))
-                .or_default()
-                .push((keys[(i + 2) % 3], normal));
+        let sides: [_; 3] = std::array::from_fn(|i| {
+            let next = (i + 1) % 3;
+            let other = (i + 2) % 3;
+            nodes[points[i]]
+                .neighbors
+                .extend([points[next], points[other]]);
+            let index = *edge_indices
+                .entry(edge(keys[i], keys[next]))
+                .or_insert_with(|| {
+                    let index = edges.len();
+                    edges.push(Edge {
+                        points: if keys[i] < keys[next] {
+                            [points[i], points[next]]
+                        } else {
+                            [points[next], points[i]]
+                        },
+                        adjacent: Vec::new(),
+                    });
+                    index
+                });
+            edges[index].adjacent.push((points[other], normal));
+            index
+        });
+        faces.push((points, sides));
+    }
+    for edge in &edges {
+        if !continuous(&edge.adjacent) {
+            for &point in &edge.points {
+                nodes[point].pinned = true;
+            }
         }
     }
-    let pinned: BTreeSet<_> = opposite
+    for i in 0..nodes.len() {
+        let mut adjacent = std::mem::take(&mut nodes[i].neighbors);
+        // Preserve the source key order when accumulating neighboring positions.
+        adjacent.sort_unstable_by_key(|&point| nodes[point].key);
+        adjacent.dedup();
+        nodes[i].neighbors = adjacent;
+    }
+    let corners: Vec<_> = nodes
         .iter()
-        .filter(|(_, faces)| !continuous(faces))
-        .flat_map(|(edge, _)| *edge)
-        .collect();
-    let corners: BTreeMap<_, _> = positions
-        .iter()
-        .map(|(&key, &p)| {
-            let adjacent = &neighbors[&key];
-            let target = if pinned.contains(&key) || adjacent.len() < 3 {
+        .map(|node| {
+            let p = node.position;
+            let adjacent = &node.neighbors;
+            let target = if node.pinned || adjacent.len() < 3 {
                 p
             } else {
                 let n = adjacent.len() as f32;
                 let beta = (0.625 - (0.375 + 0.25 * (std::f32::consts::TAU / n).cos()).powi(2)) / n;
-                p * (1.0 - n * beta) + adjacent.iter().map(|v| positions[v]).sum::<Vec3>() * beta
+                p * (1.0 - n * beta)
+                    + adjacent.iter().map(|&v| nodes[v].position).sum::<Vec3>() * beta
             };
-            (key, relax(p, target))
+            relax(p, target)
         })
         .collect();
-    let edges: BTreeMap<_, _> = opposite
+    let midpoints: Vec<_> = edges
         .iter()
-        .map(|(&pair, adjacent)| {
-            let a = positions[&pair[0]];
-            let b = positions[&pair[1]];
+        .map(|edge| {
+            let [a, b] = edge.points.map(|i| nodes[i].position);
+            let adjacent = &edge.adjacent;
             let center = (a + b) * 0.5;
             let target = if continuous(adjacent) {
-                (a + b) * 0.375 + (positions[&adjacent[0].0] + positions[&adjacent[1].0]) * 0.125
+                (a + b) * 0.375
+                    + (nodes[adjacent[0].0].position + nodes[adjacent[1].0].position) * 0.125
             } else {
                 center
             };
-            (pair, relax(center, target))
+            relax(center, target)
         })
         .collect();
     let mut out = Vec::with_capacity(vertices.len() * 4);
     let mut out_skin = Vec::with_capacity(skin.len() * 4);
     for (face, triangle) in vertices.chunks_exact(3).enumerate() {
-        let keys: [_; 3] = std::array::from_fn(|i| key(triangle[i].position));
+        let (points, sides) = faces[face];
         let p: [Vertex; 3] = std::array::from_fn(|i| Vertex {
-            position: corners[&keys[i]].to_array(),
+            position: corners[points[i]].to_array(),
             normal: [0.0; 3],
             ..triangle[i]
         });
@@ -151,7 +203,7 @@ fn subdivide(
             let a = triangle[i];
             let b = triangle[(i + 1) % 3];
             Vertex {
-                position: edges[&edge(keys[i], keys[(i + 1) % 3])].to_array(),
+                position: midpoints[sides[i]].to_array(),
                 uv: std::array::from_fn(|j| (a.uv[j] + b.uv[j]) * 0.5),
                 color: std::array::from_fn(|j| (a.color[j] + b.color[j]) * 0.5),
                 normal: [0.0; 3],
@@ -184,6 +236,54 @@ fn subdivide(
 mod tests {
     use super::*;
     use bytemuck::Zeroable;
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn nonmanifold_edges_keep_geometry_pinned_and_skin_seams_separate() {
+        let points = [
+            [-100.0, 0.0, 0.0],
+            [100.0, 0.0, 0.0],
+            [0.0, 100.0, 0.0],
+            [0.0, 0.0, 100.0],
+            [0.0, -100.0, 0.0],
+        ];
+        let mut vertices: Vec<_> = [[0, 1, 2], [1, 0, 3], [0, 1, 4], [0, 0, 0]]
+            .into_iter()
+            .enumerate()
+            .flat_map(|(face, triangle)| {
+                triangle.map(|point| Vertex {
+                    position: points[point],
+                    material: face as u32 + 1,
+                    ..Vertex::zeroed()
+                })
+            })
+            .collect();
+        let mut weights: Vec<_> = vertices
+            .iter()
+            .map(|v| Influence {
+                joints: [v.material as u8, 0, 0, 0],
+                weights: [1.0, 0.0, 0.0, 0.0],
+            })
+            .collect();
+        prepare_skinned(&mut vertices, 2, 0.025, &mut 10000, &mut weights);
+        assert_eq!(vertices.len(), 12 * 16);
+        assert_eq!(weights.len(), vertices.len());
+        for point in points {
+            assert!(vertices.iter().any(|v| v.position == point));
+        }
+        for material in 1..=3 {
+            assert!(
+                vertices
+                    .iter()
+                    .any(|v| v.position == [0.0; 3] && v.material == material)
+            );
+        }
+        for (vertex, weight) in vertices.iter().zip(&weights) {
+            assert_eq!(weight.joints[0], vertex.material as u8);
+            assert_eq!(weight.weights, [1.0, 0.0, 0.0, 0.0]);
+            assert!(vertex.normal.iter().all(|v| v.is_finite()));
+        }
+    }
 
     #[test]
     fn back_to_back_panels_keep_their_flat_faces_and_straight_borders() {
