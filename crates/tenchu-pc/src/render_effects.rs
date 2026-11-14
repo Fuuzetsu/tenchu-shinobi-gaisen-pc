@@ -181,10 +181,69 @@ pub fn text(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32; 
     }
 }
 
-pub(crate) struct Surface {
+pub(crate) struct Surface<V = Vec<Vertex>> {
     pub depth: f32,
     pub blend: u8,
-    pub vertices: Vec<Vertex>,
+    pub vertices: V,
+}
+
+pub(crate) struct Stage {
+    vertices: Vec<Vertex>,
+}
+
+impl Stage {
+    pub fn new(game: &Game, models: &crate::visuals::models::Models) -> Option<Self> {
+        #[cfg(test)]
+        if std::env::var_os("TENCHU_REBUILD_TRANSLUCENT_STAGE").is_some() {
+            return None;
+        }
+        let mut vertices = Vec::new();
+        let mut prepared = true;
+        render_mesh::visit_stage(&game.mission, &game.math, |meshes, matrix| {
+            if !prepared {
+                return;
+            }
+            prepared = models.visit_filtered(meshes, matrix, true, TRANSLUCENT, |triangle| {
+                vertices.extend(triangle.into_iter().map(|vertex| Vertex {
+                    flags: vertex.flags | render_mesh::SCENERY,
+                    ..*vertex
+                }));
+            });
+        });
+        // Unprepared faces keep the original composed integer transform for depth.
+        prepared.then_some(Self { vertices })
+    }
+
+    fn geometry(&self, dynamic: Vec<Surface>, view: Matrix) -> Geometry {
+        let surfaces = self
+            .vertices
+            .chunks_exact(3)
+            .map(|vertices| Surface {
+                depth: triangle_depth(std::array::from_fn(|i| &vertices[i]), view),
+                blend: ((vertices[0].page >> 5) & 3) as u8 + 1,
+                vertices,
+            })
+            .chain(dynamic.iter().map(|surface| Surface {
+                depth: surface.depth,
+                blend: surface.blend,
+                vertices: surface.vertices.as_slice(),
+            }))
+            .collect();
+        surface_geometry_into(surfaces, Vec::new())
+    }
+}
+
+fn triangle_depth(triangle: [&Vertex; 3], view: Matrix) -> f32 {
+    triangle
+        .iter()
+        .map(|vertex| {
+            (0..3)
+                .map(|i| vertex.position[i] * f32::from(view.rotation[2][i]) / 4096.0)
+                .sum::<f32>()
+                + view.translation[2] as f32
+        })
+        .sum::<f32>()
+        / 3.0
 }
 
 pub(crate) fn depth(z: f32) -> f32 {
@@ -309,16 +368,7 @@ fn mesh_surfaces(
                 } else {
                     ((face.page >> 5) & 3) as u8 + 1
                 };
-                let depth = triangle
-                    .iter()
-                    .map(|vertex| {
-                        (0..3)
-                            .map(|i| vertex.position[i] * f32::from(view.rotation[2][i]) / 4096.0)
-                            .sum::<f32>()
-                            + view.translation[2] as f32
-                    })
-                    .sum::<f32>()
-                    / 3.0;
+                let depth = triangle_depth(triangle, view);
                 surfaces.push(Surface {
                     depth,
                     blend,
@@ -396,18 +446,43 @@ pub fn build_presented(
     frame: Option<&crate::visuals::interpolation::Frame>,
     style: Style,
 ) -> Geometry {
+    build_presented_with_stage(
+        game,
+        show_hud,
+        camera,
+        blob_shadows,
+        models,
+        frame,
+        style,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn build_presented_with_stage(
+    game: &Game,
+    show_hud: bool,
+    camera: Option<Matrix>,
+    blob_shadows: bool,
+    models: Option<&crate::visuals::models::Models>,
+    frame: Option<&crate::visuals::interpolation::Frame>,
+    style: Style,
+    stage: Option<&Stage>,
+) -> Geometry {
     let sharp_text = style.sharp_text;
     let inspection = camera.is_some();
     let view = camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view));
     let mut surfaces = Vec::new();
-    render_mesh::visit_stage(&game.mission, &game.math, |meshes, matrix| {
-        mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
-    });
-    for vertex in surfaces
-        .iter_mut()
-        .flat_map(|surface| &mut surface.vertices)
-    {
-        vertex.flags |= render_mesh::SCENERY;
+    if stage.is_none() {
+        render_mesh::visit_stage(&game.mission, &game.math, |meshes, matrix| {
+            mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
+        });
+        for vertex in surfaces
+            .iter_mut()
+            .flat_map(|surface| &mut surface.vertices)
+        {
+            vertex.flags |= render_mesh::SCENERY;
+        }
     }
     crate::visuals::appearance::visit_parts(
         game,
@@ -810,7 +885,11 @@ pub fn build_presented(
             });
         }
     }
-    surface_geometry(surfaces)
+    if let Some(stage) = stage {
+        stage.geometry(surfaces, view)
+    } else {
+        surface_geometry(surfaces)
+    }
 }
 
 pub(crate) fn retained_blood<'a>(
@@ -837,14 +916,14 @@ pub(crate) fn surface_geometry(surfaces: Vec<Surface>) -> Geometry {
     surface_geometry_into(surfaces, Vec::new())
 }
 
-pub(crate) fn surface_geometry_into(
-    mut surfaces: Vec<Surface>,
+pub(crate) fn surface_geometry_into<V: AsRef<[Vertex]>>(
+    mut surfaces: Vec<Surface<V>>,
     mut vertices: Vec<Vertex>,
 ) -> Geometry {
     // Coplanar stains compose in source order, independent of camera movement.
     // Draw them before airborne effects, which still need back-to-front sorting.
     surfaces.sort_by_cached_key(|surface| {
-        if surface.vertices.first().is_some_and(|v| {
+        if surface.vertices.as_ref().first().is_some_and(|v| {
             v.flags & (render_mesh::STAIN | render_mesh::SCREEN) == render_mesh::STAIN
         }) {
             return 0;
@@ -855,17 +934,22 @@ pub(crate) fn surface_geometry_into(
         u64::from(!ascending) + 1
     });
     vertices.clear();
-    vertices.reserve(surfaces.iter().map(|surface| surface.vertices.len()).sum());
+    vertices.reserve(
+        surfaces
+            .iter()
+            .map(|surface| surface.vertices.as_ref().len())
+            .sum(),
+    );
     let mut out = Geometry {
         vertices,
         batches: Vec::new(),
     };
     for surface in surfaces {
-        if surface.vertices.is_empty() {
+        if surface.vertices.as_ref().is_empty() {
             continue;
         }
         let start = out.vertices.len() as u32;
-        out.vertices.extend(surface.vertices);
+        out.vertices.extend_from_slice(surface.vertices.as_ref());
         let end = out.vertices.len() as u32;
         if let Some(last) = out.batches.last_mut()
             && last.blend == surface.blend
@@ -887,6 +971,95 @@ mod tests {
     use bytemuck::Zeroable;
 
     #[test]
+    #[ignore = "requires TENCHU_DISC; retained translucent terrain must match rebuilt effects across cameras, presets and interpolation"]
+    fn cached_translucent_stage_matches_rebuilt_effects() {
+        use crate::visuals::{models::Models, pack::Pack};
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let mut cached_triangles = 0;
+        for mission in [1, 4, 6] {
+            let mut game = crate::session::Options {
+                mission,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            for _ in 0..12 {
+                game.step(0).unwrap();
+            }
+            let mut history = crate::visuals::interpolation::History::default();
+            history.reset(&game);
+            game.step(0).unwrap();
+            history.tick(&game);
+            let interpolated = history.sample(game.tick, 0.4);
+            let before = crate::session::tests::state(&game);
+            let pack = Pack::from_env(&game.mission).unwrap();
+            for preset in [
+                0,
+                crate::settings::presets::MODERN_HIGH,
+                crate::settings::presets::MODERN_ULTRA,
+            ] {
+                let mut settings = crate::settings::Settings::default();
+                settings.graphics.set_preset(preset);
+                let models = Models::build(&game.mission, &pack, &settings.graphics).unwrap();
+                let stage = Stage::new(&game, &models);
+                if preset == 0 {
+                    assert!(
+                        stage.is_none(),
+                        "original faces retain integer depth transforms"
+                    );
+                } else {
+                    cached_triangles += stage.as_ref().unwrap().vertices.len() / 3;
+                }
+                for camera in [
+                    None,
+                    Some(Matrix::default()),
+                    Some(Matrix {
+                        rotation: game.math.rotate_yxz([128, 768, -256]),
+                        translation: [15000, -3000, -8000].into(),
+                    }),
+                ] {
+                    for frame in [None, interpolated.as_ref()] {
+                        let rebuilt = build_presented(
+                            &game,
+                            true,
+                            camera,
+                            settings.graphics.blob_shadows,
+                            Some(&models),
+                            frame,
+                            Style::from(&settings),
+                        );
+                        let cached = build_presented_with_stage(
+                            &game,
+                            true,
+                            camera,
+                            settings.graphics.blob_shadows,
+                            Some(&models),
+                            frame,
+                            Style::from(&settings),
+                            stage.as_ref(),
+                        );
+                        assert!(
+                            bytemuck::cast_slice::<_, u8>(&cached.vertices)
+                                == bytemuck::cast_slice::<_, u8>(&rebuilt.vertices),
+                            "mission {mission}, preset {preset}"
+                        );
+                        assert_eq!(cached.batches.len(), rebuilt.batches.len());
+                        for (a, b) in cached.batches.iter().zip(&rebuilt.batches) {
+                            assert_eq!((a.blend, &a.range), (b.blend, &b.range));
+                        }
+                    }
+                }
+            }
+            assert_eq!(before, crate::session::tests::state(&game));
+        }
+        assert!(cached_triangles > 1000);
+        eprintln!("Retained translucent terrain: {cached_triangles} cached triangles");
+    }
+
+    #[test]
     fn surface_sort_retains_depth_bits_and_coplanar_submission_order() {
         let depths = [
             0,
@@ -903,7 +1076,7 @@ mod tests {
             0xbf80_0000,
         ];
         let mut expected = Vec::new();
-        let surfaces = (0..4096)
+        let surfaces: Vec<_> = (0..4096)
             .map(|i| {
                 let bits = if i % 2 == 0 {
                     depths[i / 2 % depths.len()]
@@ -939,20 +1112,32 @@ mod tests {
             (false, true) => std::cmp::Ordering::Greater,
             (false, false) => b.1.total_cmp(&a.1),
         });
-        let actual = surface_geometry(surfaces);
-        let actual: Vec<_> = actual
-            .batches
+        let borrowed = surfaces
             .iter()
-            .flat_map(|batch| {
-                actual.vertices[batch.range.start as usize..batch.range.end as usize]
-                    .chunks_exact(3)
-                    .map(|triangle| (batch.blend, triangle[0].position[0]))
+            .map(|surface| Surface {
+                depth: surface.depth,
+                blend: surface.blend,
+                vertices: surface.vertices.as_slice(),
             })
             .collect();
-        assert_eq!(
-            actual,
-            expected.iter().map(|s| (s.2, s.3)).collect::<Vec<_>>()
-        );
+        for actual in [
+            surface_geometry_into(borrowed, Vec::new()),
+            surface_geometry(surfaces),
+        ] {
+            let actual: Vec<_> = actual
+                .batches
+                .iter()
+                .flat_map(|batch| {
+                    actual.vertices[batch.range.start as usize..batch.range.end as usize]
+                        .chunks_exact(3)
+                        .map(|triangle| (batch.blend, triangle[0].position[0]))
+                })
+                .collect();
+            assert_eq!(
+                actual,
+                expected.iter().map(|s| (s.2, s.3)).collect::<Vec<_>>()
+            );
+        }
     }
 
     #[test]

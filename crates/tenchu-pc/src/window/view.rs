@@ -23,6 +23,7 @@ pub(super) struct View {
     pub(super) adapter: wgpu::AdapterInfo,
     pub dirty: bool,
     pub(super) stage: Mesh,
+    pub(super) translucent_stage: Option<render_effects::Stage>,
     pub(super) actor: Mesh,
     shadow_stage: Option<Mesh>,
     shadow_models: Option<Mesh>,
@@ -460,6 +461,7 @@ impl View {
             Some(&models),
         ));
         let spray = crate::visuals::water::Spray::stage(&game.mission, &game.math, &models);
+        let translucent_stage = render_effects::Stage::new(game, &models);
         let mut actor = renderer.upload(&[]);
         let mut actor_vertices = render_mesh::Indexed {
             poses: renderer.pose_frame(),
@@ -473,12 +475,15 @@ impl View {
             None,
         );
         renderer.update_indexed_mesh(&mut actor, &mut actor_vertices);
-        let effects = renderer.upload_effects(render_effects::build_options(
+        let effects = renderer.upload_effects(render_effects::build_presented_with_stage(
             game,
             true,
             None,
             settings.graphics.blob_shadows,
             Some(&models),
+            None,
+            render_effects::Style::default(),
+            translucent_stage.as_ref(),
         ));
         println!(
             "Renderer: {} ({:?})",
@@ -501,6 +506,7 @@ impl View {
             config,
             renderer,
             stage,
+            translucent_stage,
             actor,
             shadow_stage: None,
             shadow_models: None,
@@ -823,6 +829,7 @@ impl View {
             &game.math,
             Some(&self.models),
         ));
+        self.translucent_stage = render_effects::Stage::new(game, &self.models);
         self.contact.canopies = self.models.canopies(game);
     }
 
@@ -1135,7 +1142,7 @@ impl View {
                         settings.subtitle_language,
                     );
                 }
-                render_effects::build_presented(
+                render_effects::build_presented_with_stage(
                     game,
                     settings.show_hud && !debug.photo_mode,
                     camera.map(|c| c.source_view()),
@@ -1150,6 +1157,7 @@ impl View {
                         },
                         ..render_effects::Style::from(settings)
                     },
+                    self.translucent_stage.as_ref(),
                 )
             }
         } else {

@@ -180,6 +180,40 @@ view differs at 15 pixels by one channel unit. Evidence,
 exact settings and full scene reports remain outside Git in
 `private/main-performance-20261114`.
 
+T1 and Studio also retain prepared translucent terrain in a contiguous CPU
+vertex buffer. Scene loads, terrain edits and graphics changes rebuild it with
+the opaque stage. Each presentation recalculates depth for the current camera
+and combines these triangles with live effects in the same stable blend order.
+Unprepared faces keep their original composed integer depth transforms.
+
+A further comparison against `f0c1f82` isolates this cache. The benchmark children
+use CPUs 0–7 and 16–23, the Ryzen 9950X3D's 96 MiB L3 group, to avoid switching
+between its different cache groups. Other desktop workloads remain active.
+The same GTX 1080 Ti/Vulkan, 720-frame scenes and warm-up exclusion apply:
+
+| Configuration | Mean geometry preparation before → after | Mean CPU work before → after |
+| --- | ---: | ---: |
+| Saved graphics, 1920×1080 | 2.33 → 1.78 ms | 3.65 → 3.09 ms |
+| Modern High, 3840×2160 | 1.95 → 1.40 ms | 3.49 → 2.93 ms |
+
+These waterfall measurements improve preparation by 23–28%; GPU p95 remains
+approximately 3.14–3.19 ms and 7.55–7.57 ms respectively. Smaller scenes vary;
+there is no claimed general T2 or interactive FPS gain. A repeated Original
+waterfall comparison measures 1.810 → 1.807 ms preparation after an earlier noisy
+run. Unrestricted CPU runs also show the enhanced waterfall improvement.
+
+Cached/rebuilt comparisons cover 21,872 cached triangles across three missions,
+Original/High/Ultra, different cameras and interpolation. Vertex bytes and blend
+batches match exactly. All 15 pond/waterfall and 15 native T2 captures match the
+reference pixels. Eight Studio captures match exactly; the T1 view differs at
+24 pixels by one channel unit. Authoring checks also compare the cache with a
+fresh build after edits and playtest reloads. A same-binary Studio comparison,
+with cache creation disabled only in the reference test, measures 20-edit
+medians of 44.5 → 44.4 ms for T1 and 54.6 → 54.3 ms for T2. Both runs use the
+same CPU group; there is no measured edit regression. All nine stage hashes
+and both edited campaign hashes match. Evidence and complete reports remain outside Git in
+`private/static-translucent-stage-20261114`.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.

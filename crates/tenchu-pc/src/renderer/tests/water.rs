@@ -154,6 +154,7 @@ fn water_and_waterfalls_on_actual_geometry() {
             }
             review.configure(graphics.clone());
             let models = review.models(&game.mission).unwrap();
+            let translucent = crate::render_effects::Stage::new(&game, &models);
             let vertices = render_mesh::stage(&game.mission, &game.math, Some(&models));
             let stage = review.renderer.upload(&vertices);
             let shadow_vertices =
@@ -201,7 +202,7 @@ fn water_and_waterfalls_on_actual_geometry() {
                 let camera =
                     Mat4::perspective_rh(55.0_f32.to_radians(), 1280.0 / 720.0, 10.0, 200000.0)
                         * Mat4::look_at_rh(eye, target, Vec3::NEG_Y);
-                let mut geometry = crate::render_effects::build_presented(
+                let mut geometry = crate::render_effects::build_presented_with_stage(
                     &game,
                     false,
                     None,
@@ -209,6 +210,7 @@ fn water_and_waterfalls_on_actual_geometry() {
                     Some(&models),
                     None,
                     crate::render_effects::Style::default(),
+                    translucent.as_ref(),
                 );
                 let mist = spray.geometry(5.0, camera, &graphics.water);
                 let expected = full_spray.geometry(5.0, camera, &graphics.water);

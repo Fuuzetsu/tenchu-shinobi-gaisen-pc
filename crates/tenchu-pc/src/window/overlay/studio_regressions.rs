@@ -97,6 +97,30 @@ fn geometry_digest(app: &Application) -> String {
 
 fn geometry(app: &Application) -> Vec<u8> {
     let game = &app.campaign.game;
+    let view = app.view.as_ref().unwrap();
+    let effects = |stage| {
+        crate::render_effects::build_presented_with_stage(
+            game,
+            false,
+            None,
+            app.settings.graphics.blob_shadows,
+            Some(&view.models),
+            None,
+            crate::render_effects::Style::from(&app.settings),
+            stage,
+        )
+    };
+    let cached = effects(view.translucent_stage.as_ref());
+    let rebuilt = effects(None);
+    assert!(
+        bytemuck::cast_slice::<_, u8>(&cached.vertices)
+            == bytemuck::cast_slice::<_, u8>(&rebuilt.vertices),
+        "translucent terrain cache must follow authoring edits and playtest reloads"
+    );
+    assert_eq!(cached.batches.len(), rebuilt.batches.len());
+    for (a, b) in cached.batches.iter().zip(&rebuilt.batches) {
+        assert_eq!((a.blend, &a.range), (b.blend, &b.range));
+    }
     let mut vertices = crate::render_mesh::stage(
         &game.mission,
         &game.math,

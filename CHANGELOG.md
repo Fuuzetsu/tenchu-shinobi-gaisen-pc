@@ -7,6 +7,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Reduce CPU work when sorting large groups of translucent effects, including
   detailed waterfalls. Preserve equal-depth blend order and coplanar stain layering.
+- Reuse prepared translucent terrain in T1 and Level Studio, including detailed
+  waterfalls. Camera-dependent blend order stays live, and terrain edits or
+  graphics changes rebuild the cached geometry.
 
 ## 0.35.5 — 2026-11-14
 
