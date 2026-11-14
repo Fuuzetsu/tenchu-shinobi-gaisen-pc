@@ -36,7 +36,7 @@ struct Entry {
     blood_hd: bool,
     shadow_caster: bool,
     id: String,
-    original: Image,
+    original: Arc<Image>,
     image: Image,
     replaced: bool,
     authored: bool,
@@ -277,7 +277,7 @@ impl Materials {
             let rgba = region.pixels(vram);
             if rgba != entry.original.rgba {
                 self.shadows_dirty |= entry.shadow_caster && !entry.replaced;
-                entry.original.rgba = rgba;
+                Arc::make_mut(&mut entry.original).rgba = rgba;
                 entry.dirty |= entry.blood_hd;
                 entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
             }
@@ -359,6 +359,9 @@ impl Materials {
         }
         let key = (material.id.clone(), material.animation, blood_hd);
         let id = if let Some(&id) = self.external.get(&key) {
+            if Arc::ptr_eq(&self.entries[id as usize - 1].original, &material.image) {
+                return id;
+            }
             id
         } else {
             let id = self.entries.len() as u32 + 1;
@@ -367,7 +370,7 @@ impl Materials {
                 blood_hd,
                 shadow_caster: false,
                 id: material.id.clone(),
-                original: (*material.image).clone(),
+                original: material.image.clone(),
                 image: (*material.image).clone(),
                 replaced: true,
                 authored: false,
@@ -386,7 +389,7 @@ impl Materials {
             id
         };
         let entry = &mut self.entries[id as usize - 1];
-        entry.original = (*material.image).clone();
+        entry.original = material.image.clone();
         entry.animation = material.animation;
         entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
         id
@@ -487,7 +490,7 @@ impl Materials {
                 &region.original_pixels(&self.vram),
             ),
             image: original.clone(),
-            original,
+            original: Arc::new(original),
             replaced: false,
             authored: false,
             scroll: region.scroll_offset(&self.vram),
@@ -545,7 +548,7 @@ impl Materials {
                     .enabled
                     .then(|| self.textures.get(&entry.id))
                     .flatten()
-                    .map_or(&entry.original, |image| image.as_ref());
+                    .map_or(entry.original.as_ref(), |image| image.as_ref());
                 entry.detail = relief::mips(image, explicit, &sizes);
                 if entry.detail.is_empty() {
                     entry.detail = sizes

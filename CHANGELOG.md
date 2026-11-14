@@ -9,6 +9,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   from waterfall geometry, avoiding redundant geometry copies during uploads,
   and skipping unused curvature data for meshes that only need smooth lighting.
   Geometry, effects and graphics presets are preserved.
+- Further speed up edits to imported T2 terrain by sharing texture analysis
+  with artwork selection and reusing unchanged image data during material binding.
+  Edited assets, scrolling textures and artwork switches still refresh normally.
 
 ## 0.35.2 — 2026-11-14
 

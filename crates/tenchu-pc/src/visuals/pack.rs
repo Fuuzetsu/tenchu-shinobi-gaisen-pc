@@ -102,25 +102,42 @@ impl Selection {
     }
 
     fn models(vram: &tenchu_assets::texture::Vram, models: &[catalog::ModelSource<'_>]) -> Self {
-        let originals = catalog::model_regions(vram, models)
-            .into_iter()
-            .map(|(region, id)| {
+        let regions = catalog::model_regions(vram, models);
+        let mut selection = Self::model_inputs(&regions, models);
+        selection.read_originals(vram, &regions);
+        selection
+    }
+
+    fn model_inputs(
+        regions: &BTreeMap<catalog::Region, String>,
+        models: &[catalog::ModelSource<'_>],
+    ) -> Self {
+        Self {
+            max_pixels: MAX_PIXELS,
+            textures: regions.values().cloned().collect(),
+            originals: BTreeMap::new(),
+            models: models.iter().map(|m| m.id.clone()).collect(),
+            player_models: false,
+        }
+    }
+
+    fn read_originals(
+        &mut self,
+        vram: &tenchu_assets::texture::Vram,
+        regions: &BTreeMap<catalog::Region, String>,
+    ) {
+        self.originals = regions
+            .iter()
+            .map(|(&region, id)| {
                 (
-                    id,
+                    id.clone(),
                     Image {
                         size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
                         rgba: region.original_pixels(vram),
                     },
                 )
             })
-            .collect::<BTreeMap<_, _>>();
-        Self {
-            max_pixels: MAX_PIXELS,
-            textures: originals.keys().cloned().collect(),
-            originals,
-            models: models.iter().map(|m| m.id.clone()).collect(),
-            player_models: false,
-        }
+            .collect();
     }
 
     fn interface(originals: BTreeMap<String, Image>) -> Self {
@@ -249,10 +266,17 @@ impl Pack {
         &mut self,
         vram: &tenchu_assets::texture::Vram,
         models: &[catalog::ModelSource<'_>],
+        textures: &catalog::Textures,
     ) -> Result<bool> {
-        self.extend_selected(Selection::models(vram, models), |selection| {
-            Self::model_selection(selection, models)
-        })
+        self.extend_selected(
+            Selection::model_inputs(&textures.regions, models),
+            |mut selection| {
+                // A newly selected model can refer to a recipe for an already
+                // loaded texture, so supply all source images on an actual load.
+                selection.read_originals(vram, &textures.regions);
+                Self::model_selection(selection, models)
+            },
+        )
     }
 
     fn extend_selected(
@@ -822,9 +846,13 @@ mod tests {
             },
             "surfaces": {"snow": {"height": "missing-height.png", "strength": 1.0}},
             "water": {"roof": "off", "blade": "surface", "snow": "waterfall"},
-            "models": {"weapons/1": "blade.obj", "stages/snow/map/0": "missing.obj"},
+            "models": {
+                "weapons/1": "blade.obj", "weapons/2": "roof.obj",
+                "stages/snow/map/0": "missing.obj"
+            },
             "materials": {
                 "steel": {"texture": "blade"},
+                "roof-material": {"texture": "roof"},
                 "unused": {"texture": "unavailable"}
             }
         });
@@ -913,6 +941,51 @@ mod tests {
                 .unwrap();
             assert_eq!(error, format!("Missing {missing}"));
         }
+
+        let regions = BTreeMap::from([(
+            catalog::Region {
+                page: 256,
+                palette: 0,
+                rect: [0, 0, 1, 1],
+            },
+            "roof".into(),
+        )]);
+        let selection = Selection::model_inputs(
+            &regions,
+            &[catalog::ModelSource {
+                role: catalog::Role::Other,
+                hero_part: None,
+                id: "weapons/2".into(),
+                label: "Recipe dependency".into(),
+                geometry: &[],
+            }],
+        );
+        reads.clear();
+        assert!(
+            pack.extend_selected(selection, |mut selection| {
+                assert!(selection.textures.is_empty(), "roof is already loaded");
+                selection.read_originals(&tenchu_assets::texture::Vram::default(), &regions);
+                Pack::decode(
+                    serde_json::from_value(manifest.clone()).unwrap(),
+                    Some(selection),
+                    |path, _| {
+                        reads.push(path.to_owned());
+                        match path {
+                            "roof.png" => Ok(png.clone()),
+                            "roof.obj" => Ok(
+                                b"v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl roof-material\nf 1 2 3\n"
+                                    .to_vec(),
+                            ),
+                            _ => Err(format!("Unexpected dependency read: {path}")),
+                        }
+                    },
+                )
+            })
+            .unwrap()
+        );
+        assert_eq!(reads, ["roof.obj", "roof.png"]);
+        assert!(pack.models.contains_key("weapons/2"));
+        assert_eq!(pack.images["roof"].rgba, [255; 4]);
 
         let failed = Pack::decode(
             serde_json::from_value(manifest).unwrap(),

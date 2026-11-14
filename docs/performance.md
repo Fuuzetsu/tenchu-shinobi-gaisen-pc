@@ -56,23 +56,29 @@ Raw timings, settings and screenshots remain outside Git under
 `private/studio-performance-20261114`. These are controlled authoring/presentation
 fixtures, not ordinary-play retail comparisons.
 
-The next preparation pass restricts mist setup to waterfall meshes, sorts
-references to shadow triangles before copying them once, transfers owned stage
-geometry directly to upload, and skips curvature adjacency for lighting-only
-smoothing. A fresh v0.35.2 baseline on the same hardware/settings measures:
+Further preparation changes restrict mist setup to waterfall meshes, sort
+references to shadow triangles before copying them once, transfer owned stage
+geometry directly to upload, and skip curvature adjacency for lighting-only
+smoothing. Imported terrain shares texture analysis with artwork selection;
+original texture pixels are decoded only when new artwork needs loading.
+Material binding retains shared source images so unchanged imports avoid copies.
+A fresh v0.35.2 baseline on the same hardware/settings measures:
 
 | Authoring operation | v0.35.2 | Further preparation changes |
 | --- | ---: | ---: |
-| Lighting/events trap/pit edit, median of three | 28.5 ms | 26.5 ms |
-| T1 campaign terrain elevation edit | 86.7 ms | 72.1 ms |
-| T2 campaign terrain elevation edit | 102.4 ms | 85.5 ms |
-| Mixed garden ornament placement | 20.3 ms | 19.9 ms |
+| Lighting/events trap/pit edit, median of three | 28.5 ms | 27.0 ms |
+| T1 campaign terrain elevation edit | 86.7 ms | 70.7 ms |
+| T2 campaign terrain elevation edit | 102.4 ms | 67.1 ms |
+| Mixed garden ornament placement | 20.3 ms | 20.8 ms |
 
 Campaign/mixed entries remain individual edits. Preview CPU/GPU p95 is
-2.62/2.55 ms versus 2.73/2.53 ms before; the improvement is scene preparation.
-Eight captures are identical; T1 differs at nine pixels by one channel unit.
+2.48/2.53 ms versus 2.73/2.53 ms before; the improvement is scene preparation.
+Eight captures are identical; T1 differs at 26 pixels by one channel unit.
 Filtered waterfall spray matches the full-scene calculation byte for byte on
 the village and waterfall missions at every tested water-detail setting.
+GPU atlas checks cover shared-image edits, artwork toggles, animated textures,
+VRAM changes and refined blood. New model recipes still receive original disc
+textures even when those textures were already selected by an earlier load.
 Evidence remains outside Git in `private/studio-performance-continuous-20261114`.
 
 ## Quality and automatic tuning

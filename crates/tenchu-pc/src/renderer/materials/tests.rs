@@ -1,6 +1,109 @@
 use super::*;
 
 #[test]
+#[ignore = "requires a GPU; shared external images must avoid rebinding work while edits, artwork switches and animations remain current"]
+fn shared_external_images_keep_updates_and_artwork_switches() {
+    let (mut renderer, _) = crate::renderer::tests::fixture(&Vram::default());
+    let mut source = crate::visuals::models::Material {
+        id: "custom-terrain".into(),
+        region: None,
+        image: Arc::new(Image {
+            size: [8, 8],
+            rgba: [200, 10, 20, 255].repeat(64),
+        }),
+        animation: None,
+    };
+    let flush = |renderer: &mut crate::renderer::Renderer| {
+        renderer
+            .materials
+            .flush(&renderer.device, &renderer.queue, 0.0)
+            .unwrap();
+        assert_atlas_pixels(renderer);
+    };
+    let handle = renderer.materials.bind(&source);
+    flush(&mut renderer);
+    let image = renderer.materials.entries[handle as usize - 1]
+        .image
+        .rgba
+        .as_ptr();
+    for _ in 0..10 {
+        assert_eq!(renderer.materials.bind(&source), handle);
+        assert_eq!(
+            renderer.materials.entries[handle as usize - 1]
+                .image
+                .rgba
+                .as_ptr(),
+            image
+        );
+        assert!(
+            !renderer
+                .materials
+                .flush(&renderer.device, &renderer.queue, 0.0)
+                .unwrap()
+        );
+    }
+    Arc::make_mut(&mut source.image).rgba = [0, 200, 0, 255].repeat(64);
+    assert_eq!(renderer.materials.bind(&source), handle);
+    assert_eq!(
+        renderer.materials.entries[handle as usize - 1].image.rgba,
+        source.image.rgba
+    );
+    flush(&mut renderer);
+
+    renderer.materials.set_pack(&crate::visuals::pack::Pack {
+        textures: [(
+            source.id.clone(),
+            Arc::new(Image {
+                size: [8, 8],
+                rgba: [0, 0, 200, 255].repeat(64),
+            }),
+        )]
+        .into(),
+        ..Default::default()
+    });
+    for artwork in [true, false, true] {
+        renderer.materials.configure(&crate::settings::Graphics {
+            asset_pack: artwork,
+            ..Default::default()
+        });
+        assert_eq!(renderer.materials.bind(&source), handle);
+        assert_eq!(
+            renderer.materials.entries[handle as usize - 1].image.rgba,
+            if artwork {
+                [0, 0, 200, 255].repeat(64)
+            } else {
+                source.image.rgba.clone()
+            }
+        );
+        flush(&mut renderer);
+    }
+    source.animation = Some(tenchu_assets::texture::TextureScroll {
+        image: tenchu_assets::texture::Image {
+            page: 0,
+            palette: 0,
+            uv: [0, 0],
+            size: [8, 8],
+        },
+        velocity: [1, -1],
+        delay: 0,
+        water: true,
+    });
+    let animated = renderer.materials.bind(&source);
+    assert_ne!(animated, handle);
+    flush(&mut renderer);
+    renderer
+        .materials
+        .flush(&renderer.device, &renderer.queue, 2.0 / 30.0)
+        .unwrap();
+    assert_eq!(renderer.materials.bind(&source), animated);
+    assert_eq!(
+        renderer.materials.entries[animated as usize - 1].phase,
+        [0.25, 0.75]
+    );
+    assert_atlas_pixels(&renderer);
+}
+
+#[test]
 #[ignore = "requires a GPU; refined blood is cached separately from artwork, refreshes on VRAM changes and never tags foliage"]
 fn original_hd_blood_materials_are_isolated_and_cached() {
     let mut vram = Vram::default();

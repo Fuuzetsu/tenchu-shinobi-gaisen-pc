@@ -259,14 +259,16 @@ impl Models {
     ) -> Result<()> {
         let sources = catalog::world_models(mission);
         let mut terrain = if let Some(vram) = &mission.world_vram {
+            let textures = catalog::Textures::new(vram, &sources);
             let cached = self
                 .terrain_pack
                 .as_mut()
                 .ok_or("Missing imported terrain artwork")?;
             if graphics.asset_pack {
-                cached.extend_models(vram, &sources)?;
+                cached.extend_models(vram, &sources, &textures)?;
             }
-            let mut meshes = Meshes::build(vram, cached, graphics, sources, true)?;
+            let mut meshes =
+                Meshes::build_regions(vram, cached, graphics, sources, true, &textures)?;
             meshes.detach_textures();
             if graphics.asset_pack {
                 meshes.replace_textures(cached);
