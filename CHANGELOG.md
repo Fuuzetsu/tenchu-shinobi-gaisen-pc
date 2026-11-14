@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep object identifiers visible on T2 scenery gallery cards instead of
+  shortening every label to the game name.
+
 ## 0.35.10 — 2026-11-14
 
 - Select visible campaign walls in Level Studio, along with floors and roofs.

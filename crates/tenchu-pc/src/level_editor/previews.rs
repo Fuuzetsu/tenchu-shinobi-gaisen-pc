@@ -256,7 +256,8 @@ impl Editor {
                                         self.previews.show(ui, key.clone(), egui::vec2(width, 120.0));
                                         ui.allocate_ui(egui::vec2(width, 32.0), |ui| {
                                             ui.spacing_mut().item_spacing.y = 0.0;
-                                            ui.add_sized([width, 16.0], egui::Label::new(name.split(" · ").next().unwrap_or(name)).truncate());
+                                            let short_name = if matches!(key, Key::Scenery(AssetGame::Tenchu2, _, _)) { name.rsplit(" · ").next() } else { name.split(" · ").next() }.unwrap_or(name);
+                                            ui.add_sized([width, 16.0], egui::Label::new(short_name).truncate());
                                             let label = match key {
                                                 Key::Character(id) => match source(id) { 2 => "Tenchu 2 · EU", 3 => "Tenchu 2 · JP", _ => "Tenchu 1" },
                                                 Key::Scenery(AssetGame::Tenchu2, _, _) => "Tenchu 2",
