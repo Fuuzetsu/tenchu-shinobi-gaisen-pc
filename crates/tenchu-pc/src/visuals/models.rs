@@ -461,6 +461,16 @@ impl Models {
         )
     }
 
+    pub fn append_indexed_static(
+        &self,
+        output: &mut render_mesh::Indexed,
+        geometry: &[Geometry],
+        matrix: Matrix,
+    ) -> bool {
+        self.source(geometry)
+            .append_indexed(output, geometry, matrix, true, None, &[])
+    }
+
     pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(meshes) = self.cast.source(geometry) {

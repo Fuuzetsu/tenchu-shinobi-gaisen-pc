@@ -1,6 +1,78 @@
 use super::*;
 
 #[test]
+#[ignore = "requires a GPU; indexed static uploads must retain original texture bindings, pixels and shadow bounds"]
+fn indexed_static_upload_preserves_original_texture_pixels() {
+    let mut vram = Vram::default();
+    for y in 0..8 {
+        for x in 0..8 {
+            vram.words[y * 1024 + x] = if x < 4 { 31 } else { 31 << 5 };
+        }
+    }
+    let image = tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [8, 8],
+    };
+    vram.images.push(image);
+    let (mut renderer, target) = crate::renderer::tests::fixture(&vram);
+    let mut expanded = crate::render_effects::quad(
+        [
+            [-0.8, -0.8, 0.5],
+            [0.8, -0.8, 0.5],
+            [-0.8, 0.8, 0.5],
+            [0.8, 0.8, 0.5],
+        ],
+        [[1.; 3]; 4],
+        Some(image),
+        0,
+    );
+    for vertex in &mut expanded {
+        vertex.flags = (vertex.flags & !render_mesh::SCREEN)
+            | render_mesh::SCENERY
+            | render_mesh::DOUBLE_SIDED;
+    }
+    let original = renderer.upload(&expanded);
+    let capture = |renderer: &mut crate::renderer::Renderer, mesh: &crate::renderer::Mesh| {
+        renderer
+            .draw(
+                &target.create_view(&Default::default()),
+                glam::Mat4::IDENTITY,
+                &[mesh],
+                None,
+            )
+            .unwrap();
+        crate::renderer::tests::read_pixels(renderer, &target)
+    };
+    let before = capture(&mut renderer, &original);
+    assert!(before.chunks_exact(4).any(|p| p[0] > 100 || p[1] > 100));
+    renderer.reset_vram(&vram);
+    let indexed = renderer.upload_indexed(render_mesh::Indexed {
+        vertices: [0, 1, 2, 4].map(|i| expanded[i]).to_vec(),
+        indices: vec![0, 1, 2, 1, 3, 2],
+        ..Default::default()
+    });
+    assert_eq!(indexed.count, original.count);
+    assert_eq!(indexed.bounds, original.bounds);
+    assert_eq!(indexed.scenery, original.scenery);
+    assert_eq!(capture(&mut renderer, &indexed), before);
+    assert!(renderer.materials.entries.iter().all(|e| e.shadow_caster));
+    assert_atlas_pixels(&renderer);
+    renderer.reset_vram(&vram);
+    let sequential = renderer.upload_indexed(render_mesh::Indexed {
+        indices: (0..expanded.len() as u32).collect(),
+        vertices: expanded,
+        ..Default::default()
+    });
+    assert!(
+        sequential.indices.is_none(),
+        "unshared geometry needs no index buffer"
+    );
+    assert_eq!(capture(&mut renderer, &sequential), before);
+}
+
+#[test]
 #[ignore = "requires a GPU; shared external images must avoid rebinding work while edits, artwork switches and animations remain current"]
 fn shared_external_images_keep_updates_and_artwork_switches() {
     let (mut renderer, _) = crate::renderer::tests::fixture(&Vram::default());

@@ -46,11 +46,26 @@ struct Indices {
 }
 
 impl Mesh {
-    fn is_scenery(vertices: &[Vertex]) -> bool {
+    fn new(device: &wgpu::Device, vertices: &[Vertex]) -> Self {
+        Self {
+            posed: None,
+            material_batches: Vec::new(),
+            indices: None,
+            revision: 0,
+            dynamic: false,
+            scenery: false,
+            shadow_chunks: Vec::new(),
+            bounds: None,
+            vertices: geometry::Buffers::new(device, vertices),
+            count: 0,
+        }
+    }
+
+    fn is_scenery<'a>(vertices: impl IntoIterator<Item = &'a Vertex>) -> bool {
         use crate::render_mesh::{
             ALPHA, DEBUG, FOOTPRINT, SCENERY, SCREEN, SKY, STAIN, UI, WET_CONTACT,
         };
-        vertices.iter().all(|v| {
+        vertices.into_iter().all(|v| {
             v.flags
                 & (SCENERY | SCREEN | DEBUG | UI | SKY | STAIN | ALPHA | FOOTPRINT | WET_CONTACT)
                 == SCENERY
@@ -69,6 +84,28 @@ impl Mesh {
             );
         }
         self.bounds = culling::update_chunks(vertices, &mut self.shadow_chunks);
+    }
+
+    fn set_indexed_geometry(&mut self, geometry: &crate::render_mesh::Indexed) {
+        self.revision += 1;
+        self.count = geometry.indices.len() as u32;
+        self.scenery = Self::is_scenery(
+            geometry
+                .indices
+                .iter()
+                .map(|&i| &geometry.vertices[i as usize]),
+        );
+        self.material_batches.clear();
+        if self.scenery {
+            wet_lighting::update_batches(
+                &mut self.material_batches,
+                geometry
+                    .indices
+                    .iter()
+                    .map(|&i| geometry.vertices[i as usize].flags),
+            );
+        }
+        self.bounds = culling::update_indexed_chunks(geometry, &mut self.shadow_chunks);
     }
 
     fn bind(&self, pass: &mut wgpu::RenderPass<'_>) {
@@ -510,19 +547,34 @@ impl Renderer {
 
     pub fn upload_owned(&mut self, mut vertices: Vec<Vertex>) -> Mesh {
         self.materials.annotate(&mut vertices);
-        let mut mesh = Mesh {
-            posed: None,
-            material_batches: Vec::new(),
-            indices: None,
-            revision: 0,
-            dynamic: false,
-            scenery: false,
-            shadow_chunks: Vec::new(),
-            bounds: None,
-            vertices: geometry::Buffers::new(&self.device, &vertices),
-            count: 0,
-        };
+        let mut mesh = Mesh::new(&self.device, &vertices);
         mesh.set_geometry(&vertices);
+        mesh
+    }
+
+    pub fn upload_indexed(&mut self, mut geometry: crate::render_mesh::Indexed) -> Mesh {
+        if geometry
+            .indices
+            .iter()
+            .copied()
+            .eq(0..geometry.vertices.len() as u32)
+        {
+            return self.upload_owned(geometry.vertices);
+        }
+        self.materials
+            .annotate_indexed(&mut geometry.vertices, &geometry.indices);
+        let mut mesh = Mesh::new(&self.device, &geometry.vertices);
+        mesh.set_indexed_geometry(&geometry);
+        mesh.indices = Some(Indices {
+            buffer: self
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Static mesh indices"),
+                    contents: bytemuck::cast_slice(&geometry.indices),
+                    usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+                }),
+            data: Vec::new(),
+        });
         mesh
     }
 
@@ -556,21 +608,8 @@ impl Renderer {
         geometry: &mut crate::render_mesh::Indexed,
     ) {
         mesh.dynamic = true;
-        mesh.revision += 1;
-        mesh.count = geometry.indices.len() as u32;
         self.materials.annotate(&mut geometry.vertices);
-        mesh.scenery = Mesh::is_scenery(&geometry.vertices);
-        mesh.material_batches.clear();
-        if mesh.scenery {
-            wet_lighting::update_batches(
-                &mut mesh.material_batches,
-                geometry
-                    .indices
-                    .iter()
-                    .map(|&i| geometry.vertices[i as usize].flags),
-            );
-        }
-        mesh.bounds = culling::update_indexed_chunks(geometry, &mut mesh.shadow_chunks);
+        mesh.set_indexed_geometry(geometry);
         if let Some(frame) = geometry
             .poses
             .as_ref()

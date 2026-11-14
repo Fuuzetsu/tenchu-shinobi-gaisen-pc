@@ -454,8 +454,11 @@ impl View {
         surface.configure(&renderer.device, &config);
         #[cfg(target_os = "android")]
         crate::android::graphics_stage("Uploading terrain, actors and effects");
-        let stage =
-            renderer.upload_owned(render_mesh::stage(&game.mission, &game.math, Some(&models)));
+        let stage = renderer.upload_indexed(render_mesh::indexed_stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
         let spray = crate::visuals::water::Spray::stage(&game.mission, &game.math, &models);
         let mut actor = renderer.upload(&[]);
         let mut actor_vertices = render_mesh::Indexed {
@@ -806,7 +809,7 @@ impl View {
         self.weather.invalidate_surfaces();
         self.motion = Default::default();
         self.spray = crate::visuals::water::Spray::stage(&game.mission, &game.math, &self.models);
-        self.stage = self.renderer.upload_owned(render_mesh::stage(
+        self.stage = self.renderer.upload_indexed(render_mesh::indexed_stage(
             &game.mission,
             &game.math,
             Some(&self.models),

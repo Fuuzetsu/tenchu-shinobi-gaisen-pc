@@ -81,6 +81,25 @@ VRAM changes and refined blood. New model recipes still receive original disc
 textures even when those textures were already selected by an earlier load.
 Evidence remains outside Git in `private/studio-performance-continuous-20261114`.
 
+Static scenery now uploads shared vertices and triangle indices. On the sampled
+T1/T2 campaign edit states, visible terrain buffer data falls from approximately
+20.5/13.6 MB to 11.9/6.9 MB, including indices. These figures exclude textures,
+shadow geometry and other GPU resources. Unshared geometry retains its previous
+upload path. Expanded triangles, attributes and source game state are unchanged.
+
+A fresh v0.35.3 (`a2a9f727`) comparison on the same settings/hardware measured T1
+terrain editing at 67.6 → 61.9 ms, T2 at 64.5 → 64.6 ms, mixed ornament placement
+at 20.4 → 19.1 ms, and the three example edits at median 27.0 → 26.1 ms. Campaign
+entries are single edits. Preview GPU p95 remains about 2.54 ms; CPU p95 is
+2.53 → 2.40 ms, with variable medians. This is an upload/memory improvement, not
+a claimed interactive frame-rate increase. Eight captures are identical; the
+T1 view differs at 25 pixels by one channel unit.
+
+Source and enhanced geometry comparisons cover Original, High and Ultra plus
+mixed T1/T2 Studio maps. GPU comparisons cover original texture bindings,
+weather, water, wind, cutouts, emission, HDR and MSAA, and both games' animated
+character poses. Evidence: `private/studio-indexed-stage-20261114` outside Git.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.

@@ -70,6 +70,14 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
     }
     let mut terrain = renderer.upload(&vertices);
     assert!(terrain.scenery);
+    let mut shared = Indexed::default();
+    for quad in vertices.chunks_exact(6) {
+        let base = shared.vertices.len() as u32;
+        shared.vertices.extend([0, 1, 2, 4].map(|i| quad[i]));
+        shared.indices.extend([0, 1, 2, 1, 3, 2].map(|i| base + i));
+    }
+    let indexed = renderer.upload_indexed(shared);
+    assert!(indexed.scenery);
     let actor = renderer.upload(&rectangle(1000, 90, None, false, false, false));
     assert!(!actor.scenery);
     let camera = Mat4::orthographic_rh(-2200.0, 2200.0, -2200.0, 2200.0, 1.0, 20000.0)
@@ -132,6 +140,11 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
                 graphics.rendering.shared_forward_lighting = true;
                 renderer.configure(&graphics);
                 let actual = capture(&mut renderer, &terrain);
+                assert_eq!(
+                    capture(&mut renderer, &indexed),
+                    actual,
+                    "indexed scenery: samples {samples}, weather {mode:?}, time {time}"
+                );
                 let differences: Vec<_> = actual
                     .iter()
                     .zip(&expected)

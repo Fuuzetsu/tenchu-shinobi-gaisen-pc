@@ -90,6 +90,16 @@ fn geometry(app: &Application) -> Vec<u8> {
         &game.math,
         Some(&app.view.as_ref().unwrap().models),
     );
+    let indexed = crate::render_mesh::indexed_stage(
+        &game.mission,
+        &game.math,
+        Some(&app.view.as_ref().unwrap().models),
+    );
+    assert_eq!(
+        bytemuck::cast_slice::<_, u8>(&indexed.expanded()),
+        bytemuck::cast_slice::<_, u8>(&vertices),
+        "indexed stage must preserve every triangle and attribute"
+    );
     // Renderer material handles may be assigned in a different order after a
     // full reload. The geometry, UVs, colors and rendering flags must agree.
     for vertex in &mut vertices {

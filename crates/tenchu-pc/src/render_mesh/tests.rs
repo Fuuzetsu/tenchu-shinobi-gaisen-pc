@@ -2,6 +2,43 @@ use super::*;
 use tenchu_assets::game::GameAssets;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; indexed static terrain must preserve source and enhanced triangle order and attributes"]
+fn indexed_stage_preserves_source_and_enhanced_triangles() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+    for mission in [1, 4, 9] {
+        let game = crate::session::Options {
+            mission,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        let state = crate::session::tests::state(&game);
+        let compare = |models: Option<&Models>| {
+            let indexed = indexed_stage(&game.mission, &game.math, models);
+            let expanded = stage(&game.mission, &game.math, models);
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&indexed.expanded()),
+                bytemuck::cast_slice::<_, u8>(&expanded)
+            );
+        };
+        compare(None);
+        let pack = crate::visuals::pack::Pack::from_env(&game.mission).unwrap();
+        for preset in [
+            0,
+            crate::settings::presets::MODERN_HIGH,
+            crate::settings::presets::MODERN_ULTRA,
+        ] {
+            let mut graphics = crate::settings::Graphics::default();
+            graphics.set_preset(preset);
+            let models = Models::build(&game.mission, &pack, &graphics).unwrap();
+            compare(Some(&models));
+        }
+        assert_eq!(crate::session::tests::state(&game), state);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; shared vertices must retain every original/refined triangle through animation and interpolation"]
 fn indexed_characters_preserve_expanded_poses() {
     let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");

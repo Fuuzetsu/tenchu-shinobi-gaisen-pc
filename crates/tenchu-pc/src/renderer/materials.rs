@@ -406,65 +406,87 @@ impl Materials {
 
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
         for triangle in vertices.chunks_exact_mut(3) {
-            let first = triangle[0];
-            let shadow_caster = first.flags
-                & (render_mesh::TEXTURED
-                    | render_mesh::SCREEN
-                    | render_mesh::DEBUG
-                    | render_mesh::ALPHA
-                    | render_mesh::WATER)
-                == render_mesh::TEXTURED;
-            if first.material != 0 {
-                if shadow_caster
-                    && let Some(entry) = self.entries.get_mut(first.material as usize - 1)
-                {
-                    entry.shadow_caster = true;
-                }
-                continue;
-            }
-            let blood_hd = render_mesh::original_hd_blood(first.flags);
-            if first.flags & (render_mesh::DEBUG | render_mesh::TEXTURED) != render_mesh::TEXTURED
-                || !blood_hd
-                    && first.flags & (render_mesh::STAIN | render_mesh::SOFT) == render_mesh::STAIN
+            let unbound = triangle[0].material == 0;
+            if let Some(id) = self.annotate_triangle(std::array::from_fn(|i| &triangle[i]))
+                && unbound
             {
-                if shadow_caster {
-                    self.raw_shadow_pages.insert(Region {
-                        page: first.page as u16,
-                        palette: first.palette as u16,
-                        rect: [0, 0, 256, 256],
-                    });
+                for vertex in triangle {
+                    vertex.material = id;
                 }
-                continue;
-            }
-            let mut bounds = [255, 255, 0, 0];
-            for vertex in triangle.iter() {
-                for axis in 0..2 {
-                    let uv = vertex.uv[axis].clamp(0.0, 255.0) as u16;
-                    bounds[axis] = bounds[axis].min(uv);
-                    bounds[axis + 2] = bounds[axis + 2].max(uv);
-                }
-            }
-            let key = (first.page as u16, first.palette as u16, bounds, blood_hd);
-            let id = if let Some(&id) = self.lookups.get(&key) {
-                id
-            } else {
-                let region = Region::find(
-                    &self.vram,
-                    Texture {
-                        page: key.0,
-                        palette: key.1,
-                    },
-                    bounds,
-                );
-                let id = self.register_variant(region, blood_hd);
-                self.lookups.insert(key, id);
-                id
-            };
-            self.entries[id as usize - 1].shadow_caster |= shadow_caster;
-            for vertex in triangle {
-                vertex.material = id;
             }
         }
+    }
+
+    pub fn annotate_indexed(&mut self, vertices: &mut [Vertex], indices: &[u32]) {
+        for triangle in indices.chunks_exact(3) {
+            if let Some(id) =
+                self.annotate_triangle(std::array::from_fn(|i| &vertices[triangle[i] as usize]))
+            {
+                for &index in triangle {
+                    if vertices[index as usize].material == 0 {
+                        vertices[index as usize].material = id;
+                    }
+                }
+            }
+        }
+    }
+
+    fn annotate_triangle(&mut self, triangle: [&Vertex; 3]) -> Option<u32> {
+        let first = *triangle[0];
+        let shadow_caster = first.flags
+            & (render_mesh::TEXTURED
+                | render_mesh::SCREEN
+                | render_mesh::DEBUG
+                | render_mesh::ALPHA
+                | render_mesh::WATER)
+            == render_mesh::TEXTURED;
+        if first.material != 0 {
+            if shadow_caster && let Some(entry) = self.entries.get_mut(first.material as usize - 1)
+            {
+                entry.shadow_caster = true;
+            }
+            return Some(first.material);
+        }
+        let blood_hd = render_mesh::original_hd_blood(first.flags);
+        if first.flags & (render_mesh::DEBUG | render_mesh::TEXTURED) != render_mesh::TEXTURED
+            || !blood_hd
+                && first.flags & (render_mesh::STAIN | render_mesh::SOFT) == render_mesh::STAIN
+        {
+            if shadow_caster {
+                self.raw_shadow_pages.insert(Region {
+                    page: first.page as u16,
+                    palette: first.palette as u16,
+                    rect: [0, 0, 256, 256],
+                });
+            }
+            return None;
+        }
+        let mut bounds = [255, 255, 0, 0];
+        for vertex in triangle.iter() {
+            for axis in 0..2 {
+                let uv = vertex.uv[axis].clamp(0.0, 255.0) as u16;
+                bounds[axis] = bounds[axis].min(uv);
+                bounds[axis + 2] = bounds[axis + 2].max(uv);
+            }
+        }
+        let key = (first.page as u16, first.palette as u16, bounds, blood_hd);
+        let id = if let Some(&id) = self.lookups.get(&key) {
+            id
+        } else {
+            let region = Region::find(
+                &self.vram,
+                Texture {
+                    page: key.0,
+                    palette: key.1,
+                },
+                bounds,
+            );
+            let id = self.register_variant(region, blood_hd);
+            self.lookups.insert(key, id);
+            id
+        };
+        self.entries[id as usize - 1].shadow_caster |= shadow_caster;
+        Some(id)
     }
 
     #[cfg(test)]

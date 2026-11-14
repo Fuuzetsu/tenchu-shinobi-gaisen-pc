@@ -465,6 +465,21 @@ pub fn stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> V
     vertices
 }
 
+pub fn indexed_stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> Indexed {
+    let mut out = Indexed::default();
+    visit_stage(mission, math, |geometry, matrix| {
+        if !models.is_some_and(|models| models.append_indexed_static(&mut out, geometry, matrix)) {
+            let base = out.vertices.len() as u32;
+            append_geometry(&mut out.vertices, geometry, matrix, None);
+            out.indices.extend(base..out.vertices.len() as u32);
+        }
+    });
+    for vertex in &mut out.vertices {
+        vertex.flags |= SCENERY;
+    }
+    out
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn characters(game: &tenchu_core::game::Game, models: Option<&Models>) -> Vec<Vertex> {
     characters_presented(game, models, false, None)
