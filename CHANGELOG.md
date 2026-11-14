@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.5 — 2026-11-14
+
 - Reduce Studio edit stalls by sharing texture analysis between artwork,
   terrain and lighting preparation. Cached artwork avoids decoding unchanged
   model textures again while new assets retain their sprite and recipe inputs.
