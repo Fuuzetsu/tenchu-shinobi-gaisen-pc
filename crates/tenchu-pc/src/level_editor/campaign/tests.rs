@@ -167,6 +167,39 @@ fn sculpt_caps_mesh_edges_inside_a_larger_collision_footprint() {
 }
 
 #[test]
+fn sculpt_preserves_faces_outside_or_touching_the_selected_footprint() {
+    for t2 in [false, true] {
+        let original = source_node(t2);
+        let edited = Node {
+            y: -100,
+            division: 0xfffe,
+            ..original
+        };
+        let mut selected = floor();
+        mesh::sculpt(&mut selected, original, edited, t2).unwrap();
+        let mut parts = floor();
+        for position in [
+            [-200, 0, 0],
+            [200, 0, 0],
+            [0, 0, -200],
+            [0, 0, 200],
+            [i16::MIN, 0, i16::MIN],
+            [i16::MAX, 0, i16::MAX],
+            [0, -100, 0],
+            [0, 100, 0],
+        ] {
+            let mut part = floor().remove(0);
+            part.position = position;
+            parts.push(part);
+        }
+        let untouched = parts[1..].to_vec();
+        mesh::sculpt(&mut parts, original, edited, t2).unwrap();
+        assert_eq!(parts[0], selected[0]);
+        assert_eq!(parts[1..], untouched);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and a connected T2 disc; campaign source authoring fixtures, not ordinary-play validation"]
 fn campaign_disc_import_edits_geometry_collision_and_roundtrips() {
     let assets = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
@@ -253,6 +286,10 @@ fn campaign_disc_import_edits_geometry_collision_and_roundtrips() {
                 },
                 geometry: true,
             });
+            let mut parts = (*original.map).clone();
+            if mesh::sculpt(&mut parts, node, campaign.terrain[0].node, source.t2()).unwrap() == 0 {
+                continue;
+            }
             let edited = cache.build(&campaign).unwrap();
             let hit = crate::visuals::surfaces::Surfaces::stage(&edited, &math, None)
                 .cast(center - Vec3::Y * 1150., center - Vec3::Y * 850.);

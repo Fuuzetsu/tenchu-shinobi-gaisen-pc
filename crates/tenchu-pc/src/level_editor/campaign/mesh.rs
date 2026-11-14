@@ -142,6 +142,7 @@ pub(super) fn sculpt(parts: &mut [Part], original: Node, edited: Node, t2: bool)
             .collect()
     };
     let mut changed = 0;
+    let mut vertices = Vec::new();
     for (rect, solid) in rects {
         let mut edges = std::collections::BTreeMap::new();
         let mut tails = Vec::new();
@@ -156,32 +157,53 @@ pub(super) fn sculpt(parts: &mut [Part], original: Node, edited: Node, t2: bool)
                     tails.push((part_index, geometry_index, faces.split_off(end)));
                 }
                 for face in faces {
-                    let vertices: Vec<_> = face
-                        .corners
-                        .iter()
-                        .map(|c| Vertex {
-                            point: offset
+                    if face.flags & 1 == 0 || face.corners.len() < 3 {
+                        geometry.faces.push(face);
+                        continue;
+                    }
+                    let bounds = face.corners.iter().fold(
+                        [
+                            f32::INFINITY,
+                            f32::INFINITY,
+                            f32::NEG_INFINITY,
+                            f32::NEG_INFINITY,
+                        ],
+                        |[x1, z1, x2, z2], corner| {
+                            let point = offset
                                 + Vec3::from_array(
-                                    geometry.vertices[c.vertex as usize].map(f32::from),
-                                ),
-                            uv: c.uv.map(f32::from),
-                            color: c.color.map(f32::from),
-                        })
-                        .collect();
-                    if face.flags & 1 == 0
-                        || vertices.len() < 3
-                        || (vertices[1].point - vertices[0].point)
-                            .cross(vertices[2].point - vertices[0].point)
-                            .y
-                            .abs()
-                            < 0.1
+                                    geometry.vertices[corner.vertex as usize].map(f32::from),
+                                );
+                            [
+                                x1.min(point.x),
+                                z1.min(point.z),
+                                x2.max(point.x),
+                                z2.max(point.z),
+                            ]
+                        },
+                    );
+                    if bounds[2] <= rect[0]
+                        || bounds[0] >= rect[2]
+                        || bounds[3] <= rect[1]
+                        || bounds[1] >= rect[3]
+                    {
+                        geometry.faces.push(face);
+                        continue;
+                    }
+                    vertices.clear();
+                    vertices.extend(face.corners.iter().map(|c| Vertex {
+                        point: offset
+                            + Vec3::from_array(geometry.vertices[c.vertex as usize].map(f32::from)),
+                        uv: c.uv.map(f32::from),
+                        color: c.color.map(f32::from),
+                    }));
+                    if (vertices[1].point - vertices[0].point)
+                        .cross(vertices[2].point - vertices[0].point)
+                        .y
+                        .abs()
+                        < 0.1
                         || vertices
                             .iter()
                             .any(|v| (v.point.y - height(original, v.point, t2)).abs() > 150.0)
-                        || vertices.iter().all(|v| v.point.x <= rect[0])
-                        || vertices.iter().all(|v| v.point.x >= rect[2])
-                        || vertices.iter().all(|v| v.point.z <= rect[1])
-                        || vertices.iter().all(|v| v.point.z >= rect[3])
                     {
                         geometry.faces.push(face);
                         continue;

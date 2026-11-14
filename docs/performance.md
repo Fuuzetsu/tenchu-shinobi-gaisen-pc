@@ -149,6 +149,23 @@ complete model/material hash match before/after. Eight captures are identical;
 T1 differs at 27 pixels by one channel unit. Evidence:
 `private/studio-normal-preparation-20261114` outside Git.
 
+Campaign sculpting rejects faces outside the edited footprint before constructing
+temporary polygons and reuses polygon storage. A same-binary comparison with the
+previous algorithm covers 640 edits across four T1 maps and three maps each from
+T2 Japan and Europe: raising, lowering, slopes and holes. All returned results
+and complete source meshes match exactly; 518 cases change visible geometry.
+Total sculpting time across those cases falls from 602.2 to 301.3 ms, excluding
+map cloning, disc loading, model preparation and GPU work.
+
+Two full Studio comparisons against v0.35.6 (`48cbe57`), each with 30 alternating
+height edits after two warm-ups, measure T2 medians of 54.42/53.69 → 53.30/52.48 ms.
+T1 varies between runs: 43.96/45.29 → 44.64/43.01 ms. This is a small reduction in
+total edit work, not a claimed doubling of editor performance. The benchmark
+children use the same 96 MiB CPU cache group described below. All nine captured
+stage hashes and both edited-campaign hashes match. Eight screenshots are
+identical; T1 differs at 38 pixels by one channel unit. Evidence:
+`private/studio-sculpt-allocation-20261114` outside Git.
+
 ## Translucent effects (2026-11-14)
 
 Effect sorting now caches each surface's depth/layer key and reserves the output
