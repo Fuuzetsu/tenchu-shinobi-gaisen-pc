@@ -5,6 +5,19 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Select visible campaign walls in Level Studio, along with floors and roofs.
+  Wall clicks select their source collision column; a separate collision picker
+  and edited-surface list retain access to invisible or cut terrain.
+- Replace the campaign terrain inspector's raw collision field with named T1
+  flags and a mutually exclusive T2 material selector. Preserve other source
+  bits and keep raw values under Advanced.
+- Add searchable visual galleries for character types, T1/T2 appearances and
+  scenery, with game/source filters, textured previews and selection highlights.
+  Show model previews on placed-object tooltips and PNG previews when importing
+  assets or assigning custom materials. Prepare only visible previews.
+- Keep campaign prop, pickup and patrol sections expanded when adding, removing
+  or moving entries changes their heading text.
+
 ## 0.35.9 — 2026-11-14
 
 - Speed up terrain edits in Level Studio by reducing shadow-preparation work,

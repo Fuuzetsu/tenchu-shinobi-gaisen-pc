@@ -70,7 +70,7 @@ pub struct State<'a> {
     pub original_model: Option<String>,
 }
 
-struct Preview {
+pub(crate) struct Preview {
     appearance: Appearance,
     motion: Motion,
     clips: Vec<Clip>,
@@ -80,7 +80,7 @@ struct Preview {
 }
 
 impl Preview {
-    fn new(id: &str, state: &State<'_>) -> Result<Self> {
+    pub(crate) fn new(id: &str, state: &State<'_>) -> Result<Self> {
         let original = state
             .original_model
             .clone()
@@ -96,7 +96,6 @@ impl Preview {
         )?
         .ok_or("Model unavailable")?;
         appearance.meshes.detach_textures();
-        let mut motion = Motion::new(&appearance.parts)?;
         let body = state
             .library
             .and_then(|l| l.get(if id.is_empty() { &original } else { id }));
@@ -111,11 +110,16 @@ impl Preview {
                 .and_then(|r| state.game.mission.clips.iter().find(|c| c.id == r.clip))
         };
         let clips: Vec<_> = clip.cloned().into_iter().collect();
+        Self::from_appearance(appearance, clips, state.game)
+    }
+
+    fn from_appearance(appearance: Appearance, clips: Vec<Clip>, game: &Game) -> Result<Self> {
+        let mut motion = Motion::new(&appearance.parts)?;
         if !clips.is_empty() {
             motion.clip = Some(0);
-            motion.step(&clips, &state.game.math.tables.hermite)?;
+            motion.step(&clips, &game.math.tables.hermite)?;
         }
-        let matrices = motion.pose.matrices(&state.game.math, Matrix::default());
+        let matrices = motion.pose.matrices(&game.math, Matrix::default());
         appearance.meshes.pose_skin(&matrices, None);
         let mut min = Vec3::splat(f32::INFINITY);
         let mut max = Vec3::splat(f32::NEG_INFINITY);
@@ -156,6 +160,19 @@ impl Preview {
         origin: egui::Pos2,
         time: f64,
         game: &Game,
+    ) {
+        self.visit(rect, origin, time, game, |id, image, vertices| {
+            frame.textured(id, image, vertices, Blend::Opaque)
+        });
+    }
+
+    fn visit(
+        &mut self,
+        rect: egui::Rect,
+        origin: egui::Pos2,
+        time: f64,
+        game: &Game,
+        mut emit: impl FnMut(&str, Arc<Image>, [Vertex; 3]),
     ) {
         if let Some(clip) = self.clips.first() {
             self.motion.count = ((time * 30.0) as i64 % (i64::from(clip.duration) + 1)) as i16;
@@ -206,7 +223,116 @@ impl Preview {
                     color: Vec3::from(v.color) * 128.0 * light,
                 }
             });
-            frame.textured(id, image, vertices, Blend::Opaque);
+            emit(id, image, vertices);
+        }
+    }
+}
+
+/// Cached textured geometry for Studio tiles and tooltips. It uses the same
+/// framing, idle pose, materials and lighting as the F1 appearance picker.
+pub(crate) struct Thumbnail {
+    meshes: Vec<egui::Mesh>,
+    _textures: Vec<egui::TextureHandle>,
+}
+
+impl Thumbnail {
+    pub(crate) fn paint(&self, painter: &egui::Painter, rect: egui::Rect) {
+        let rect = egui::Rect::from_center_size(
+            rect.center(),
+            egui::Vec2::splat(rect.width().min(rect.height())),
+        );
+        for source in &self.meshes {
+            let mut mesh = source.clone();
+            for vertex in &mut mesh.vertices {
+                vertex.pos = rect.min + vertex.pos.to_vec2() * rect.size();
+            }
+            painter.add(egui::Shape::mesh(mesh));
+        }
+    }
+}
+
+impl Preview {
+    pub(crate) fn object(
+        mut part: tenchu_assets::model::Part,
+        id: &str,
+        vram: &tenchu_assets::texture::Vram,
+        pack: &Pack,
+        game: &Game,
+    ) -> Result<Self> {
+        part.position = [0; 3];
+        part.parent = -1;
+        part.child = 0;
+        let graphics = Graphics {
+            asset_pack: true,
+            ..Graphics::default()
+        };
+        let mut meshes = super::Meshes::build(
+            vram,
+            pack,
+            &graphics,
+            vec![super::ModelSource {
+                id: id.into(),
+                role: crate::visuals::catalog::Role::Prop,
+                hero_part: None,
+                label: id.into(),
+                geometry: &part.geometry,
+            }],
+            true,
+        )?;
+        meshes.detach_textures();
+        meshes.replace_textures(pack);
+        Self::from_appearance(
+            Appearance {
+                parts: vec![part],
+                parents: vec![None],
+                meshes,
+            },
+            vec![],
+            game,
+        )
+    }
+
+    pub(crate) fn thumbnail(mut self, ctx: &egui::Context, game: &Game) -> Thumbnail {
+        let mut textures = BTreeMap::new();
+        let mut meshes: Vec<egui::Mesh> = Vec::new();
+        self.visit(
+            egui::Rect::from_min_size(egui::Pos2::ZERO, egui::Vec2::splat(1.0)),
+            egui::Pos2::ZERO,
+            0.0,
+            game,
+            |id, image, vertices| {
+                let texture = textures.entry(id.to_owned()).or_insert_with(|| {
+                    ctx.load_texture(
+                        id,
+                        egui::ColorImage::from_rgba_unmultiplied(
+                            image.size.map(|v| v as usize),
+                            &image.rgba,
+                        ),
+                        egui::TextureOptions::LINEAR,
+                    )
+                });
+                if meshes.last().is_none_or(|m| m.texture_id != texture.id()) {
+                    meshes.push(egui::Mesh::with_texture(texture.id()));
+                }
+                let mesh = meshes.last_mut().unwrap();
+                let start = mesh.vertices.len() as u32;
+                for v in vertices {
+                    let rgb = v
+                        .color
+                        .to_array()
+                        .map(|v| (v * 255.0 / 128.0).round().clamp(0.0, 255.0) as u8);
+                    mesh.vertices.push(egui::epaint::Vertex {
+                        pos: egui::pos2(v.position.x, v.position.y),
+                        uv: egui::pos2(v.uv.x, v.uv.y),
+                        color: egui::Color32::from_rgb(rgb[0], rgb[1], rgb[2]),
+                    });
+                }
+                mesh.indices.extend([start, start + 1, start + 2]);
+            },
+        );
+        Thumbnail {
+            meshes,
+            _textures: textures.into_values().collect(),
         }
     }
 }

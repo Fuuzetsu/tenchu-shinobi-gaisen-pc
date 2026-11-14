@@ -12,8 +12,12 @@ impl Editor {
         if !self.open {
             return None;
         }
+        self.previews.begin();
         self.prepare_textures(ctx);
-        if !self.ephemeral && !ctx.wants_keyboard_input() {
+        if self.gallery.is_some() && ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
+            self.gallery = None;
+        }
+        if !self.ephemeral && self.gallery.is_none() && !ctx.wants_keyboard_input() {
             let input = ctx.input(Clone::clone);
             {
                 if input.modifiers.alt {
@@ -382,6 +386,7 @@ impl Editor {
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
             .show(ctx, |ui| self.viewport(ui));
+        self.asset_gallery(ctx, assets);
         if !ctx.input(|i| i.pointer.any_down()) && !ctx.wants_keyboard_input() {
             self.commit();
             self.last_cell = None;
@@ -467,11 +472,23 @@ impl Editor {
                     .find(|c| c.kind == actor.kind)
                     .map_or_else(|| format!("Character {}", actor.kind), |c| c.model.clone())
             };
-            if ui
-                .selectable_label(
-                    self.actor == i,
-                    format!("{i} · {name}  {}, {}", actor.point.x, actor.point.z),
+            let response = ui.selectable_label(
+                self.actor == i,
+                format!("{i} · {name}  {}, {}", actor.point.x, actor.point.z),
+            );
+            let model = self.project.actors.get(&i).cloned().unwrap_or_else(|| {
+                format!(
+                    "disc:{}",
+                    if i == 0 {
+                        self.project.character
+                    } else {
+                        actor.kind
+                    }
                 )
+            });
+            if self
+                .previews
+                .tooltip(response, previews::Key::Character(model), &name)
                 .clicked()
             {
                 self.actor = i;
@@ -480,23 +497,27 @@ impl Editor {
             }
         }
         ui.separator();
-        egui::ComboBox::from_id_salt("studio-kind")
-            .selected_text(format!("Character {}", self.actor_kind))
-            .show_ui(ui, |ui| {
-                for kind in &self.tables.as_ref().unwrap().appearance[self.project.mission.theme] {
-                    if *kind > 6 && *kind != 170 {
-                        let name = self
-                            .tables
-                            .as_ref()
-                            .unwrap()
-                            .characters
-                            .iter()
-                            .find(|c| c.kind == *kind)
-                            .map_or_else(|| kind.to_string(), |c| c.model.clone());
-                        ui.selectable_value(&mut self.actor_kind, *kind, name);
-                    }
-                }
-            });
+        ui.horizontal(|ui| {
+            self.previews.show(
+                ui,
+                previews::Key::Character(format!("disc:{}", self.actor_kind)),
+                egui::vec2(64.0, 64.0),
+            );
+            let name = self
+                .tables
+                .as_ref()
+                .unwrap()
+                .characters
+                .iter()
+                .find(|c| c.kind == self.actor_kind)
+                .map_or_else(
+                    || format!("Character {}", self.actor_kind),
+                    |c| c.model.clone(),
+                );
+            if ui.button(format!("Choose type… · {name}")).clicked() {
+                self.gallery = Some(previews::Target::CharacterType);
+            }
+        });
         if ui.button("Add character at cursor").clicked() {
             match editing::add_actor(
                 &mut self.project.mission,
@@ -537,7 +558,7 @@ impl Editor {
             }
         }
         ui.label("Select a character, then click a clear cell to move it.");
-        let mut model = self
+        let model = self
             .project
             .actors
             .get(&self.actor)
@@ -548,20 +569,33 @@ impl Editor {
             5 | 6 | 170
         );
         ui.add_enabled_ui(appearance_allowed, |ui| {
-            egui::ComboBox::from_id_salt("studio-body")
-                .width(250.0)
-                .selected_text(
-                    self.asset_names
-                        .iter()
-                        .find(|(id, _)| *id == model)
-                        .map_or("Original appearance", |(_, label)| label.as_str()),
-                )
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut model, String::new(), "Original appearance");
-                    for (id, label) in &self.asset_names {
-                        ui.selectable_value(&mut model, id.clone(), label);
+            let id = if model.is_empty() {
+                format!(
+                    "disc:{}",
+                    if self.actor == 0 {
+                        self.project.character
+                    } else {
+                        self.project.mission.placements[self.actor].kind
                     }
-                })
+                )
+            } else {
+                model.clone()
+            };
+            ui.horizontal(|ui| {
+                self.previews
+                    .show(ui, previews::Key::Character(id), egui::vec2(80.0, 80.0));
+                ui.vertical(|ui| {
+                    ui.label(
+                        self.asset_names
+                            .iter()
+                            .find(|(id, _)| *id == model)
+                            .map_or("Original appearance", |(_, name)| name.as_str()),
+                    );
+                    if ui.button("Choose appearance…").clicked() {
+                        self.gallery = Some(previews::Target::Appearance);
+                    }
+                });
+            });
         });
         if !appearance_allowed {
             ui.small("Objective characters keep their original appearance and behavior.");

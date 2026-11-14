@@ -1,4 +1,6 @@
+mod attributes;
 mod mesh;
+pub(super) mod picking;
 #[cfg(test)]
 mod tests;
 mod ui;
@@ -184,9 +186,9 @@ fn position(p: [i32; 3]) -> Result<()> {
 }
 
 pub(super) struct Cache {
-    source: Source,
+    pub(super) source: Source,
     character: i16,
-    mission: MissionAssets,
+    pub(super) mission: MissionAssets,
     native_collision: Option<Collision>,
     nodes: BTreeMap<[usize; 2], Node>,
     initial: Campaign,
@@ -472,7 +474,9 @@ impl Editor {
             .ok_or("No campaign source")?
             .clone();
         self.load_campaign_cache(assets, &campaign.source, self.project.character)?;
-        self.campaign_cache.as_ref().unwrap().build(&campaign)
+        let mission = self.campaign_cache.as_ref().unwrap().build(&campaign)?;
+        self.campaign_mesh = picking::Mesh::new(&mission.map);
+        Ok(mission)
     }
 
     #[cfg(all(test, target_os = "linux"))]

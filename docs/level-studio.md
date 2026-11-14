@@ -30,7 +30,11 @@ Choose a T1 stage and layout or a T2 map/sequence from the connected disc editio
 The source map opens at its original scale. The 16 built-in Gaisen challenges
 remain under **Projects → Original challenges**.
 
-In **Terrain**, click a floor or roof in either view. Raise/lower it, make an X/Z
+In **Terrain**, click a floor, roof or wall in 3D. Wall clicks select the source
+collision column, whose top defines its height; this is not a separate freeform
+vertical-polygon editor. **Collision surfaces** picks invisible and cut terrain,
+and **Edited surfaces** keeps changed surfaces accessible for restoration.
+Map view selects collision surfaces from above. Raise/lower a top surface, make an X/Z
 ramp, or cut quarters out of its solid area. The source footprint is retained;
 visible floor polygons are clipped to that footprint, moved with collision, and
 joined to their old elevation by side walls using the source material. Original
@@ -40,6 +44,13 @@ For invisible collision surfaces, clear **Move visible terrain with collision**.
 patrol points, original props and pickups with height edits. Turn it off to keep
 their positions fixed; additional scenery can be grounded with **End**.
 This edits existing surfaces; it does not draw arbitrary new terrain meshes.
+
+**Collision attributes** exposes the source's named water, wood/footstep,
+buoyancy, damage, death and overlap-search flags for T1. T2 materials use one
+selector because their values are mutually exclusive. Other source bits stay
+intact; **Advanced** retains the raw value. T2 Studio playtests adapt solid and
+blocked terrain to Gaisen collision; native T2 water/hazard rules remain outside
+the campaign-template adapter.
 
 **Characters** edits the player start, source character placements, appearance
 and patrol waypoints. **Scenery → Original map props** moves, duplicates and
@@ -148,6 +159,14 @@ reuse the existing Gaisen actor import behavior and keep their placement and
 patrol. Lord Gohda, Princess Kiku and the objective herb retain their source
 identity. A T2 body does not switch the mission to native T2 gameplay.
 
+**Choose type** and **Choose appearance** open searchable visual galleries.
+Appearance tabs separate T1 and the connected T2 disc editions. The selected
+model appears beside its controls; hovering a scene character shows its model.
+**Scenery → Browse models** groups textured previews by game and source area.
+Click a model to place it at the cursor. Placed and original campaign props have
+preview tooltips, and selected scenery has a larger preview. Galleries prepare
+only visible models and reuse the F1 model picker's framing and source textures.
+
 **Scenery** browses object meshes from T1 stages and connected T2 areas. Added
 instances have editable position and yaw, can be duplicated, and use their source
 textures and installed artwork overrides. They receive lighting and cast shadows.
@@ -193,7 +212,8 @@ must be mono/stereo at 8–96 kHz, with at most 64 MiB of decoded
 stereo samples per file. Shorten or resample long tracks if they exceed the limit.
 
 Choose **Place model**, then adjust its scale, vertical axis and **Material
-textures** in Scenery. OBJ defaults to metres and Y up; existing engine exports
+textures** in Scenery. Imported models and PNGs have previews; material selectors
+show texture swatches and larger previews on hover. OBJ defaults to metres and Y up; existing engine exports
 use millimetres and Y down. Import each PNG and assign it to the named OBJ
 material; external `mtllib` paths are not read. Imported models are decorative,
 receive lighting and cast shadows, and remain visible with Replacement artwork

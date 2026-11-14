@@ -100,7 +100,9 @@ impl Editor {
                 .find(|e| e.key == key)
                 .map_or(source, |e| e.node);
             let quad = corners(node, t2);
-            if let Some((origin, direction)) = ray {
+            if let Some((origin, direction)) =
+                ray.filter(|_| self.grid || self.campaign_pick_collision)
+            {
                 for triangle in [[0, 1, 2], [0, 2, 3]] {
                     if let Some(distance) = crate::debug::terrain::triangle(
                         origin,
@@ -112,7 +114,7 @@ impl Editor {
                     }
                 }
             }
-            let selected = self.campaign_surface == Some(key);
+            let selected = self.panel == Panel::Terrain && self.campaign_surface == Some(key);
             if self.grid || selected && self.guides {
                 let points: Vec<_> = quad.into_iter().filter_map(project).collect();
                 if points.len() == 4 {
@@ -142,6 +144,45 @@ impl Editor {
                     ));
                 }
             }
+        }
+        let visible_hit =
+            if self.panel == Panel::Terrain && !self.grid && !self.campaign_pick_collision {
+                ray.and_then(|(origin, direction)| self.campaign_mesh.pick(origin, direction))
+            } else {
+                None
+            };
+        if let Some(hit) = &visible_hit {
+            let nodes = cache.nodes.iter().map(|(&key, &node)| {
+                (
+                    key,
+                    campaign
+                        .terrain
+                        .iter()
+                        .find(|e| e.key == key)
+                        .map_or(node, |e| e.node),
+                )
+            });
+            nearest =
+                super::picking::surface(hit, nodes, t2).map(|key| (hit.distance, key, hit.point));
+            if self.guides {
+                let points: Vec<_> = hit.triangle.into_iter().filter_map(project).collect();
+                if points.len() == 3 {
+                    painter.add(egui::Shape::closed_line(
+                        points,
+                        Stroke::new(
+                            2.0_f32,
+                            if nearest.is_some() {
+                                Color32::GOLD
+                            } else {
+                                Color32::LIGHT_RED
+                            },
+                        ),
+                    ));
+                }
+            }
+        }
+        if response.clicked() && visible_hit.is_some() && nearest.is_none() {
+            self.notice = "This visible face has no matching collision column. Use Collision surfaces to inspect invisible terrain, or Scenery for placed props.".into();
         }
         if self.panel != Panel::Terrain {
             nearest = ray.and_then(|(origin, direction)| {

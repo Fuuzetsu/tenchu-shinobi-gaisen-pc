@@ -4,18 +4,39 @@ use winit::platform::x11::EventLoopBuilderExtX11;
 
 fn frame(app: &mut Application, ctx: &egui::Context, events: Vec<egui::Event>) -> egui::FullOutput {
     let mut command = None;
+    // Use the renderer's clock too: jumping back from a scripted time can leave
+    // an egui window's fade-in transparent during the following GPU capture.
+    let time = app
+        .view
+        .as_mut()
+        .and_then(|view| view.overlay.state.take_egui_input(&view.window).time);
     let output = ctx.run(
         egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(
                 egui::Pos2::ZERO,
                 egui::vec2(1440., 1000.),
             )),
-            time: Some(ctx.input(|i| i.time) + 1.0 / 30.0),
+            time,
             events,
             ..Default::default()
         },
         |ctx| command = app.studio.show(ctx, &app.assets),
     );
+    if let Some(view) = &mut app.view {
+        view.overlay.context = ctx.clone();
+        view.overlay.free_textures.clear();
+        for (id, delta) in &output.textures_delta.set {
+            view.overlay.renderer.update_texture(
+                &view.renderer.device,
+                &view.renderer.queue,
+                *id,
+                delta,
+            );
+        }
+        for id in &output.textures_delta.free {
+            view.overlay.renderer.free_texture(id);
+        }
+    }
     if let Some(command) = command {
         app.apply_studio(command).unwrap();
     }
@@ -337,6 +358,8 @@ fn studio_browser_and_tile_edit_regressions() {
     app.studio = crate::level_editor::Editor::new(path.clone());
     app.apply_studio(Command::Open).unwrap();
     let ctx = egui::Context::default();
+    crate::fonts::install(&ctx);
+    ctx.style_mut(|s| s.animation_time = 0.0);
     click(&mut app, &ctx, "Projects");
     click(&mut app, &ctx, "Open lighting & events example");
     assert_eq!(app.studio.project.mission.title, "Storm arrives");
@@ -556,7 +579,7 @@ fn studio_browser_and_tile_edit_regressions() {
                     },
                 ],
             );
-            click(&mut app, &ctx, &name);
+            click(&mut app, &ctx, name.split(" · ").next().unwrap_or(&name));
             assert_eq!(
                 app.studio.project.campaign.as_ref().map(|c| &c.source),
                 Some(&source),
@@ -640,4 +663,175 @@ fn studio_browser_and_tile_edit_regressions() {
     assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), original);
     assert_eq!(app.settings, original_settings);
     std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC, connected T2 discs, TENCHU_STUDIO_CAPTURE and X11 GPU; editor UI verification, not ordinary-play validation"]
+fn studio_visual_browser_wall_and_attributes_regressions() {
+    let output = PathBuf::from(std::env::var_os("TENCHU_STUDIO_CAPTURE").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let mut app = super::super::tests::application(Default::default());
+    if std::env::var_os("TENCHU_STUDIO_USER_SETTINGS").is_some() {
+        app.settings = crate::settings::Store::new().unwrap().load().unwrap();
+    } else {
+        app.settings
+            .graphics
+            .set_preset(crate::settings::presets::MODERN_HIGH);
+        app.settings.graphics.fog = false;
+    }
+    let original = postcard::to_allocvec(&app.campaign.game).unwrap();
+    let original_settings = app.settings.clone();
+    let mut builder = EventLoop::builder();
+    builder.with_x11().with_any_thread(true);
+    let events = builder.build().unwrap();
+    #[allow(deprecated)]
+    let window = events
+        .create_window(
+            Window::default_attributes()
+                .with_visible(false)
+                .with_inner_size(winit::dpi::PhysicalSize::new(1440, 1000)),
+        )
+        .unwrap();
+    app.view = Some(
+        pollster::block_on(View::from_window(
+            Arc::new(window),
+            &app.assets,
+            &app.campaign.game,
+            &app.settings,
+        ))
+        .unwrap(),
+    );
+    let path = output.join("regression-library.json");
+    let _ = std::fs::remove_file(&path);
+    app.studio = crate::level_editor::Editor::new(path.clone());
+    app.apply_studio(Command::Open).unwrap();
+    let ctx = egui::Context::default();
+    crate::fonts::install(&ctx);
+    ctx.style_mut(|s| s.animation_time = 0.0);
+
+    app.view.as_mut().unwrap().overlay.context = ctx.clone();
+    app.studio
+        .open_campaign(
+            &app.assets,
+            Source::Tenchu {
+                stage: 1,
+                layout: 1,
+            },
+        )
+        .unwrap();
+    app.studio.project.graphics.sky.enabled = true;
+    app.studio.project.graphics.sky.time = 780;
+    app.apply_studio(Command::Rebuild).unwrap();
+    let (eye, point, key) = app.studio.campaign_wall_fixture().unwrap();
+    let direction = (point - eye).normalize();
+    app.studio.camera = crate::debug::camera::Camera {
+        position: eye,
+        yaw: direction.x.atan2(direction.z),
+        pitch: (-direction.y).asin(),
+        fov: 65.0,
+    };
+    frame(&mut app, &ctx, vec![]);
+    let pos = egui::pos2(720.0, 500.0);
+    for pressed in [true, false] {
+        frame(
+            &mut app,
+            &ctx,
+            vec![
+                egui::Event::PointerMoved(pos),
+                egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+        );
+    }
+    let selected = frame(&mut app, &ctx, vec![]);
+    find(&selected, &format!("Surface {} / {}", key[0], key[1]));
+    capture(&mut app, &output, "wall-selection");
+    click(&mut app, &ctx, "Swimming water");
+    let edit = app
+        .studio
+        .project
+        .campaign
+        .as_ref()
+        .unwrap()
+        .terrain
+        .iter()
+        .find(|e| e.key == key)
+        .unwrap();
+    assert_eq!(edit.node.attributes ^ edit.original.attributes, 4);
+    click(&mut app, &ctx, "Undo");
+    assert!(
+        app.studio
+            .project
+            .campaign
+            .as_ref()
+            .unwrap()
+            .terrain
+            .is_empty()
+    );
+    let state = postcard::to_allocvec(&app.campaign.game).unwrap();
+    click(&mut app, &ctx, "Characters");
+    click(&mut app, &ctx, "Choose appearance…");
+    for _ in 0..30 {
+        app.update_overlay();
+    }
+    capture(&mut app, &output, "character-gallery");
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), state);
+    let before = app.studio.project.clone();
+    click(&mut app, &ctx, "Tenchu 2 · JP");
+    for _ in 0..30 {
+        app.update_overlay();
+    }
+    capture(&mut app, &output, "t2-character-gallery");
+    let (model, name) = app
+        .studio
+        .asset_names
+        .iter()
+        .find(|(id, _)| id.starts_with("tenchu2-jp:"))
+        .cloned()
+        .unwrap();
+    click(&mut app, &ctx, name.split(" · ").next().unwrap_or(&name));
+    assert!(app.studio.project.actors.values().any(|id| *id == model));
+    click(&mut app, &ctx, "Undo");
+    assert_eq!(app.studio.project, before);
+    click(&mut app, &ctx, "Scenery");
+    click(&mut app, &ctx, "Browse models…");
+    find(&frame(&mut app, &ctx, vec![]), "Choose scenery");
+    for _ in 0..30 {
+        app.update_overlay();
+    }
+    capture(&mut app, &output, "scenery-gallery");
+    assert_eq!(app.studio.project, before);
+    frame(
+        &mut app,
+        &ctx,
+        vec![egui::Event::Key {
+            key: egui::Key::Escape,
+            physical_key: Some(egui::Key::Escape),
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }],
+    );
+    let (assets, model, _) = crate::level_editor::custom::tests::sample();
+    app.studio.project.assets = assets;
+    click(&mut app, &ctx, "Assets");
+    for _ in 0..15 {
+        app.update_overlay();
+    }
+    capture(&mut app, &output, "custom-assets");
+    click(&mut app, &ctx, "Place model");
+    app.studio.project.scenery.last_mut().unwrap().custom = Some(model);
+    app.studio.revision += 1;
+    app.refresh_studio().unwrap();
+    for _ in 0..15 {
+        app.update_overlay();
+    }
+    capture(&mut app, &output, "custom-material-preview");
+    app.apply_studio(Command::Close).unwrap();
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), original);
+    assert_eq!(app.settings, original_settings);
 }

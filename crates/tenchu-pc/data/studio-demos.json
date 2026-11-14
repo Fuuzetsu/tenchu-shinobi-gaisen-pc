@@ -41,7 +41,7 @@
   {
     "id": "studio-scenery",
     "title": "Place scenery precisely",
-    "description": "Browse both discs, snap placements, nudge coordinates and ground objects on terrain.",
+    "description": "Browse textured model previews from both discs, then snap, nudge and ground scenery.",
     "seconds": 4,
     "mission": 0,
     "character": 0,
@@ -54,7 +54,7 @@
   {
     "id": "studio-characters",
     "title": "Two games. One map.",
-    "description": "Original T1 Rikimaru and imported T2 Rikimaru share this authored courtyard.",
+    "description": "T1 and T2 Rikimaru share this courtyard. A visual gallery previews both games before selection.",
     "seconds": 5,
     "mission": 0,
     "character": 0,

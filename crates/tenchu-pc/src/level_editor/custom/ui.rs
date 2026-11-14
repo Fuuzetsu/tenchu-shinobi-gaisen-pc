@@ -1,4 +1,5 @@
 use super::*;
+use crate::level_editor::previews::{Key, Previews};
 use crate::level_editor::{Action, AssetGame, Command, Editor, Panel, Tool, project::Scenery};
 
 impl Editor {
@@ -81,6 +82,28 @@ impl Editor {
         for (id, asset) in &mut self.project.assets {
             ui.push_id(id, |ui| {
                 ui.group(|ui| {
+                    match asset.kind {
+                        Kind::Texture => {
+                            self.previews.show(
+                                ui,
+                                Key::Texture(id.clone()),
+                                egui::vec2(ui.available_width(), 120.0),
+                            );
+                        }
+                        Kind::Model => {
+                            self.previews.show(
+                                ui,
+                                Key::Model(Model {
+                                    asset: id.clone(),
+                                    scale: 1000,
+                                    y_up: true,
+                                    materials: Default::default(),
+                                }),
+                                egui::vec2(ui.available_width(), 120.0),
+                            );
+                        }
+                        Kind::Audio => (),
+                    }
                     ui.text_edit_singleline(&mut asset.name);
                     ui.small(format!(
                         "{} · {} · {:.1} KiB",
@@ -162,7 +185,12 @@ impl Editor {
     }
 }
 
-pub(in crate::level_editor) fn model(ui: &mut egui::Ui, model: &mut Model, assets: &Assets) {
+pub(in crate::level_editor) fn model(
+    ui: &mut egui::Ui,
+    model: &mut Model,
+    assets: &Assets,
+    previews: &mut Previews,
+) {
     ui.label("Custom model");
     ui.add(
         egui::DragValue::new(&mut model.scale)
@@ -192,6 +220,9 @@ pub(in crate::level_editor) fn model(ui: &mut egui::Ui, model: &mut Model, asset
                 } else {
                     name
                 });
+                if let Some(key) = id.as_ref() {
+                    previews.show(ui, Key::Texture(key.clone()), egui::vec2(100.0, 80.0));
+                }
                 egui::ComboBox::from_id_salt("texture")
                     .selected_text(
                         id.as_ref()
@@ -201,7 +232,16 @@ pub(in crate::level_editor) fn model(ui: &mut egui::Ui, model: &mut Model, asset
                     .show_ui(ui, |ui| {
                         ui.selectable_value(id, None, "Vertex colors");
                         for (key, asset) in assets.iter().filter(|(_, a)| a.kind == Kind::Texture) {
-                            ui.selectable_value(id, Some(key.clone()), &asset.name);
+                            ui.horizontal(|ui| {
+                                previews.show(
+                                    ui,
+                                    Key::Texture(key.clone()),
+                                    egui::vec2(48.0, 48.0),
+                                );
+                                let response =
+                                    ui.selectable_value(id, Some(key.clone()), &asset.name);
+                                previews.tooltip(response, Key::Texture(key.clone()), &asset.name);
+                            });
                         }
                     });
             });

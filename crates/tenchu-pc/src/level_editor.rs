@@ -6,6 +6,7 @@ mod events;
 mod example;
 mod history;
 mod limits;
+mod previews;
 mod project;
 mod provenance;
 mod showcase;
@@ -111,6 +112,10 @@ pub struct Editor {
     new_theme: usize,
     new_objective: Objective,
     pub asset_names: Vec<(String, String)>,
+    previews: previews::Previews,
+    gallery: Option<previews::Target>,
+    gallery_search: String,
+    gallery_source: u8,
     pub sound_catalog: std::collections::BTreeMap<(AssetGame, usize), Vec<(u16, String)>>,
     music_names: Vec<String>,
     selection: Option<(Point, Point)>,
@@ -123,6 +128,8 @@ pub struct Editor {
     custom_kind: custom::Kind,
     campaign_cache: Option<campaign::Cache>,
     campaign_surface: Option<[usize; 2]>,
+    campaign_mesh: campaign::picking::Mesh,
+    campaign_pick_collision: bool,
     campaign_cursor: [i32; 3],
     campaign_sources: Vec<(campaign::Source, String)>,
     campaign_prop: Option<usize>,
@@ -188,6 +195,10 @@ impl Editor {
             new_theme: 0,
             new_objective: Objective::ReachLord,
             asset_names: vec![],
+            previews: Default::default(),
+            gallery: None,
+            gallery_search: String::new(),
+            gallery_source: 0,
             sound_catalog: Default::default(),
             music_names: vec![],
             selection: None,
@@ -200,6 +211,8 @@ impl Editor {
             custom_kind: custom::Kind::Model,
             campaign_cache: None,
             campaign_surface: None,
+            campaign_mesh: Default::default(),
+            campaign_pick_collision: false,
             campaign_cursor: [0; 3],
             campaign_sources: vec![],
             campaign_prop: None,
@@ -276,6 +289,8 @@ impl Editor {
         self.campaign_surface = None;
         self.campaign_prop = None;
         self.campaign_pickup = None;
+        self.previews = Default::default();
+        self.gallery = None;
         self.new_theme = project.mission.theme;
         self.new_objective = project.mission.objective;
         self.brush = tenchu_assets::trial::DEFAULT_TILES[project.mission.theme];

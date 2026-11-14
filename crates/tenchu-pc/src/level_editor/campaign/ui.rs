@@ -33,7 +33,36 @@ impl Editor {
 
     pub(in crate::level_editor) fn campaign_terrain(&mut self, ui: &mut egui::Ui) {
         ui.heading("Campaign terrain");
-        ui.small("Click a floor or roof in either view. Edit its elevation, ramp or solid area. Visible terrain and collision move together; the source footprint stays fixed.");
+        ui.small("Click terrain in 3D, including walls. A wall selects its collision column; elevation and ramps edit the top of that column. The source footprint stays fixed.");
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Pick");
+            ui.selectable_value(&mut self.campaign_pick_collision, false, "Visible terrain");
+            ui.selectable_value(
+                &mut self.campaign_pick_collision,
+                true,
+                "Collision surfaces",
+            );
+        });
+        if self.campaign_pick_collision || self.grid {
+            ui.small("Collision picking also selects invisible and cut surfaces, so you can restore them.");
+        }
+        if let Some(campaign) = &self.project.campaign {
+            egui::CollapsingHeader::new(format!("Edited surfaces · {}", campaign.terrain.len()))
+                .id_salt("campaign-edited-surfaces")
+                .show(ui, |ui| {
+                    for edit in &campaign.terrain {
+                        if ui
+                            .selectable_label(
+                                self.campaign_surface == Some(edit.key),
+                                format!("Surface {} / {}", edit.key[0], edit.key[1]),
+                            )
+                            .clicked()
+                        {
+                            self.campaign_surface = Some(edit.key);
+                        }
+                    }
+                });
+        }
         let Some(key) = self.campaign_surface else {
             ui.label("Select a surface to begin.");
             return;
@@ -174,10 +203,7 @@ impl Editor {
                 edit.node.division = original.division;
             }
         });
-        ui.collapsing("Collision attributes", |ui| {
-            ui.small("Source flags control walls, water, hazards and slopes. Keep them unless you are intentionally changing collision behavior.");
-            ui.add(egui::DragValue::new(&mut edit.node.attributes).hexadecimal(4,false,true).prefix("0x"));
-        });
+        super::attributes::show(ui, &mut edit.node.attributes, t2);
         if ui.button("Restore this surface from disc").clicked() {
             edit.node = original;
             campaign.edit_surface(edit, self.campaign_follow_terrain);
@@ -212,16 +238,24 @@ impl Editor {
                     self.tool = Tool::Select;
                 }
                 for (i, actor) in campaign.actors.iter().enumerate() {
-                    if ui
-                        .selectable_label(
-                            self.actor == i + 1,
-                            format!(
-                                "{} · {}{}",
-                                i + 1,
-                                actor.name,
-                                if actor.enabled { "" } else { " (disabled)" }
-                            ),
-                        )
+                    let response = ui.selectable_label(
+                        self.actor == i + 1,
+                        format!(
+                            "{} · {}{}",
+                            i + 1,
+                            actor.name,
+                            if actor.enabled { "" } else { " (disabled)" }
+                        ),
+                    );
+                    let id = self
+                        .project
+                        .actors
+                        .get(&(i + 1))
+                        .cloned()
+                        .unwrap_or_else(|| format!("disc:{}", actor.spawn.kind));
+                    if self
+                        .previews
+                        .tooltip(response, previews::Key::Character(id), &actor.name)
                         .clicked()
                     {
                         self.actor = i + 1;
@@ -270,38 +304,56 @@ impl Editor {
             });
             for (i, (p, wait)) in actor.spawn.patrol.iter_mut().enumerate() {
                 ui.push_id(i, |ui| {
-                    ui.collapsing(format!("{} · X {} / Z {}", i + 1, p[0], p[2]), |ui| {
-                        coordinates(ui, "waypoint", p);
-                        ui.add(
-                            egui::DragValue::new(wait)
-                                .range(0..=32767)
-                                .prefix("Wait (source units) "),
-                        );
-                    });
+                    egui::CollapsingHeader::new(format!("{} · X {} / Z {}", i + 1, p[0], p[2]))
+                        .id_salt(("campaign-waypoint", self.actor, i))
+                        .show(ui, |ui| {
+                            coordinates(ui, "waypoint", p);
+                            ui.add(
+                                egui::DragValue::new(wait)
+                                    .range(0..=32767)
+                                    .prefix("Wait (source units) "),
+                            );
+                        });
                 });
             }
         }
         ui.label("Click a marker to select; click terrain to move. F frames the selection.");
-        let mut model = self
+        let model = self
             .project
             .actors
             .get(&self.actor)
             .cloned()
             .unwrap_or_default();
-        egui::ComboBox::from_id_salt("campaign-appearance")
-            .width(ui.available_width())
-            .selected_text(
-                self.asset_names
-                    .iter()
-                    .find(|(id, _)| *id == model)
-                    .map_or("Source appearance", |(_, n)| n.as_str()),
-            )
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut model, String::new(), "Gaisen source appearance");
-                for (id, name) in &self.asset_names {
-                    ui.selectable_value(&mut model, id.clone(), name);
+        ui.horizontal(|ui| {
+            let original = if self.actor == 0 {
+                self.project.character
+            } else {
+                campaign
+                    .actors
+                    .get(self.actor - 1)
+                    .map_or(self.project.character, |a| a.spawn.kind)
+            };
+            self.previews.show(
+                ui,
+                previews::Key::Character(if model.is_empty() {
+                    format!("disc:{original}")
+                } else {
+                    model.clone()
+                }),
+                egui::vec2(80.0, 80.0),
+            );
+            ui.vertical(|ui| {
+                ui.label(
+                    self.asset_names
+                        .iter()
+                        .find(|(id, _)| *id == model)
+                        .map_or("Source appearance", |(_, name)| name.as_str()),
+                );
+                if ui.button("Choose appearance…").clicked() {
+                    self.gallery = Some(previews::Target::Appearance);
                 }
             });
+        });
         if model.is_empty() {
             self.project.actors.remove(&self.actor);
         } else {
@@ -320,13 +372,16 @@ impl Editor {
         {
             self.actor_kind = *k;
         }
-        egui::ComboBox::from_id_salt("campaign-add-kind")
-            .selected_text(format!("Kind {}", self.actor_kind))
-            .show_ui(ui, |ui| {
-                for k in kinds {
-                    ui.selectable_value(&mut self.actor_kind, k, format!("Gaisen character {k}"));
-                }
-            });
+        ui.horizontal(|ui| {
+            self.previews.show(
+                ui,
+                previews::Key::Character(format!("disc:{}", self.actor_kind)),
+                egui::vec2(64.0, 64.0),
+            );
+            if ui.button("Choose character type…").clicked() {
+                self.gallery = Some(previews::Target::CharacterType);
+            }
+        });
         if ui
             .add_enabled(
                 campaign.actors.len() < self.project.limits.characters,
@@ -369,16 +424,17 @@ impl Editor {
     pub(in crate::level_editor) fn campaign_scenery(&mut self, ui: &mut egui::Ui) {
         let campaign = self.project.campaign.as_mut().unwrap();
         let mut ground = false;
-        ui.collapsing(format!("Original map props · {}", campaign.props.len()), |ui| {
+        egui::CollapsingHeader::new(format!("Original map props · {}", campaign.props.len())).id_salt("campaign-props").show(ui, |ui| {
             ui.small("These placements use the campaign's own object library. Solid walls and floors are edited separately under Terrain.");
             egui::ScrollArea::vertical().id_salt("campaign-props").max_height(180.0).show(ui, |ui| {
                 for (i, p) in campaign.props.iter().enumerate() {
                     let name = self.campaign_cache.as_ref().and_then(|c| c.mission.object_names.get(p.part)).map_or("Object", String::as_str);
-                    if ui.selectable_label(self.campaign_prop==Some(i), format!("{i} · {name}")).clicked() { self.campaign_prop=Some(i); self.scenery_selection=None; self.tool=Tool::Select; }
+                    if self.previews.tooltip(ui.selectable_label(self.campaign_prop==Some(i), format!("{i} · {name}")), previews::Key::Campaign(campaign.source.label(), p.part), name).clicked() { self.campaign_prop=Some(i); self.scenery_selection=None; self.tool=Tool::Select; }
                 }
             });
             if let Some(i) = self.campaign_prop.filter(|i| *i < campaign.props.len()) {
                 let prop=&mut campaign.props[i];
+                self.previews.show(ui, previews::Key::Campaign(campaign.source.label(), prop.part), egui::vec2(ui.available_width(), 120.0));
                 coordinates(ui,"source-prop",&mut prop.position);
                 ui.add(egui::DragValue::new(&mut prop.facing).range(0..=4095).clamp_existing_to_range(false).prefix("Yaw "));
                 ui.horizontal(|ui| {
@@ -446,41 +502,43 @@ impl Editor {
         ui.separator();
         ui.label("Playtest rules: Gaisen");
         ui.small("Create objectives, timed cues, success and failure conditions in Events & audio. Playtests never advance your campaign save. Source scripts, cutscenes and T2 dynamic scenery are not imported.");
-        ui.collapsing(format!("Item pickups · {}", campaign.pickups.len()), |ui| {
-            for (i, p) in campaign.pickups.iter().enumerate() {
-                if ui
-                    .selectable_label(
-                        self.campaign_pickup == Some(i),
-                        format!("{i} · item {}", p.kind),
-                    )
-                    .clicked()
+        egui::CollapsingHeader::new(format!("Item pickups · {}", campaign.pickups.len()))
+            .id_salt("campaign-pickups")
+            .show(ui, |ui| {
+                for (i, p) in campaign.pickups.iter().enumerate() {
+                    if ui
+                        .selectable_label(
+                            self.campaign_pickup == Some(i),
+                            format!("{i} · item {}", p.kind),
+                        )
+                        .clicked()
+                    {
+                        self.campaign_pickup = Some(i);
+                    }
+                }
+                if ui.button("Add pickup at cursor").clicked()
+                    && campaign.pickups.len() < self.project.limits.pickups
                 {
-                    self.campaign_pickup = Some(i);
+                    campaign.pickups.push(Pickup {
+                        kind: 0,
+                        position: self.campaign_cursor,
+                    });
+                    self.campaign_pickup = Some(campaign.pickups.len() - 1);
                 }
-            }
-            if ui.button("Add pickup at cursor").clicked()
-                && campaign.pickups.len() < self.project.limits.pickups
-            {
-                campaign.pickups.push(Pickup {
-                    kind: 0,
-                    position: self.campaign_cursor,
-                });
-                self.campaign_pickup = Some(campaign.pickups.len() - 1);
-            }
-            if let Some(i) = self.campaign_pickup.filter(|i| *i < campaign.pickups.len()) {
-                let p = &mut campaign.pickups[i];
-                ui.add(
-                    egui::DragValue::new(&mut p.kind)
-                        .range(0..=24)
-                        .prefix("Item kind "),
-                );
-                coordinates(ui, "pickup", &mut p.position);
-                if ui.button("Delete pickup").clicked() {
-                    campaign.pickups.remove(i);
-                    self.campaign_pickup = None;
+                if let Some(i) = self.campaign_pickup.filter(|i| *i < campaign.pickups.len()) {
+                    let p = &mut campaign.pickups[i];
+                    ui.add(
+                        egui::DragValue::new(&mut p.kind)
+                            .range(0..=24)
+                            .prefix("Item kind "),
+                    );
+                    coordinates(ui, "pickup", &mut p.position);
+                    if ui.button("Delete pickup").clicked() {
+                        campaign.pickups.remove(i);
+                        self.campaign_pickup = None;
+                    }
                 }
-            }
-        });
+            });
     }
 }
 

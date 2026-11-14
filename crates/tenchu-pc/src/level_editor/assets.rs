@@ -11,7 +11,7 @@ pub(super) struct Source {
     model_prefix: String,
     pub(super) parts: Vec<Part>,
     pub(super) names: Vec<String>,
-    vram: Arc<Vram>,
+    pub(super) vram: Arc<Vram>,
 }
 
 impl SceneryLibrary {
@@ -143,76 +143,24 @@ impl Editor {
         if self.project.campaign.is_some() {
             self.campaign_scenery(ui);
         }
-        let cursor = self.world_cursor();
         ui.heading("Scenery from your discs");
-        ui.collapsing("Browse disc assets", |ui| {
-        ui.horizontal(|ui| {
-            ui.selectable_value(&mut self.scenery_game, AssetGame::Tenchu, "Tenchu");
-            ui.selectable_value(&mut self.scenery_game, AssetGame::Tenchu2, "Tenchu 2");
-        });
-        ui.add(
-            egui::DragValue::new(&mut self.scenery_stage)
-                .range(
-                    0..=if self.scenery_game == AssetGame::Tenchu {
-                        18
-                    } else {
-                        23
-                    },
-                )
-                .prefix("Source area "),
-        );
-        if ui.button("Browse area assets").clicked()
-            && let Err(error) =
-                self.scenery_library
-                    .load(assets, self.scenery_game, self.scenery_stage)
-        {
-            self.notice = error;
+        if ui.button("Browse models…").clicked() {
+            match self
+                .scenery_library
+                .load(assets, self.scenery_game, self.scenery_stage)
+            {
+                Ok(()) => self.gallery = Some(previews::Target::Scenery),
+                Err(error) => self.notice = error,
+            }
         }
-        ui.small("Decorative scenery casts shadows and receives lighting. Build solid ground, walls and traps with the Terrain palette.");
-        ui.add(egui::TextEdit::singleline(&mut self.search).hint_text("Search scenery…"));
-        if let Some(source) = self
-            .scenery_library
-            .sources
-            .get(&(self.scenery_game, self.scenery_stage))
-        {
-            egui::ScrollArea::vertical()
-                .id_salt("studio-scenery-palette")
-                .max_height(200.0)
-                .show(ui, |ui| {
-                    for (i, name) in source.names.iter().enumerate().filter(|(i, name)| {
-                        !source.parts[*i].geometry.is_empty()
-                            && name.to_lowercase().contains(&self.search.to_lowercase())
-                    }) {
-                        if ui
-                            .add_enabled(
-                                self.project.scenery.len() < self.project.limits.scenery,
-                                egui::Button::new(format!("+ {name}")),
-                            )
-                            .clicked()
-                        {
-                            let position = cursor;
-                            self.campaign_prop = None;
-                            self.scenery_selection = Some(self.project.scenery.len());
-                            self.project.scenery.push(project::Scenery {
-            custom: None,
-                                name: name.clone(),
-                                game: self.scenery_game,
-                                stage: self.scenery_stage,
-                                part: i,
-                                position,
-                                yaw: 0,
-                            });
-                            self.tool = Tool::Select;
-                        }
-                    }
-                });
-        }
-        });
+        ui.small("Visual library · Tenchu 1 / Tenchu 2 · grouped by source area");
         ui.separator();
         ui.heading("Placed scenery");
         for (i, prop) in self.project.scenery.iter().enumerate() {
-            if ui
-                .selectable_label(self.scenery_selection == Some(i), &prop.name)
+            let response = ui.selectable_label(self.scenery_selection == Some(i), &prop.name);
+            if self
+                .previews
+                .tooltip(response, previews::Key::scenery(prop), &prop.name)
                 .clicked()
             {
                 self.scenery_selection = Some(i);
@@ -244,9 +192,14 @@ impl Editor {
         }
         let prop = &mut self.project.scenery[index];
         ui.separator();
+        self.previews.show(
+            ui,
+            previews::Key::scenery(prop),
+            egui::vec2(ui.available_width(), 150.0),
+        );
         ui.text_edit_singleline(&mut prop.name);
         if let Some(model) = &mut prop.custom {
-            custom::ui::model(ui, model, &self.project.assets);
+            custom::ui::model(ui, model, &self.project.assets, &mut self.previews);
         } else {
             ui.label(format!(
                 "{} · source area {} · object {}",

@@ -218,6 +218,9 @@ impl Overlay {
             if let Some((studio, assets, _)) = &mut extras.studio {
                 studio_action = studio.show(ctx, assets);
                 if studio.open {
+                    if let Some(models) = &extras.models {
+                        studio.paint_previews(ctx, models);
+                    }
                     if let Some(demo) = &mut extras.demo {
                         demo_action = crate::demo::overlay::show(
                             ctx,

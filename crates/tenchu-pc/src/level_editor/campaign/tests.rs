@@ -60,6 +60,102 @@ fn source_node(t2: bool) -> Node {
 }
 
 #[test]
+fn visible_wall_picking_stops_at_the_wall_and_respects_cut_collision() {
+    for t2 in [false, true] {
+        let mut parts = floor();
+        parts[0].geometry[0].vertices =
+            vec![[0, -1000, 0], [0, -1000, 1000], [0, 0, 0], [0, 0, 1000]];
+        let mesh = picking::Mesh::new(&parts);
+        let hit = mesh
+            .pick(glam::vec3(-500.0, -500.0, 500.0), Vec3::X)
+            .unwrap();
+        assert_eq!(hit.point, glam::vec3(0.0, -500.0, 500.0));
+        let roof = Node {
+            y: -100,
+            ..source_node(t2)
+        };
+        let floor = source_node(t2);
+        assert_eq!(
+            picking::surface(&hit, [([0, 0], floor), ([0, 1], roof)].into_iter(), t2),
+            Some([0, 1])
+        );
+        assert_eq!(
+            picking::surface(&hit, [([0, 0], floor)].into_iter(), t2),
+            None,
+            "a floor behind/below the wall must not silently become its selection"
+        );
+        let cut = Node {
+            division: 0,
+            ..roof
+        };
+        assert_eq!(
+            picking::surface(&hit, [([0, 1], cut)].into_iter(), t2),
+            None
+        );
+        assert!(
+            mesh.pick(glam::vec3(-500.0, -1500.0, 500.0), Vec3::X)
+                .is_none()
+        );
+        assert!(
+            mesh.pick(glam::vec3(-500.0, -500.0, 1500.0), Vec3::X)
+                .is_none()
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; visible T1 Mission 1 wall authoring, not ordinary-play validation"]
+fn mission_one_walls_resolve_to_source_collision_columns() {
+    let assets = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let cache = Cache::load(
+        &assets,
+        Source::Tenchu {
+            stage: 1,
+            layout: 1,
+        },
+        0,
+    )
+    .unwrap();
+    let mut matched = 0;
+    let mut tested = 0;
+    let mesh = picking::Mesh::new(&cache.mission.map);
+    for part in cache.mission.map.iter() {
+        let offset = Vec3::from_array(part.position.map(|v| f32::from(v) * 10.0));
+        for geometry in &part.geometry {
+            for face in geometry.faces.iter().take_while(|face| face.flags & 1 != 0) {
+                for order in crate::render_mesh::face_order(face).chunks_exact(3) {
+                    let triangle: [Vec3; 3] = std::array::from_fn(|i| {
+                        offset
+                            + Vec3::from_array(
+                                geometry.vertices[face.corners[order[i]].vertex as usize]
+                                    .map(f32::from),
+                            )
+                    });
+                    let [a, b, c] = triangle;
+                    let normal = (b - a).cross(c - a).normalize_or_zero();
+                    if normal.y.abs() >= 0.15 || normal.length_squared() < 0.5 {
+                        continue;
+                    }
+                    let center = (a + b + c) / 3.0;
+                    let Some(hit) = mesh.pick(center + normal * 10.0, -normal) else {
+                        continue;
+                    };
+                    tested += 1;
+                    if let Some(key) =
+                        picking::surface(&hit, cache.nodes.iter().map(|(&k, &n)| (k, n)), false)
+                    {
+                        assert!(cache.nodes.contains_key(&key));
+                        matched += 1;
+                    }
+                }
+            }
+        }
+    }
+    eprintln!("M1 wall triangles: {matched}/{tested} have an editable collision column");
+    assert!(matched > 100, "actual Mission 1 walls must be selectable");
+}
+
+#[test]
 fn sculpted_floor_matches_collision_footprint_and_keeps_neighbours() {
     for t2 in [false, true] {
         let original = source_node(t2);
@@ -609,4 +705,118 @@ fn campaign_height_edits_keep_placements_and_undo_as_one_change() {
         true,
     );
     assert_eq!(project.campaign, before.campaign);
+}
+
+#[test]
+fn expanding_sections_keep_state_when_counts_and_coordinates_change() {
+    fn text(output: &egui::FullOutput, needle: &str) -> Option<egui::Pos2> {
+        fn find(shape: &egui::Shape, needle: &str) -> Option<egui::Pos2> {
+            match shape {
+                egui::Shape::Text(t) if t.galley.job.text == needle => {
+                    Some(t.visual_bounding_rect().center())
+                }
+                egui::Shape::Vec(shapes) => shapes.iter().find_map(|s| find(s, needle)),
+                _ => None,
+            }
+        }
+        output.shapes.iter().find_map(|s| find(&s.shape, needle))
+    }
+    fn draw(
+        editor: &mut Editor,
+        ctx: &egui::Context,
+        page: u8,
+        events: Vec<egui::Event>,
+    ) -> egui::FullOutput {
+        ctx.run(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(800.0, 1600.0),
+                )),
+                events,
+                ..Default::default()
+            },
+            |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| match page {
+                    0 => editor.campaign_scenery(ui),
+                    1 => editor.campaign_mission_ui(ui),
+                    _ => editor.campaign_characters(ui),
+                });
+            },
+        )
+    }
+    fn click(editor: &mut Editor, ctx: &egui::Context, page: u8, label: &str) {
+        let mut output = draw(editor, ctx, page, vec![]);
+        for _ in 0..3 {
+            output = draw(editor, ctx, page, vec![]);
+        }
+        let pos = text(&output, label).unwrap_or_else(|| panic!("Missing {label}"));
+        for pressed in [true, false] {
+            draw(
+                editor,
+                ctx,
+                page,
+                vec![
+                    egui::Event::PointerMoved(pos),
+                    egui::Event::PointerButton {
+                        pos,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+    }
+    let mut editor = Editor::new(PathBuf::new());
+    editor.project.campaign = Some(Campaign {
+        source: Source::Tenchu {
+            stage: 1,
+            layout: 1,
+        },
+        start: [0; 3],
+        facing: 0,
+        actors: vec![Actor {
+            enabled: true,
+            story: false,
+            name: "Guard".into(),
+            source_kind: 140,
+            spawn: Enemy {
+                kind: 140,
+                slot: 0,
+                think: 0x3453,
+                position: [0; 3],
+                facing: 0,
+                patrol: vec![([1000, 0, 1000], 0)],
+            },
+        }],
+        props: vec![Placement {
+            part: 0,
+            cloned: false,
+            position: [0; 3],
+            facing: 0,
+        }],
+        pickups: vec![],
+        terrain: vec![],
+    });
+    editor.campaign_prop = Some(0);
+    let ctx = egui::Context::default();
+    ctx.style_mut(|s| s.animation_time = 0.0);
+    click(&mut editor, &ctx, 0, "Original map props · 1");
+    click(&mut editor, &ctx, 0, "Duplicate");
+    assert_eq!(editor.project.campaign.as_ref().unwrap().props.len(), 2);
+    assert!(text(&draw(&mut editor, &ctx, 0, vec![]), "Duplicate").is_some());
+    click(&mut editor, &ctx, 0, "Delete");
+    assert!(text(&draw(&mut editor, &ctx, 0, vec![]), "0 · Object").is_some());
+    click(&mut editor, &ctx, 1, "Item pickups · 0");
+    click(&mut editor, &ctx, 1, "Add pickup at cursor");
+    assert_eq!(editor.project.campaign.as_ref().unwrap().pickups.len(), 1);
+    assert!(text(&draw(&mut editor, &ctx, 1, vec![]), "Add pickup at cursor").is_some());
+    editor.actor = 1;
+    click(&mut editor, &ctx, 2, "1 · X 1000 / Z 1000");
+    editor.project.campaign.as_mut().unwrap().actors[0]
+        .spawn
+        .patrol[0]
+        .0 = [2000, 0, 3000];
+    assert!(text(&draw(&mut editor, &ctx, 2, vec![]), "Wait (source units) 0").is_some());
 }

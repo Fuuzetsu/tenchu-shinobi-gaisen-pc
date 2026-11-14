@@ -55,6 +55,8 @@ impl Editor {
             self.scenery_selection = Some(6);
             self.scenery_game = AssetGame::Tenchu2;
             self.scenery_stage = 2;
+            self.gallery = Some(previews::Target::Scenery);
+            self.gallery_search.clear();
         }
         if feature == Feature::Stamps {
             self.clipboard = Some(self.project.stamps[0].clone());
@@ -120,6 +122,7 @@ impl Editor {
             }
             Feature::Scenery => {
                 if first {
+                    self.gallery = None;
                     self.move_scenery([43_550.0, -1800.0, -39_200.0]);
                     self.commit();
                 }
@@ -133,6 +136,14 @@ impl Editor {
             Feature::Characters => {
                 self.camera = self.project.views[1].camera();
                 self.camera.position += self.camera.forward() * (p * 1200.0);
+                if middle {
+                    self.gallery = Some(previews::Target::Appearance);
+                    self.gallery_search = "Rikimaru".into();
+                    self.gallery_source = 0;
+                }
+                if last {
+                    self.gallery = None;
+                }
             }
             Feature::Patrols => {
                 if first || middle || last {

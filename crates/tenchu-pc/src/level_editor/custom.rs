@@ -186,7 +186,7 @@ impl Asset {
         }
     }
 
-    fn image(&self) -> Result<Arc<Image>> {
+    pub(super) fn image(&self) -> Result<Arc<Image>> {
         match self.decoded()? {
             Decoded::Texture(image) => Ok(image.clone()),
             _ => Err("Choose a PNG texture".into()),
