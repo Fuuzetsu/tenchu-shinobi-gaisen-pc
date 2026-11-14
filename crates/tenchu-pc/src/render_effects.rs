@@ -841,20 +841,21 @@ pub(crate) fn surface_geometry_into(
     mut surfaces: Vec<Surface>,
     mut vertices: Vec<Vertex>,
 ) -> Geometry {
-    let decal = |surface: &Surface| {
-        surface.vertices.first().is_some_and(|v| {
-            v.flags & (render_mesh::STAIN | render_mesh::SCREEN) == render_mesh::STAIN
-        })
-    };
     // Coplanar stains compose in source order, independent of camera movement.
     // Draw them before airborne effects, which still need back-to-front sorting.
-    surfaces.sort_by(|a, b| match (decal(a), decal(b)) {
-        (true, true) => std::cmp::Ordering::Equal,
-        (true, false) => std::cmp::Ordering::Less,
-        (false, true) => std::cmp::Ordering::Greater,
-        (false, false) => b.depth.total_cmp(&a.depth),
+    surfaces.sort_by_cached_key(|surface| {
+        if surface.vertices.first().is_some_and(|v| {
+            v.flags & (render_mesh::STAIN | render_mesh::SCREEN) == render_mesh::STAIN
+        }) {
+            return 0;
+        }
+        // Integer equivalent of descending f32::total_cmp, including signed zero and NaNs.
+        let bits = surface.depth.to_bits();
+        let ascending = bits ^ if bits >> 31 != 0 { u32::MAX } else { 1 << 31 };
+        u64::from(!ascending) + 1
     });
     vertices.clear();
+    vertices.reserve(surfaces.iter().map(|surface| surface.vertices.len()).sum());
     let mut out = Geometry {
         vertices,
         batches: Vec::new(),
@@ -884,6 +885,75 @@ pub(crate) fn surface_geometry_into(
 mod tests {
     use super::*;
     use bytemuck::Zeroable;
+
+    #[test]
+    fn surface_sort_retains_depth_bits_and_coplanar_submission_order() {
+        let depths = [
+            0,
+            0x8000_0000,
+            0x7f80_0000,
+            0xff80_0000,
+            0x7fc0_0000,
+            0xffc0_0000,
+            0x7f80_0001,
+            0xff80_0001,
+            1,
+            0x8000_0001,
+            0x3f80_0000,
+            0xbf80_0000,
+        ];
+        let mut expected = Vec::new();
+        let surfaces = (0..4096)
+            .map(|i| {
+                let bits = if i % 2 == 0 {
+                    depths[i / 2 % depths.len()]
+                } else {
+                    (i as u32).wrapping_mul(0x9e37_79b9)
+                };
+                let flags = match i % 5 {
+                    0 => render_mesh::STAIN,
+                    1 => render_mesh::STAIN | render_mesh::SCREEN,
+                    2 => render_mesh::SCREEN,
+                    _ => 0,
+                };
+                let depth = f32::from_bits(bits);
+                let blend = (i % 4) as u8;
+                expected.push((flags == render_mesh::STAIN, depth, blend, i as f32));
+                Surface {
+                    depth,
+                    blend,
+                    vertices: vec![
+                        Vertex {
+                            position: [i as f32, 0.0, 0.0],
+                            flags,
+                            ..Vertex::zeroed()
+                        };
+                        3
+                    ],
+                }
+            })
+            .collect();
+        expected.sort_by(|a, b| match (a.0, b.0) {
+            (true, true) => std::cmp::Ordering::Equal,
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            (false, false) => b.1.total_cmp(&a.1),
+        });
+        let actual = surface_geometry(surfaces);
+        let actual: Vec<_> = actual
+            .batches
+            .iter()
+            .flat_map(|batch| {
+                actual.vertices[batch.range.start as usize..batch.range.end as usize]
+                    .chunks_exact(3)
+                    .map(|triangle| (batch.blend, triangle[0].position[0]))
+            })
+            .collect();
+        assert_eq!(
+            actual,
+            expected.iter().map(|s| (s.2, s.3)).collect::<Vec<_>>()
+        );
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; distant doors retain live/interpolated poses without changing gameplay or duplicating geometry"]

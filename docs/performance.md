@@ -149,6 +149,37 @@ complete model/material hash match before/after. Eight captures are identical;
 T1 differs at 27 pixels by one channel unit. Evidence:
 `private/studio-normal-preparation-20261114` outside Git.
 
+## Translucent effects (2026-11-14)
+
+Effect sorting now caches each surface's depth/layer key and reserves the output
+vertex capacity once. This avoids repeated vertex reads during comparisons and
+buffer growth when assembling detailed waterfalls. Stable submission order,
+signed-zero/NaN depth ordering, blend batches and coplanar stain layering remain
+unchanged. The shared path serves both games and Studio; presets are unchanged.
+
+Two matched reference/candidate runs against v0.35.5 (`103b0bc`) on GTX 1080 Ti /
+Vulkan measure the following in the existing waterfall benchmark:
+
+| Configuration | Mean geometry preparation before → after | Mean CPU work before → after |
+| --- | ---: | ---: |
+| Saved graphics, 1920×1080, fine waterfall geometry | 3.30–3.32 → 2.90–2.91 ms | 4.99–5.02 → 4.51–4.59 ms |
+| Modern High, 3840×2160 | 2.19–2.24 → 1.92–2.05 ms | 3.88–3.95 → 3.47–3.75 ms |
+
+Ranges are the means from two runs, not uncertainty intervals. Each run uses
+720 frames per scene with the first 60 excluded; GPU timing has 659 samples.
+GPU p95 remains approximately 3.15 ms with saved graphics and 7.56 ms at High.
+The other four T1 and four native T2 scenes show smaller CPU variation without
+a consistent gain. Offscreen completion excludes presentation; these are phase
+timings, not interactive FPS predictions or ordinary-play validation.
+
+All 15 pond/waterfall captures are pixel-identical to the reference across the
+tested original, shaded, curved, fine and reflective water settings. Native T2
+water replacement, death-pool timing and distant-door state checks pass. Studio
+interaction/state checks pass; eight matched captures are identical and the T1
+view differs at 15 pixels by one channel unit. Evidence,
+exact settings and full scene reports remain outside Git in
+`private/main-performance-20261114`.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.
