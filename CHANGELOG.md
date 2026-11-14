@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.10 — 2026-11-14
+
 - Select visible campaign walls in Level Studio, along with floors and roofs.
   Wall clicks select their source collision column; a separate collision picker
   and edited-surface list retain access to invisible or cut terrain.
