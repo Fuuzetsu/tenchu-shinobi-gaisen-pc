@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.4 — 2026-11-14
+
 - Reduce static terrain and shadow upload memory and Studio edit stalls by
   sharing repeated vertices on the GPU and sorting shadow triangle indices.
   Preserve triangle order, texture seams, weather shading and source geometry;
