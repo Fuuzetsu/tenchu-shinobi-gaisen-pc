@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.8 — 2026-11-14
+
 - Reduce terrain rebuild work in Level Studio with smaller vertex-sharing
   lookups for rigid meshes, preserving seams, normals and triangle order.
 - Reduce CPU work when preparing refined models during scene loading and
