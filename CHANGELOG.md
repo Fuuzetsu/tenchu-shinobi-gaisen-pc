@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.3 — 2026-11-14
+
 - Reduce Studio terrain-edit and scene-loading stalls by preparing mist only
   from waterfall geometry, avoiding redundant geometry copies during uploads,
   and skipping unused curvature data for meshes that only need smooth lighting.
