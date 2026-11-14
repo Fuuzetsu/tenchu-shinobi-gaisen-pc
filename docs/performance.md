@@ -189,6 +189,27 @@ Cached/fresh catalog checks cover moved geometry, new UV bounds, changed palette
 pixels without a revision bump and changed authored palette colours. Evidence:
 `private/studio-texture-reuse-20261114` outside Git.
 
+Rigid mesh preparation omits unused skin-weight fields from vertex-sharing keys.
+The temporary lookup entry is 24 rather than 48 bytes on the measured 64-bit
+build. Weighted meshes still include every joint and weight bit, and both paths
+retain exact vertex attributes and first-seen triangle order.
+
+Two comparisons against v0.35.7 (`17d2f92`) use the same saved graphics and CPU
+cache group, with 30 alternating campaign edits after two excluded warm-ups:
+
+| Campaign terrain edit | Baseline medians, two runs | Compact-key medians, two runs |
+| --- | ---: | ---: |
+| T1 | 42.35 / 42.37 ms | 41.04 / 41.01 ms |
+| T2 | 44.92 / 44.88 ms | 43.48 / 44.48 ms |
+
+T1 improves by about 3%; T2's smaller improvement varies between runs. Full
+Modern Ultra model preparation is approximately flat in one 100-build comparison
+(57.92 → 57.86 ms) and improves slightly in the repeat (58.61 → 57.53 ms).
+These are preparation times, not frame-rate gains. All nine stage hashes, both
+edited-campaign hashes and the model/material aggregate match. Eight captures
+are identical; T1 differs at 14 pixels by one channel unit. Evidence:
+`private/mesh-index-keys-20261114` outside Git.
+
 ## Translucent effects (2026-11-14)
 
 Effect sorting now caches each surface's depth/layer key and reserves the output

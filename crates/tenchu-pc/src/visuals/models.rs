@@ -573,6 +573,19 @@ struct Mesh {
 
 impl Mesh {
     fn new(vertices: &[Vertex], skin: Option<&[skin::Influence]>) -> Self {
+        match skin {
+            Some(weights) => Self::indexed(vertices, skin, |i| {
+                (bytemuck::bytes_of(&vertices[i]), weights[i].key())
+            }),
+            None => Self::indexed(vertices, None, |i| bytemuck::bytes_of(&vertices[i])),
+        }
+    }
+
+    fn indexed<K: Eq + std::hash::Hash>(
+        vertices: &[Vertex],
+        skin: Option<&[skin::Influence]>,
+        key: impl Fn(usize) -> K,
+    ) -> Self {
         let mut mesh = Self {
             pose_source: OnceLock::new(),
             vertices: Vec::new(),
@@ -587,19 +600,14 @@ impl Mesh {
         for (face, triangle) in vertices.chunks_exact(3).enumerate() {
             mesh.flags |= triangle[0].flags;
             mesh.triangles.push(std::array::from_fn(|i| {
-                *indices
-                    .entry((
-                        bytemuck::bytes_of(&triangle[i]),
-                        skin.map(|w| w[face * 3 + i].key()),
-                    ))
-                    .or_insert_with(|| {
-                        let index = mesh.vertices.len() as u32;
-                        mesh.vertices.push(triangle[i]);
-                        if let (Some(source), Some(target)) = (skin, &mut mesh.skin) {
-                            target.push(source[face * 3 + i]);
-                        }
-                        index
-                    })
+                *indices.entry(key(face * 3 + i)).or_insert_with(|| {
+                    let index = mesh.vertices.len() as u32;
+                    mesh.vertices.push(triangle[i]);
+                    if let (Some(source), Some(target)) = (skin, &mut mesh.skin) {
+                        target.push(source[face * 3 + i]);
+                    }
+                    index
+                })
             }));
         }
         mesh
@@ -1546,6 +1554,9 @@ mod tests {
         assert_eq!(mesh.vertices.len(), 2);
         assert_eq!(mesh.triangles, [[0; 3], [1; 3]]);
         assert_eq!(mesh.skin.unwrap()[1].joints[0], 1);
+        let rigid = Mesh::new(&vertices, None);
+        assert_eq!(rigid.vertices.len(), 1);
+        assert_eq!(rigid.triangles, [[0; 3]; 2]);
     }
 
     #[test]

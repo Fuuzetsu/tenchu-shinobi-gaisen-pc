@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce terrain rebuild work in Level Studio with smaller vertex-sharing
+  lookups for rigid meshes, preserving seams, normals and triangle order.
+
 ## 0.35.7 — 2026-11-14
 
 - Speed up campaign terrain sculpting in Level Studio by skipping faces outside
