@@ -7,6 +7,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Speed up terrain edits in Level Studio by reducing shadow-preparation work,
   preserving spatial cell order and triangle order within each cell.
+- Reduce smooth-model preparation work during loading and Studio edits by
+  avoiding many small temporary allocations. Preserve normals and curvature.
 
 ## 0.35.8 — 2026-11-14
 

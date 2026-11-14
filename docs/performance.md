@@ -264,6 +264,33 @@ identical; T1 differs at 36 pixels by one channel unit. Source terrain, GPU shad
 checks, 315 workspace tests and native/Android/WASM checks pass. Evidence:
 `private/shadow-cell-grouping-20261114` outside Git.
 
+Normal preparation now keeps ordered face adjacency in one contiguous vector
+with a range per point, replacing many individually allocated lists. Duplicate
+corners and source face order are retained. A private comparison against
+`0614c6c` checks 106,020 cases across T1 geometry and five native T2 rigs, lighting
+on/off, divisions 0–4, both curvature strengths, zero/finite/infinite limits and
+nonmanifold/degenerate/signed-zero inputs. Vertex bytes and skin weights match
+exactly. Curvature cases above 6,000 input vertices are skipped to bound that
+fixture; normal-only cases include all source sizes.
+
+Two 100-build Ultra comparisons measure 49.29 / 49.46 → 46.34 / 46.46 ms,
+about 6% less model preparation time, with the same complete geometry/material
+digest. Two 30-edit Studio pairs after two warm-ups give the following medians:
+
+| Campaign terrain edit | Baseline medians, two runs | Packed adjacency medians, two runs |
+| --- | ---: | ---: |
+| T1 | 41.91 / 39.61 ms | 40.66 / 38.74 ms |
+| T2 | 45.56 / 42.89 ms | 41.96 / 41.75 ms |
+
+These use the same saved graphics and CPU affinity as above. One preliminary
+Studio run overlapped release download verification and is excluded. Final
+timings have no overlapping compilation or release verification. All nine stage
+and two edited-campaign hashes match; eight captures are identical, and T1
+differs at five pixels by one channel unit. Source geometry, about 4.78 million
+rigid/weighted GPU pose vertices, 315 workspace tests and native/Android/WASM
+checks pass. Temporary reference code is excluded from the final build. Evidence:
+`private/normal-adjacency-20261114` outside Git.
+
 ## Translucent effects (2026-11-14)
 
 Effect sorting now caches each surface's depth/layer key and reserves the output

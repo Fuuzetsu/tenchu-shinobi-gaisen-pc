@@ -1,7 +1,7 @@
 use super::appearance::skin::Influence;
 use crate::render_mesh::Vertex;
 use glam::Vec3;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Range};
 
 // Cubic PN patches: Vlachos et al., https://doi.org/10.1145/364338.364387.
 // Open/nonmanifold edges stay linear so independently animated parts keep their seams.
@@ -74,29 +74,45 @@ fn curve_skinned(
             (b - a).cross(c - a).normalize_or_zero()
         })
         .collect();
-    let mut neighbors: Vec<Vec<usize>> = Vec::new();
+    let mut neighbors: Vec<Range<usize>> = Vec::new();
     let mut corners = Vec::with_capacity(vertices.len());
     {
         let mut points = BTreeMap::new();
-        for (face, triangle) in vertices.chunks_exact(3).enumerate() {
+        for triangle in vertices.chunks_exact(3) {
             for vertex in triangle {
                 let point = *points.entry(key(vertex.position)).or_insert_with(|| {
                     let point = neighbors.len();
-                    neighbors.push(Vec::new());
+                    neighbors.push(0..0);
                     point
                 });
-                neighbors[point].push(face);
+                neighbors[point].end += 1;
                 corners.push(point);
             }
         }
     }
+    let adjacent = {
+        let mut start = 0;
+        let mut next = Vec::with_capacity(neighbors.len());
+        for range in &mut neighbors {
+            let count = range.end;
+            next.push(start);
+            *range = start..start + count;
+            start += count;
+        }
+        let mut adjacent = vec![0; corners.len()];
+        for (corner, &point) in corners.iter().enumerate() {
+            adjacent[next[point]] = corner / 3;
+            next[point] += 1;
+        }
+        adjacent
+    };
     if lighting {
         for (index, vertex) in vertices.iter_mut().enumerate() {
             if Vec3::from(vertex.normal).length_squared() > 0.5 {
                 continue;
             }
             let face = faces[index / 3];
-            vertex.normal = neighbors[corners[index]]
+            vertex.normal = adjacent[neighbors[corners[index]].clone()]
                 .iter()
                 .map(|&i| faces[i])
                 .filter(|n| n.dot(face) >= 0.5)
@@ -119,8 +135,8 @@ fn curve_skinned(
     }
     let normals: Vec<_> = neighbors
         .iter()
-        .map(|indices| {
-            indices
+        .map(|range| {
+            adjacent[range.clone()]
                 .iter()
                 .map(|&face| faces[face])
                 .sum::<Vec3>()
