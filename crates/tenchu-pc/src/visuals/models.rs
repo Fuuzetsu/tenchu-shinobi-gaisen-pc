@@ -23,6 +23,12 @@ pub struct Material {
     pub animation: Option<tenchu_assets::texture::TextureScroll>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum Pass {
+    Opaque { fog: bool },
+    Shadow,
+}
+
 pub(crate) struct SceneryMaterial {
     pub custom: Option<Arc<Pack>>,
     pub part: usize,
@@ -455,7 +461,7 @@ impl Models {
             output,
             geometry,
             matrix,
-            fog,
+            Pass::Opaque { fog },
             self.deformation(part, matrix).as_ref(),
             self.motion_rules(geometry.as_ptr() as usize).unwrap_or(&[]),
         )
@@ -466,9 +472,20 @@ impl Models {
         output: &mut render_mesh::Indexed,
         geometry: &[Geometry],
         matrix: Matrix,
+        shadow: bool,
     ) -> bool {
-        self.source(geometry)
-            .append_indexed(output, geometry, matrix, true, None, &[])
+        self.source(geometry).append_indexed(
+            output,
+            geometry,
+            matrix,
+            if shadow {
+                Pass::Shadow
+            } else {
+                Pass::Opaque { fog: true }
+            },
+            None,
+            &[],
+        )
     }
 
     pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
@@ -1167,7 +1184,7 @@ impl Meshes {
         output: &mut render_mesh::Indexed,
         geometry: &[Geometry],
         matrix: Matrix,
-        fog: bool,
+        pass: Pass,
         deformation: Option<&super::motion::Deformation<'_>>,
         rules: &[super::motion::BoundRule],
     ) -> bool {
@@ -1177,7 +1194,8 @@ impl Meshes {
         };
         let base = output.vertices.len();
         let start = output.indices.len();
-        if mesh.flags & render_mesh::TRANSLUCENT == 0 {
+        let fog = matches!(pass, Pass::Opaque { fog: true });
+        if matches!(pass, Pass::Shadow) || mesh.flags & render_mesh::TRANSLUCENT == 0 {
             output.indices.extend(
                 mesh.triangles
                     .as_flattened()

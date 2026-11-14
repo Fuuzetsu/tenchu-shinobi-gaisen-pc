@@ -1070,11 +1070,24 @@ impl View {
                     || settings.graphics.lighting.directional.intensity > 0
                     || settings.graphics.sky.enabled);
         if shadowing && self.shadow_stage.is_none() {
-            self.shadow_stage = Some(self.renderer.upload_shadow(&render_mesh::shadow_stage(
-                &game.mission,
-                &game.math,
-                Some(&self.models),
-            )));
+            #[cfg(not(test))]
+            let indexed = true;
+            #[cfg(test)]
+            let indexed = std::env::var_os("TENCHU_STUDIO_EXPANDED_SHADOWS").is_none();
+            self.shadow_stage = Some(if indexed {
+                self.renderer
+                    .upload_indexed_shadow(render_mesh::indexed_shadow_stage(
+                        &game.mission,
+                        &game.math,
+                        Some(&self.models),
+                    ))
+            } else {
+                self.renderer.upload_shadow(&render_mesh::shadow_stage(
+                    &game.mission,
+                    &game.math,
+                    Some(&self.models),
+                ))
+            });
         }
         // Inspection presents every actor using the same poses as the shadow pass.
         self.shared_actor_shadows = shadowing && inspection;

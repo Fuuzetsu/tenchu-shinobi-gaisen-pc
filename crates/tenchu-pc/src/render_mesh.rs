@@ -466,11 +466,34 @@ pub fn stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> V
 }
 
 pub fn indexed_stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> Indexed {
+    stage_indices(mission, math, models, false)
+}
+
+pub fn indexed_shadow_stage(
+    mission: &MissionAssets,
+    math: &Math,
+    models: Option<&Models>,
+) -> Indexed {
+    stage_indices(mission, math, models, true)
+}
+
+fn stage_indices(
+    mission: &MissionAssets,
+    math: &Math,
+    models: Option<&Models>,
+    shadow: bool,
+) -> Indexed {
     let mut out = Indexed::default();
     visit_stage(mission, math, |geometry, matrix| {
-        if !models.is_some_and(|models| models.append_indexed_static(&mut out, geometry, matrix)) {
+        if !models
+            .is_some_and(|models| models.append_indexed_static(&mut out, geometry, matrix, shadow))
+        {
             let base = out.vertices.len() as u32;
-            append_geometry(&mut out.vertices, geometry, matrix, None);
+            if shadow {
+                append_caster(&mut out.vertices, geometry, matrix, None);
+            } else {
+                append_geometry(&mut out.vertices, geometry, matrix, None);
+            }
             out.indices.extend(base..out.vertices.len() as u32);
         }
     });

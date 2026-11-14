@@ -1446,7 +1446,7 @@ impl Builder {
                 &mut self.actors,
                 &part.geometry,
                 matrix,
-                false,
+                crate::visuals::models::Pass::Opaque { fog: false },
                 deformation,
                 meshes
                     .motion_rules(part.geometry.as_ptr() as usize)

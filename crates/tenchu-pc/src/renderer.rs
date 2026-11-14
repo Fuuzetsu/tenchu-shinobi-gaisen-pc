@@ -541,6 +541,19 @@ impl Renderer {
         self.upload_owned(culling::spatial(vertices))
     }
 
+    pub fn upload_indexed_shadow(&mut self, mut geometry: crate::render_mesh::Indexed) -> Mesh {
+        if geometry
+            .indices
+            .iter()
+            .copied()
+            .eq(0..geometry.vertices.len() as u32)
+        {
+            return self.upload_shadow(&geometry.vertices);
+        }
+        culling::spatial_indexed(&mut geometry);
+        self.upload_indexed(geometry)
+    }
+
     pub fn upload(&mut self, vertices: &[Vertex]) -> Mesh {
         self.upload_owned(vertices.to_vec())
     }

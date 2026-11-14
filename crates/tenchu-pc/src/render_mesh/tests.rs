@@ -15,12 +15,22 @@ fn indexed_stage_preserves_source_and_enhanced_triangles() {
         .unwrap();
         let state = crate::session::tests::state(&game);
         let compare = |models: Option<&Models>| {
-            let indexed = indexed_stage(&game.mission, &game.math, models);
-            let expanded = stage(&game.mission, &game.math, models);
-            assert_eq!(
-                bytemuck::cast_slice::<_, u8>(&indexed.expanded()),
-                bytemuck::cast_slice::<_, u8>(&expanded)
-            );
+            for shadow in [false, true] {
+                let indexed = if shadow {
+                    indexed_shadow_stage(&game.mission, &game.math, models)
+                } else {
+                    indexed_stage(&game.mission, &game.math, models)
+                };
+                let expanded = if shadow {
+                    shadow_stage(&game.mission, &game.math, models)
+                } else {
+                    stage(&game.mission, &game.math, models)
+                };
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&indexed.expanded()),
+                    bytemuck::cast_slice::<_, u8>(&expanded)
+                );
+            }
         };
         compare(None);
         let pack = crate::visuals::pack::Pack::from_env(&game.mission).unwrap();

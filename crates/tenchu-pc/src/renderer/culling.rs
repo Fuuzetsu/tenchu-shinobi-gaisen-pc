@@ -346,19 +346,37 @@ impl Frustum {
     }
 }
 
+fn spatial_key(triangle: [&Vertex; 3]) -> (bool, i32, i32, i32) {
+    let center = triangle
+        .iter()
+        .map(|v| Vec3::from(v.position))
+        .sum::<Vec3>()
+        / 3.0;
+    let cell = (center / 5000.0).floor().as_ivec3();
+    let foliage = triangle.iter().any(|v| v.flags & render_mesh::FOLIAGE != 0);
+    (foliage, cell.x, cell.z, cell.y)
+}
+
 pub(super) fn spatial(vertices: &[Vertex]) -> Vec<Vertex> {
     let mut triangles: Vec<_> = vertices.chunks_exact(3).collect();
-    triangles.sort_by_cached_key(|t| {
-        let center = t.iter().map(|v| Vec3::from(v.position)).sum::<Vec3>() / 3.0;
-        let cell = (center / 5000.0).floor().as_ivec3();
-        let foliage = t.iter().any(|v| v.flags & render_mesh::FOLIAGE != 0);
-        (foliage, cell.x, cell.z, cell.y)
-    });
+    triangles.sort_by_cached_key(|t| spatial_key(std::array::from_fn(|i| &t[i])));
     let mut sorted = Vec::with_capacity(triangles.len() * 3);
     for triangle in triangles {
         sorted.extend_from_slice(triangle);
     }
     sorted
+}
+
+pub(super) fn spatial_indexed(geometry: &mut render_mesh::Indexed) {
+    let mut triangles: Vec<_> = geometry
+        .indices
+        .chunks_exact(3)
+        .map(|t| [t[0], t[1], t[2]])
+        .collect();
+    triangles.sort_by_cached_key(|t| spatial_key(t.map(|i| &geometry.vertices[i as usize])));
+    geometry.indices.clear();
+    geometry.indices.extend(triangles.into_iter().flatten());
+    geometry.groups.clear();
 }
 
 #[cfg(test)]
@@ -395,6 +413,16 @@ mod tests {
             .collect();
         assert_eq!(
             bytemuck::cast_slice::<_, u8>(&spatial(&vertices)),
+            bytemuck::cast_slice::<_, u8>(&expected)
+        );
+        let mut indexed = render_mesh::Indexed {
+            indices: (0..vertices.len() as u32).collect(),
+            vertices,
+            ..Default::default()
+        };
+        spatial_indexed(&mut indexed);
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(&indexed.expanded()),
             bytemuck::cast_slice::<_, u8>(&expected)
         );
     }

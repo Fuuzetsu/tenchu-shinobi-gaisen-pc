@@ -100,6 +100,21 @@ fn geometry(app: &Application) -> Vec<u8> {
         bytemuck::cast_slice::<_, u8>(&vertices),
         "indexed stage must preserve every triangle and attribute"
     );
+    let shadows = crate::render_mesh::shadow_stage(
+        &game.mission,
+        &game.math,
+        Some(&app.view.as_ref().unwrap().models),
+    );
+    let indexed_shadows = crate::render_mesh::indexed_shadow_stage(
+        &game.mission,
+        &game.math,
+        Some(&app.view.as_ref().unwrap().models),
+    );
+    assert_eq!(
+        bytemuck::cast_slice::<_, u8>(&indexed_shadows.expanded()),
+        bytemuck::cast_slice::<_, u8>(&shadows),
+        "indexed shadows must retain translucent casters"
+    );
     // Renderer material handles may be assigned in a different order after a
     // full reload. The geometry, UVs, colors and rendering flags must agree.
     for vertex in &mut vertices {
@@ -123,9 +138,16 @@ fn profile_preview(app: &mut Application, output: &std::path::Path) {
     app.focused = true;
     app.view.as_mut().unwrap().renderer.profiling = true;
     let mut cpu = Vec::new();
+    let mut updates = Vec::new();
+    let mut submissions = Vec::new();
     let mut gpu = Vec::new();
     let mut serial = 0;
-    for frame in 0..150 {
+    let frames = std::env::var("TENCHU_STUDIO_PROFILE_FRAMES")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(120)
+        .clamp(120, 3600);
+    for frame in 0..frames + 30 {
         let start = Instant::now();
         app.advance_studio_preview(1.0 / 60.0);
         app.update_overlay();
@@ -137,6 +159,8 @@ fn profile_preview(app: &mut Application, output: &std::path::Path) {
             continue;
         }
         cpu.push(update + f64::from(draw.submit));
+        updates.push(update);
+        submissions.push(draw.submit);
         if let Some(sample) = view.renderer.timings.as_ref().and_then(|t| t.latest)
             && sample.serial != serial
         {
@@ -145,6 +169,8 @@ fn profile_preview(app: &mut Application, output: &std::path::Path) {
         }
     }
     cpu.sort_by(f64::total_cmp);
+    updates.sort_by(f64::total_cmp);
+    submissions.sort_by(f32::total_cmp);
     gpu.sort_by(f32::total_cmp);
     eprintln!(
         "PREVIEW CPU p50/p95: {:.3}/{:.3} ms; GPU p50/p95: {:?}/{:?} ms",
@@ -153,10 +179,16 @@ fn profile_preview(app: &mut Application, output: &std::path::Path) {
         gpu.get(gpu.len() / 2),
         gpu.get(gpu.len() * 95 / 100)
     );
+    eprintln!(
+        "PREVIEW UPDATE/SUBMIT p95: {:.3}/{:.3} ms",
+        updates[updates.len() * 95 / 100],
+        submissions[submissions.len() * 95 / 100]
+    );
     std::fs::write(
         output.join("preview-frame-times.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "cpu_ms_without_present_wait": cpu, "gpu_ms": gpu,
+            "cpu_update_ms": updates, "cpu_submit_ms": submissions,
             "graphics": app.settings.graphics,
         }))
         .unwrap(),

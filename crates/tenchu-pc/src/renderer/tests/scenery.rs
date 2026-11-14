@@ -76,6 +76,11 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
         shared.vertices.extend([0, 1, 2, 4].map(|i| quad[i]));
         shared.indices.extend([0, 1, 2, 1, 3, 2].map(|i| base + i));
     }
+    let shadow = renderer.upload_indexed_shadow(Indexed {
+        vertices: shared.vertices.clone(),
+        indices: shared.indices.clone(),
+        ..Default::default()
+    });
     let indexed = renderer.upload_indexed(shared);
     assert!(indexed.scenery);
     let actor = renderer.upload(&rectangle(1000, 90, None, false, false, false));
@@ -90,7 +95,7 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
         flame: false,
         emission_radius: 0.0,
     };
-    let capture = |renderer: &mut Renderer, terrain: &Mesh| {
+    let capture = |renderer: &mut Renderer, terrain: &Mesh, caster: &Mesh| {
         renderer
             .draw_lit(
                 &view,
@@ -98,7 +103,7 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
                 SceneMeshes::new(&[terrain], &[&actor]),
                 None,
                 &[light],
-                &[terrain, &actor],
+                &[caster, &actor],
             )
             .unwrap();
         read_pixels(renderer, &target)
@@ -131,17 +136,17 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
             for time in [0.0, 1.5] {
                 renderer.visual_time = time;
                 terrain.scenery = false;
-                let expected = capture(&mut renderer, &terrain);
+                let expected = capture(&mut renderer, &terrain, &terrain);
                 assert!(expected.chunks_exact(4).any(|p| p[..3] != [0; 3]));
                 terrain.scenery = true;
                 graphics.rendering.shared_forward_lighting = false;
                 renderer.configure(&graphics);
-                assert!(capture(&mut renderer, &terrain) == expected);
+                assert!(capture(&mut renderer, &terrain, &terrain) == expected);
                 graphics.rendering.shared_forward_lighting = true;
                 renderer.configure(&graphics);
-                let actual = capture(&mut renderer, &terrain);
+                let actual = capture(&mut renderer, &terrain, &terrain);
                 assert_eq!(
-                    capture(&mut renderer, &indexed),
+                    capture(&mut renderer, &indexed, &shadow),
                     actual,
                     "indexed scenery: samples {samples}, weather {mode:?}, time {time}"
                 );

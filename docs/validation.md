@@ -1322,7 +1322,12 @@ campaign terrain edits and mixed-disc scenery changes in an optimized build.
 It compares the resulting geometry and serialized game with fresh playtest/editor
 reloads and retains accumulated weather across cached edits. Set
 `TENCHU_STUDIO_USER_SETTINGS=1` to read the current graphics preferences and
-`TENCHU_STUDIO_PROFILE_FRAMES=1` to additionally collect CPU/GPU preview timings
-with rain, lighting, shadows and the full editor UI. The fixture saves its own
-library and captures under `TENCHU_STUDIO_CAPTURE`, leaving user data untouched.
+`TENCHU_STUDIO_PROFILE_FRAMES=1200` to additionally collect CPU/GPU preview timings
+with rain, lighting, shadows and the full editor UI. The requested frame count is
+clamped to 120–3,600, after 30 warm-up frames; CPU update and submission times are
+also recorded separately. `TENCHU_STUDIO_EXPANDED_SHADOWS=1` selects the previous
+expanded shadow upload only in test builds for matched A/B measurements.
+The fixture saves its own library and captures under `TENCHU_STUDIO_CAPTURE`,
+leaving user data untouched. Visible and shadow indices are expanded and compared
+byte for byte against the original triangle builders, including mixed-disc maps.
 See [performance measurements](performance.md) for the comparison and its scope.

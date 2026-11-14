@@ -5,9 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
-- Reduce static terrain upload memory and Studio edit stalls by sharing repeated
-  vertices on the GPU. Preserve triangle order, texture seams, weather shading
-  and source geometry; unshared geometry keeps its existing upload path.
+- Reduce static terrain and shadow upload memory and Studio edit stalls by
+  sharing repeated vertices on the GPU and sorting shadow triangle indices.
+  Preserve triangle order, texture seams, weather shading and source geometry;
+  unshared geometry keeps its existing upload path.
 
 ## 0.35.3 — 2026-11-14
 

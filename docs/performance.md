@@ -81,24 +81,36 @@ VRAM changes and refined blood. New model recipes still receive original disc
 textures even when those textures were already selected by an earlier load.
 Evidence remains outside Git in `private/studio-performance-continuous-20261114`.
 
-Static scenery now uploads shared vertices and triangle indices. On the sampled
+Static scenery and its shadows now upload shared vertices and triangle indices.
+Shadow preparation sorts triangle indices instead of expanded geometry, retaining
+the same stable spatial order and translucent casters. On the sampled
 T1/T2 campaign edit states, visible terrain buffer data falls from approximately
 20.5/13.6 MB to 11.9/6.9 MB, including indices. These figures exclude textures,
 shadow geometry and other GPU resources. Unshared geometry retains its previous
 upload path. Expanded triangles, attributes and source game state are unchanged.
 
-A fresh v0.35.3 (`a2a9f727`) comparison on the same settings/hardware measured T1
-terrain editing at 67.6 → 61.9 ms, T2 at 64.5 → 64.6 ms, mixed ornament placement
-at 20.4 → 19.1 ms, and the three example edits at median 27.0 → 26.1 ms. Campaign
-entries are single edits. Preview GPU p95 remains about 2.54 ms; CPU p95 is
-2.53 → 2.40 ms, with variable medians. This is an upload/memory improvement, not
-a claimed interactive frame-rate increase. Eight captures are identical; the
-T1 view differs at 25 pixels by one channel unit.
+A fresh v0.35.3 (`a2a9f727`) baseline on the same settings/hardware measures:
+
+| Authoring operation | v0.35.3 | Shared terrain and shadows |
+| --- | ---: | ---: |
+| Lighting/events trap/pit edit, median of three | 27.0 ms | 25.3 ms |
+| T1 campaign terrain elevation edit | 67.6 ms | 50.4 ms |
+| T2 campaign terrain elevation edit | 64.5 ms | 56.2 ms |
+| Mixed garden ornament placement | 20.4 ms | 18.7 ms |
+
+Campaign/mixed entries remain single edits. A separate same-binary comparison
+isolating shadow sharing measures T1 at 62.7 → 50.4 ms and T2 at 63.7 → 56.2 ms.
+Across 1,200 preview frames after 30 warm-up frames, CPU p50/p95 is 1.97/2.52 →
+2.10/2.58 ms and GPU p50/p95 is 2.22/2.54 → 2.22/2.54 ms. CPU update/submit p95
+is 1.55/1.08 → 1.59/1.10 ms. This is an editing/upload improvement, not a claimed
+interactive frame-rate increase. Eight shadow A/B captures are identical; the
+T1 view differs at ten pixels by one channel unit.
 
 Source and enhanced geometry comparisons cover Original, High and Ultra plus
 mixed T1/T2 Studio maps. GPU comparisons cover original texture bindings,
 weather, water, wind, cutouts, emission, HDR and MSAA, and both games' animated
-character poses. Evidence: `private/studio-indexed-stage-20261114` outside Git.
+character poses. Evidence: `private/studio-indexed-stage-20261114` and
+`private/studio-shadow-indices-20261114` outside Git.
 
 ## Quality and automatic tuning
 
