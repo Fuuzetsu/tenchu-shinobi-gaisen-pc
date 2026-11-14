@@ -21,6 +21,41 @@ For individual controls, see the [graphics setting cost breakdown](graphics-perf
 4K measurements with one option changed at a time, plus the cost model for the
 remaining sliders and event-driven effects.
 
+## Level Studio authoring (2026-11-14)
+
+Texture preparation now resolves repeated face/image queries once per pass and
+checks each model's texture set when selecting light rules. Artwork caches also
+retain manifest selectors, so renumbering a prop with no override does not reopen
+the archive. Geometry, texture identities, light-rule order and graphics settings
+are unchanged. These paths are shared with scene loading in both games.
+
+Matched release builds against v0.35.1 (`4f7f80d`) on GTX 1080 Ti/Vulkan, using
+the reported saved graphics and installed T1/T2 artwork:
+
+| Authoring operation | v0.35.1 | Optimized |
+| --- | ---: | ---: |
+| Lighting/events example: trap/pit placement, median of three edits | 63.6 ms | 28.2 ms |
+| T1 campaign: terrain elevation edit | 153.4 ms | 88.3 ms |
+| T2 campaign: terrain elevation edit | 112.0 ms | 94.8 ms |
+| Mixed T1/T2 garden: ornament placement | 139.9 ms | 21.6 ms |
+
+Campaign/mixed entries are individual edits, not percentile estimates. These
+measure synchronous authoring work through scene refresh, not interactive FPS.
+Idle refresh remains 0.26 ms. At 1440×1000 with rain accumulated for two minutes,
+lighting, shadows and the full editor UI, 120 preview frames after 30 warm-up
+frames measure CPU p50/p95 2.08/2.60 ms and GPU p50/p95 2.22/2.54 ms. CPU times
+exclude presentation/completion waits; GPU timestamps are separate. The baseline
+preview was similar (CPU 1.99/3.01 ms, GPU 2.22/2.50 ms): the gain is in editing.
+
+Eight final before/after captures are pixel-identical; the T1 campaign differs at
+seven of 1,440,000 pixels by one colour-channel unit. Repeating the baseline also
+changes three pixels by one unit; an earlier nine-pair comparison was identical.
+Edited geometry and serialized game state match fresh reloads, including imported
+scenery and preserved weather.
+Raw timings, settings and screenshots remain outside Git under
+`private/studio-performance-20261114`. These are controlled authoring/presentation
+fixtures, not ordinary-play retail comparisons.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.

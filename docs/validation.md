@@ -1316,3 +1316,13 @@ The TRIAL HUD fixture checks source glyphs/candle counts, timer visibility, remo
 of old textured candles, and unchanged serialized gameplay before/after rendering.
 Before/after visual evidence is kept outside Git; these optional-mode fixtures
 are not ordinary-play retail-parity evidence.
+
+`studio_browser_and_tile_edit_regressions` measures trap/pit placement, T1/T2
+campaign terrain edits and mixed-disc scenery changes in an optimized build.
+It compares the resulting geometry and serialized game with fresh playtest/editor
+reloads and retains accumulated weather across cached edits. Set
+`TENCHU_STUDIO_USER_SETTINGS=1` to read the current graphics preferences and
+`TENCHU_STUDIO_PROFILE_FRAMES=1` to additionally collect CPU/GPU preview timings
+with rain, lighting, shadows and the full editor UI. The fixture saves its own
+library and captures under `TENCHU_STUDIO_CAPTURE`, leaving user data untouched.
+See [performance measurements](performance.md) for the comparison and its scope.

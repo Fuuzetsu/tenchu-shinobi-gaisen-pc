@@ -124,7 +124,7 @@ impl Models {
             sources
         };
         let all = sources();
-        let regions = catalog::model_regions(&mission.vram, &all);
+        let regions = catalog::Textures::new(&mission.vram, &all);
         // Terrain uses the water/foliage budgets; actors and the grapple use the
         // refinement budget. Splitting these groups preserves each source order.
         let world = Meshes::build_regions(
@@ -291,7 +291,7 @@ impl Models {
                     geometry,
                 }
             }));
-            let regions = catalog::model_regions(&mission.vram, &all);
+            let regions = catalog::Textures::new(&mission.vram, &all);
             Meshes::build_regions(&mission.vram, pack, graphics, sources, false, &regions)?
         };
         bind(&mut terrain);
@@ -690,7 +690,7 @@ impl Meshes {
         sources: Vec<catalog::ModelSource<'_>>,
         force: bool,
     ) -> Result<Self> {
-        let regions = catalog::model_regions(vram, &sources);
+        let regions = catalog::Textures::new(vram, &sources);
         Self::build_regions(vram, pack, graphics, sources, force, &regions)
     }
 
@@ -700,8 +700,9 @@ impl Meshes {
         graphics: &Graphics,
         sources: Vec<catalog::ModelSource<'_>>,
         force: bool,
-        region_ids: &BTreeMap<catalog::Region, String>,
+        textures: &catalog::Textures,
     ) -> Result<Self> {
+        let region_ids = &textures.regions;
         let mut out = Self::default();
         let rules = super::lights::rules(pack, graphics.asset_pack);
         let water = super::water::rules(pack, graphics.asset_pack);
@@ -713,14 +714,14 @@ impl Meshes {
         let motion = super::motion::rules(pack, graphics.asset_pack);
         let corrections = super::model_patch::corrections();
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
-        let mut textures = BTreeMap::new();
+        let mut materials = BTreeMap::new();
         let mut displayed_images = Vec::new();
         for source in sources {
             let correction = corrections.get(&source.id);
             let emitter = rules
                 .iter()
                 .rev()
-                .find(|rule| rule.matches(&source, vram, region_ids))
+                .find(|rule| rule.matches(&source, textures))
                 .filter(|rule| rule.enabled);
             let replacement = graphics
                 .asset_pack
@@ -781,7 +782,7 @@ impl Meshes {
                     let definition = &pack.materials[&triangle.material];
                     let material = if let Some(id) = &definition.texture {
                         let region = regions.get(id).copied();
-                        *textures.entry((id.clone(), region)).or_insert_with(|| {
+                        *materials.entry((id.clone(), region)).or_insert_with(|| {
                             out.materials.push(Material {
                                 id: id.clone(),
                                 region,
@@ -860,9 +861,9 @@ impl Meshes {
                                 }
                             }));
                         }
-                        if let Some(region) = catalog::face_region(vram, face) {
+                        if let Some(region) = textures.face(face) {
                             let id = &region_ids[&region];
-                            let material = *textures
+                            let material = *materials
                                 .entry((id.clone(), Some(region)))
                                 .or_insert_with(|| {
                                     let mut image = Arc::new(Image {

@@ -55,11 +55,10 @@ impl Rule {
         self.emit_caps || normal.y.abs() < 0.5
     }
 
-    pub fn matches(
+    pub(crate) fn matches(
         &self,
         model: &catalog::ModelSource<'_>,
-        vram: &tenchu_assets::texture::Vram,
-        regions: &BTreeMap<catalog::Region, String>,
+        textures: &catalog::Textures,
     ) -> bool {
         self.model.as_ref().map_or_else(
             || {
@@ -69,15 +68,10 @@ impl Rule {
                     .contains(&self.name_contains.to_ascii_uppercase())
             },
             |id| id == &model.id,
-        ) && self.texture.as_ref().is_none_or(|id| {
-            model
-                .geometry
-                .iter()
-                .flat_map(render_mesh::draw_tmd_faces)
-                .any(|face| {
-                    catalog::face_region(vram, face).and_then(|r| regions.get(&r)) == Some(id)
-                })
-        })
+        ) && self
+            .texture
+            .as_ref()
+            .is_none_or(|id| textures.contains(model, id))
     }
 
     pub fn validate(&self) -> Result<()> {
@@ -141,26 +135,22 @@ impl Emitters {
     ) -> Self {
         let mut out = Self::default();
         let models: Vec<_> = models.into_iter().collect();
-        let regions = catalog::model_regions(vram, &models);
+        let textures = catalog::Textures::new(vram, &models);
         for model in models {
-            let Some(rule) = rules
-                .iter()
-                .rev()
-                .find(|r| r.matches(&model, vram, &regions))
-            else {
+            let Some(rule) = rules.iter().rev().find(|r| r.matches(&model, &textures)) else {
                 continue;
             };
             if !rule.enabled || model.geometry.is_empty() {
                 continue;
             }
-            if let Some(emitter) = detect(&model, rule, vram, &regions, &mut out.emissions) {
+            if let Some(emitter) = detect(&model, rule, vram, &textures, &mut out.emissions) {
                 out.models.insert(model.geometry.as_ptr() as usize, emitter);
             }
         }
         out.material_emissions = out
             .emissions
             .iter()
-            .map(|(region, emission)| (regions[region].clone(), *emission))
+            .map(|(region, emission)| (textures.regions[region].clone(), *emission))
             .collect();
         out
     }
@@ -192,7 +182,7 @@ fn detect(
     model: &catalog::ModelSource<'_>,
     rule: &Rule,
     vram: &tenchu_assets::texture::Vram,
-    regions: &BTreeMap<catalog::Region, String>,
+    textures: &catalog::Textures,
     emissions: &mut BTreeMap<catalog::Region, [f32; 4]>,
 ) -> Option<Emitter> {
     let mut position = Vec3::ZERO;
@@ -200,10 +190,10 @@ fn detect(
     let mut weight = 0.0;
     for geometry in model.geometry {
         for face in render_mesh::draw_tmd_faces(geometry) {
-            let Some(region) = catalog::face_region(vram, face) else {
+            let Some(region) = textures.face(face) else {
                 continue;
             };
-            let id = &regions[&region];
+            let id = &textures.regions[&region];
             if rule.texture.as_ref().is_some_and(|texture| texture != id) {
                 continue;
             }

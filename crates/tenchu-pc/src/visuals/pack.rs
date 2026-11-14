@@ -59,6 +59,8 @@ pub struct Manifest {
 pub struct Pack {
     #[serde(skip)]
     pub(crate) loaded: Option<Inputs>,
+    #[serde(skip)]
+    pub(crate) available: Option<Inputs>,
     pub textures: BTreeMap<String, Arc<Image>>,
     pub surfaces: BTreeMap<String, super::relief::Surface>,
     pub water: BTreeMap<String, super::water::Kind>,
@@ -266,6 +268,13 @@ impl Pack {
             selection.models.retain(|id| !loaded.models.contains(id));
             selection.player_models &= !loaded.player_models;
         }
+        if let Some(available) = &self.available {
+            selection
+                .textures
+                .retain(|id| available.textures.contains(id));
+            selection.models.retain(|id| available.models.contains(id));
+            selection.player_models &= available.player_models;
+        }
         if selection.textures.is_empty() && selection.models.is_empty() && !selection.player_models
         {
             return Ok(false);
@@ -302,6 +311,9 @@ impl Pack {
         self.player_models.extend(extra.player_models);
         let loaded = self.loaded.get_or_insert_with(Default::default);
         loaded.textures.extend(requested.textures);
+        if let Some(extra) = extra.loaded {
+            loaded.textures.extend(extra.textures);
+        }
         loaded.models.extend(requested.models);
         loaded.player_models |= requested.player_models;
         Ok(true)
@@ -342,6 +354,24 @@ impl Pack {
         }
         let mut pack = Self {
             loaded: selection.as_ref().map(Selection::inputs),
+            available: Some(Inputs {
+                textures: manifest
+                    .textures
+                    .keys()
+                    .chain(manifest.recipes.keys())
+                    .chain(manifest.surfaces.keys())
+                    .chain(manifest.water.keys())
+                    .chain(manifest.vegetation.keys())
+                    .cloned()
+                    .collect(),
+                models: manifest
+                    .models
+                    .keys()
+                    .chain(manifest.model_patches.keys())
+                    .cloned()
+                    .collect(),
+                player_models: !manifest.player_models.is_empty(),
+            }),
             ..Self::default()
         };
         if let Some(rules) = &manifest.lights {
@@ -444,6 +474,9 @@ impl Pack {
             pack.models.insert(id, model);
         }
         if let Some(selection) = &selection {
+            if let Some(loaded) = &mut pack.loaded {
+                loaded.textures.extend(selection.textures.iter().cloned());
+            }
             pack.water.retain(|id, _| selection.textures.contains(id));
             pack.vegetation
                 .retain(|id, _| selection.textures.contains(id));
@@ -819,7 +852,7 @@ mod tests {
             models: BTreeSet::from(["weapons/1".into()]),
             player_models: true,
         };
-        let pack = Pack::decode(
+        let mut pack = Pack::decode(
             serde_json::from_value(manifest.clone()).unwrap(),
             Some(selection),
             |path, _| {
@@ -847,6 +880,39 @@ mod tests {
                 ("blade".into(), super::super::water::Kind::Surface),
             ])
         );
+
+        let select = |texture: &str, model: &str| Selection {
+            max_pixels: MAX_PIXELS,
+            originals: BTreeMap::new(),
+            textures: BTreeSet::from([texture.to_owned()]),
+            models: BTreeSet::from([model.to_owned()]),
+            player_models: false,
+        };
+        // A renumbered prop with no override and a previously loaded model
+        // dependency must not reopen the artwork archive on every terrain edit.
+        assert!(
+            !pack
+                .extend_selected(select("blade", "stages/grass/objects/19"), |_| {
+                    panic!("Already loaded artwork or an absent override triggered a read")
+                })
+                .unwrap()
+        );
+        for (selection, missing) in [
+            (select("snow", "absent"), "missing.png"),
+            (select("absent", "stages/snow/map/0"), "missing.obj"),
+        ] {
+            let error = pack
+                .extend_selected(selection, |selection| {
+                    Pack::decode(
+                        serde_json::from_value(manifest.clone()).unwrap(),
+                        Some(selection),
+                        |path, _| Err(format!("Missing {path}")),
+                    )
+                })
+                .err()
+                .unwrap();
+            assert_eq!(error, format!("Missing {missing}"));
+        }
 
         let failed = Pack::decode(
             serde_json::from_value(manifest).unwrap(),

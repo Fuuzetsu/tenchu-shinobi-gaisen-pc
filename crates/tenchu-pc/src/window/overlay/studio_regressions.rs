@@ -107,6 +107,56 @@ fn compare_full_rebuild(app: &mut Application) {
     assert_eq!(geometry(app), optimized);
 }
 
+fn profile_preview(app: &mut Application, output: &std::path::Path) {
+    let state = postcard::to_allocvec(&app.campaign.game).unwrap();
+    let focused = app.focused;
+    app.focused = true;
+    app.view.as_mut().unwrap().renderer.profiling = true;
+    let mut cpu = Vec::new();
+    let mut gpu = Vec::new();
+    let mut serial = 0;
+    for frame in 0..150 {
+        let start = Instant::now();
+        app.advance_studio_preview(1.0 / 60.0);
+        app.update_overlay();
+        let update = start.elapsed().as_secs_f64() * 1000.;
+        let view = app.view.as_mut().unwrap();
+        let draw = view.draw(&app.campaign.game, &app.debug).unwrap().unwrap();
+        view.renderer.device.poll(wgpu::Maintain::Wait);
+        if frame < 30 {
+            continue;
+        }
+        cpu.push(update + f64::from(draw.submit));
+        if let Some(sample) = view.renderer.timings.as_ref().and_then(|t| t.latest)
+            && sample.serial != serial
+        {
+            serial = sample.serial;
+            gpu.push(sample.milliseconds.iter().sum::<f32>());
+        }
+    }
+    cpu.sort_by(f64::total_cmp);
+    gpu.sort_by(f32::total_cmp);
+    eprintln!(
+        "PREVIEW CPU p50/p95: {:.3}/{:.3} ms; GPU p50/p95: {:?}/{:?} ms",
+        cpu[cpu.len() / 2],
+        cpu[cpu.len() * 95 / 100],
+        gpu.get(gpu.len() / 2),
+        gpu.get(gpu.len() * 95 / 100)
+    );
+    std::fs::write(
+        output.join("preview-frame-times.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "cpu_ms_without_present_wait": cpu, "gpu_ms": gpu,
+            "graphics": app.settings.graphics,
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    app.focused = focused;
+    app.view.as_mut().unwrap().renderer.profiling = false;
+    assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), state);
+}
+
 fn edit_campaign_surface(app: &mut Application) {
     let (key, original) = app.studio.first_campaign_surface().unwrap();
     let campaign = app.studio.project.campaign.as_mut().unwrap();
@@ -456,6 +506,13 @@ fn studio_browser_and_tile_edit_regressions() {
     }
     assert!(app.fault.is_none(), "{:?}", app.fault);
     app.apply_studio(Command::Return).unwrap();
+    if std::env::var_os("TENCHU_STUDIO_PROFILE_FRAMES").is_some() {
+        click(&mut app, &ctx, "Projects");
+        click(&mut app, &ctx, "Open lighting & events example");
+        app.studio.project.graphics.weather.mode = crate::settings::WeatherMode::Rainstorm;
+        app.apply_studio(Command::WeatherPreview(120)).unwrap();
+        profile_preview(&mut app, &output);
+    }
     app.apply_studio(Command::Close).unwrap();
     assert_eq!(postcard::to_allocvec(&app.campaign.game).unwrap(), original);
     assert_eq!(app.settings, original_settings);

@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up Level Studio terrain edits and scene loading by sharing texture
+  lookups across material and lighting preparation, and skipping archive reads
+  for absent artwork overrides. Existing graphics settings and rendered output
+  are preserved.
+
 ## 0.35.1 — 2026-11-13
 
 - Fix Android release compilation for Level Studio's bundled-asset support.

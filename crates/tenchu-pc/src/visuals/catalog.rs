@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use tenchu_assets::{
     model::{Geometry, Texture},
     stage::MissionAssets,
@@ -143,6 +143,13 @@ impl Region {
 }
 
 pub fn face_region(vram: &Vram, face: &tenchu_assets::model::Face) -> Option<Region> {
+    let (page, palette, bounds) = face_texture(face)?;
+    Some(Region::find(vram, Texture { page, palette }, bounds))
+}
+
+type FaceTexture = (u16, u16, [u16; 4]);
+
+fn face_texture(face: &tenchu_assets::model::Face) -> Option<FaceTexture> {
     let texture = face.texture?;
     let mut bounds = [255, 255, 0, 0];
     for corner in &face.corners {
@@ -151,7 +158,7 @@ pub fn face_region(vram: &Vram, face: &tenchu_assets::model::Face) -> Option<Reg
             bounds[axis + 2] = bounds[axis + 2].max(u16::from(corner.uv[axis]));
         }
     }
-    Some(Region::find(vram, texture, bounds))
+    Some((texture.page, texture.palette, bounds))
 }
 
 pub fn image_id(size: [u16; 2], pixels: &[u8]) -> String {
@@ -281,28 +288,143 @@ pub fn regions(mission: &MissionAssets) -> BTreeMap<Region, String> {
 }
 
 pub fn model_regions(vram: &Vram, models: &[ModelSource<'_>]) -> BTreeMap<Region, String> {
-    let mut out = BTreeMap::new();
-    for model in models {
-        for geometry in model.geometry {
-            for face in crate::render_mesh::draw_tmd_faces(geometry) {
-                if let Some(region) = face_region(vram, face) {
-                    out.entry(region).or_insert_with(|| {
+    Textures::new(vram, models).regions
+}
+
+// One preparation pass inspects each face for several light rules and again for
+// its material. Resolve its source image only once for this VRAM.
+pub(crate) struct Textures {
+    pub regions: BTreeMap<Region, String>,
+    faces: HashMap<FaceTexture, Region>,
+    models: HashMap<(usize, usize), BTreeSet<String>>,
+}
+
+impl Textures {
+    pub fn new(vram: &Vram, models: &[ModelSource<'_>]) -> Self {
+        let mut out = Self {
+            regions: BTreeMap::new(),
+            faces: HashMap::new(),
+            models: HashMap::new(),
+        };
+        for model in models {
+            let mut textures = BTreeSet::new();
+            for geometry in model.geometry {
+                for face in crate::render_mesh::draw_tmd_faces(geometry) {
+                    let Some(key) = face_texture(face) else {
+                        continue;
+                    };
+                    let region = *out.faces.entry(key).or_insert_with(|| {
+                        Region::find(
+                            vram,
+                            Texture {
+                                page: key.0,
+                                palette: key.1,
+                            },
+                            key.2,
+                        )
+                    });
+                    out.regions.entry(region).or_insert_with(|| {
                         image_id(
                             [region.rect[2], region.rect[3]],
                             &region.original_pixels(vram),
                         )
                     });
+                    textures.insert(region);
                 }
             }
+            out.models.insert(
+                (model.geometry.as_ptr() as usize, model.geometry.len()),
+                textures
+                    .into_iter()
+                    .map(|r| out.regions[&r].clone())
+                    .collect(),
+            );
         }
+        out
     }
-    out
+
+    pub fn face(&self, face: &tenchu_assets::model::Face) -> Option<Region> {
+        face_texture(face).map(|key| self.faces[&key])
+    }
+
+    pub fn contains(&self, model: &ModelSource<'_>, id: &str) -> bool {
+        self.models[&(model.geometry.as_ptr() as usize, model.geometry.len())].contains(id)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use tenchu_assets::texture::Image;
+
+    #[test]
+    fn texture_index_keeps_palettes_bounds_and_draw_terminators_separate() {
+        use tenchu_assets::model::{Corner, Face};
+        let mut vram = Vram::default();
+        vram.words[1024] = 31;
+        vram.words[2048] = 31 << 5;
+        let face = |palette, uv| Face {
+            mode: 0x24,
+            flags: 1,
+            corners: vec![
+                Corner {
+                    vertex: 0,
+                    normal: None,
+                    color: [128; 3],
+                    uv
+                };
+                3
+            ],
+            texture: Some(Texture { page: 0, palette }),
+            double_sided: false,
+            translucent: false,
+        };
+        let geometry = [Geometry {
+            vertices: vec![[0; 3]],
+            joints: vec![],
+            normals: vec![],
+            faces: vec![
+                face(64, [0, 0]),
+                face(128, [0, 0]),
+                face(64, [1, 0]),
+                Face {
+                    flags: 0,
+                    ..face(64, [2, 0])
+                },
+                face(128, [3, 0]),
+            ],
+        }];
+        let model = ModelSource {
+            id: "fixture".into(),
+            label: "Fixture".into(),
+            role: Role::Terrain,
+            hero_part: None,
+            geometry: &geometry,
+        };
+        for _ in 0..2 {
+            let indexed = Textures::new(&vram, std::slice::from_ref(&model));
+            let expected: BTreeMap<_, _> = geometry[0].faces[..3]
+                .iter()
+                .map(|f| {
+                    let region = face_region(&vram, f).unwrap();
+                    assert_eq!(indexed.face(f), Some(region));
+                    let id = image_id(
+                        [region.rect[2], region.rect[3]],
+                        &region.original_pixels(&vram),
+                    );
+                    assert!(indexed.contains(&model, &id));
+                    (region, id)
+                })
+                .collect();
+            assert_eq!(indexed.regions, expected);
+            assert_eq!(indexed.regions.len(), 3);
+            assert_ne!(
+                indexed.regions[&indexed.face(&geometry[0].faces[0]).unwrap()],
+                indexed.regions[&indexed.face(&geometry[0].faces[1]).unwrap()]
+            );
+            vram.words[1024] = 31 << 10;
+        }
+    }
 
     #[test]
     fn scrolling_identity_is_independent_of_first_visible_frame_and_pixel_mode() {
