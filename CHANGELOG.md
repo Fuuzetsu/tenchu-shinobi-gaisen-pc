@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.7 — 2026-11-14
+
 - Speed up campaign terrain sculpting in Level Studio by skipping faces outside
   the edited footprint and reusing temporary polygon storage. Preserve surface
   clipping, side walls, UVs and collision alignment.
