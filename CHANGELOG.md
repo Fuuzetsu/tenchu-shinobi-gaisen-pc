@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up terrain edits in Level Studio by reducing shadow-preparation work,
+  preserving spatial cell order and triangle order within each cell.
+
 ## 0.35.8 — 2026-11-14
 
 - Reduce terrain rebuild work in Level Studio with smaller vertex-sharing

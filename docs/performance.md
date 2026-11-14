@@ -234,6 +234,36 @@ about 4.78 million rigid/weighted GPU pose vertices, 315 workspace tests and the
 native/Android/WASM checks pass. Evidence:
 `private/refinement-topology-20261114` outside Git.
 
+Indexed shadow preparation now stores each spatial key with its triangle and
+stably sorts those keys. Triangles in the same cell retain their submission
+order. The source comparison covers 1,361,461 triangles across three T1 maps,
+T2 Europe/Japan map 0, Original/High/Ultra, and three clustered or dispersed
+distributions. Every resulting index and vertex byte matches the prior path.
+
+Thirty rotated-order repeats of isolated sorting give the following medians;
+input copying, scene loading and GPU work are outside the timed region:
+
+| Scene, Modern Ultra | Previous sort | Stable cached keys |
+| --- | ---: | ---: |
+| T1 Mission 1 | 3.82 ms | 2.34 ms |
+| T1 Mission 4 | 7.54 ms | 5.84 ms |
+| T1 Mission 9 | 4.05 ms | 3.16 ms |
+| T2 Europe map 0 | 2.95 ms | 2.20 ms |
+| T2 Japan map 0 | 2.56 ms | 1.87 ms |
+
+Grouping triangles into hash buckets was also checked, but regressed the
+single-cell and mostly-unique-cell cases and was discarded. The retained sort
+improves those cases slightly. The expanded shadow path remains unchanged.
+
+Two complete Studio comparisons against v0.35.8 (`b990c52`), with 30 edits after
+two warm-ups and the same saved graphics/CPU affinity, measure T1 medians of
+42.91 / 42.79 → 40.57 / 40.56 ms and T2 medians of 44.67 / 44.53 →
+42.75 / 43.75 ms. These are synchronous terrain-edit times, not frame-rate gains.
+All nine stage and two edited-campaign hashes match. Eight screenshots are
+identical; T1 differs at 36 pixels by one channel unit. Source terrain, GPU shadow
+checks, 315 workspace tests and native/Android/WASM checks pass. Evidence:
+`private/shadow-cell-grouping-20261114` outside Git.
+
 ## Translucent effects (2026-11-14)
 
 Effect sorting now caches each surface's depth/layer key and reserves the output

@@ -371,11 +371,19 @@ pub(super) fn spatial_indexed(geometry: &mut render_mesh::Indexed) {
     let mut triangles: Vec<_> = geometry
         .indices
         .chunks_exact(3)
-        .map(|t| [t[0], t[1], t[2]])
+        .map(|t| {
+            let triangle = [t[0], t[1], t[2]];
+            (
+                spatial_key(triangle.map(|i| &geometry.vertices[i as usize])),
+                triangle,
+            )
+        })
         .collect();
-    triangles.sort_by_cached_key(|t| spatial_key(t.map(|i| &geometry.vertices[i as usize])));
+    triangles.sort_by_key(|(key, _)| *key);
     geometry.indices.clear();
-    geometry.indices.extend(triangles.into_iter().flatten());
+    geometry
+        .indices
+        .extend(triangles.into_iter().flat_map(|(_, triangle)| triangle));
     geometry.groups.clear();
 }
 
@@ -407,24 +415,39 @@ mod tests {
                 ..Vertex::zeroed()
             }));
         }
-        let expected: Vec<_> = [1, 5, 2, 3, 0, 4]
-            .into_iter()
-            .flat_map(|index| vertices[index * 3..index * 3 + 3].iter().copied())
-            .collect();
-        assert_eq!(
-            bytemuck::cast_slice::<_, u8>(&spatial(&vertices)),
-            bytemuck::cast_slice::<_, u8>(&expected)
-        );
-        let mut indexed = render_mesh::Indexed {
-            indices: (0..vertices.len() as u32).collect(),
-            vertices,
-            ..Default::default()
-        };
-        spatial_indexed(&mut indexed);
-        assert_eq!(
-            bytemuck::cast_slice::<_, u8>(&indexed.expanded()),
-            bytemuck::cast_slice::<_, u8>(&expected)
-        );
+        for copies in [1, 1024] {
+            let repeated: Vec<_> = (0..copies)
+                .flat_map(|copy| {
+                    vertices.iter().map(move |v| Vertex {
+                        material: v.material + copy as u32 * 6,
+                        ..*v
+                    })
+                })
+                .collect();
+            let mut expected = Vec::new();
+            for cell in [&[1][..], &[5], &[2, 3], &[0], &[4]] {
+                for copy in 0..copies {
+                    for &index in cell {
+                        let start = copy * vertices.len() + index * 3;
+                        expected.extend_from_slice(&repeated[start..start + 3]);
+                    }
+                }
+            }
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&spatial(&repeated)),
+                bytemuck::cast_slice::<_, u8>(&expected)
+            );
+            let mut indexed = render_mesh::Indexed {
+                indices: (0..repeated.len() as u32).collect(),
+                vertices: repeated,
+                ..Default::default()
+            };
+            spatial_indexed(&mut indexed);
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&indexed.expanded()),
+                bytemuck::cast_slice::<_, u8>(&expected)
+            );
+        }
     }
 
     #[test]
