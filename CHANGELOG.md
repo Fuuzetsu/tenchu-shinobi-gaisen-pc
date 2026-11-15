@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.12 — 2026-11-15
+
 - With T2 Block / dodge controls in T1, hold Circle and a direction to roll away
   from a settled wall-hug, matching T2's shortcut. Double-tap rolls remain available.
 - Add **Movement → Allow unarmed blocking** for native T2 and T1's optional
