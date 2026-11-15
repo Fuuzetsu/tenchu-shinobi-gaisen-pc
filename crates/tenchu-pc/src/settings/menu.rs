@@ -76,6 +76,7 @@ pub enum Item {
     MotionWind,
     CharacterRefinement,
     HeroModels,
+    RikimaruSheath,
     FoliageDetail,
     GrappleDetail,
     ContactSparks,
@@ -1444,6 +1445,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         Page::PlayerModel => vec![
+            (
+                Item::RikimaruSheath,
+                "Tenchu 2 Rikimaru sheath",
+                on(s.graphics.models.rikimaru_sheath),
+                "Replace T1 Rikimaru's built-in sheath with the one from an imported Tenchu 2 JP or EU disc (F6). Keeps the T1 sword, animations and combat. Supports his original and armoured bodies; other bodies and custom models are retained. Off, or no imported T2 disc, uses the original sheath. Visual only; off by default.",
+            ),
             (
                 Item::AlternateDeathChance,
                 "Alternate player deaths",

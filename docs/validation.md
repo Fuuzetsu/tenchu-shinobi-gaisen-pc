@@ -12,6 +12,16 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
+The optional T2 Rikimaru sheath fixture loads both retail equipment catalogs and
+checks T1's original/armoured Rikimaru and unaffected Ayame, drawn/stowed states,
+Original/Ultra geometry, interpolated attachments, torso filtering, missing-disc
+fallback, saved settings and existing imported equipment. Rendering preserves
+the complete serialized game state; disabled/unavailable output matches the
+original vertices. Private GPU before/after captures cover both outfits from
+three angles. This validates the optional presentation swap, not ordinary-play
+parity or native EU gameplay. Run the ignored `rikimaru_sheath_preserves` test
+with `TENCHU_DISC` and `TENCHU2_DISC`; `TENCHU_SHEATH_REVIEW` enables captures.
+
 The T2 guard/wall-roll review runs 72 focused damage cases through each retail
 edition's original instructions: all three heroes, drawn/stowed state, guard and
 backward movement, three incoming directions, and guard held/released. Both

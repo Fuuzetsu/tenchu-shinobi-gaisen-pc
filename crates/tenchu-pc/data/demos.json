@@ -1,5 +1,16 @@
 [
   {
+    "id": "rikimaru-t2-sheath",
+    "title": "Rikimaru: Tenchu 2 sheath",
+    "description": "Compare Rikimaru's original built-in sheath with the optional Tenchu 2 sheath. Import a T2 JP or EU disc with F6 first. Keeps his T1 sword, animations and combat; enable it under Player model.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": "rikimaru-sheath",
+    "shot": "player"
+  },
+  {
     "id": "presets",
     "title": "Seven looks, one game",
     "description": "Original, classic filtering, warm lanterns and a moonlit night. Presets change presentation; the original game rules stay intact.",

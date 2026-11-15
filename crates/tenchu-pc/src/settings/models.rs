@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct Models {
     pub heroes: bool,
+    pub rikimaru_sheath: bool,
     pub characters: u16,
     pub foliage: u16,
     pub variation: bool,

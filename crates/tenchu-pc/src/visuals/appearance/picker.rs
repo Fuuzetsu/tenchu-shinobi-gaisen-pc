@@ -286,6 +286,8 @@ impl Preview {
                 parts: vec![part],
                 parents: vec![None],
                 meshes,
+                sheath: None,
+                source_kind: None,
             },
             vec![],
             game,

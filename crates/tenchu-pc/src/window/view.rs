@@ -586,7 +586,7 @@ impl View {
             crate::visuals::appearance::choices(game, &self.bodies, Some(&library));
         self.model_library = Some(library);
         self.model_picker.clear();
-        if !settings.player_model.is_empty() {
+        if !settings.player_model.is_empty() || settings.graphics.models.rikimaru_sheath {
             self.set_models(self.build_models(game, settings)?, game);
         }
         Ok(())

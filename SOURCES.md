@@ -1,5 +1,26 @@
 # Source provenance
 
+## Optional T2 sheath on T1 Rikimaru (2026-11-15)
+
+Reuses the existing T2 equipment importer and its edition-qualified weapon
+registry, rigid model parser and weapon VRAM. Rikimaru's accessory slot supplies
+`ninC`, attached to the mapped torso bone. All geometry and textures are loaded
+from the user's JP/EU disc; no retail assets are distributed. The optional
+presentation edit removes the built-in scabbard faces from T1 `RIKIMARU.MAD`
+and closes their shared back boundary using adjacent original cloth corners.
+`RIKIMAUA.MAD` already has a continuous back without a sheath. A presentation
+offset fits the accessory over T1's thicker torso. The T1 stowed grip uses the
+same orientation with its origin aligned to T2's sheath opening.
+Explicit equipment providing an accessory retains that accessory.
+
+Reviewed `SetupWeapon`/`EquipWeapon` in both sibling decomps' `APPEAR.C`, the
+research model's sheathing assumptions and `tenchu-viewer/src/weapons.rs`.
+These confirm the T1 ninja blade is separate from the body; no sibling code was
+copied or changed. Uses the shared appearance/interpolation/shadow pipeline;
+the owned game state, source equipment and original rendering path are unchanged.
+Modern High/Ultra retain their defaults because this is an optional design swap.
+The dedicated demo makes it discoverable without enabling it in quality presets.
+
 This is a historical implementation and verification record. Statements about
 pending work describe the boundary at that entry's revision; current usage and
 limits are in [the guide](docs/guide.md), [native T2](docs/tenchu2-native.md) and

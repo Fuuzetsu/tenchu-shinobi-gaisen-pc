@@ -17,6 +17,7 @@ use tenchu_core::{game::Game, math::Matrix};
 pub(crate) mod cast;
 pub mod library;
 pub mod picker;
+mod sheath;
 pub mod skin;
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -101,6 +102,8 @@ pub(crate) struct Appearance {
     pub(crate) parts: Vec<model::Part>,
     parents: Vec<Option<usize>>,
     pub meshes: Meshes,
+    pub(super) sheath: Option<tenchu_assets::weapon::Attachment>,
+    source_kind: Option<i16>,
 }
 
 fn rendered_player(game: &Game, inspection: bool) -> Cow<'_, tenchu_core::actor::Actor> {
@@ -173,6 +176,8 @@ impl Appearance {
             parents: parents(&parts),
             parts,
             meshes,
+            sheath: None,
+            source_kind: None,
         })
     }
 
@@ -184,7 +189,12 @@ impl Appearance {
         graphics: &Graphics,
         library: Option<&library::Library>,
     ) -> Result<Option<Self>> {
-        if selection.is_empty() {
+        let mut sheath = graphics
+            .models
+            .rikimaru_sheath
+            .then(|| sheath::replacement(game, selection, library?))
+            .flatten();
+        if selection.is_empty() && sheath.is_none() {
             return Ok(None);
         }
         let body = library.and_then(|l| l.get(selection));
@@ -193,7 +203,14 @@ impl Appearance {
             .map(|body| Pack::for_models(&body.vram, &body.sources()))
             .transpose()?;
         let vram = body.map_or(&game.mission.vram, |b| &b.vram);
-        let (parts, ids, pack) = if let Some(body) = body {
+        let (mut parts, ids, pack) = if selection.is_empty() {
+            let kind = game.player().rendered_mesh_kind;
+            let parts = game.mission.models[&kind].clone();
+            let ids = (0..parts.len())
+                .map(|i| format!("actors/{kind:04x}/{i}"))
+                .collect();
+            (parts, ids, pack)
+        } else if let Some(body) = body {
             (
                 body.parts.clone(),
                 body.sources().into_iter().map(|s| s.id).collect(),
@@ -216,6 +233,15 @@ impl Appearance {
         } else {
             return Err("Unknown player model selection".into());
         };
+        if sheath.is_some()
+            && ((graphics.asset_pack && ids.iter().any(|id| pack.models.contains_key(id)))
+                || !sheath::remove_original(&mut parts))
+        {
+            sheath = None;
+            if selection.is_empty() {
+                return Ok(None);
+            }
+        }
         let parent = parents(&parts);
         tenchu_core::motion::Pose::new(&parts)?;
         let sources = parts
@@ -241,6 +267,10 @@ impl Appearance {
             parts,
             parents: parent,
             meshes,
+            sheath,
+            source_kind: selection
+                .is_empty()
+                .then_some(game.player().rendered_mesh_kind),
         }))
     }
 
@@ -290,6 +320,8 @@ impl Appearance {
             parents: parents(&parts),
             parts,
             meshes,
+            sheath: None,
+            source_kind: None,
         })
     }
 
@@ -451,7 +483,11 @@ pub(super) fn visit_parts_filtered(
     include: impl Fn(Part) -> bool,
     mut visit: impl FnMut(Part, &[model::Geometry], Matrix),
 ) {
-    let appearance = models.and_then(|m| m.player.as_ref());
+    let appearance = models.and_then(|m| m.player.as_ref()).filter(|a| {
+        a.source_kind
+            .is_none_or(|kind| kind == game.player().rendered_mesh_kind)
+    });
+    let sheath = appearance.and_then(|a| a.sheath.as_ref());
     let equipment = models.and_then(|m| m.equipment.as_ref());
     let compatible = appearance.is_none_or(|a| {
         a.parents == parents(&game.mission.models[&game.player().rendered_mesh_kind])
@@ -465,22 +501,23 @@ pub(super) fn visit_parts_filtered(
     let posed_player = transforms
         .as_ref()
         .map(|_| rendered_player(game, inspection));
-    let player_matrices = (equipment.is_some() || appearance.is_some_and(|a| a.meshes.has_skin()))
-        .then(|| {
-            transforms.clone().unwrap_or_else(|| {
-                let player = rendered_player(game, inspection);
-                let mut matrices = rendered_matrices(&player, inspection, frame);
-                for (matrix, model) in matrices.iter_mut().zip(&player.parts) {
-                    if let Some(offset) = offsets.as_ref().and_then(|o| o.get(model)) {
-                        for (value, offset) in matrix.translation.iter_mut().zip(offset.to_array())
-                        {
-                            *value += offset.round() as i32;
-                        }
+    let player_matrices = (equipment.is_some()
+        || sheath.is_some()
+        || appearance.is_some_and(|a| a.meshes.has_skin()))
+    .then(|| {
+        transforms.clone().unwrap_or_else(|| {
+            let player = rendered_player(game, inspection);
+            let mut matrices = rendered_matrices(&player, inspection, frame);
+            for (matrix, model) in matrices.iter_mut().zip(&player.parts) {
+                if let Some(offset) = offsets.as_ref().and_then(|o| o.get(model)) {
+                    for (value, offset) in matrix.translation.iter_mut().zip(offset.to_array()) {
+                        *value += offset.round() as i32;
                     }
                 }
-                matrices
-            })
-        });
+            }
+            matrices
+        })
+    });
     if let Some(appearance) = appearance.filter(|a| a.meshes.has_skin()) {
         let matrices = player_matrices.as_ref().unwrap();
         appearance.meshes.pose_skin(
@@ -489,6 +526,7 @@ pub(super) fn visit_parts_filtered(
         );
     }
     let mut player_submitted = false;
+    let mut torso_submitted = false;
     let mut posed_actor = None;
     #[cfg(not(target_arch = "wasm32"))]
     let mut cast = models.map(|m| m.cast.frame(game, inspection, frame));
@@ -504,6 +542,7 @@ pub(super) fn visit_parts_filtered(
             && root == game.player().root_model
         {
             player_submitted = true;
+            torso_submitted |= game.player().parts.get(1) == Some(&model);
             if equipment.is_some() && !game.player().parts.contains(&model) {
                 return;
             }
@@ -554,6 +593,18 @@ pub(super) fn visit_parts_filtered(
                     parent = game.scene.models[id].parent;
                 }
             }
+            if let Some(sheath) = sheath
+                && let Some(weapon) = game.player().weapons[2]
+                    .as_ref()
+                    .filter(|w| w.model == model)
+                && weapon.kind == tenchu_assets::weapon::kind::NINJA
+                && let Some((part, mut mount)) = crate::sheathing::stowed_mount(game.player(), 2)
+            {
+                mount.translation =
+                    std::array::from_fn(|i| [-144, -439, 149][i] + i32::from(sheath.position[i]))
+                        .into();
+                matrix = player_matrices.as_ref().unwrap()[part].compose(&mount);
+            }
         }
         if let Part::Actor { root, .. } = key
             && posed_actor != Some(root)
@@ -597,9 +648,34 @@ pub(super) fn visit_parts_filtered(
             equipment,
             player_matrices.as_ref().unwrap(),
             inspection,
-            include,
-            visit,
+            &include,
+            &mut visit,
         );
+    }
+    if let Some(sheath) = sheath
+        .filter(|_| torso_submitted && equipment.is_none() && game.player().weapons[4].is_none())
+    {
+        let key = Part::Equipment {
+            root: game.player().root_model,
+            attachment: 4,
+            inspection,
+        };
+        let torso = Part::Actor {
+            root: game.player().root_model,
+            model: game.player().parts[1],
+            kind: game.player().rendered_mesh_kind,
+            inspection,
+        };
+        if include(key) && include(torso) {
+            visit(
+                key,
+                &sheath.model.geometry,
+                player_matrices.as_ref().unwrap()[sheath.part].compose(&Matrix {
+                    translation: sheath.position.map(i32::from).into(),
+                    ..Default::default()
+                }),
+            );
+        }
     }
 }
 

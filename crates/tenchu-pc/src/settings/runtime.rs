@@ -127,6 +127,9 @@ impl Runtime {
     pub fn unavailable(self, item: Item) -> Option<&'static str> {
         use Item::*;
         use tenchu_core::effects::RumbleAction;
+        if cfg!(target_arch = "wasm32") && item == RikimaruSheath {
+            return Some("Importing Tenchu 2 discs is available on desktop and Android.");
+        }
         if self == Self::Gaisen && item == SoundTriggers {
             return Some(
                 "Sound-trigger inspection is available during native Tenchu 2 Japan play.",
@@ -154,6 +157,9 @@ impl Runtime {
             return None;
         }
         match item {
+            RikimaruSheath => Some(
+                "This replaces the built-in sheath on T1 Rikimaru during Gaisen play. Native T2 already uses its own sheath.",
+            ),
             TrialTimer => Some(
                 "This controls the timer in T1's Mission editor challenges and custom maps. Native T2 does not use that timer.",
             ),

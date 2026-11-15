@@ -26,7 +26,8 @@ impl Application {
         self.rewind.clear();
         let clip = player.clip().clone();
         let view = self.view.as_mut().ok_or("Demo window is not ready")?;
-        if (clip.randomizer.is_some() || clip.feature == Feature::Gunfire)
+        if (clip.randomizer.is_some()
+            || matches!(clip.feature, Feature::Gunfire | Feature::RikimaruSheath))
             && view.model_library.is_none()
         {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
@@ -344,13 +345,17 @@ impl Application {
             }
             Shot::Player => {
                 scene.target = origin - Vec3::Y * 500.0;
-                scene.distance = if clip.feature == Feature::HeroModels {
-                    2800.0
-                } else {
-                    4200.0
-                };
+                scene.distance =
+                    if matches!(clip.feature, Feature::HeroModels | Feature::RikimaruSheath) {
+                        2800.0
+                    } else {
+                        4200.0
+                    };
                 scene.pitch = -0.25;
                 scene.yaw += 2.2;
+                if clip.feature == Feature::RikimaruSheath {
+                    scene.yaw += std::f32::consts::PI;
+                }
                 if clip.feature == Feature::SecondaryMotion {
                     scene.target = origin - Vec3::Y * 800.0;
                     scene.distance = 1800.0;

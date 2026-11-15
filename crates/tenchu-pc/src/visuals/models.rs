@@ -312,6 +312,13 @@ impl Models {
     ) -> Result<Self> {
         self.player =
             super::appearance::Appearance::build(game, selection, pack, bodies, graphics, library)?;
+        if let Some(sheath) = self.player.as_ref().and_then(|p| p.sheath.as_ref()) {
+            let geometry = &sheath.model.geometry;
+            let meshes = weapon_meshes(&sheath.model, geometry, graphics)?;
+            self.imported_geometry
+                .insert(geometry.as_ptr() as usize, self.imported.len());
+            self.imported.push(meshes);
+        }
         self.pose_generation = Arc::default();
         Ok(self)
     }

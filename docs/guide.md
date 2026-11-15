@@ -499,6 +499,16 @@ draw/sheath transitions; interpolation and dynamic shadows use the same body.
 Different proportions can visibly differ from the original collision bounds;
 animal bodies can look unusual with humanoid movements.
 
+**Tenchu 2 Rikimaru sheath** on the same page replaces T1 Rikimaru's built-in
+scabbard with T2's slimmer model. Import your Tenchu 2 JP or EU disc through
+**F6** first. The checkbox is off by default; missing T2 assets keep the original.
+It also fits the armoured Rikimaru body, keeps the T1 sword and animations, and
+aligns the optional stowed sword grip with the new opening. Existing imported
+equipment keeps its own accessory; custom bodies and mesh replacements are
+retained. This is a visual setting, independent of the Movement sheathing option.
+Original and Modern quality presets leave it off. Try `rikimaru-t2-sheath` in
+the demo library for a before/after comparison.
+
 **Override moveset** adopts an actor's registered animations, attacks and weapon
 profile independently of appearance. Search **Moveset source** for Onikage, for
 example, and keep **Player body → Original** to use his kicks as Ayame or Rikimaru.

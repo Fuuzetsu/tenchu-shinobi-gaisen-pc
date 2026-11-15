@@ -36,6 +36,7 @@ pub enum Feature {
     Vegetation,
     CharacterRefinement,
     HeroModels,
+    RikimaruSheath,
     SecondaryMotion,
     Breeze,
     Blood,

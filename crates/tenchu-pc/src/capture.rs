@@ -103,7 +103,7 @@ pub(crate) fn frame_with_settings(
     } else {
         crate::visuals::pack::Pack::load(std::path::Path::new(&directory))?
     };
-    let library = (!settings.player_model.is_empty())
+    let library = (!settings.player_model.is_empty() || settings.graphics.models.rikimaru_sheath)
         .then(|| crate::visuals::appearance::library::Library::load(assets))
         .transpose()?;
     let mut models =

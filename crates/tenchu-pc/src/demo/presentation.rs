@@ -123,7 +123,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
         | Feature::DeathGush
         | Feature::Dismemberment
         | Feature::UnarmedAttacks => target.y += 700.0,
-        Feature::HeroModels => camera.yaw += p * 1.6,
+        Feature::HeroModels | Feature::RikimaruSheath => camera.yaw += p * 1.6,
         Feature::Randomizer if player.clip().shot != Shot::Guard => {
             camera.yaw += (p - 0.5) * 0.25;
         }
@@ -356,6 +356,10 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.sky.enabled = true;
             g.sky.time = 600;
             g.post.vignette = 0;
+        }
+        Feature::RikimaruSheath => {
+            g.models.rikimaru_sheath = p >= 0.3;
+            g.interpolation = true;
         }
         Feature::SecondaryMotion => {
             let enabled = section(p, 4) % 2 == 1;
@@ -989,6 +993,14 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
                 "High-detail hero · rounded surfaces and finger creases · original rig"
             } else {
                 "Existing Fine character surfaces"
+            }
+            .into(),
+        ),
+        Feature::RikimaruSheath => text(
+            if g.models.rikimaru_sheath {
+                "Tenchu 2 sheath · requires an imported T2 disc · T1 sword and combat"
+            } else {
+                "Original Tenchu 1 sheath"
             }
             .into(),
         ),
