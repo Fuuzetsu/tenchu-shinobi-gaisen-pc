@@ -881,14 +881,7 @@ impl Application {
                 } else if item == Item::UnarmedAttacks {
                     settings.unarmed = !settings.unarmed;
                 } else if item == Item::UnarmedStyle {
-                    use tenchu_core::game::sheathing::UnarmedStyle;
-                    settings.unarmed_style = match settings.unarmed_style {
-                        UnarmedStyle::Onikage => {
-                            crate::sheathing::imports::load()?;
-                            UnarmedStyle::Tatsumaru
-                        }
-                        UnarmedStyle::Tatsumaru => UnarmedStyle::Onikage,
-                    };
+                    settings.unarmed_style = settings.unarmed_style.cycle(direction);
                 } else {
                     settings.one_hit = !settings.one_hit;
                 }

@@ -26,21 +26,24 @@ impl Session {
                 .is_none_or(|u| u.moves.style != settings.unarmed_style)
     }
 
-    pub fn configure_tatsumaru(
+    pub fn configure_t2_unarmed(
         &mut self,
         disc: &Disc<impl ReadAt>,
         settings: Settings,
     ) -> Result<()> {
-        if !self.needs_unarmed(settings) || settings.unarmed_style != UnarmedStyle::Tatsumaru {
+        if !self.needs_unarmed(settings) {
             return Ok(());
         }
+        let Some(kind) = settings.unarmed_style.tenchu2_kind() else {
+            return Ok(());
+        };
         let resources = &mut self.assets.resources;
         let definition = resources
             .registry
-            .actor(2)
-            .ok_or("Missing Tatsumaru definition")?;
+            .actor(kind)
+            .ok_or("Missing Tenchu 2 unarmed definition")?;
         let mut set = UnarmedMoves {
-            style: UnarmedStyle::Tatsumaru,
+            style: settings.unarmed_style,
             rest_yaw: None,
             motions: BTreeMap::new(),
             attacks: BTreeMap::new(),
@@ -69,18 +72,18 @@ impl Session {
                 holster: None,
             };
             if metadata.contacts[0].is_none() || contacts.next().is_some() {
-                return Err("Unsupported Tatsumaru striking limbs".into());
+                return Err("Unsupported Tenchu 2 unarmed striking limbs".into());
             }
             set.motions.insert(entry.action, entry.clip);
             set.attacks.insert(entry.action, metadata);
         }
         if !set.motions.contains_key(&0x900) {
-            return Err("Missing Tatsumaru punch".into());
+            return Err("Missing Tenchu 2 opening strike".into());
         }
         let idle = resources
             .registry
-            .clip(2, 0x100)
-            .ok_or("Missing Tatsumaru combat stance")?;
+            .clip(kind, 0x100)
+            .ok_or("Missing Tenchu 2 unarmed combat stance")?;
         let mut wanted: std::collections::BTreeSet<_> = set.motions.values().copied().collect();
         wanted.insert(idle);
         let missing = wanted
@@ -217,8 +220,12 @@ fn grounded(action: i16) -> bool {
 }
 
 impl<S: ReadAt> campaign::Playback<S> {
-    pub fn tatsumaru_moves(&self) -> Result<tenchu_assets::tenchu2::Moves> {
-        tenchu_assets::tenchu2::import(&self.disc)
+    pub fn unarmed_moves(&self, style: UnarmedStyle) -> Result<tenchu_assets::tenchu2::Moves> {
+        if style == UnarmedStyle::WangXiaohai {
+            tenchu_assets::tenchu2::unarmed::import_wang(&self.disc)
+        } else {
+            tenchu_assets::tenchu2::import(&self.disc)
+        }
     }
 
     pub fn configure_onikage(

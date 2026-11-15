@@ -740,7 +740,12 @@ impl super::Application {
                 }
                 Edit::ExportRewind => self.export_rewind(),
                 Edit::ImportRewind => self.import_rewind(),
-                Edit::ImportUnarmed => self.import_unarmed(),
+                Edit::ImportUnarmed => {
+                    self.import_unarmed(tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru)
+                }
+                Edit::ImportWang => {
+                    self.import_unarmed(tenchu_core::game::sheathing::UnarmedStyle::WangXiaohai)
+                }
                 Edit::ExportUnarmed => self.export_unarmed(),
                 Edit::PlayRewindForward => self.play_rewind_forward(),
                 Edit::RecordedVisuals(enabled) => {

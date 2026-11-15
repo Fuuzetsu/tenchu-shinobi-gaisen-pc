@@ -112,11 +112,11 @@ link independently of the Gaisen pack.
 
 Unavailable controls stay visible but disabled. Hover or select a row to see
 why; keyboard/controller shortcuts and resets cannot change disabled values.
-**F1 → Movement → Export Tatsumaru moves** reads the running JP disc and saves
+**F1 → Movement → Export selected T2 moves** reads the running JP disc and saves
 a portable `.t2moves` file for personal use in T1 on other devices, including
 the browser port. It works from native menus as well as gameplay and does not
-require a previously imported moves file. Native T2 already reads Tatsumaru's
-unarmed style from its disc, so the T1 import control does not apply here.
+require a previously imported moves file. Native T2 already reads Tatsumaru and Wang Xiaohai
+from its disc, so the T1 import controls do not apply here.
 **F1 → Overlays → Player trail** shows recent movement through the same bounded
 path recorder as Gaisen. Paused redraws do not add points, large teleports break
 the line, and new areas clear it. X-ray also applies to the trail; Photo mode hides
@@ -412,15 +412,17 @@ Native T2 already retains a stowed weapon after injury and knockdown, so the
 T1 **Stay sheathed after damage** option is unnecessary here. Saves, rewind and
 recordings retain the settings and pending manual input.
 
-**Unarmed attacks while sheathed** uses Onikage's Gaisen kicks or Tatsumaru's JP
-punches and kicks while Draw / sheathe is enabled and weapons are stowed. Select
-the style in F1; Tatsumaru reads the running T2 disc, while Onikage needs your
+**Unarmed attacks while sheathed** uses Onikage's Gaisen kicks or the JP punches
+and kicks of Tatsumaru or Wang Xiaohai while Draw / sheathe is enabled and weapons are stowed. Select
+the style in F1; Tatsumaru and Wang Xiaohai read the running T2 disc, while Onikage needs your
 connected Gaisen disc. Grounded directional attacks, crouching attacks and combos
 use that style's available moves and hit contacts. Your armed moveset, weapons and
 voice remain selected. Airborne, wall and stealth attacks keep T2's rules. Style
 changes wait until the current attack finishes; disabling the option also lets
-that attack finish. Saves and rewind retain the active attack. Portable `.t2moves`
-import/export is still unavailable in native T2.
+that attack finish. Saves and rewind retain the active attack. Wang has a five-hit
+combo, side strikes and a forward lunge; crouched/backward strikes are unavailable.
+**Export selected T2 moves…** exports Tatsumaru or Wang for personal use in T1,
+including Android/browser installations. Native T2 needs no separate moves import.
 
 **Stealth Assassins dismemberment** adapts the shared optional head/forearm rules
 to native T2 guards and civilians. Rear stealth kills roll at their first authored

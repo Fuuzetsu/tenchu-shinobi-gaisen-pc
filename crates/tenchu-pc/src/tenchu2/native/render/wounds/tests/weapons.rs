@@ -18,7 +18,7 @@ fn native_unarmed_hits_leave_stowed_blades_clean() {
             unarmed_style: style,
             ..Default::default()
         };
-        session.configure_tatsumaru(&disc, settings).unwrap();
+        session.configure_t2_unarmed(&disc, settings).unwrap();
         session.configure_onikage(&gaisen, settings).unwrap();
         session
             .world

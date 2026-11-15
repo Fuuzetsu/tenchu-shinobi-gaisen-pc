@@ -126,7 +126,7 @@ impl<S: ReadAt> Playback<S> {
             }
             session.world.set_bleeding(self.bleeding);
             session.configure_walking(&self.disc, settings.walking.enabled)?;
-            session.configure_tatsumaru(&self.disc, settings.sheathing)?;
+            session.configure_t2_unarmed(&self.disc, settings.sheathing)?;
             session
                 .world
                 .set_player_sheathing(settings.sheathing, &session.assets)?;

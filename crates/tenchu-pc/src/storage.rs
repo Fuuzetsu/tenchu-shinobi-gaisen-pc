@@ -49,6 +49,7 @@ pub enum UserFile {
     Trials,
     Studio,
     Tatsumaru,
+    WangXiaohai,
     #[cfg(not(target_arch = "wasm32"))]
     States,
     #[cfg(not(target_arch = "wasm32"))]
@@ -71,6 +72,7 @@ impl UserFile {
             Self::Trials => "trials.json",
             Self::Studio => "level-studio.json",
             Self::Tatsumaru => "tatsumaru.t2moves",
+            Self::WangXiaohai => "wang-xiaohai.t2moves",
         }
         .into());
         #[cfg(not(target_arch = "wasm32"))]
@@ -137,6 +139,12 @@ impl UserFile {
             Self::Tatsumaru => (
                 "tatsumaru.t2moves",
                 "TENCHU_T2_MOVES",
+                "XDG_DATA_HOME",
+                ".local/share",
+            ),
+            Self::WangXiaohai => (
+                "wang-xiaohai.t2moves",
+                "TENCHU_WANG_MOVES",
                 "XDG_DATA_HOME",
                 ".local/share",
             ),

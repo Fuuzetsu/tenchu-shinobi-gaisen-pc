@@ -134,5 +134,5 @@ pub const ATTR_WALLANGLE: u16 = 0x2000;
 pub const ATTR_HIT: u16 = 0x4000;
 pub const ATTR_PUSH: u16 = 0x8000;
 
-// Port-only continuation of Tatsumaru's five-strike combo.
+// Port-only continuation of imported T2 five-strike combos.
 pub const MOT_UNARMED_FINISH: i16 = 0x780;

@@ -100,8 +100,8 @@ pub fn configure(
     {
         return Err("Finish the unarmed attack before changing its moveset".into());
     }
-    let imported = (needs_attacks && settings.unarmed_style == UnarmedStyle::Tatsumaru)
-        .then(imports::load)
+    let imported = (needs_attacks && settings.unarmed_style.tenchu2_kind().is_some())
+        .then(|| imports::load(settings.unarmed_style))
         .transpose()?;
     let motions = if settings.enabled && game.player().sheathing.is_none() {
         // NINJAB carries a sword; NINJAA's motions are for claws.
@@ -175,7 +175,7 @@ pub fn configure(
         game.set_player_unarmed(&attacks)?;
     }
     if let Some(moves) = imported {
-        game.set_player_tatsumaru(&moves)?;
+        game.set_player_t2_unarmed(&moves)?;
     }
     Ok(())
 }

@@ -320,7 +320,7 @@ fn native_walking_with_imported_movesets() {
                 unarmed_style: style,
                 ..Default::default()
             };
-            session.configure_tatsumaru(&disc, settings).unwrap();
+            session.configure_t2_unarmed(&disc, settings).unwrap();
             session.configure_onikage(&gaisen, settings).unwrap();
             session
                 .world
@@ -475,7 +475,7 @@ fn native_walking_on_imported_stages() {
         ..Default::default()
     };
     session
-        .configure_tatsumaru(&super::super::sheathing_tests::disc(), settings)
+        .configure_t2_unarmed(&super::super::sheathing_tests::disc(), settings)
         .unwrap();
     session
         .world

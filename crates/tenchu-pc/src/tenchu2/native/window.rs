@@ -801,7 +801,8 @@ impl Application {
             self.last = Instant::now();
         }
         if export_unarmed {
-            self.menu.export_unarmed(&self.session);
+            self.menu
+                .export_unarmed(&self.session, self.settings.sheathing.unarmed_style);
             self.transport.discard_backlog();
             self.last = Instant::now();
         }

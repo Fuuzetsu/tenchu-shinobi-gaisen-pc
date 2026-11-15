@@ -8,13 +8,38 @@ pub enum UnarmedStyle {
     #[default]
     Onikage,
     Tatsumaru,
+    WangXiaohai,
 }
 
 impl UnarmedStyle {
+    pub const ALL: [Self; 3] = [Self::Onikage, Self::Tatsumaru, Self::WangXiaohai];
+
+    pub fn cycle(self, direction: i32) -> Self {
+        let index = Self::ALL.iter().position(|&s| s == self).unwrap() as i32;
+        Self::ALL[(index + direction).rem_euclid(Self::ALL.len() as i32) as usize]
+    }
+
+    pub fn tenchu2_kind(self) -> Option<i16> {
+        match self {
+            Self::Onikage => None,
+            Self::Tatsumaru => Some(2),
+            Self::WangXiaohai => Some(tenchu_assets::tenchu2::unarmed::WANG_KIND),
+        }
+    }
+
+    pub fn from_moves(moves: &tenchu_assets::tenchu2::Moves) -> Self {
+        if moves.is_wang() {
+            Self::WangXiaohai
+        } else {
+            Self::Tatsumaru
+        }
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Self::Onikage => "Onikage (Gaisen)",
             Self::Tatsumaru => "Tatsumaru (Tenchu 2)",
+            Self::WangXiaohai => "Wang Xiaohai (Tenchu 2)",
         }
     }
 }
@@ -292,7 +317,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn set_player_tatsumaru(&mut self, moves: &tenchu_assets::tenchu2::Moves) -> Result<()> {
+    pub fn set_player_t2_unarmed(&mut self, moves: &tenchu_assets::tenchu2::Moves) -> Result<()> {
         moves.validate()?;
         if self.player().sheathing.is_none() {
             return Err("Enable player sheathing before importing unarmed attacks".into());
@@ -300,22 +325,35 @@ impl Game {
         if self.player().unarmed_attack() {
             return Err("Finish the unarmed attack before changing its moveset".into());
         }
-        let actions = [
-            MOT_ATTACK,
-            MOT_ATTACK_SLASH2,
-            MOT_ATTACK_SLASH2_RIGHT,
-            MOT_ATTACK_SLASH2_LEFT,
-            MOT_ATTACK_SLASH3,
-            MOT_ATTACK_SLASH4,
-            MOT_UNARMED_FINISH,
-            MOT_ATTACK_RIGHT1,
-            MOT_ATTACK_LEFT1,
-            MOT_ATTACK_LUNGE,
-            MOT_ATTACK_BACK,
-            MOT_ATTACK_CROUCH,
-        ];
+        let actions: &[i16] = if moves.is_wang() {
+            &[
+                MOT_ATTACK,
+                MOT_ATTACK_SLASH2,
+                MOT_ATTACK_SLASH3,
+                MOT_ATTACK_SLASH4,
+                MOT_UNARMED_FINISH,
+                MOT_ATTACK_RIGHT1,
+                MOT_ATTACK_LEFT1,
+                MOT_ATTACK_LUNGE,
+            ]
+        } else {
+            &[
+                MOT_ATTACK,
+                MOT_ATTACK_SLASH2,
+                MOT_ATTACK_SLASH2_RIGHT,
+                MOT_ATTACK_SLASH2_LEFT,
+                MOT_ATTACK_SLASH3,
+                MOT_ATTACK_SLASH4,
+                MOT_UNARMED_FINISH,
+                MOT_ATTACK_RIGHT1,
+                MOT_ATTACK_LEFT1,
+                MOT_ATTACK_LUNGE,
+                MOT_ATTACK_BACK,
+                MOT_ATTACK_CROUCH,
+            ]
+        };
         let mut attacks = Vec::new();
-        for (source, action) in moves.attacks.iter().zip(actions) {
+        for (source, &action) in moves.attacks.iter().zip(actions) {
             let mut clip = source.clip.clone();
             // Older .t2moves exports kept T2's positive blend duration verbatim.
             if clip.sweep > 0 {
@@ -331,10 +369,38 @@ impl Game {
             } else {
                 table.push(timing);
             }
+            if let Some(hitbox) = &source.hitbox {
+                use tenchu_assets::weapon::{Contact, ImportedAttack};
+                self.mission.weapons.imported_attacks.insert(
+                    clip.id,
+                    ImportedAttack {
+                        contacts: [
+                            Some(Contact {
+                                part: source.part,
+                                hitbox: hitbox.clone(),
+                            }),
+                            None,
+                        ],
+                        combo: match action {
+                            MOT_ATTACK => [Some(MOT_ATTACK_SLASH2), None, None],
+                            MOT_ATTACK_SLASH2 => [Some(MOT_ATTACK_SLASH3); 3],
+                            MOT_ATTACK_SLASH3 => [Some(MOT_ATTACK_SLASH4); 3],
+                            MOT_ATTACK_SLASH4 => [Some(MOT_UNARMED_FINISH); 3],
+                            _ => [None; 3],
+                        },
+                        turn_on_exit: matches!(action, MOT_ATTACK_RIGHT1 | MOT_ATTACK_LEFT1),
+                        holster: None,
+                    },
+                );
+            }
             attacks.push(AttackMotion {
                 action,
                 clip: self.import_clip(&clip),
-                contacts: [Some(source.part), source.secondary_part],
+                contacts: if source.hitbox.is_some() {
+                    [None; 2]
+                } else {
+                    [Some(source.part), source.secondary_part]
+                },
             });
         }
         let state = self
@@ -344,7 +410,7 @@ impl Game {
             .as_mut()
             .unwrap();
         state.attacks = attacks;
-        state.loaded_style = UnarmedStyle::Tatsumaru;
+        state.loaded_style = UnarmedStyle::from_moves(moves);
         // Old exports predate the idle reference. The first punch starts in that pose.
         state.attack_rest_yaw = Some(
             moves

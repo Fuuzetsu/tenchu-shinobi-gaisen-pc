@@ -62,7 +62,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && item == Item::UnarmedAttacks {
             "GAMEPLAY EDIT: with Draw / sheathe enabled and weapons stowed, use the selected grounded punches/kicks and combos. Draw explicitly to use your armed moveset. Existing weapons, voices and source stealth kills are retained. Disabling lets the active attack finish. Off by default."
         } else if self == Self::Tenchu2 && item == Item::UnarmedStyle {
-            "Tatsumaru uses the current Japanese T2 disc, including its original hit frames and striking limbs. Onikage uses your connected Gaisen disc. The style changes after the active attack finishes; your armed moveset is retained."
+            "Tatsumaru and Wang Xiaohai use the current Japanese T2 disc, including its original hit frames and striking limbs. Onikage uses your connected Gaisen disc. The style changes after the active attack finishes; your armed moveset is retained."
         } else if self == Self::Tenchu2 && item == Item::CameraRelative {
             "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction keeps the current facing for directional attacks. By default Circle guards and R1 crouches; Shift / Circle action can change this. Ledges, walls, underwater swimming and item aiming keep their original controls. Off restores classic controls."
         } else if self == Self::Tenchu2 && item == Item::BlobShadows {
@@ -309,8 +309,8 @@ impl Runtime {
             Edit::Coordinate(axis, _) => self.unavailable(Item::Target(*axis)),
             Edit::Benchmark | Edit::WeatherPreview(_) => None,
             Edit::Diagnostics => None,
-            Edit::ImportUnarmed => Some(
-                "This imports Tatsumaru moves into T1. Native T2 already reads them from the running JP disc; select Tatsumaru under Unarmed style. Export is available here for use in T1 on other devices.",
+            Edit::ImportUnarmed | Edit::ImportWang => Some(
+                "This imports Tenchu 2 unarmed moves into T1. Native T2 already reads Tatsumaru and Wang Xiaohai from the running JP disc; select either under Unarmed style. Export is available here for use in T1 on other devices.",
             ),
             Edit::ExportUnarmed => None,
             Edit::GameplayPreset(_) => self.unavailable(Item::GameplayPreset),

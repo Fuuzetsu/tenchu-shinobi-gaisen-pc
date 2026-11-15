@@ -4162,3 +4162,30 @@ code was imported or modified. New authoring-only routines rebuild affected
 collision lists and clip source presentation polygons; original gameplay query
 arithmetic is unchanged. Projects retain source node identities and authored
 placements/edits; retail mesh, texture and audio bytes are not bundled.
+
+## Optional Wang Xiaohai unarmed style (2026-11-16)
+
+Reuses the existing T2 registry, motion collector, weapon-table reader and the
+Tatsumaru portable import/sheathing path. User-disc JP SLPS-03040 and EU
+SLES-02452 actor `0xe3`, model `syaohai`, weapon `6`: actions
+`0x900,901,904,905,906,907,90a,910` map to clips `0x3ce..0x3d5`.
+The five-strike front combo uses the existing T2 combat continuation rules;
+no crouched/backward attack is invented. Native T2 selects the source clips,
+attack rows and contacts without replacing the armed definition or equipment.
+T1 reserves IDs `0x6000 + clip`, maps the final strike to `MOT_UNARMED_FINISH`
+and retains the source hand/foot geometry through imported attack metadata.
+
+Weapon-table source bones 5/11 are hands (center `0,-100,0`), bone 8 is the
+striking foot (center `0,100,-200`), all radius 500. The portable format
+`tenchu2-wang-xiaohai-v1` carries these per-strike spheres with the authored
+30 Hz tracks, hit/combo windows, speed and idle-root heading. PAL's 25 Hz load
+patch is not applied to a 30 Hz T1 import. The original Tatsumaru format and
+file remain compatible. Resources are read locally and never shipped.
+
+Reviewed sibling decomp and research `src/main.exe/MOTION.C` attack contact,
+combo and root-recovery paths and the viewer's `src/weapons.rs`; the port's
+existing scalar adapters remain the implementation. No sibling code/assets
+were imported or modified. Validation uses disc imports and the existing
+isolated optional-mode combo/contact/save fixtures; it does not establish new
+ordinary-play parity. Graphics presets remain independent of gameplay styles;
+the existing Onikage demos continue to work without a second disc.

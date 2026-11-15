@@ -453,7 +453,7 @@ fn native_multi_target_supports_imported_and_unarmed_contacts() {
                     unarmed_style: style,
                     ..Default::default()
                 };
-                s.configure_tatsumaru(&disc, settings).unwrap();
+                s.configure_t2_unarmed(&disc, settings).unwrap();
                 s.configure_onikage(&gaisen, settings).unwrap();
                 s.world.set_player_sheathing(settings, &s.assets).unwrap();
                 sheathing_tests::weapon(&mut s, false);

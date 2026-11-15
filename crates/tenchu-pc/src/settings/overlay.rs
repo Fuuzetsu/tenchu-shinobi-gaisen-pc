@@ -32,6 +32,7 @@ pub enum Edit {
     ExportRewind,
     ImportRewind,
     ImportUnarmed,
+    ImportWang,
     ExportUnarmed,
     RecordedVisuals(bool),
 }
@@ -258,10 +259,11 @@ pub fn show(
                     if menu.page == Page::Movement {
                         ui.horizontal_wrapped(|ui| {
                             action_button(ui, "Import Tatsumaru moves…", Edit::ImportUnarmed, runtime, &mut edits);
-                            action_button(ui, if runtime == Runtime::Tenchu2 { "Export Tatsumaru moves…" } else { "Export imported moves…" }, Edit::ExportUnarmed, runtime, &mut edits);
+                            action_button(ui, "Import Wang Xiaohai moves…", Edit::ImportWang, runtime, &mut edits);
+                            action_button(ui, if runtime == Runtime::Tenchu2 { "Export selected T2 moves…" } else { "Export imported moves…" }, Edit::ExportUnarmed, runtime, &mut edits);
                         });
                         ui.weak(if runtime == Runtime::Tenchu2 {
-                            "Native T2 uses Tatsumaru's moves from this JP disc. Export them for personal use in T1 on your other devices."
+                            "Native T2 reads Tatsumaru and Wang Xiaohai from this JP disc. Select an unarmed style, then export it for personal use in T1 on your other devices."
                         } else if cfg!(any(target_arch = "wasm32", target_os = "android")) {
                             "Import a .t2moves file exported from the desktop port."
                         } else {
@@ -649,12 +651,9 @@ fn widget(
             .iter()
             .map(|s| s.name().into())
             .collect(),
-        Item::UnarmedStyle => [
-            tenchu_core::game::sheathing::UnarmedStyle::Onikage,
-            tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,
-        ]
-        .map(|s| s.name().into())
-        .into(),
+        Item::UnarmedStyle => tenchu_core::game::sheathing::UnarmedStyle::ALL
+            .map(|s| s.name().into())
+            .into(),
         Item::BehaviorCombat | Item::ActorCombat => (item == Item::ActorCombat)
             .then_some("Follow global")
             .into_iter()

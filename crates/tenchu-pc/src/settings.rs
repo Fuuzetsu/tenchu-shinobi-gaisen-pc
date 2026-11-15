@@ -532,6 +532,12 @@ mod tests {
             player_model: "pack:custom".into(),
             model_moveset: true,
             moveset_model: "disc:135".into(),
+            sheathing: tenchu_core::game::sheathing::Settings {
+                enabled: true,
+                unarmed: true,
+                unarmed_style: tenchu_core::game::sheathing::UnarmedStyle::WangXiaohai,
+                ..Default::default()
+            },
             alternate_death_chance: 50,
             model_moveset_options: tenchu_core::game::moveset::Options {
                 player_movement: true,
@@ -558,6 +564,7 @@ mod tests {
         assert_eq!(original.volume, 25);
         assert!(original.player_model.is_empty());
         assert_eq!(original.moveset_model, settings.moveset_model);
+        assert_eq!(original.sheathing, selected.sheathing);
         assert_eq!(original.alternate_death_chance, 0);
         assert_eq!(
             original.model_moveset_options,
@@ -565,6 +572,7 @@ mod tests {
         );
         let stored = serde_json::to_vec(&settings).unwrap();
         settings = serde_json::from_slice(&stored).unwrap();
+        assert_eq!(settings.sheathing, selected.sheathing);
         settings.retro = false;
         assert_eq!(settings, selected);
         assert!(matches!(
@@ -572,6 +580,7 @@ mod tests {
             std::borrow::Cow::Borrowed(_)
         ));
         settings.set_visual_preset(presets::MODERN_ULTRA);
+        assert_eq!(settings.sheathing, selected.sheathing);
         assert_eq!(settings.graphics.weather.mode, WeatherMode::Snow);
         assert_eq!(settings.sight_percent, 125);
         assert_eq!(settings.subtitle_language, selected.subtitle_language);

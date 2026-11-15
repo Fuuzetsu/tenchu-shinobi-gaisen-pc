@@ -26,6 +26,7 @@ pub mod story;
 mod texture;
 pub mod title;
 pub mod tutorial;
+pub mod unarmed;
 mod volume;
 pub mod weapons;
 use crate::{ReadAt, Result, disc::Disc, i16_le, motion, slice, u32_le, weapon};
@@ -59,6 +60,8 @@ pub struct Move {
     pub part: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secondary_part: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hitbox: Option<weapon::Hitbox>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -70,17 +73,47 @@ pub struct Moves {
 }
 
 impl Moves {
+    pub fn is_wang(&self) -> bool {
+        self.format == "tenchu2-wang-xiaohai-v1"
+    }
+
     pub fn validate(&self) -> Result<()> {
-        if self.format != "tenchu2-tatsumaru-v1" || self.attacks.len() != CLIPS.len() {
-            return Err("Not a supported Tatsumaru moveset".into());
+        let ids: &[i16] = if self.is_wang() {
+            if self.rest_yaw.is_none() {
+                return Err("Missing Wang Xiaohai stance heading".into());
+            }
+            &unarmed::WANG_CLIPS
+        } else if self.format == "tenchu2-tatsumaru-v1" {
+            &CLIPS
+        } else {
+            return Err("Not a supported Tenchu 2 unarmed moveset".into());
+        };
+        if self.attacks.len() != ids.len() {
+            return Err("Incomplete Tenchu 2 unarmed moveset".into());
         }
-        for (&id, entry) in CLIPS.iter().zip(&self.attacks) {
+        for (&id, entry) in ids.iter().zip(&self.attacks) {
             let Move {
                 clip,
                 attack,
                 part,
                 secondary_part,
+                hitbox,
             } = entry;
+            if self.is_wang() {
+                let hitbox = hitbox
+                    .as_ref()
+                    .ok_or("Missing Wang Xiaohai strike geometry")?;
+                if secondary_part.is_some()
+                    || !matches!(part, 9 | 13 | 14)
+                    || !(1..=1000).contains(&hitbox.radius)
+                    || hitbox.center.iter().any(|v| v.unsigned_abs() > 1000)
+                    || hitbox.kind != weapon::kind::FIST
+                {
+                    return Err("Invalid Wang Xiaohai strike geometry".into());
+                }
+            } else if hitbox.is_some() {
+                return Err("Unexpected Tatsumaru strike geometry".into());
+            }
             if clip.id != id
                 || attack.clip != id
                 || !(1..=120).contains(&clip.duration)
@@ -95,7 +128,7 @@ impl Moves {
                 || attack.trail_start != 0
                 || attack.trail_end != 0
             {
-                return Err(format!("Invalid Tatsumaru attack {id:#x}"));
+                return Err(format!("Invalid unarmed attack {id:#x}"));
             }
             for track in std::iter::once(&clip.root).chain(&clip.bones) {
                 if track.is_empty()
@@ -105,7 +138,7 @@ impl Moves {
                     || track.last().unwrap().time > 240
                     || track.windows(2).any(|p| p[0].time >= p[1].time)
                 {
-                    return Err(format!("Invalid Tatsumaru motion track {id:#x}"));
+                    return Err(format!("Invalid unarmed motion track {id:#x}"));
                 }
             }
         }
@@ -182,6 +215,7 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
             },
             part: parts[0],
             secondary_part: parts.get(1).copied(),
+            hitbox: None,
         });
     }
     let moves = Moves {

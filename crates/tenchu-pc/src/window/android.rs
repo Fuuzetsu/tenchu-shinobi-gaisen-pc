@@ -26,7 +26,10 @@ impl Application {
                         self.load_recording(&bytes)
                     }
                 }
-                "unarmed" => self.install_unarmed(crate::sheathing::imports::from_path(&path)?),
+                "unarmed" => self.install_unarmed(crate::sheathing::imports::from_path(
+                    &path,
+                    self.settings.sheathing.unarmed_style,
+                )?),
                 "trial" => {
                     if path.metadata().map_err(|e| e.to_string())?.len() > 8192 {
                         return Err("Select one .msn or .mcs mission".into());

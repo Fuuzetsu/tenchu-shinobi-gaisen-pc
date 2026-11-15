@@ -301,7 +301,7 @@ fn native_forward_assist_supports_imported_and_unarmed_movesets() {
                     unarmed_style: style,
                     ..Default::default()
                 };
-                s.configure_tatsumaru(&disc, settings).unwrap();
+                s.configure_t2_unarmed(&disc, settings).unwrap();
                 s.configure_onikage(&gaisen, settings).unwrap();
                 s.world.set_player_sheathing(settings, &s.assets).unwrap();
             }

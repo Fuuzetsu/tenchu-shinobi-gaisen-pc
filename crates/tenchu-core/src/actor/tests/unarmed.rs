@@ -269,7 +269,7 @@ fn tatsumaru_contacts_follow_each_imported_attack() {
                     ..Default::default()
                 },
             );
-            game.set_player_tatsumaru(&moves).unwrap();
+            game.set_player_t2_unarmed(&moves).unwrap();
             for _ in 0..10 {
                 game.step(0).unwrap();
             }

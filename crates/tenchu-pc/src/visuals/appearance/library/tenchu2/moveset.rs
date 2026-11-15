@@ -43,7 +43,7 @@ pub fn load(
             .collect(),
     )?;
     let mut out = BTreeMap::new();
-    // 0x6000..0x6800 belongs to the separate Tatsumaru unarmed importer.
+    // 0x6000..0x6800 belongs to the separate T2 unarmed importer.
     let base_npc: i16 = match registry.edition {
         Edition::Japan => 0x6800,
         Edition::Europe => 0x7400,

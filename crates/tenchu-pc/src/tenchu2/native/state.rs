@@ -384,7 +384,7 @@ mod tests {
         let mut session = Session::load(&disc, 9, 17).unwrap();
         session.step(0).unwrap();
         session
-            .configure_tatsumaru(
+            .configure_t2_unarmed(
                 &disc,
                 tenchu_core::game::sheathing::Settings {
                     enabled: true,

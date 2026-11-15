@@ -1623,11 +1623,23 @@ unarmed attacks; stow your weapons to fight barehanded. The import is stored
 locally and remains available after restarting. Finish an attack before changing
 styles. Onikage remains available without another disc.
 
+**Unarmed style → Wang Xiaohai (Tenchu 2)** adds his five-strike punch/kick
+combo, left/right attacks and forward lunge. Use **Import Wang Xiaohai moves…**
+with your supported T2 Japan or Europe disc. His hand and foot hitboxes, damage,
+combo windows and motion come from that disc. He has no crouched or backward
+strike; those inputs do not substitute a sword attack while sheathed. Drawing
+restores your selected armed moveset. Both T2 imports are stored separately.
+
+Select the desired T2 unarmed style before exporting. To export Wang from the
+command line, use `tenchu-pc import-t2-moves TENCHU2.cue wang-xiaohai.t2moves wang-xiaohai`.
+Native T2 can select either T2 style directly from its running Japanese disc and
+export the selected style through the Movement page.
+
 Use **Export imported moves…** to transfer a small `.t2moves` file to your own
 Android/browser installation, then use the same Import button there. The desktop
 command `tenchu-pc import-t2-moves TENCHU2.cue tatsumaru.t2moves` also exports it.
 This file contains disc animation data and is not part of the port's downloads.
-Only the supplied European edition has been verified. The imported animations,
+The supported Japanese and European discs have been verified. The imported animations,
 strike limbs, damage and hit/combo frames run through Gaisen's combat system;
 this does not replace its AI, collision rules or aerial/stealth attacks with
 Tenchu 2 gameplay. Graphical presets do not select a combat style; the standard

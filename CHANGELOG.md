@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **Movement → Unarmed style → Wang Xiaohai (Tenchu 2)**: his five-strike
+  punch/kick combo, side attacks and forward lunge while weapons are stowed.
+  Native T2 reads the running JP disc; T1 imports a JP/EU disc or a portable
+  `.t2moves` file for desktop, Android and browser use. Preserve his source hit
+  timing and strike geometry, the selected armed moveset and existing defaults.
+
 ## 0.35.13 — 2026-11-15
 
 - Add **Player model → Tenchu 2 Rikimaru sheath**, an optional visual replacement

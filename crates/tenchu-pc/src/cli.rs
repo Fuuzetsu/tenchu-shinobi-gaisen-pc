@@ -23,14 +23,20 @@ fn run() -> Result<()> {
     ) {
         return crate::tenchu2::command(&args);
     }
-    if args[0] == "import-t2-moves" && args.len() == 3 {
-        let moves = crate::sheathing::imports::from_path(args[1].as_ref())?;
+    if args[0] == "import-t2-moves" && matches!(args.len(), 3 | 4) {
+        use tenchu_core::game::sheathing::UnarmedStyle;
+        let style = match args.get(3).and_then(|a| a.to_str()) {
+            None | Some("tatsumaru") => UnarmedStyle::Tatsumaru,
+            Some("wang-xiaohai") => UnarmedStyle::WangXiaohai,
+            _ => return Err("Choose tatsumaru or wang-xiaohai".into()),
+        };
+        let moves = crate::sheathing::imports::from_path(args[1].as_ref(), style)?;
         crate::storage::atomic_write(
             args[2].as_ref(),
             &crate::sheathing::imports::encode(&moves)?,
         )?;
         println!(
-            "Exported Tatsumaru moves for personal use. Import the .t2moves file under F1 > Movement."
+            "Exported unarmed moves for personal use. Import the .t2moves file under F1 > Movement."
         );
         return Ok(());
     }
@@ -60,7 +66,7 @@ fn run() -> Result<()> {
     }
     if args[0] == "--help" {
         println!(
-            "tenchu-pc play [DISC] [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT | --scenario]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json [--scenario]\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc inspect-report REPORT.json\ntenchu-pc import-t2-moves TENCHU2.cue OUTPUT.t2moves\ntenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map ID | --sequence ID] [--guards sword|spear|archer]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\ntenchu-pc verify DISC\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nStart without arguments to reuse the last verified disc, or choose one if it is unavailable. You can also drag its CUE onto the executable.\nDISC: original Shinobi Gaisen SLPS-019.01 .cue with its referenced .bin files. CUE/BIN folders and ZIP, TAR, TAR.GZ, TAR.XZ, TAR.ZST archives are accepted and unpacked once into a local cache. Raw .bin/.iso are also accepted. Native play verifies the executable and base artwork hashes.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay/record-retail captures."
+            "tenchu-pc play [DISC] [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT | --scenario]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json [--scenario]\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc inspect-report REPORT.json\ntenchu-pc import-t2-moves TENCHU2.cue OUTPUT.t2moves [tatsumaru|wang-xiaohai]\ntenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map ID | --sequence ID] [--guards sword|spear|archer]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\ntenchu-pc verify DISC\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nStart without arguments to reuse the last verified disc, or choose one if it is unavailable. You can also drag its CUE onto the executable.\nDISC: original Shinobi Gaisen SLPS-019.01 .cue with its referenced .bin files. CUE/BIN folders and ZIP, TAR, TAR.GZ, TAR.XZ, TAR.ZST archives are accepted and unpacked once into a local cache. Raw .bin/.iso are also accepted. Native play verifies the executable and base artwork hashes.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay/record-retail captures."
         );
         return Ok(());
     }

@@ -222,6 +222,14 @@ fn unarmed_controls_save_and_rewind() {
             454
         );
         assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+        if let Some(path) = std::env::var_os("TENCHU_T2_REVIEW") {
+            let directory = std::path::Path::new(&path);
+            std::fs::create_dir_all(directory).unwrap();
+            crate::sheathing::tests::capture_pose(
+                game,
+                &directory.join(format!("hero-{character}-onikage.png")),
+            );
+        }
         let bytes = app.capture_state().unwrap();
         let mut restored = application(Options {
             character,
@@ -263,16 +271,89 @@ fn unarmed_controls_save_and_rewind() {
 #[test]
 #[ignore = "requires TENCHU_DISC and TENCHU_T2_MOVES; real five-part imported combo, collisions, saves and style changes on both heroes"]
 fn tatsumaru_combo_contacts_and_saved_state() {
+    imported_combo_contacts_and_saved_state(tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC and imported Wang Xiaohai moves; five source strikes, contacts, saves, switching and armed recovery"]
+fn wang_xiaohai_combo_contacts_and_saved_state() {
+    imported_combo_contacts_and_saved_state(
+        tenchu_core::game::sheathing::UnarmedStyle::WangXiaohai,
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC and imported Wang Xiaohai moves; side strikes recover with source heading and unsupported inputs keep weapons stowed"]
+fn wang_xiaohai_directional_attacks_and_missing_moves() {
+    use tenchu_core::game::sheathing::UnarmedStyle;
+    let moves = crate::sheathing::imports::load(UnarmedStyle::WangXiaohai).unwrap();
+    for character in 0..2 {
+        let mut app = ready(character);
+        app.set_sheathing(Sheathing {
+            unarmed: true,
+            unarmed_style: UnarmedStyle::WangXiaohai,
+            ..app.settings.sheathing
+        })
+        .unwrap();
+        press_sheathe(&mut app);
+        let saved = app.capture_state().unwrap();
+        for (held, clip) in [
+            (input::RIGHT, Some(0x3d3)),
+            (input::LEFT, Some(0x3d4)),
+            (input::DOWN, None),
+            (input::R1, None),
+        ] {
+            app.restore_state(&saved).unwrap();
+            app.campaign.game.intelligence.ignore_player = true;
+            for _ in 0..4 {
+                app.game_tick(if held == input::R1 { held } else { 0 });
+            }
+            let yaw = app.campaign.game.player().rotation[1];
+            app.game_tick(held | input::SQUARE);
+            if let Some(id) = clip {
+                let p = app.campaign.game.player();
+                assert_eq!(
+                    app.campaign.game.mission.clips[p.motion.clip.unwrap()].id,
+                    id + 0x6000
+                );
+                let motion = moves.attacks.iter().find(|m| m.clip.id == id).unwrap();
+                let turn = motion.clip.bones[0].last().unwrap().value[1]
+                    .wrapping_sub(moves.rest_yaw.unwrap());
+                for _ in 0..100 {
+                    app.game_tick(0);
+                }
+                assert_eq!(
+                    app.campaign.game.player().rotation[1].wrapping_sub(yaw) & 4095,
+                    turn & 4095
+                );
+            } else {
+                assert_ne!(
+                    app.campaign.game.player().status,
+                    tenchu_core::actor::State::Attack
+                );
+            }
+            assert_eq!(app.campaign.game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+        }
+    }
+}
+
+fn imported_combo_contacts_and_saved_state(style: tenchu_core::game::sheathing::UnarmedStyle) {
     use tenchu_core::game::sheathing::UnarmedStyle;
     use tenchu_core::{ai::programs::Programs, collision};
     for character in 0..2 {
         let mut app = ready(character);
         app.set_sheathing(Sheathing {
             unarmed: true,
-            unarmed_style: UnarmedStyle::Tatsumaru,
+            unarmed_style: style,
             ..app.settings.sheathing
         })
         .unwrap();
+        if style == UnarmedStyle::WangXiaohai {
+            app.apply_item(Item::UnarmedStyle, 1).unwrap();
+            assert_eq!(app.settings.sheathing.unarmed_style, UnarmedStyle::Onikage);
+            app.apply_item(Item::UnarmedStyle, -1).unwrap();
+            assert_eq!(app.settings.sheathing.unarmed_style, style);
+        }
         press_sheathe(&mut app);
         let game = &mut app.campaign.game;
         game.intelligence.ignore_player = true;
@@ -349,10 +430,10 @@ fn tatsumaru_combo_contacts_and_saved_state() {
                 assert_eq!(player.attribute & ATTR_WEAPON_DRAWN, 0);
                 let id = game.mission.clips[player.motion.clip.unwrap()].id - 0x6000;
                 let expected = match id {
-                    0xb8 => 14,
-                    0xb9 => 13,
-                    0xba | 0x4bf => 9,
-                    0xbb => 13,
+                    0xb8 | 0x3ce => 14,
+                    0xb9 | 0x3cf => 13,
+                    0xba | 0x4bf | 0x3d0 | 0x3d2 => 9,
+                    0xbb | 0x3d1 => 13,
                     _ => panic!("Unexpected combo clip {id:x}"),
                 };
                 for part in [8, 9, 11, 12, 13, 14] {
@@ -360,6 +441,18 @@ fn tatsumaru_combo_contacts_and_saved_state() {
                         && game.collision.slots[slot].class == collision::HIT
                     {
                         assert_eq!(part, expected);
+                        if style == UnarmedStyle::WangXiaohai {
+                            let actual = &game.collision.slots[slot];
+                            assert_eq!(actual.size, [500; 3]);
+                            assert_eq!(
+                                actual.offset,
+                                if part == 9 {
+                                    [0, 100, -200]
+                                } else {
+                                    [0, -100, 0]
+                                }
+                            );
+                        }
                         contacts.insert(id);
                     }
                 }
@@ -386,7 +479,14 @@ fn tatsumaru_combo_contacts_and_saved_state() {
             ]
             .into()
         );
-        assert_eq!(contacts, [0xb8, 0xb9, 0xba, 0xbb, 0x4bf].into());
+        assert_eq!(
+            contacts,
+            if style == UnarmedStyle::WangXiaohai {
+                [0x3ce, 0x3cf, 0x3d0, 0x3d1, 0x3d2].into()
+            } else {
+                [0xb8, 0xb9, 0xba, 0xbb, 0x4bf].into()
+            }
+        );
         assert!(
             app.campaign.game.roster.get(enemy).health < 9999,
             "Imported punches missed hero {character}'s target"
@@ -400,12 +500,7 @@ fn tatsumaru_combo_contacts_and_saved_state() {
         }
         let clips = app.campaign.game.mission.clips.len();
         let attacks = app.campaign.game.mission.weapons.attacks.len();
-        for style in [
-            UnarmedStyle::Onikage,
-            UnarmedStyle::Tatsumaru,
-            UnarmedStyle::Onikage,
-            UnarmedStyle::Tatsumaru,
-        ] {
+        for style in [UnarmedStyle::Onikage, style, UnarmedStyle::Onikage, style] {
             app.set_sheathing(Sheathing {
                 unarmed_style: style,
                 ..app.settings.sheathing
@@ -477,7 +572,7 @@ fn circle_stance_wall_roll_preview() {
 #[ignore = "requires TENCHU_DISC and imported Tatsumaru moves; source second-strike variants must continue into the front combo"]
 fn tatsumaru_directional_second_strikes_keep_source_motion() {
     use tenchu_core::game::sheathing::UnarmedStyle;
-    let moves = crate::sheathing::imports::load().unwrap();
+    let moves = crate::sheathing::imports::load(UnarmedStyle::Tatsumaru).unwrap();
     for character in 0..2 {
         for (direction, variant, clip) in [
             (0, MOT_ATTACK_SLASH2, 0xb9),

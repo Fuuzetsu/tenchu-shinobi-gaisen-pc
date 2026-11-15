@@ -242,12 +242,13 @@ impl Menu {
     pub fn export_unarmed(
         &mut self,
         playback: &super::campaign::Playback<impl tenchu_assets::ReadAt>,
+        style: tenchu_core::game::sheathing::UnarmedStyle,
     ) {
         let result = playback
-            .tatsumaru_moves()
+            .unarmed_moves(style)
             .and_then(|moves| crate::sheathing::imports::export(&moves));
         match result {
-            Ok(true) => self.panel.notice = "Exported Tatsumaru moves from the running JP disc. Import the .t2moves file in T1 on your other devices; native T2 already has these moves.".into(),
+            Ok(true) => self.panel.notice = "Exported selected unarmed moves from the running JP disc. Import the .t2moves file in T1 on your other devices; native T2 already has these moves.".into(),
             Ok(false) => {},
             Err(error) => self.panel.notice = error,
         }
@@ -906,12 +907,8 @@ impl Menu {
                             Ok(())
                         }
                         Item::UnarmedStyle => {
-                            use tenchu_core::game::sheathing::UnarmedStyle;
                             state.settings.sheathing.unarmed_style =
-                                match state.settings.sheathing.unarmed_style {
-                                    UnarmedStyle::Onikage => UnarmedStyle::Tatsumaru,
-                                    UnarmedStyle::Tatsumaru => UnarmedStyle::Onikage,
-                                };
+                                state.settings.sheathing.unarmed_style.cycle(delta);
                             Ok(())
                         }
                         Item::SheathedOneHit => {
@@ -1222,6 +1219,15 @@ mod tests {
             (actual.speed, actual.visibility, actual.damage),
             (200, 25, 400)
         );
+        for expected in [
+            tenchu_core::game::sheathing::UnarmedStyle::WangXiaohai,
+            tenchu_core::game::sheathing::UnarmedStyle::Onikage,
+            tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,
+        ] {
+            menu.apply(Edit::Change(Item::UnarmedStyle, 1), &mut state, &mut action);
+            assert_eq!(state.settings.sheathing.unarmed_style, expected);
+            assert!(menu.panel.notice.is_empty());
+        }
         let original = session.world.clone();
         for item in [
             Item::Sheathing,

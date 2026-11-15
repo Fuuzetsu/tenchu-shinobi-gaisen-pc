@@ -41,7 +41,7 @@ fn configure(
         unarmed_style: style,
         ..Default::default()
     };
-    s.configure_tatsumaru(&disc(), settings).unwrap();
+    s.configure_t2_unarmed(&disc(), settings).unwrap();
     s.configure_onikage(gaisen, settings).unwrap();
     s.world.set_player_sheathing(settings, &s.assets).unwrap();
     settings
@@ -49,105 +49,110 @@ fn configure(
 
 #[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; native export retains all authored moves and can drive both T1 heroes without a stored import"]
-fn native_tatsumaru_export_is_portable_and_preserves_source_motion() {
-    let playback = campaign::Playback::menu(disc(), 2, 17, None).unwrap();
-    let moves = playback.tatsumaru_moves().unwrap();
-    let bytes = crate::sheathing::imports::encode(&moves).unwrap();
-    let copy = crate::sheathing::imports::decode(&bytes).unwrap();
-    assert!(bytes.len() < crate::sheathing::imports::LIMIT);
-    let mut source = ready(2);
-    source.assets.load_actor(&disc(), 2).unwrap();
-    for entry in &copy.attacks {
-        let mut original = source.assets.resources.clips[&entry.clip.id].clone();
-        // Native motion also limits the optional sixteenth track to the actor's rig.
-        original.bones.truncate(BONES.len());
-        assert!(
-            super::super::models::gaisen_clip(&entry.clip, entry.clip.id) == original,
-            "portable motion {:#x}",
-            entry.clip.id
-        );
-        let bones = std::iter::once(entry.part)
-            .chain(entry.secondary_part)
-            .fold(0, |mask, part| mask | (1 << BONES[part]));
-        let actual = super::super::models::gaisen_attack(&entry.attack, entry.clip.id, bones);
-        let mut original = source
+fn native_t2_unarmed_export_is_portable_and_preserves_source_motion() {
+    for style in [UnarmedStyle::Tatsumaru, UnarmedStyle::WangXiaohai] {
+        let playback = campaign::Playback::menu(disc(), 2, 17, None).unwrap();
+        let moves = playback.unarmed_moves(style).unwrap();
+        let bytes = crate::sheathing::imports::encode(&moves).unwrap();
+        let copy = crate::sheathing::imports::decode(&bytes).unwrap();
+        assert!(bytes.len() < crate::sheathing::imports::LIMIT);
+        let mut source = ready(2);
+        source
             .assets
-            .resources
-            .weapons
-            .attack(entry.clip.id)
-            .unwrap()
-            .clone();
-        original.trail_start = 0;
-        original.trail_end = 0;
-        assert_eq!(actual, original);
-    }
-    let assets = gaisen();
-    for character in 0..2 {
-        let mut game = crate::session::Options {
-            character,
-            ..Default::default()
+            .load_actor(&disc(), style.tenchu2_kind().unwrap())
+            .unwrap();
+        for entry in &copy.attacks {
+            let mut original = source.assets.resources.clips[&entry.clip.id].clone();
+            // Native motion also limits the optional sixteenth track to the actor's rig.
+            original.bones.truncate(BONES.len());
+            assert!(
+                super::super::models::gaisen_clip(&entry.clip, entry.clip.id) == original,
+                "portable motion {:#x}",
+                entry.clip.id
+            );
+            let bones = std::iter::once(entry.part)
+                .chain(entry.secondary_part)
+                .fold(0, |mask, part| mask | (1 << BONES[part]));
+            let actual = super::super::models::gaisen_attack(&entry.attack, entry.clip.id, bones);
+            let mut original = source
+                .assets
+                .resources
+                .weapons
+                .attack(entry.clip.id)
+                .unwrap()
+                .clone();
+            original.trail_start = 0;
+            original.trail_end = 0;
+            assert_eq!(actual, original);
         }
-        .load(&assets)
-        .unwrap();
-        game.events = Default::default();
-        for _ in 0..30 {
-            game.step(0).unwrap();
-        }
-        let settings = Settings {
-            enabled: true,
-            ..Default::default()
-        };
-        crate::sheathing::configure(&mut game, &assets, settings).unwrap();
-        game.set_player_tatsumaru(&copy).unwrap();
-        game.set_player_sheathing(
-            Settings {
-                unarmed: true,
-                unarmed_style: UnarmedStyle::Tatsumaru,
-                ..settings
-            },
-            None,
-        )
-        .unwrap();
-        game.roster
-            .get_mut(game.player_id)
-            .sheathing
-            .as_mut()
-            .unwrap()
-            .input(true);
-        for _ in 0..100 {
-            game.step(0).unwrap();
+        let assets = gaisen();
+        for character in 0..2 {
+            let mut game = crate::session::Options {
+                character,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            game.events = Default::default();
+            for _ in 0..30 {
+                game.step(0).unwrap();
+            }
+            let settings = Settings {
+                enabled: true,
+                ..Default::default()
+            };
+            crate::sheathing::configure(&mut game, &assets, settings).unwrap();
+            game.set_player_t2_unarmed(&copy).unwrap();
+            game.set_player_sheathing(
+                Settings {
+                    unarmed: true,
+                    unarmed_style: style,
+                    ..settings
+                },
+                None,
+            )
+            .unwrap();
             game.roster
                 .get_mut(game.player_id)
                 .sheathing
                 .as_mut()
                 .unwrap()
-                .input(false);
-        }
-        assert_eq!(
-            game.player().attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN,
-            0
-        );
-        game.step(tenchu_core::input::SQUARE).unwrap();
-        let mut active = 0;
-        for _ in 0..60 {
-            if game.player().status == tenchu_core::actor::State::Attack {
-                let clip = &game.mission.clips[game.player().motion.clip.unwrap()];
-                assert_eq!(clip.id, copy.attacks[0].clip.id + 0x6000);
-                active += 1;
+                .input(true);
+            for _ in 0..100 {
+                game.step(0).unwrap();
+                game.roster
+                    .get_mut(game.player_id)
+                    .sheathing
+                    .as_mut()
+                    .unwrap()
+                    .input(false);
             }
-            game.step(0).unwrap();
+            assert_eq!(
+                game.player().attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN,
+                0
+            );
+            game.step(tenchu_core::input::SQUARE).unwrap();
+            let mut active = 0;
+            for _ in 0..60 {
+                if game.player().status == tenchu_core::actor::State::Attack {
+                    let clip = &game.mission.clips[game.player().motion.clip.unwrap()];
+                    assert_eq!(clip.id, copy.attacks[0].clip.id + 0x6000);
+                    active += 1;
+                }
+                game.step(0).unwrap();
+            }
+            assert!(active > 10, "hero {character}: no portable punch");
+            assert_ne!(game.player().status, tenchu_core::actor::State::Attack);
         }
-        assert!(active > 10, "hero {character}: no portable punch");
-        assert_ne!(game.player().status, tenchu_core::actor::State::Attack);
     }
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; both optional unarmed styles use source hit contacts and complete combos while retaining stowed weapons for all heroes"]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; optional unarmed styles use source hit contacts and complete combos while retaining stowed weapons for all heroes"]
 fn native_unarmed_combos_contacts_and_checkpoint() {
     let gaisen = gaisen();
     for hero in 0..3 {
-        for style in [UnarmedStyle::Onikage, UnarmedStyle::Tatsumaru] {
+        for style in UnarmedStyle::ALL {
             let mut s = ready(hero);
             configure(&mut s, &gaisen, style);
             weapon(&mut s, false);
@@ -218,7 +223,7 @@ fn native_unarmed_combos_contacts_and_checkpoint() {
             for action in [0x900, 0x901, 0x904] {
                 assert!(actions.contains(&action), "{style:?} combo {actions:x?}");
             }
-            if style == UnarmedStyle::Tatsumaru {
+            if style.tenchu2_kind().is_some() {
                 assert!(actions.contains(&0x906), "{actions:x?}");
             }
             let a = &s.world.actors[id].actor;
@@ -233,78 +238,80 @@ fn native_unarmed_combos_contacts_and_checkpoint() {
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; optional styles preserve armed source combat, defer switching and disabling until active attacks finish"]
 fn native_unarmed_armed_fallback_and_setting_changes() {
     let gaisen = gaisen();
-    for hero in 0..3 {
-        let mut original = ready(hero);
-        weapon(&mut original, true);
-        let saved = original.capture_state().unwrap();
-        let mut s = ready(hero);
-        s.restore_state(&saved).unwrap();
-        configure(&mut s, &gaisen, UnarmedStyle::Tatsumaru);
-        for tick in 0..150 {
-            let input = if tick == 0 { ATTACK | RIGHT } else { 0 };
-            original.step(input).unwrap();
-            s.step(input).unwrap();
-            let mut world = s.world.clone();
-            world.actors[world.player].actor.sheathing = None;
-            world.actors[world.player].actor.unarmed = None;
-            assert!(
-                postcard::to_allocvec(&world).unwrap()
-                    == postcard::to_allocvec(&original.world).unwrap()
+    for style in [UnarmedStyle::Tatsumaru, UnarmedStyle::WangXiaohai] {
+        for hero in 0..3 {
+            let mut original = ready(hero);
+            weapon(&mut original, true);
+            let saved = original.capture_state().unwrap();
+            let mut s = ready(hero);
+            s.restore_state(&saved).unwrap();
+            configure(&mut s, &gaisen, style);
+            for tick in 0..150 {
+                let input = if tick == 0 { ATTACK | RIGHT } else { 0 };
+                original.step(input).unwrap();
+                s.step(input).unwrap();
+                let mut world = s.world.clone();
+                world.actors[world.player].actor.sheathing = None;
+                world.actors[world.player].actor.unarmed = None;
+                assert!(
+                    postcard::to_allocvec(&world).unwrap()
+                        == postcard::to_allocvec(&original.world).unwrap()
+                );
+            }
+            weapon(&mut s, false);
+            s.step(ATTACK).unwrap();
+            let id = s.world.player;
+            assert!(s.world.actors[id].actor.unarmed_attack());
+            let settings = configure(&mut s, &gaisen, UnarmedStyle::Onikage);
+            assert_eq!(
+                s.world.actors[id]
+                    .actor
+                    .unarmed
+                    .as_ref()
+                    .unwrap()
+                    .moves
+                    .style,
+                style
             );
-        }
-        weapon(&mut s, false);
-        s.step(ATTACK).unwrap();
-        let id = s.world.player;
-        assert!(s.world.actors[id].actor.unarmed_attack());
-        let settings = configure(&mut s, &gaisen, UnarmedStyle::Onikage);
-        assert_eq!(
+            s.world
+                .set_player_sheathing(Settings::default(), &s.assets)
+                .unwrap();
+            for _ in 0..100 {
+                s.step(0).unwrap();
+            }
+            assert!(!s.world.actors[id].actor.unarmed_attack());
+            assert!(!s.world.actors[id].actor.weapon_drawn());
+            assert_eq!(s.world.actors[id].actor.attack.contacts, 0);
+            s.configure_onikage(&gaisen, settings).unwrap();
+            assert_eq!(
+                s.world.actors[id]
+                    .actor
+                    .unarmed
+                    .as_ref()
+                    .unwrap()
+                    .moves
+                    .style,
+                UnarmedStyle::Onikage
+            );
+            // The disabled optional controller returns to the original draw-on-attack behavior.
             s.world.actors[id]
                 .actor
-                .unarmed
-                .as_ref()
-                .unwrap()
-                .moves
-                .style,
-            UnarmedStyle::Tatsumaru
-        );
-        s.world
-            .set_player_sheathing(Settings::default(), &s.assets)
-            .unwrap();
-        for _ in 0..100 {
-            s.step(0).unwrap();
+                .change_motion(0, Velocity::Stop, &s.assets.resources)
+                .unwrap();
+            s.step(ATTACK).unwrap();
+            assert_eq!(s.world.actors[id].actor.motion.action, 0x700);
         }
-        assert!(!s.world.actors[id].actor.unarmed_attack());
-        assert!(!s.world.actors[id].actor.weapon_drawn());
-        assert_eq!(s.world.actors[id].actor.attack.contacts, 0);
-        s.configure_onikage(&gaisen, settings).unwrap();
-        assert_eq!(
-            s.world.actors[id]
-                .actor
-                .unarmed
-                .as_ref()
-                .unwrap()
-                .moves
-                .style,
-            UnarmedStyle::Onikage
-        );
-        // The disabled optional controller returns to the original draw-on-attack behavior.
-        s.world.actors[id]
-            .actor
-            .change_motion(0, Velocity::Stop, &s.assets.resources)
-            .unwrap();
-        s.step(ATTACK).unwrap();
-        assert_eq!(s.world.actors[id].actor.motion.action, 0x700);
     }
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; both optional unarmed styles damage native actors through source contacts on a controlled floor, without drawing blades"]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; optional unarmed styles damage native actors through source contacts on a controlled floor, without drawing blades"]
 fn native_unarmed_attacks_damage_actors() {
     use tenchu_core::tenchu2::rig::WeaponMode;
     let gaisen = gaisen();
     let (floor, floor_assets, _) = crate::tenchu2::tests::native_world::fixture();
     for hero in 0..3 {
-        for style in [UnarmedStyle::Onikage, UnarmedStyle::Tatsumaru] {
+        for style in UnarmedStyle::ALL {
             let mut s = ready(hero);
             s.world.actors[s.world.player].actor.invulnerable = true;
             configure(&mut s, &gaisen, style);
@@ -428,7 +435,7 @@ fn native_unarmed_attacks_damage_actors() {
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; grounded direction, crouch and dodge attacks select the optional style and leave weapons stowed"]
 fn native_unarmed_directional_entries_and_contacts() {
     let gaisen = gaisen();
-    for style in [UnarmedStyle::Onikage, UnarmedStyle::Tatsumaru] {
+    for style in UnarmedStyle::ALL {
         let mut s = ready(0);
         configure(&mut s, &gaisen, style);
         weapon(&mut s, false);
@@ -467,9 +474,13 @@ fn native_unarmed_directional_entries_and_contacts() {
             }
             assert_eq!(a.motion.action, expected, "{style:?}, stance {stance:x}");
             assert!(a.unarmed_attack());
-            let exit_turn = if style == UnarmedStyle::Tatsumaru && matches!(expected, 0x907 | 0x90a)
-            {
-                let idle = s.assets.resources.registry.clip(2, 0x100).unwrap();
+            let exit_turn = if style.tenchu2_kind().is_some() && matches!(expected, 0x907 | 0x90a) {
+                let idle = s
+                    .assets
+                    .resources
+                    .registry
+                    .clip(style.tenchu2_kind().unwrap(), 0x100)
+                    .unwrap();
                 let clips = motions::collect(&disc(), [idle].into()).unwrap();
                 let rest = clips[&idle].bones[0][0].value[1];
                 let end = s.assets.resources.clips[&a.motion.clip.unwrap()].bones[0]
@@ -506,7 +517,7 @@ fn native_unarmed_directional_entries_and_contacts() {
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; optional unarmed entry leaves script-controlled and airborne input exactly on the native path"]
 fn native_unarmed_script_and_air_controls_stay_native() {
     let gaisen = gaisen();
-    for style in [UnarmedStyle::Onikage, UnarmedStyle::Tatsumaru] {
+    for style in UnarmedStyle::ALL {
         let mut s = ready(0);
         configure(&mut s, &gaisen, style);
         weapon(&mut s, false);

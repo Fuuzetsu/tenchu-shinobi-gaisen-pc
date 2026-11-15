@@ -1655,8 +1655,8 @@ pub fn run(
             )
         }
     };
-    if settings.sheathing.unarmed_style == tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru
-        && let Err(error) = crate::sheathing::imports::load()
+    if settings.sheathing.unarmed_style.tenchu2_kind().is_some()
+        && let Err(error) = crate::sheathing::imports::load(settings.sheathing.unarmed_style)
     {
         settings.sheathing.unarmed_style = Default::default();
         notice = error;
