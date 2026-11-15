@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.13 — 2026-11-15
+
 - Add **Player model → Tenchu 2 Rikimaru sheath**, an optional visual replacement
   for T1 Rikimaru using an imported T2 JP or EU disc. Remove his built-in sheath,
   retain his sword and combat, and align the stowed grip with the replacement.
