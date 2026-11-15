@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.35.14 — 2026-11-15
+
 - Add **Movement → Unarmed style → Wang Xiaohai (Tenchu 2)**: his five-strike
   punch/kick combo, side attacks and forward lunge while weapons are stowed.
   Native T2 reads the running JP disc; T1 imports a JP/EU disc or a portable
