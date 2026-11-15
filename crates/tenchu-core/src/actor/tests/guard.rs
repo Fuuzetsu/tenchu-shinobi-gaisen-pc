@@ -66,58 +66,66 @@ fn guard_controls_block_melee_with_original_recoil() {
     use crate::effects::RumbleAction;
     use crate::input::R1;
     for character in 0..2 {
-        for (behind, circle) in [(false, false), (true, false), (false, true), (true, true)] {
-            let (mut game, enemy) = ready(character);
-            let held = if circle {
-                game.intelligence.guard_controls = false;
-                game.intelligence.circle_action = crate::input::CircleAction::Guard;
-                crate::input::CIRCLE
-            } else {
-                R1
-            };
-            game.step(held).unwrap();
-            game.set_bleeding(crate::game::bleeding::Settings {
-                enabled: true,
-                chance: 100,
-                ..Default::default()
-            });
-            if behind {
-                game.roster.get_mut(game.player_id).rotation[1] = 0;
-            }
-            game.roster.get_mut(enemy).setup_think(0x4444).unwrap();
-            let mut blocked = false;
-            let mut recoiled = false;
-            let original = game.player().position;
-            let mut health = game.player().health;
-            let mut hit = false;
-            for _ in 0..500 {
-                game.step(held).unwrap();
-                blocked |= game
-                    .effects
-                    .rumble
-                    .iter()
-                    .any(|r| r.actor == game.player_id && r.action == RumbleAction::Block);
-                recoiled |=
-                    game.player().motion.action == MOT_ENGAGE && game.player().position != original;
-                hit |= game.player().health < health;
-                health = game.player().health;
-                if blocked || hit {
-                    break;
+        for (stowed, unarmed_guard) in [(false, false), (true, false), (true, true)] {
+            for (behind, circle) in [(false, false), (true, false), (false, true), (true, true)] {
+                let (mut game, enemy) = ready(character);
+                let held = if circle {
+                    game.intelligence.guard_controls = false;
+                    game.intelligence.circle_action = crate::input::CircleAction::Guard;
+                    crate::input::CIRCLE
+                } else {
+                    R1
+                };
+                game.intelligence.unarmed_guard = unarmed_guard;
+                if stowed {
+                    let id = game.player_id;
+                    with_actor(&mut game, id, |actor, ctx, _| actor.equip(ctx, false));
                 }
-            }
-            assert_eq!(game.player().bleeding.as_ref().unwrap().active, hit);
-            if behind {
-                assert!(hit && !blocked);
-            } else {
-                assert!(blocked && !hit && recoiled);
-                let before = game.player().motion.action;
-                game.step(held | crate::input::RIGHT).unwrap();
-                assert_eq!(before, MOT_ENGAGE);
-                assert_eq!(
-                    game.player().motion.action,
-                    before,
-                    "Dodge must not cancel block recoil"
-                );
+                game.step(held).unwrap();
+                game.set_bleeding(crate::game::bleeding::Settings {
+                    enabled: true,
+                    chance: 100,
+                    ..Default::default()
+                });
+                if behind {
+                    game.roster.get_mut(game.player_id).rotation[1] = 0;
+                }
+                game.roster.get_mut(enemy).setup_think(0x4444).unwrap();
+                let mut blocked = false;
+                let mut recoiled = false;
+                let original = game.player().position;
+                let mut health = game.player().health;
+                let mut hit = false;
+                for _ in 0..500 {
+                    game.step(held).unwrap();
+                    blocked |= game
+                        .effects
+                        .rumble
+                        .iter()
+                        .any(|r| r.actor == game.player_id && r.action == RumbleAction::Block);
+                    recoiled |= game.player().motion.action == MOT_ENGAGE
+                        && game.player().position != original;
+                    hit |= game.player().health < health;
+                    health = game.player().health;
+                    if blocked || hit {
+                        break;
+                    }
+                }
+                assert_eq!(game.player().bleeding.as_ref().unwrap().active, hit);
+                if behind || (stowed && !unarmed_guard) {
+                    assert!(hit && !blocked);
+                } else {
+                    assert!(blocked && !hit && recoiled);
+                    assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN == 0, stowed);
+                    let before = game.player().motion.action;
+                    game.step(held | crate::input::RIGHT).unwrap();
+                    assert_eq!(before, MOT_ENGAGE);
+                    assert_eq!(
+                        game.player().motion.action,
+                        before,
+                        "Dodge must not cancel block recoil"
+                    );
+                }
             }
         }
     }

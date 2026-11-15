@@ -102,6 +102,16 @@ impl Actor {
                     self.enter_unless_scripted(ctx, action, true);
                     self.motion.count = -5;
                 } else if self.motion.loops == -1 {
+                    if self.id == world.player
+                        && self.circle_guards(world.intelligence)
+                        && held & R1 != 0
+                        && let Some(action) = directional_roll(held)
+                    {
+                        self.motion.mask = 0x7fff;
+                        self.enter_unless_scripted(ctx, action, true);
+                        self.motion.count = -5;
+                        return Ok(None);
+                    }
                     let quadrant = (self.motion.pose.rotation[0][1] >> 10) & 3;
                     if let Some(direction) = direction(held) {
                         if let Some(action) = slide(quadrant, direction) {

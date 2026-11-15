@@ -25,6 +25,17 @@ fn crouch_roll(command: u16) -> Option<i16> {
     }
 }
 
+fn directional_roll(held: u16) -> Option<i16> {
+    [
+        (UP, MOT_SQUAT_ROLL_F),
+        (DOWN, MOT_SQUAT_ROLL_B),
+        (RIGHT, MOT_SQUAT_ROLL_R),
+        (LEFT, MOT_SQUAT_ROLL_L),
+    ]
+    .into_iter()
+    .find_map(|(button, action)| (held & button != 0).then_some(action))
+}
+
 impl Actor {
     pub fn control(
         &mut self,

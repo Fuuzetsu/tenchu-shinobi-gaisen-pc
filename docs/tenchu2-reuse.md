@@ -41,6 +41,30 @@ No usable T2 debug-symbol release has been verified. The known demo `PSX.SYM`
 belongs to Tenchu 1 and is already used by `../tenchu-decomp`. This comparison does
 not depend on finding further symbols and commits no executable or captured data.
 
+## Guard stance and wall-roll controls
+
+The optional T2 Circle controller in T1 reuses the settled-wall roll branch of
+native `Actor::update_wall`, verified against JP `GAME.EXE` at `80025440` and EU
+at `80024ac0`. The guard modifier plus a direction selects forward, backward,
+right, then left; it restores the pose mask and starts a five-tick transition.
+This shortcut applies to a settled wall-hug, not a moving wall slide. T1's
+original double-tap branch in `MOTION.C::ActSTICKON` remains unchanged.
+
+Guard damage checks reuse the existing original-instruction harness for JP
+`800202bc` and EU `8001feac`. For all three heroes, action `0110` requires the
+drawn flag to parry; merely displaying the stance while stowed provides no
+protection. The backward movement and existing recoil branches have separate
+retail rules. Do not broaden this into a general ban on every stowed parry or
+change those branches. The selected moveset supplies the guard clip independently
+of the displayed model and drawn/stowed flag. Private fixtures use the user's
+discs and remain outside Git.
+
+**Allow unarmed blocking** is an explicit, default-off gameplay change to this
+rule. It lets the player's stowed guard use the existing melee parry branch,
+without changing NPC decisions, the source facing test, recoil, weapon state or
+projectile handling. T1's optional guard controllers use their existing frontal
+block branch in the same way. No new animation or reference code is imported.
+
 ## Imported T1 cinematic cast
 
 The cinematic bridge follows `Director::native_actor` and the bound native

@@ -449,6 +449,31 @@ fn guard_stance_does_not_unsheathe_unless_requested() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; optional TENCHU_WALL_ROLL_REVIEW captures Circle wall-roll controls in Mission 1"]
+fn circle_stance_wall_roll_preview() {
+    let mut app = ready(0);
+    let game = &mut app.campaign.game;
+    game.intelligence.ignore_player = true;
+    game.intelligence.circle_action = input::CircleAction::Guard;
+    game.roster.get_mut(game.player_id).rotation[1] = 1024;
+    game.teleport_player(tenchu_core::math::Position::new(-45550, 0, -45000), true)
+        .unwrap();
+    for _ in 0..35 {
+        game.step(input::R1).unwrap();
+    }
+    assert_eq!(game.player().motion.action, MOT_STICKON);
+    for _ in 0..12 {
+        game.step(input::R1 | input::CIRCLE | input::UP).unwrap();
+    }
+    if let Some(directory) = std::env::var_os("TENCHU_WALL_ROLL_REVIEW") {
+        let directory = std::path::PathBuf::from(directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        crate::sheathing::tests::capture_pose(game, &directory.join("circle-wall-roll.png"));
+    }
+    assert_eq!(game.player().motion.action, MOT_SQUAT_ROLL_F);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and imported Tatsumaru moves; source second-strike variants must continue into the front combo"]
 fn tatsumaru_directional_second_strikes_keep_source_motion() {
     use tenchu_core::game::sheathing::UnarmedStyle;

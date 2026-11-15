@@ -23,11 +23,48 @@ use tenchu_core::{
 #[ignore = "requires TENCHU2_DISC and TENCHU2_DAMAGE_ORACLE from original combat code"]
 fn native_weapon_projectile_damage_and_resurrection_match_source() {
     let rows: Vec<Value> = cases("TENCHU2_DAMAGE_ORACLE").collect();
+    let (parries, deaths, revivals) = compare_damage(&rows);
+    assert_eq!(rows.len(), 41_400);
+    assert!(parries > 100 && deaths > 100 && revivals > 100);
+    eprintln!(
+        "41400 damage source updates; {parries} parries, {deaths} lethal hits, {revivals} resurrections"
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_GUARD_DAMAGE_ORACLE; armed/stowed guard and backward movement against retail damage instructions"]
+fn native_guard_weapon_states_match_retail() {
+    let rows: Vec<Value> = cases("TENCHU2_GUARD_DAMAGE_ORACLE").collect();
+    assert_eq!(rows.len(), 72);
+    let (parries, deaths, revivals) = compare_damage(&rows);
+    assert!(parries > 0);
+    assert_eq!((deaths, revivals), (0, 0));
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_GUARD_DAMAGE_ORACLE; optional stowed guard uses each hero's retail armed block/recoil while retaining stowed flags"]
+fn unarmed_guard_uses_retail_block_reactions() {
+    let rows: Vec<Value> = cases("TENCHU2_GUARD_DAMAGE_ORACLE")
+        .filter(|row: &Value| row["flags"] == 0x40 && row["action"] == 0x110)
+        .map(|mut row| {
+            row["flags"] = json!(0);
+            row["expected"]["flags"] = json!(row["expected"]["flags"].as_u64().unwrap() & !0x40);
+            row["unarmed_guard"] = json!(true);
+            row
+        })
+        .collect();
+    assert_eq!(rows.len(), 18);
+    let (parries, deaths, revivals) = compare_damage(&rows);
+    assert_eq!(parries, 12);
+    assert_eq!((deaths, revivals), (0, 0));
+}
+
+fn compare_damage(rows: &[Value]) -> (usize, usize, usize) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let registry = Registry::load(&disc).unwrap();
     let mut wanted = std::collections::BTreeSet::new();
-    for row in &rows {
+    for row in rows {
         wanted.extend([
             row["clip"].as_i64().unwrap() as i16,
             row["expected"]["clip"].as_i64().unwrap() as i16,
@@ -97,6 +134,7 @@ fn native_weapon_projectile_damage_and_resurrection_match_source() {
             map: int("map") as i16,
             difficulty: int("difficulty") as i16,
             armor: flag("armor"),
+            unarmed_guard: row["unarmed_guard"].as_bool().unwrap_or(false),
             drain_attack: flag("drain"),
             drain_uses: 0,
             story_triggered: flag("story"),
@@ -228,9 +266,5 @@ fn native_weapon_projectile_damage_and_resurrection_match_source() {
         let actual = json!({"action":request.action,"mode":match request.velocity {Velocity::Stop=>-1,Velocity::Keep=>0,Velocity::Motion=>1},"health":actor.health,"flags":actor.flags,"position":actor.position.to_array(),"velocity":actor.velocity.to_array(),"rotation":actor.rotation.to_array(),"root_rotation":actor.motion.pose.rotation[0],"mask":actor.motion.mask,"motion":actor.motion.action,"clip":actor.motion.clip,"frame":actor.motion.frame,"loops":actor.motion.loops,"state":actor.state as u8,"seed":random.seed,"random":random.calls,"target":actor.target,"focus":input.focus,"camera":input.camera,"hit_disabled":input.hit_disabled,"attacker_health":input.attacker.as_ref().map_or(int("attacker_health") as i16, |a| a.health),"attacker_recoil":input.attacker.as_ref().map_or(0, |a| a.recoil),"counts":actor.inventory.counts,"resurrections":actor.inventory.resurrections,"story":input.story_triggered,"story_damage":input.story_damage,"drain_uses":input.drain_uses,"current":surface(terrain.cursor.current),"last":surface(terrain.cursor.last),"material":terrain.cursor.material,"index":terrain.cursor.index,"calls":calls});
         assert_eq!(actual, row["expected"], "case {id}: {row}");
     }
-    assert_eq!(rows.len(), 41_400);
-    assert!(parries > 100 && deaths > 100 && revivals > 100);
-    eprintln!(
-        "41400 damage source updates; {parries} parries, {deaths} lethal hits, {revivals} resurrections"
-    );
+    (parries, deaths, revivals)
 }

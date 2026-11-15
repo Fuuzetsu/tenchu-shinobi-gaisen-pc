@@ -1623,6 +1623,23 @@ this does not replace its AI, collision rules or aerial/stealth attacks with
 Tenchu 2 gameplay. Graphical presets do not select a combat style; the standard
 unarmed demos continue to use Onikage so they need only the Gaisen disc.
 
+**Movement → Shift / Circle action → Block / dodge** uses T2-style controls:
+hold Circle for the guard stance, add a direction to dodge, and use R1 to crouch.
+After settling into a wall-hug, Circle plus a direction rolls away without a
+double tap. You can keep R1 held or release it when starting the roll. Stop
+sliding along the wall first; directional double taps also remain available.
+By default, stowed weapons retain the stance and dodges, but that stance cannot block melee
+hits, matching retail T2. The active moveset supplies the pose; changing only
+the displayed body does not change it.
+
+**Movement → Allow unarmed blocking** lets this stance block frontal melee while
+weapons are stowed, in both T1 and native T2. It also works with T1's optional R1
+guard below. Blocks retain the active moveset's reaction, recoil and recovery
+without drawing weapons. Rear hits and projectiles remain unprotected. This
+checkbox is independent of **Unarmed attacks** and **Draw / sheathe weapons**;
+it is off by default. Gameplay presets and resets turn it off; graphics presets
+leave it alone. Enabling it disables T1 input recording and TRIAL records.
+
 **Movement → R1 guard / dash / roll** is an optional control scheme. Hold the R1
 binding to stand and block frontal melee hits; press a direction while holding
 it for one dash. Hold crouch (Circle) as well to roll. Directions stay relative

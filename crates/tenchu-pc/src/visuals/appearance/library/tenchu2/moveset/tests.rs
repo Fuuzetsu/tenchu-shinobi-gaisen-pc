@@ -12,7 +12,7 @@ fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {
 }
 
 #[test]
-#[ignore = "requires both discs; T2 Circle stance blocks real frontal hits in T1 with the selected source reaction"]
+#[ignore = "requires both discs; imported T2 guard clips and frontal blocking retain retail drawn/stowed rules"]
 fn imported_circle_stance_blocks_melee_with_source_reactions() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
@@ -23,85 +23,161 @@ fn imported_circle_stance_blocks_melee_with_source_reactions() {
     .unwrap();
     for character in 0..2 {
         for kind in 0..3 {
-            let source = &sources[&kind];
-            let reaction = source
-                .character
-                .motions
-                .iter()
-                .find(|m| m.action == MOT_ENGAGE)
-                .unwrap()
-                .clip;
-            let mut game = crate::session::Options {
-                character,
-                ..Default::default()
-            }
-            .load(&assets)
-            .unwrap();
-            game.events = Default::default();
-            for _ in 0..30 {
-                game.step(0).unwrap();
-            }
-            game.set_imported_player_moveset(source, Default::default())
+            for (stowed, unarmed_guard, behind) in [
+                (false, false, false),
+                (true, false, false),
+                (true, true, false),
+                (true, true, true),
+            ] {
+                let source = &sources[&kind];
+                let reaction = source
+                    .character
+                    .motions
+                    .iter()
+                    .find(|m| m.action == MOT_ENGAGE)
+                    .unwrap()
+                    .clip;
+                let mut game = crate::session::Options {
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
                 .unwrap();
-            if game.player().attribute & ATTR_WEAPON_DRAWN == 0 {
-                game.step(SQUARE).unwrap();
-                for _ in 0..120 {
+                game.events = Default::default();
+                for _ in 0..30 {
                     game.step(0).unwrap();
                 }
-            }
-            let yaw = game.player().rotation[1];
-            let delta = game.math.velocity(yaw, 1100, 0);
-            let p = game.player().position;
-            let definition = game
-                .mission
-                .characters
-                .iter()
-                .position(|c| c.kind == 0x10)
-                .unwrap();
-            let enemy = game
-                .place_actor(
-                    tenchu_assets::stage::imports::Actor {
-                        definition,
-                        model: 0x10,
-                    },
-                    Default::default(),
-                    tenchu_core::math::Position::new(
-                        p.x + i32::from(delta[0]),
-                        p.y,
-                        p.z + i32::from(delta[2]),
-                    ),
-                    yaw.wrapping_add(2048),
-                    true,
-                )
-                .unwrap();
-            game.roster.get_mut(enemy).attribute |= ATTR_WEAPON_DRAWN;
-            game.roster.get_mut(enemy).setup_think(0x4444).unwrap();
-            let health = game.player().health;
-            let mut blocked = false;
-            for _ in 0..500 {
-                game.step(CIRCLE).unwrap();
+                game.set_imported_player_moveset(source, Default::default())
+                    .unwrap();
+                if game.player().attribute & ATTR_WEAPON_DRAWN == 0 {
+                    game.step(SQUARE).unwrap();
+                    for _ in 0..120 {
+                        game.step(0).unwrap();
+                    }
+                }
+                if stowed {
+                    crate::sheathing::configure(
+                        &mut game,
+                        &assets,
+                        tenchu_core::game::sheathing::Settings {
+                            enabled: true,
+                            ..Default::default()
+                        },
+                    )
+                    .unwrap();
+                    game.roster
+                        .get_mut(game.player_id)
+                        .sheathing
+                        .as_mut()
+                        .unwrap()
+                        .input(true);
+                    for _ in 0..120 {
+                        game.step(0).unwrap();
+                    }
+                    assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+                }
+                game.intelligence.unarmed_guard = unarmed_guard;
+                for _ in 0..20 {
+                    game.step(CIRCLE).unwrap();
+                }
+                assert_eq!(game.player().motion.action, MOT_ENGAGE_GUARD);
+                let stance = source
+                    .character
+                    .motions
+                    .iter()
+                    .find(|m| m.action == MOT_ENGAGE_GUARD)
+                    .unwrap()
+                    .clip;
                 assert_eq!(
-                    game.player().health,
-                    health,
-                    "T1 hero {character}, T2 moveset {kind}: frontal guard failed"
+                    game.mission.clips[game.player().motion.clip.unwrap()].id,
+                    stance
                 );
-                if game.effects.rumble.iter().any(|r| {
-                    r.actor == game.player_id
-                        && r.action == tenchu_core::effects::RumbleAction::Block
-                }) {
-                    assert_eq!(game.player().motion.action, MOT_ENGAGE);
+                let yaw = game.player().rotation[1];
+                let delta = game.math.velocity(yaw, 1100, 0);
+                let p = game.player().position;
+                let definition = game
+                    .mission
+                    .characters
+                    .iter()
+                    .position(|c| c.kind == 0x10)
+                    .unwrap();
+                let enemy = game
+                    .place_actor(
+                        tenchu_assets::stage::imports::Actor {
+                            definition,
+                            model: 0x10,
+                        },
+                        Default::default(),
+                        tenchu_core::math::Position::new(
+                            p.x + i32::from(delta[0]),
+                            p.y,
+                            p.z + i32::from(delta[2]),
+                        ),
+                        yaw.wrapping_add(2048),
+                        true,
+                    )
+                    .unwrap();
+                if behind {
+                    game.roster.get_mut(game.player_id).rotation[1] = yaw.wrapping_add(2048);
+                }
+                let should_block = (!stowed || unarmed_guard) && !behind;
+                game.roster.get_mut(enemy).attribute |= ATTR_WEAPON_DRAWN;
+                game.roster.get_mut(enemy).setup_think(0x4444).unwrap();
+                let health = game.player().health;
+                let mut blocked = false;
+                for _ in 0..500 {
+                    game.step(CIRCLE).unwrap();
+                    if !should_block && game.player().health < health {
+                        break;
+                    }
                     assert_eq!(
-                        game.mission.clips[game.player().motion.clip.unwrap()].id,
-                        reaction
+                        game.player().health,
+                        health,
+                        "T1 hero {character}, T2 moveset {kind}: frontal guard failed"
                     );
-                    blocked = true;
-                    break;
+                    if game.effects.rumble.iter().any(|r| {
+                        r.actor == game.player_id
+                            && r.action == tenchu_core::effects::RumbleAction::Block
+                    }) {
+                        assert_eq!(game.player().motion.action, MOT_ENGAGE);
+                        assert_eq!(
+                            game.mission.clips[game.player().motion.clip.unwrap()].id,
+                            reaction
+                        );
+                        blocked = true;
+                        break;
+                    }
+                }
+                assert_eq!(
+                    blocked, should_block,
+                    "T1 hero {character}, T2 moveset {kind}, stowed {stowed}: wrong block result"
+                );
+                assert_eq!(game.player().health < health, !should_block);
+                if character == 0
+                    && kind == 0
+                    && stowed
+                    && !behind
+                    && let Some(directory) = std::env::var_os("TENCHU_UNARMED_GUARD_REVIEW")
+                {
+                    let path = std::path::Path::new(&directory);
+                    std::fs::create_dir_all(path).unwrap();
+                    crate::sheathing::tests::capture_pose(
+                        &game,
+                        &path.join(if unarmed_guard {
+                            "enabled.png"
+                        } else {
+                            "disabled.png"
+                        }),
+                    );
+                }
+                if blocked && stowed {
+                    assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+                    assert!(game.player().motion.loops < 0);
+                    game.step(CIRCLE | RIGHT).unwrap();
+                    assert_eq!(game.player().motion.action, MOT_ENGAGE);
+                    assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN, 0);
                 }
             }
-            assert!(
-                blocked,
-                "T1 hero {character}, T2 moveset {kind}: no frontal hit was blocked"
-            );
         }
     }
 }

@@ -43,6 +43,7 @@ pub struct DamageInput {
     pub map: i16,
     pub difficulty: i16,
     pub armor: bool,
+    pub unarmed_guard: bool,
     pub drain_attack: bool,
     pub drain_uses: u8,
     pub story_triggered: bool,
@@ -303,7 +304,8 @@ impl Damage<'_, '_> {
         if attacker.attacking {
             attacker.recoil = !(power / 3);
         }
-        let mut parried = matches!(self.request.action, 0x916 | 0x104 | 0x501);
+        let mut parried = matches!(self.request.action, 0x916 | 0x104 | 0x501)
+            || (self.input.player && self.input.unarmed_guard && self.request.action == 0x110);
         if !parried
             && self.actor.weapon_drawn()
             && (self.request.action == 0x110

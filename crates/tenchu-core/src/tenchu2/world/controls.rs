@@ -38,6 +38,8 @@ pub struct Controls {
     pub stealth: Option<StealthSession>,
     pub focus: Option<usize>,
     pub armor: bool,
+    #[serde(default)]
+    pub unarmed_guard: bool,
     pub drain_attack: bool,
     pub drain_uses: u8,
     pub death_music: bool,
@@ -63,6 +65,7 @@ impl Default for Controls {
             stealth: None,
             focus: None,
             armor: false,
+            unarmed_guard: false,
             drain_attack: false,
             drain_uses: 0,
             death_music: true,

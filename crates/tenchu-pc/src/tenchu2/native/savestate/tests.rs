@@ -127,6 +127,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
             strict_corpse_sight: true,
             multi_target_attacks: true,
             attack_assist: true,
+            unarmed_guard: true,
             damage_escalation: tenchu_core::ai::escalation::Settings {
                 increment: 50,
                 maximum: 200,
@@ -211,6 +212,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         assert!(current.quick_shuriken_dodge && current.strict_corpse_sight);
         assert!(current.multi_target_attacks);
         assert!(current.attack_assist);
+        assert!(current.unarmed_guard);
         assert_eq!(current.damage_escalation, settings.damage_escalation);
         assert_eq!(current.behavior_profiles, settings.behavior_profiles);
         assert_eq!(current.reinforcement_call, settings.reinforcement_call);

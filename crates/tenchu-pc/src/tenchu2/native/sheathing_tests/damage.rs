@@ -6,6 +6,66 @@ use tenchu_core::tenchu2::{
 };
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC; optional unarmed guard blocks frontal melee through world controls without drawing, and preserves rear/projectile/unguarded damage"]
+fn native_unarmed_guard_blocks_only_guarded_melee() {
+    let (mut session, guard) = fixture();
+    let player = session.world.player;
+    let original = session.world.clone();
+    for (held, object, behind) in [
+        (GUARD, None, false),
+        (GUARD, None, true),
+        (GUARD, Some(4), false),
+        (GUARD, Some(22), false),
+        (0, None, false),
+        (CROUCH, None, false),
+    ] {
+        for enabled in [false, true] {
+            session.world = original.clone();
+            session.world.controls.unarmed_guard = enabled;
+            if behind {
+                let actor = &mut session.world.actors[player].actor;
+                actor.rotation.y = actor.rotation.y.wrapping_add(2048);
+            }
+            let health = session.world.actors[player].actor.health;
+            strike_with_weapon(
+                &mut session,
+                guard,
+                held,
+                object.map(|kind| (kind, Some(guard))),
+                false,
+            );
+            let blocked = enabled && held == GUARD && object.is_none() && !behind;
+            let actor = &session.world.actors[player].actor;
+            assert_eq!(
+                actor.health == health,
+                blocked,
+                "{held:x}, {object:?}, rear {behind}, enabled {enabled}"
+            );
+            assert!(!actor.weapon_drawn());
+            assert!(actor.sheathing.is_none() && actor.unarmed.is_none());
+            if blocked {
+                assert_eq!(actor.motion.action, 0x916);
+                assert!(actor.motion.loops < 0);
+                let recoil = (actor.motion.clip, actor.velocity, actor.motion.loops);
+                let random = session.world.random;
+                let saved = session.capture_state().unwrap();
+                session.world.controls.unarmed_guard = false;
+                session.restore_state(&saved).unwrap();
+                assert!(session.world.controls.unarmed_guard);
+                session.world = original.clone();
+                strike_with_weapon(&mut session, guard, GUARD, None, true);
+                let armed = &session.world.actors[player].actor;
+                assert_eq!(
+                    recoil,
+                    (armed.motion.clip, armed.velocity, armed.motion.loops)
+                );
+                assert_eq!(random, session.world.random);
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires Japanese TENCHU2_DISC; actual melee/projectile hits apply stowed health modifiers without changing recoil/RNG; God mode and resurrection still work"]
 fn native_sheathing_damage_modifiers() {
     let (mut session, guard) = fixture();

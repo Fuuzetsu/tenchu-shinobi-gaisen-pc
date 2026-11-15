@@ -42,6 +42,7 @@ pub enum Item {
     CircleAction,
     GuardControls,
     GuardDraw,
+    UnarmedGuard,
     AnalogWalking,
     WalkThreshold,
     Sheathing,
@@ -626,7 +627,7 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::CircleAction,
                 "Shift / Circle action",
                 s.circle_action.name().into(),
-                "Default uses T2's block/dodge stance with T2 movesets and crouch with T1 movesets, independently of the displayed body. Block / dodge holds a guard stance with a drawn weapon; directions dodge and R1 crouches. Crouch explicitly restores T1's Circle behavior. Rebind buttons under General > Controls. Gameplay setting; graphical presets leave it unchanged.",
+                "Default uses T2's block/dodge stance with T2 movesets and crouch with T1 movesets, independently of the displayed body. Circle holds the stance; directions dodge and R1 crouches. While settled against a wall, Circle plus a direction rolls away. By default, stowed weapons retain the stance and dodges but cannot block hits, matching retail T2. Enable Allow unarmed blocking below to change this. Crouch restores T1's Circle behavior. Rebind buttons under General > Controls. Graphical presets leave this gameplay setting unchanged.",
             ),
             (
                 Item::GuardControls,
@@ -638,7 +639,13 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::GuardDraw,
                 "Guard stance draws weapon",
                 on(s.guard_draw),
-                "With optional T1 R1 guard controls, automatically draw a sheathed weapon. Off keeps it sheathed; blocking still requires a drawn weapon. The Circle block/dodge scheme keeps the selected moveset's stance without automatically drawing.",
+                "With optional T1 R1 guard controls, automatically draw a sheathed weapon. Off keeps it sheathed; enable Allow unarmed blocking to block without drawing. The Circle block/dodge scheme keeps the selected moveset's stance without automatically drawing.",
+            ),
+            (
+                Item::UnarmedGuard,
+                "Allow unarmed blocking",
+                on(s.unarmed_guard),
+                "GAMEPLAY EDIT: block frontal melee hits in the guard stance with weapons stowed. Uses the active moveset's block reaction and recoil; does not draw weapons or protect against rear hits or projectiles. Works with T2 Block / dodge controls and T1's optional R1 guard. Independent of Unarmed attacks and Draw / sheathe weapons. Off preserves retail behavior; disables T1 input recording and TRIAL records.",
             ),
             (
                 Item::CameraRelative,

@@ -260,7 +260,7 @@ impl Actor {
         let mut action = self.motion.action;
         if self.guard_input(world)
             && self.pad.held & crate::input::CIRCLE == 0
-            && self.attribute & ATTR_WEAPON_DRAWN != 0
+            && (self.attribute & ATTR_WEAPON_DRAWN != 0 || world.intelligence.unarmed_guard)
         {
             action = MOT_CHASE_BACK;
         }

@@ -23,7 +23,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && item == Item::CircleConfirm {
             "Circle / East confirms in F1, mission selection, results and retry/death prompts; Cross / South goes back. Off reverses them. Equipment uses confirm to add and back to remove; Start/Enter begins. Physical menu buttons ignore gameplay remapping. Enter/Esc keep their keyboard actions; gameplay and cutscene skip buttons retain their source controls."
         } else if self == Self::Tenchu2 && item == Item::CircleAction {
-            "Default keeps native T2 controls for every model and moveset: Circle holds the guard stance, directions dodge, and R1 crouches. Blocking needs a drawn weapon and a frontal attack. Crouch explicitly swaps Circle and R1. Rebind physical buttons under General > Controls."
+            "Default keeps native T2 controls for every model and moveset: Circle holds the guard stance, directions dodge, and R1 crouches. While settled against a wall, Circle plus a direction rolls away. By default, stowed weapons retain the stance and dodges but cannot block hits; enable Allow unarmed blocking to block frontal melee without drawing. Crouch explicitly swaps Circle and R1. Rebind physical buttons under General > Controls."
         } else if self == Self::Tenchu2 && item == Item::AnalogWalking {
             "GAMEPLAY EDIT: lightly tilt the movement stick or hold the rebindable Walk modifier to use T2's original ninja/kunoichi walking cycle. Full tilt runs. Classic controls walk forward; camera-relative controls walk in any direction. Weapons, attacks, crouching, swimming and collision keep their native rules. Off restores the selected moveset's running clips."
         } else if self == Self::Tenchu2 && item == Item::WalkThreshold {
@@ -185,7 +185,7 @@ impl Runtime {
                 "Native T2 already has its original guard/dodge stance. Use Shift / Circle action to choose Circle or R1; this extra T1 R1 controller does not apply.",
             ),
             GuardDraw => Some(
-                "This automatic draw option belongs to T1's extra R1 guard controller. Native T2 keeps its original weapon state when guarding; draw with an attack before blocking.",
+                "This automatic draw option belongs to T1's extra R1 guard controller. Native T2 keeps its original weapon state when guarding; draw with an attack or enable Allow unarmed blocking.",
             ),
             VibrationAction(
                 RumbleAction::WeaponClash
@@ -216,8 +216,8 @@ impl Runtime {
             CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,
-            Sheathing | UnarmedAttacks | UnarmedStyle | SheathedSpeed | SheathedVisibility
-            | SheathedDamage | SheathedOneHit => None,
+            Sheathing | UnarmedAttacks | UnarmedStyle | UnarmedGuard | SheathedSpeed
+            | SheathedVisibility | SheathedDamage | SheathedOneHit => None,
             Dismemberment | HeadRest | SaExecutionScene | SeverStealth | SeverDive | SeverArms
             | SeverSide | PlayerDismemberment | PlayerSeverHead | PlayerSeverArms
             | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,

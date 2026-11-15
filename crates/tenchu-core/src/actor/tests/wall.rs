@@ -131,6 +131,70 @@ fn wall_hug_slide_and_release_through_input() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; T2 Circle controls roll away from a settled wall in all four directions"]
+fn circle_guard_rolls_away_from_wall_without_double_tapping() {
+    for character in 0..2 {
+        for (direction, action) in [
+            (UP, MOT_SQUAT_ROLL_F),
+            (DOWN, MOT_SQUAT_ROLL_B),
+            (RIGHT, MOT_SQUAT_ROLL_R),
+            (LEFT, MOT_SQUAT_ROLL_L),
+            (UP | RIGHT, MOT_SQUAT_ROLL_F),
+        ] {
+            for keep_crouched in [false, true] {
+                let mut game = oracle::game(0, character);
+                at_wall(&mut game);
+                game.intelligence.circle_action = CircleAction::Guard;
+                for _ in 0..8 {
+                    game.step(R1).unwrap();
+                }
+                let start = game.player().position;
+                let held = CIRCLE | direction | if keep_crouched { R1 } else { 0 };
+                game.step(held).unwrap();
+                assert_eq!(game.player().motion.action, action);
+                assert_eq!(game.player().motion.count, -4);
+                assert_eq!(game.player().motion.mask, 0x7fff);
+                for _ in 0..24 {
+                    game.step(if keep_crouched { R1 } else { 0 }).unwrap();
+                }
+                assert_ne!(game.player().position, start);
+            }
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; wall double-tap rolls keep working with original and T2 Circle controls"]
+fn wall_double_tap_rolls_with_both_circle_modes() {
+    for character in 0..2 {
+        for mode in [CircleAction::Crouch, CircleAction::Guard] {
+            for (direction, action) in [
+                (UP, MOT_SQUAT_ROLL_F),
+                (DOWN, MOT_SQUAT_ROLL_B),
+                (RIGHT, MOT_SQUAT_ROLL_R),
+                (LEFT, MOT_SQUAT_ROLL_L),
+            ] {
+                let mut game = oracle::game(0, character);
+                at_wall(&mut game);
+                game.intelligence.circle_action = mode;
+                let crouch = if mode == CircleAction::Guard {
+                    R1
+                } else {
+                    CIRCLE
+                };
+                for _ in 0..8 {
+                    game.step(crouch).unwrap();
+                }
+                for held in [crouch | direction, crouch, crouch | direction] {
+                    game.step(held).unwrap();
+                }
+                assert_eq!(game.player().motion.action, action);
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; corner throws keep their latched item after selection changes and crouch release"]
 fn corner_throws_keep_selection_and_byte_decrement() {
     use crate::{camera::Mode, items::Processor};

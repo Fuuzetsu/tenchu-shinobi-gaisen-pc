@@ -12,6 +12,37 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
+The T2 guard/wall-roll review runs 72 focused damage cases through each retail
+edition's original instructions: all three heroes, drawn/stowed state, guard and
+backward movement, three incoming directions, and guard held/released. Both
+editions agree on damage/block decisions; PAL motion speeds remain distinct.
+Native JP matches the complete focused observations and the existing 41,400
+damage, 18,400 wall, 40,000 standing/ready and actor-transition cases. Native EU
+sessions remain unsupported; their original-instruction results are not a claim
+that an EU campaign can run natively.
+
+By default under Gaisen rules, imported JP/EU hero movesets retain their own guard clips
+while stowed, take frontal hits in that stance, and block with source recoil when
+drawn. Optional T2 controls also cover all four wall-roll directions, diagonal
+priority, releasing/retaining crouch, and original/T2 double-tap rolls for both
+T1 heroes. Before/after captures use the same Mission 1 wall and input sequence.
+Evidence: `private/t2-guard-wall-review-20261115`; source provenance is described
+in [T2 reuse](tenchu2-reuse.md#guard-stance-and-wall-roll-controls). These are
+isolated retail-instruction and optional-mode fixtures, not a fresh ordinary-play
+recording. Fresh BizHawk video was unavailable in the restricted environment.
+
+The default-off **Allow unarmed blocking** option has separate feature checks.
+Eighteen armed retail observations supply expected reactions for stowed guard
+with the option enabled: twelve frontal/side blocks and six rear hits across
+all three heroes, retaining the stowed weapon flag. Native world damage tests
+exercise the preference through actual melee/projectile handling, with normal
+recoil and RNG, no extra attack/sheathing option required, and snapshot restore.
+T1 checks cover both guard controllers, both heroes and imported JP/EU hero
+movesets, including rear damage and inability to cancel block recoil. Menu,
+settings, gameplay reset/presets and save checks are included in
+`private/unarmed-guard-option-20261115`. These are isolated feature fixtures,
+not an ordinary-play parity claim for the optional gameplay change.
+
 [Level Studio](level-studio.md) has separate optional-mode coverage: all sixteen
 retail challenges and twelve themes round-trip through its project format;
 invalid imports, grouped undo/redo and deterministic event queues have portable

@@ -371,6 +371,17 @@ Crouch explicitly swaps those buttons. In T1 under Gaisen rules, Follow moveset
 uses T2 guard/dodge with a T2 moveset and T1 crouching with a T1 moveset. The extra
 T1 R1 guard controller and its automatic weapon drawing do not apply to native
 T2; its source guard stance keeps the current weapon state.
+By default, stowed weapons retain the guard pose and dodges, but the guard pose cannot block
+melee hits. Tatsumaru also has a drawn/stowed combat state despite fighting
+barehanded. After settling into a wall-hug, hold Circle plus a direction to roll
+away; R1 can remain held or be released as the roll starts. Stop sliding first,
+or use a directional double tap. These are retail controls, not new combat rules.
+The optional **Movement → Allow unarmed blocking** checkbox permits frontal
+melee blocks from stowed guard with the current moveset's reaction and recoil.
+It leaves weapons stowed and offers no protection from rear hits or projectiles.
+It works independently of the Draw / sheathe and Unarmed attacks options, is
+saved with gameplay preferences, and is off by default. Gameplay resets/presets
+turn it off; graphical presets leave it unchanged.
 **Start aiming toward camera** turns the player and seeds the vertical angle when
 starting grapple, shuriken/blowgun aim or look. Subsequent aiming adjustments use
 the source controls; both sticks can adjust aim. Disable camera-relative controls

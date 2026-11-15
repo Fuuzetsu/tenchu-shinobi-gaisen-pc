@@ -26,15 +26,7 @@ impl Actor {
         self.velocity[0] = 0;
         self.velocity[2] = 0;
         let action = if self.status == State::Crouch && held & CIRCLE != 0 {
-            [
-                (UP, MOT_SQUAT_ROLL_F),
-                (DOWN, MOT_SQUAT_ROLL_B),
-                (RIGHT, MOT_SQUAT_ROLL_R),
-                (LEFT, MOT_SQUAT_ROLL_L),
-            ]
-            .into_iter()
-            .find_map(|(button, action)| (held & button != 0).then_some(action))
-            .unwrap_or(MOT_SQUAT)
+            directional_roll(held).unwrap_or(MOT_SQUAT)
         } else if self.motion.action == MOT_ENGAGE_GUARD {
             [
                 (CIRCLE, MOT_SQUAT),

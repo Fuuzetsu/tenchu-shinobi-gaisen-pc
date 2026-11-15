@@ -774,6 +774,7 @@ fn combat_settings_apply_and_reset() {
         Item::QuickShurikenDodge,
         Item::StrictCorpseSight,
         Item::GuardControls,
+        Item::UnarmedGuard,
         Item::CircleAction,
         Item::AnalogWalking,
         Item::Sheathing,
@@ -790,6 +791,7 @@ fn combat_settings_apply_and_reset() {
             Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
             Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
             Item::GuardControls => app.campaign.game.intelligence.guard_controls,
+            Item::UnarmedGuard => app.campaign.game.intelligence.unarmed_guard,
             Item::CircleAction => {
                 app.campaign.game.intelligence.circle_action
                     == tenchu_core::input::CircleAction::Guard
@@ -806,6 +808,7 @@ fn combat_settings_apply_and_reset() {
             Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
             Item::StrictCorpseSight => settings.strict_corpse_sight,
             Item::GuardControls => settings.guard_controls,
+            Item::UnarmedGuard => settings.unarmed_guard,
             Item::CircleAction => settings.circle_action == tenchu_core::input::CircleAction::Guard,
             Item::AnalogWalking => settings.walking.enabled,
             Item::Sheathing => settings.sheathing.enabled,

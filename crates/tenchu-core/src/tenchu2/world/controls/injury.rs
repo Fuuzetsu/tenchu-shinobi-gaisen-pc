@@ -109,6 +109,7 @@ impl<E: Events> Driver<'_, E> {
             map: c.map as i16,
             difficulty: i16::from(c.difficulty),
             armor: c.controls.armor,
+            unarmed_guard: c.controls.unarmed_guard,
             drain_attack: c.controls.drain_attack,
             drain_uses: c.controls.drain_uses,
             story_triggered: c.controls.story_triggered,

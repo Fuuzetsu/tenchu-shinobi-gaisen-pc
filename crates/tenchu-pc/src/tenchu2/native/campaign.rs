@@ -119,6 +119,7 @@ impl<S: ReadAt> Playback<S> {
                 .set_damage_escalation(settings.damage_escalation);
             session.world.controls.multi_target_attacks = settings.multi_target_attacks;
             session.world.controls.attack_assist = settings.attack_assist;
+            session.world.controls.unarmed_guard = settings.unarmed_guard;
             session.world.controls.dismemberment = settings.dismemberment;
             if let Some(scene) = &mut session.gaisen {
                 scene.director.source.combat.dismemberment = settings.dismemberment;

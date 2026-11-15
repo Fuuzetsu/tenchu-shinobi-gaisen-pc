@@ -466,6 +466,7 @@ impl Application {
             && !self.settings.quick_shuriken_dodge
             && !self.settings.strict_corpse_sight
             && !self.settings.guard_controls
+            && !self.settings.unarmed_guard
             && self.settings.circle_action != tenchu_core::input::CircleAction::Guard
             && !self.settings.walking.enabled
             && !self.settings.sheathing.enabled
@@ -517,6 +518,7 @@ impl Application {
                         || self.settings.quick_shuriken_dodge
                         || self.settings.strict_corpse_sight
                         || self.settings.guard_controls
+                        || self.settings.unarmed_guard
                         || self.settings.circle_action == tenchu_core::input::CircleAction::Guard
                         || self.settings.walking.enabled
                         || self.settings.sheathing.enabled
@@ -1702,6 +1704,7 @@ pub fn run(
     campaign.game.intelligence.strict_corpse_sight = settings.strict_corpse_sight;
     campaign.game.intelligence.guard_controls = settings.guard_controls;
     campaign.game.intelligence.guard_draw = settings.guard_draw;
+    campaign.game.intelligence.unarmed_guard = settings.unarmed_guard;
     campaign.game.intelligence.circle_action = settings.circle_action;
     crate::walking::configure(&mut campaign.game, &assets, settings.walking.enabled)?;
     crate::sheathing::configure(&mut campaign.game, &assets, settings.sheathing)?;

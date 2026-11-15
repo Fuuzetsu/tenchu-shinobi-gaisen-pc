@@ -633,6 +633,7 @@ impl Menu {
         settings.quick_shuriken_dodge = defaults.quick_shuriken_dodge;
         settings.strict_corpse_sight = defaults.strict_corpse_sight;
         settings.guard_controls = defaults.guard_controls;
+        settings.unarmed_guard = defaults.unarmed_guard;
         settings.circle_action = defaults.circle_action;
         settings.walking = defaults.walking;
         settings.sheathing = defaults.sheathing;
@@ -781,6 +782,10 @@ impl Menu {
                                 Settings::default().sheathing.enabled;
                             Ok(())
                         }
+                        Item::UnarmedGuard => {
+                            state.settings.unarmed_guard = Settings::default().unarmed_guard;
+                            Ok(())
+                        }
                         Item::UnarmedAttacks => {
                             state.settings.sheathing.unarmed =
                                 Settings::default().sheathing.unarmed;
@@ -892,6 +897,10 @@ impl Menu {
                             state.settings.sheathing.enabled = !state.settings.sheathing.enabled;
                             Ok(())
                         }
+                        Item::UnarmedGuard => {
+                            state.settings.unarmed_guard = !state.settings.unarmed_guard;
+                            Ok(())
+                        }
                         Item::UnarmedAttacks => {
                             state.settings.sheathing.unarmed = !state.settings.sheathing.unarmed;
                             Ok(())
@@ -942,6 +951,7 @@ impl Menu {
                             } else {
                                 state.settings.keep_enemies_active = defaults.keep_enemies_active;
                                 state.settings.circle_action = defaults.circle_action;
+                                state.settings.unarmed_guard = defaults.unarmed_guard;
                                 state.settings.walking = defaults.walking;
                                 state.settings.sheathing = defaults.sheathing;
                                 state.settings.dismemberment = defaults.dismemberment;
@@ -1176,6 +1186,7 @@ mod tests {
         for (item, delta) in [
             (Item::Sheathing, 1),
             (Item::UnarmedAttacks, 1),
+            (Item::UnarmedGuard, 1),
             (Item::UnarmedStyle, 1),
             (Item::SheathedSpeed, 100),
             (Item::SheathedVisibility, -100),
@@ -1196,6 +1207,7 @@ mod tests {
             .unwrap()
             .settings;
         assert!(actual.enabled && actual.one_hit && actual.unarmed);
+        assert!(session.world.controls.unarmed_guard);
         assert_eq!(
             actual.unarmed_style,
             tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru
@@ -1214,6 +1226,7 @@ mod tests {
         for item in [
             Item::Sheathing,
             Item::UnarmedAttacks,
+            Item::UnarmedGuard,
             Item::UnarmedStyle,
             Item::SheathedSpeed,
             Item::SheathedVisibility,
@@ -1230,6 +1243,7 @@ mod tests {
         };
         let mut expected = original;
         expected.actors[expected.player].actor.sheathing = None;
+        expected.controls.unarmed_guard = false;
         assert!(
             postcard::to_allocvec(&session.world).unwrap()
                 == postcard::to_allocvec(&expected).unwrap()

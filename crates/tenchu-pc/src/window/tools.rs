@@ -174,6 +174,14 @@ impl Application {
         self.campaign.game.intelligence.circle_action = action;
     }
 
+    pub(super) fn set_unarmed_guard(&mut self, enabled: bool) {
+        if self.campaign.game.intelligence.unarmed_guard != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.unarmed_guard = enabled;
+        self.campaign.game.intelligence.unarmed_guard = enabled;
+    }
+
     pub(super) fn set_guard_controls(&mut self, enabled: bool) {
         if self.campaign.game.intelligence.guard_controls != enabled {
             self.stop_edited_recording();
@@ -361,6 +369,7 @@ impl Application {
             self.set_quick_shuriken_dodge(previous.quick_shuriken_dodge);
             self.set_strict_corpse_sight(previous.strict_corpse_sight);
             self.set_guard_controls(previous.guard_controls);
+            self.set_unarmed_guard(previous.unarmed_guard);
             self.set_circle_action(previous.circle_action);
             let _ = self.set_walking(previous.walking.enabled);
             let _ = self.set_sheathing(previous.sheathing);
@@ -462,6 +471,7 @@ impl Application {
         self.set_quick_shuriken_dodge(false);
         self.set_strict_corpse_sight(false);
         self.set_guard_controls(false);
+        self.set_unarmed_guard(false);
         self.set_circle_action(Default::default());
         self.set_walking(false)?;
         self.set_sheathing(Default::default())?;
@@ -770,6 +780,7 @@ impl Application {
                 self.set_quick_shuriken_dodge(false);
                 self.set_strict_corpse_sight(false);
                 self.set_guard_controls(false);
+                self.set_unarmed_guard(false);
                 self.set_circle_action(Default::default());
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;
@@ -904,6 +915,7 @@ impl Application {
             Item::GuardControls => {
                 self.set_guard_controls(!self.settings.guard_controls);
             }
+            Item::UnarmedGuard => self.set_unarmed_guard(!self.settings.unarmed_guard),
             Item::QuickShurikenDodge => {
                 self.set_quick_shuriken_dodge(!self.settings.quick_shuriken_dodge);
             }
@@ -958,6 +970,7 @@ impl Application {
                 self.set_quick_shuriken_dodge(false);
                 self.set_strict_corpse_sight(false);
                 self.set_guard_controls(false);
+                self.set_unarmed_guard(false);
                 self.set_circle_action(Default::default());
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;

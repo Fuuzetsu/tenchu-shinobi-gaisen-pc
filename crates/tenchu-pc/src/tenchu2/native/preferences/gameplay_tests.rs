@@ -36,6 +36,42 @@ fn apply(menu: &mut Menu, settings: &mut Settings, edit: Edit) -> Action {
 }
 
 #[test]
+fn unarmed_guard_menu_is_independent_persisted_and_resettable() {
+    let mut settings: Settings = serde_json::from_str("{}").unwrap();
+    assert!(!settings.unarmed_guard);
+    assert!(Runtime::Tenchu2.unavailable(Item::UnarmedGuard).is_none());
+    let mut menu = Menu::default();
+    let mut edit = |settings: &mut Settings, edit| {
+        menu.apply(
+            edit,
+            &mut State {
+                settings,
+                paused: &mut true,
+                controls: &mut Controls::default(),
+                presets: &mut Manager::new(std::env::temp_dir().join("tenchu-unarmed-guard.json")),
+                lights: 0,
+                samples: &[1],
+                models: None,
+            },
+            &mut Action::default(),
+        );
+        assert!(menu.panel.notice.is_empty());
+    };
+    edit(&mut settings, Edit::Change(Item::UnarmedGuard, 1));
+    assert!(settings.unarmed_guard);
+    assert!(!settings.sheathing.enabled && !settings.sheathing.unarmed);
+    settings = serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
+    settings.set_visual_preset(settings::presets::MODERN_ULTRA);
+    settings.retro = true;
+    assert!(settings.rendering().unarmed_guard);
+    edit(&mut settings, Edit::Reset(Item::UnarmedGuard));
+    assert!(!settings.unarmed_guard);
+    edit(&mut settings, Edit::Change(Item::UnarmedGuard, 1));
+    edit(&mut settings, Edit::Change(Item::ResetTweaks, 1));
+    assert!(!settings.unarmed_guard);
+}
+
+#[test]
 fn native_gameplay_presets_reject_unavailable_scenes_before_editing() {
     let mut menu = Menu::default();
     menu.tools.debug.speed = 200;
@@ -122,6 +158,7 @@ fn native_gameplay_presets_apply_reset_and_preserve_mission() {
             settings.quick_shuriken_dodge = true;
             settings.strict_corpse_sight = true;
             settings.guard_controls = true;
+            settings.unarmed_guard = true;
             settings.circle_action = tenchu_core::input::CircleAction::Crouch;
             settings.walking.enabled = true;
             settings.sheathing.enabled = true;
@@ -201,6 +238,7 @@ fn native_gameplay_presets_apply_reset_and_preserve_mission() {
             assert!(
                 !w.controls.multi_target_attacks
                     && !w.controls.attack_assist
+                    && !w.controls.unarmed_guard
                     && !w.controls.dismemberment.active()
             );
             assert!(menu.tools.debug.actors_edited && menu.tools.debug.hitboxes);

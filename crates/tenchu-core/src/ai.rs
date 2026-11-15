@@ -125,6 +125,8 @@ pub struct Intelligence {
     pub strict_corpse_sight: bool,
     pub guard_controls: bool,
     pub guard_draw: bool,
+    #[serde(default)]
+    pub unarmed_guard: bool,
     pub circle_action: crate::input::CircleAction,
     pub profiles: profiles::Settings,
     pub damage_escalation: escalation::Settings,
@@ -155,6 +157,7 @@ impl Default for Intelligence {
             strict_corpse_sight: false,
             guard_controls: false,
             guard_draw: false,
+            unarmed_guard: false,
             circle_action: Default::default(),
             profiles: Default::default(),
             damage_escalation: Default::default(),

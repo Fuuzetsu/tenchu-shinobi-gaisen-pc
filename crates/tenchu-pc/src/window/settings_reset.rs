@@ -102,6 +102,7 @@ impl Application {
                 self.campaign.game.intelligence.guard_draw = s.guard_draw;
             }
             Item::GuardControls => self.set_guard_controls(s.guard_controls),
+            Item::UnarmedGuard => self.set_unarmed_guard(s.unarmed_guard),
             Item::DetectionDamage => {
                 self.set_damage_escalation(tenchu_core::ai::escalation::Settings {
                     increment: s.damage_escalation.increment,

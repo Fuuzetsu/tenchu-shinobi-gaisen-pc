@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- With T2 Block / dodge controls in T1, hold Circle and a direction to roll away
+  from a settled wall-hug, matching T2's shortcut. Double-tap rolls remain available.
+- Add **Movement → Allow unarmed blocking** for native T2 and T1's optional
+  guard controls. Block frontal melee while weapons are stowed, using the active
+  moveset's block reaction and recoil. Independent of unarmed attacks; off by
+  default to preserve retail T2's drawn-weapon requirement.
+
 ## 0.35.11 — 2026-11-14
 
 - Keep object identifiers visible on T2 scenery gallery cards instead of
