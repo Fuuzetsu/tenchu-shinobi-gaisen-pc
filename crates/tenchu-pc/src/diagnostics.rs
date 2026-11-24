@@ -95,6 +95,7 @@ pub fn game(game: &Game) -> Value {
             "damage_escalation": ai.damage_escalation,
             "multi_target_attacks": game.combat.multi_target,
             "full_enemy_melee_damage": game.combat.full_enemy_melee_damage,
+            "back_special": game.combat.back_special,
             "attack_assist": game.combat.attack_assist,
             "behavior_profiles": ai.profiles,
             "ignore_player": ai.ignore_player, "alert": ai.alert, "strain": ai.strain,

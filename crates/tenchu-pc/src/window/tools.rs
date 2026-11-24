@@ -157,6 +157,14 @@ impl Application {
         self.campaign.game.combat.full_enemy_melee_damage = enabled;
     }
 
+    pub(super) fn set_back_special(&mut self, enabled: bool) {
+        if self.campaign.game.combat.back_special != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.back_special = enabled;
+        self.campaign.game.combat.back_special = enabled;
+    }
+
     pub(super) fn set_attack_assist(&mut self, enabled: bool) {
         if self.campaign.game.combat.attack_assist != enabled {
             self.stop_edited_recording();
@@ -420,6 +428,7 @@ impl Application {
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             self.set_full_enemy_melee_damage(previous.full_enemy_melee_damage);
+            self.set_back_special(previous.back_special);
             self.set_attack_assist(previous.attack_assist);
             self.set_behavior_profiles(previous.behavior_profiles);
             let _ = self.sync_model_moveset();
@@ -524,6 +533,7 @@ impl Application {
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
         self.set_full_enemy_melee_damage(false);
+        self.set_back_special(false);
         self.set_attack_assist(false);
         self.set_behavior_profiles(Default::default());
         self.set_reinforcement_limit(0);
@@ -835,6 +845,7 @@ impl Application {
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_full_enemy_melee_damage(false);
+                self.set_back_special(false);
                 self.set_attack_assist(false);
                 self.set_behavior_profiles(Default::default());
                 if self.debug.sight_percent != 100 {
@@ -908,6 +919,7 @@ impl Application {
             | Item::BehaviorSeed
             | Item::ActorCombat
             | Item::ActorIdle => self.edit_behavior(item, direction, false)?,
+            Item::BackSpecial => self.set_back_special(!self.settings.back_special),
             Item::AttackAssist => self.set_attack_assist(!self.settings.attack_assist),
             Item::FullEnemyMeleeDamage => {
                 self.set_full_enemy_melee_damage(!self.settings.full_enemy_melee_damage)
@@ -1028,6 +1040,7 @@ impl Application {
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_full_enemy_melee_damage(false);
+                self.set_back_special(false);
                 self.set_attack_assist(false);
                 self.set_behavior_profiles(Default::default());
                 self.set_reinforcement_limit(0);

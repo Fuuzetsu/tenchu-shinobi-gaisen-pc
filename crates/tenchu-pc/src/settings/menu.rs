@@ -41,6 +41,7 @@ pub enum Item {
     CameraRelative,
     CircleAction,
     GuardControls,
+    BackSpecial,
     GuardDraw,
     UnarmedGuard,
     AnalogWalking,
@@ -673,6 +674,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Allow unarmed blocking",
                 on(s.unarmed_guard),
                 "GAMEPLAY EDIT: block frontal melee hits in the guard stance with weapons stowed. Uses the active moveset's block reaction and recoil; does not draw weapons or protect against rear hits or projectiles. Works with T2 Block / dodge controls and T1's optional R1 guard. Independent of Unarmed attacks and Draw / sheathe weapons. Off preserves retail behavior; disables T1 input recording and TRIAL records.",
+            ),
+            (
+                Item::BackSpecial,
+                "Back + attack special",
+                on(s.back_special),
+                "In Gaisen, hold Back and press attack with weapons drawn to use the selected moveset's original Up–Down–Square special. Replaces normal Back + attack behavior while standing or moving on the ground; unsupported movesets keep their original Back input. Guard dodges, crouching, stealth kills and committed actions retain priority. Back is relative to the character after camera-relative mapping. Native T2 keeps its source commands. Off by default; disables input recording and TRIAL records.",
             ),
             (
                 Item::CameraRelative,

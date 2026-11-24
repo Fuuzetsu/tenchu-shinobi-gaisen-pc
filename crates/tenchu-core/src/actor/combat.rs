@@ -15,6 +15,7 @@ pub struct Combat {
     pub armor: bool,
     pub multi_target: bool,
     pub full_enemy_melee_damage: bool,
+    pub back_special: bool,
     pub attack_assist: bool,
 }
 
@@ -270,10 +271,29 @@ impl Actor {
                 MOT_ATTACK
             }
         } else if held & DOWN != 0 {
-            if !self.registered(ctx, MOT_ATTACK_BACK) {
+            let action = if self.id == world.player
+                && world.combat.back_special
+                && self.health > 0
+                && !self.scripted
+                && !world.intelligence.cinematic
+                && world.intelligence.action_halt == crate::ai::Halt::Running
+                && self.attribute & ATTR_WEAPON_DRAWN != 0
+                && self.map.height == 0
+                && self.free_stance()
+                && matches!(
+                    self.status,
+                    ActorState::Normal | ActorState::Engage | ActorState::Chase
+                )
+                && self.registered(ctx, MOT_ATTACK_LUNGE_BACK)
+            {
+                MOT_ATTACK_LUNGE_BACK
+            } else {
+                MOT_ATTACK_BACK
+            };
+            if !self.registered(ctx, action) {
                 return Ok(pending);
             }
-            MOT_ATTACK_BACK
+            action
         } else if current == MOT_SQUAT {
             if !self.registered(ctx, MOT_ATTACK_CROUCH) {
                 return Ok(pending);

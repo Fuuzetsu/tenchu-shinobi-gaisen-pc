@@ -1710,6 +1710,19 @@ checkbox is independent of **Unarmed attacks** and **Draw / sheathe weapons**;
 it is off by default. Gameplay presets and resets turn it off; graphics presets
 leave it alone. Enabling it disables T1 input recording and TRIAL records.
 
+**Movement → Back + attack special** lets you hold Back and press attack to
+start Gaisen's original Up–Down–Square special while standing or moving on the
+ground with weapons drawn. The active moveset must supply that special; original
+Rikimaru/Ayame and supported imported movesets use their existing animation,
+hitboxes and damage. If the move is unavailable, Back keeps its original behavior.
+The normal command still works. Guard dodges, crouching, stealth kills, sheathed
+unarmed attacks and committed actions retain their existing rules. With
+camera-relative controls, Back means the mapped direction behind the character.
+The option is unavailable in native T2, whose source command table has no matching
+Up–Down–Square command. It is off by default; gameplay resets/presets turn it off,
+visual presets leave it alone, and Gaisen savestates/rewind retain it. Enabling it
+disables ordinary input recording and TRIAL records.
+
 **Movement → R1 guard / dash / roll** is an optional control scheme. Hold the R1
 binding to stand and block frontal melee hits; press a direction while holding
 it for one dash. Hold crouch (Circle) as well to roll. Directions stay relative

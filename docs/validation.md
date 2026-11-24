@@ -1512,3 +1512,26 @@ stowed/armed transitions, selected attacks, saved continuation and unchanged
 native NPC definitions. Paired captures use the same controlled state and
 camera before/after the fix. These isolated optional-mode checks do not replace
 recorded ordinary-play validation.
+
+## Optional Gaisen Back + attack special
+
+The default-off shortcut selects existing `MOT_ATTACK_LUNGE_BACK` (`0x712`)
+inside Gaisen's player attack selector. The original MAIN.EXE command table at
+`8008686c` maps command `0x22` to Up, Down, Square; `MOTION.C`'s engage/chase
+handlers supply the source action. The standard Back attack is `0x711`, which
+some movesets do not register. Missing special registrations retain that source
+behavior. No imported motion, hit window, damage or original command is changed.
+The existing T2 importer maps `0x712` to authored T2 action `0x913`.
+
+Native T2 JP tables at `GAME.EXE` `80083410`/`800834b0` contain directional double
+taps and forward-plus-attack, but no Up–Down–Square command. Its controllers remain
+unchanged and the shortcut row explains that it is unavailable there. Provenance:
+read-only `tenchu-decomp/disks/tenchu/main.exe`, `src/main.exe/MOTION.C`, and
+`tenchu-2-decomp/discs/jp/game.exe`; existing table parsers/action maps are reused.
+
+Controlled tests compare the shortcut with the original command's authored
+continuation, scene, hitboxes and RNG for both original heroes. Separate fixtures
+exercise held backward movement, unavailable moves and NPC/crouch/guard/dash/
+air/script exclusions, plus committed attack/jump/injury actions. Imported
+movesets run on both T1 hero bodies with camera-relative Back at four view angles.
+These are isolated optional-control checks, not ordinary-play recordings.

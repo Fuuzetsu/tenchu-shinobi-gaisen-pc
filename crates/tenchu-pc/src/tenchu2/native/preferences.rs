@@ -644,6 +644,7 @@ impl Menu {
         settings.damage_escalation = defaults.damage_escalation;
         settings.multi_target_attacks = defaults.multi_target_attacks;
         settings.full_enemy_melee_damage = defaults.full_enemy_melee_damage;
+        settings.back_special = defaults.back_special;
         settings.attack_assist = defaults.attack_assist;
         settings.behavior_profiles = defaults.behavior_profiles;
         settings.reinforcement_limit = defaults.reinforcement_limit;
@@ -983,6 +984,7 @@ impl Menu {
                                 state.settings.multi_target_attacks = defaults.multi_target_attacks;
                                 state.settings.full_enemy_melee_damage =
                                     defaults.full_enemy_melee_damage;
+                                state.settings.back_special = defaults.back_special;
                                 state.settings.attack_assist = defaults.attack_assist;
                                 state.settings.damage_escalation = defaults.damage_escalation;
                                 state.settings.behavior_profiles = defaults.behavior_profiles;
@@ -1777,6 +1779,7 @@ mod tests {
             player_model: "disc:133".into(),
             model_moveset: true,
             rewind_seconds: 20,
+            back_special: true,
             keep_enemies_active: true,
             ..Default::default()
         };

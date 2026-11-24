@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **Movement → Back + attack special**, off by default, to trigger Gaisen's
+  original Up–Down–Square attack with held Back plus attack. Uses the active
+  moveset's authored special, including supported imports; unavailable moves and
+  native T2 keep their original controls.
+
 - Add **Simulation → Full enemy melee damage**, off by default, for T1 and native
   T2. Remove the original NPC-on-NPC melee reduction to one-third damage while retaining
   other source modifiers, blocking and damage reactions. Player attacks,
@@ -48,7 +53,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
   at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
   weather commands and timing; optional weather settings remain available.
-- Mid-mission savestates use format 46. Load older states with the game build
+- Mid-mission savestates use format 47. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
 ## 0.35.14 — 2026-11-15

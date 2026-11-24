@@ -4,6 +4,7 @@ use tenchu_core::input::*;
 
 mod attacks;
 mod idle;
+mod back_special;
 mod turning;
 
 fn load(disc: &Disc<impl ReadAt>) -> Result<BTreeMap<i16, Arc<Imported>>> {

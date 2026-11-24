@@ -64,6 +64,7 @@ pub struct Settings {
     pub damage_escalation: tenchu_core::ai::escalation::Settings,
     pub multi_target_attacks: bool,
     pub full_enemy_melee_damage: bool,
+    pub back_special: bool,
     pub attack_assist: bool,
     pub behavior_profiles: tenchu_core::ai::profiles::Settings,
     pub reinforcement_limit: u16,
@@ -125,6 +126,7 @@ impl Default for Settings {
             damage_escalation: Default::default(),
             multi_target_attacks: false,
             full_enemy_melee_damage: false,
+            back_special: false,
             attack_assist: false,
             behavior_profiles: Default::default(),
             reinforcement_limit: 0,
@@ -220,6 +222,7 @@ impl Settings {
         self.damage_escalation = game.intelligence.damage_escalation;
         self.multi_target_attacks = game.combat.multi_target;
         self.full_enemy_melee_damage = game.combat.full_enemy_melee_damage;
+        self.back_special = game.combat.back_special;
         self.attack_assist = game.combat.attack_assist;
         self.behavior_profiles = game.intelligence.profiles;
         self.sight_percent = game.intelligence.sight_percent;
@@ -534,6 +537,7 @@ mod tests {
         let mut settings = Settings {
             keep_enemies_active: true,
             full_enemy_melee_damage: true,
+            back_special: true,
             sight_percent: 125,
             cutscene_speed: 4,
             subtitle_language: Some(tenchu_assets::script::Language::English),
@@ -580,6 +584,7 @@ mod tests {
         assert_eq!(original.moveset_model, settings.moveset_model);
         assert_eq!(original.sheathing, selected.sheathing);
         assert!(original.full_enemy_melee_damage);
+        assert!(original.back_special);
         assert_eq!(original.hero_unarmed_styles, selected.hero_unarmed_styles);
         assert_eq!(original.alternate_death_chance, 0);
         assert_eq!(
@@ -590,6 +595,7 @@ mod tests {
         settings = serde_json::from_slice(&stored).unwrap();
         assert_eq!(settings.sheathing, selected.sheathing);
         assert!(settings.full_enemy_melee_damage);
+        assert!(settings.back_special);
         assert_eq!(settings.hero_unarmed_styles, selected.hero_unarmed_styles);
         settings.retro = false;
         assert_eq!(settings, selected);
@@ -600,6 +606,7 @@ mod tests {
         settings.set_visual_preset(presets::MODERN_ULTRA);
         assert_eq!(settings.sheathing, selected.sheathing);
         assert!(settings.full_enemy_melee_damage);
+        assert!(settings.back_special);
         assert_eq!(settings.hero_unarmed_styles, selected.hero_unarmed_styles);
         assert_eq!(settings.graphics.weather.mode, WeatherMode::Snow);
         assert_eq!(settings.sight_percent, 125);

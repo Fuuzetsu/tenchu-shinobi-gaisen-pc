@@ -150,6 +150,7 @@ impl Application {
             self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
             self.campaign.game.combat.full_enemy_melee_damage =
                 self.settings.full_enemy_melee_damage;
+            self.campaign.game.combat.back_special = self.settings.back_special;
             self.campaign.game.combat.attack_assist = self.settings.attack_assist;
             self.campaign
                 .game

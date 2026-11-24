@@ -124,6 +124,7 @@ impl Application {
             | Item::BehaviorSeed
             | Item::ActorCombat
             | Item::ActorIdle => self.edit_behavior(item, 0, true)?,
+            Item::BackSpecial => self.set_back_special(s.back_special),
             Item::AttackAssist => self.set_attack_assist(s.attack_assist),
             Item::MultiTargetAttacks => self.set_multi_target_attacks(s.multi_target_attacks),
             Item::FullEnemyMeleeDamage => {

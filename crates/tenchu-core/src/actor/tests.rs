@@ -1,5 +1,6 @@
 use crate::actor::State as ActorState;
 use crate::items::Kind;
+mod back_special;
 mod bleeding;
 mod corpses;
 mod dismemberment;
