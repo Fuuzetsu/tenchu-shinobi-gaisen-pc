@@ -499,6 +499,12 @@ draw/sheath transitions; interpolation and dynamic shadows use the same body.
 Different proportions can visibly differ from the original collision bounds;
 animal bodies can look unusual with humanoid movements.
 
+In native T2 cutscenes, compatible T2 appearances also blink and move their
+mouths using their own facial textures and the scene's existing expression
+cues. This follows the selected body in Original and Modern presets; it needs
+no additional setting. T1 bodies and custom meshes without compatible T2 facial
+textures retain their existing appearance.
+
 **Tenchu 2 Rikimaru sheath** on the same page replaces T1 Rikimaru's built-in
 scabbard with T2's slimmer model. Import your Tenchu 2 JP or EU disc through
 **F6** first. The checkbox is off by default; missing T2 assets keep the original.

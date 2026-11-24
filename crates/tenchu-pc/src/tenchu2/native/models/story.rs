@@ -32,6 +32,7 @@ pub struct Skin {
     pub parts: Vec<Part>,
     pub vram: Arc<Vram>,
     pub sources: Vec<String>,
+    pub faces: Option<Arc<Vec<tenchu_assets::tenchu2::story::Patch>>>,
 }
 
 impl Override {
@@ -71,11 +72,16 @@ impl Override {
             parts,
             vram,
             sources,
+            faces,
         }) = skin
         {
             out.shared(parts)?;
             out.shared_arc(vram, true)?;
             out.value(sources)?;
+            out.value(&faces.is_some())?;
+            if let Some(faces) = faces {
+                out.shared_arc(faces, true)?;
+            }
         }
         out.value(&custom.is_some())?;
         if let Some(custom) = custom {
@@ -110,6 +116,9 @@ impl Override {
             || self.skin.as_ref().is_some_and(|skin| {
                 skin.parts.len() != tenchu_assets::tenchu2::BONES.len()
                     || skin.vram.words.len() != 1024 * 512
+                    || skin.faces.as_ref().is_some_and(|faces| {
+                        !(26..=256).contains(&faces.len()) || faces.iter().any(|p| !p.valid())
+                    })
             })
             || self.skin.is_some() && self.custom.is_some()
             || self.equipment.iter().any(|(&slot, parts)| {
@@ -222,6 +231,11 @@ impl Override {
             parts: body.parts.clone(),
             vram: body.vram.clone(),
             sources: body.sources().into_iter().map(|s| s.id).collect(),
+            faces: body
+                .native
+                .as_ref()
+                .filter(|native| !native.faces.is_empty())
+                .map(|native| native.faces.clone()),
         });
         self.custom = custom;
         self.selected = selected.into();

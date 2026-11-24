@@ -1,6 +1,45 @@
 use super::*;
 
 #[test]
+#[ignore = "requires both discs; compatible story body overrides retain source facial archives and atlas placement"]
+fn native_story_override_faces_match_source_archives() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&gaisen).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let edition = tenchu_assets::tenchu2::Edition::detect(&disc).unwrap();
+    for name in [
+        "rikimaru", "ayame", "tatumaru", "kagami", "toda", "matushin",
+    ] {
+        let body = library
+            .get(&format!("{}{name}", edition.model_prefix()))
+            .unwrap_or_else(|| panic!("missing model {name}"));
+        let faces = &body.native.as_ref().unwrap().faces;
+        assert_eq!(faces.len(), 32, "{name}");
+        assert!(faces.iter().all(|p| p.valid()), "{name}");
+    }
+    assert!(library.get("disc:0").unwrap().native.is_none());
+    if edition == tenchu_assets::tenchu2::Edition::Japan {
+        let mut compared = BTreeSet::new();
+        for event in [21, 22, 113] {
+            let resources = Resources::load(&disc, event).unwrap();
+            for (&id, source) in &resources.faces {
+                let name = &resources.models[&id].name;
+                let Some(body) = library.get(&format!("{}{name}", edition.model_prefix())) else {
+                    continue;
+                };
+                let faces = &body.native.as_ref().unwrap().faces;
+                assert!(faces.as_ref() == source, "{name}, event {event}");
+                compared.insert(name.clone());
+            }
+        }
+        assert!(compared.contains("kagami"));
+        assert!(compared.contains("siun"));
+    }
+}
+
+#[test]
 #[ignore = "requires both discs; selected cutscene equipment covers authored held/stowed states, dual swords, independent choices and unarmed overrides"]
 fn native_story_equipment_follows_selection_and_authored_state() {
     use tenchu_assets::tenchu2::campaign::{Campaign, Kind};

@@ -5,6 +5,10 @@ impl Library {
     pub fn load_tenchu2(&mut self, disc: &tenchu_assets::disc::Disc<impl ReadAt>) -> Result<()> {
         let edition = tenchu_assets::tenchu2::Edition::detect(disc)?;
         let models = tenchu_assets::tenchu2::characters::load(disc, None)?;
+        let mut faces = tenchu_assets::tenchu2::story::Patch::for_characters(
+            disc,
+            &models.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(),
+        )?;
         let registry = tenchu_assets::tenchu2::registry::Registry::load(disc)?;
         let voices = tenchu_assets::tenchu2::audio::voices(disc, &registry)?;
         let movesets = moveset::load(disc, &registry, &voices)?;
@@ -70,6 +74,7 @@ impl Library {
             let native = Native {
                 kind,
                 rig: tenchu_assets::tenchu2::characters::rig(disc, &model.name)?,
+                faces: Arc::new(faces.remove(&model.name).unwrap_or_default()),
             };
             let body = Body {
                 id: id.clone(),

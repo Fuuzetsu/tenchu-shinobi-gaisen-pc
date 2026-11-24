@@ -21,15 +21,12 @@ impl Player {
         graphics: &Graphics,
         renderer: &mut Renderer,
     ) -> Result<Self> {
-        let appearance = Appearance::custom(id, pack, vram, graphics)?;
-        Self::from_appearance(appearance, parts, renderer)
+        let mut appearance = Appearance::custom(id, pack, vram, graphics)?;
+        renderer.bind_meshes(&mut appearance.meshes);
+        Self::from_appearance(appearance, parts)
     }
 
-    pub fn from_appearance(
-        mut appearance: Appearance,
-        parts: &[Part],
-        renderer: &mut crate::renderer::Renderer,
-    ) -> tenchu_assets::Result<Self> {
+    pub fn from_appearance(appearance: Appearance, parts: &[Part]) -> tenchu_assets::Result<Self> {
         if parts.len() < BONES.len() {
             return Err("The player has no compatible humanoid rig".into());
         }
@@ -46,7 +43,6 @@ impl Player {
                 geometry: Vec::new(),
             })
             .collect();
-        renderer.bind_meshes(&mut appearance.meshes);
         Ok(Self { appearance, source })
     }
 

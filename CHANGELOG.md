@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Compatible T2 player appearances now blink and move their mouths during native
+  T2 cutscenes, using the scene's original cues and each selected body's facial
+  textures. Preserve playback and expressions through save/rewind.
 - The updated optional T2 HD artwork reconstructs the aiming reticle from the
   disc, preserving its outlined four-blade shape and colors.
 - Optional unarmed punches and kicks no longer sever limbs in T1 or native T2.
@@ -17,7 +20,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
   at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
   weather commands and timing; optional weather settings remain available.
-- Mid-mission savestates use format 42. Load older states with the game build
+- Mid-mission savestates use format 43. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
 ## 0.35.14 — 2026-11-15

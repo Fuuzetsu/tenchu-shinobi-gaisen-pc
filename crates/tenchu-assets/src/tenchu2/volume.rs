@@ -66,6 +66,21 @@ impl<'a, S: ReadAt> Volume<'a, S> {
             .ok_or_else(|| format!("Missing Tenchu 2 resource {directory}/{name}"))
     }
 
+    pub fn directory(&self, directory: &str) -> impl Iterator<Item = Result<Vec<u8>>> + '_ {
+        let directory = hash(directory);
+        self.files
+            .iter()
+            .filter(move |((owner, _), _)| *owner == directory)
+            .map(|(_, &(sector, size))| {
+                if size > 64 * 1024 * 1024 {
+                    return Err("Excessive Tenchu 2 resource size".into());
+                }
+                self.disc
+                    .file(&self.entry)
+                    .read(u64::from(sector) * 2048, size as usize)
+            })
+    }
+
     pub fn game_module(&self) -> Result<Vec<u8>> {
         use sha2::{Digest, Sha256};
         let data = self.read(r"o:\cdimage\game\module", "datamng.bin")?;

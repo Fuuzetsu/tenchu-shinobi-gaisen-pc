@@ -43,6 +43,7 @@ pub struct Body {
 pub struct Native {
     pub kind: i16,
     pub rig: tenchu_assets::tenchu2::characters::Rig,
+    pub faces: Arc<Vec<tenchu_assets::tenchu2::story::Patch>>,
 }
 
 #[derive(Default)]

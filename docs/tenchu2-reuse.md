@@ -208,6 +208,26 @@ The sibling Gaisen research repositories were consulted read-only; these T2
 behaviors were checked directly against the JP executable instead of inferred
 from the related T1 routines.
 
+## Facial textures on story body overrides
+
+Compatible replacement bodies reuse the existing source blink/mouth channel
+indices in `Playback::patches`; presentation never advances another face clock
+or RNG. Each body supplies its own `event/<model>.arc` patches. The importer
+searches the volume and event CAB members, retaining only archives whose local
+MDL matches that body's regular actor MDL. This excludes the younger Shiunsai
+and unused Kagami variants, which share names but have different face UVs.
+The NPC atlas relocation comes from `EVENT.BIN` at JP `0x6920` / EU `0x6000`;
+hero atlases are already positioned. Clothing tracks retain their source
+texture owner. Rendering starts from the selected body's atlas on each cue
+change, so backwards restores remove later expressions as well as applying
+earlier ones. Imported T1 bodies and custom meshes without these compatible
+facial archives keep their existing static materials.
+
+This reuses the verified native story loader, facial command execution and
+animated-material renderer documented above. The read-only T2 decomp at
+`4dc42d1451876954b7db456a3d11107fd74324bb` and owned JP/EU event archives were
+checked for provenance; no sibling code or source assets were copied into Git.
+
 ## HD interface (v0.33.0)
 
 T2 menus reuse `frontend::draw::Frame`, its content identities, filtered artwork

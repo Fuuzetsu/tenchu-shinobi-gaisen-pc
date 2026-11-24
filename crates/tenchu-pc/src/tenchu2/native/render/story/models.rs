@@ -20,6 +20,8 @@ use tenchu_core::tenchu2::{
     world::Foot,
 };
 
+mod faces;
+
 pub(super) struct Models {
     pub(super) terrain: Meshes,
     lamps: crate::visuals::lights::Emitters,
@@ -27,6 +29,7 @@ pub(super) struct Models {
     shadow_widths: BTreeMap<i16, i16>,
     weapons: BTreeMap<String, Meshes>,
     textures: Vec<AnimatedTextures>,
+    faces: Vec<faces::Faces>,
     overrides: BTreeMap<i16, super::super::custom::Player>,
     equipment: BTreeMap<usize, Vec<Equipment>>,
     sprites: BTreeMap<i16, super::super::sprites::Sprites>,
@@ -57,6 +60,9 @@ impl Models {
     pub(super) fn invalidate_textures(&mut self) {
         for textures in &mut self.textures {
             textures.revision = None;
+        }
+        for faces in &mut self.faces {
+            faces.invalidate();
         }
     }
 
@@ -176,9 +182,10 @@ impl Models {
             weapons.insert(name.clone(), mesh);
         }
         let mut overrides = BTreeMap::new();
+        let mut faces = Vec::new();
         for &id in &story.models.actors {
             let source = &resources.models[&id];
-            let appearance = if let Some(custom) = &story.models.custom {
+            let mut appearance = if let Some(custom) = &story.models.custom {
                 crate::visuals::appearance::Appearance::custom(
                     &custom.id,
                     &custom.pack,
@@ -198,15 +205,22 @@ impl Models {
                         geometry: &part.geometry,
                     })
                     .collect();
-                let meshes = build(&skin.vram, sources, graphics)?;
+                let meshes = super::super::prepare(&skin.vram, sources, graphics)?;
                 crate::visuals::appearance::Appearance::from_parts(parts, meshes)?
             } else {
                 continue;
             };
-            overrides.insert(
-                id,
-                super::super::custom::Player::from_appearance(appearance, &source.parts, renderer)?,
-            );
+            if let Some(skin) = &story.models.skin
+                && let Some(animated) =
+                    faces::Faces::new(id, skin, story, &mut appearance.meshes, renderer)
+            {
+                faces.push(animated);
+            } else {
+                appearance.meshes.detach_textures();
+                renderer.bind_meshes(&mut appearance.meshes);
+            }
+            let player = super::super::custom::Player::from_appearance(appearance, &source.parts)?;
+            overrides.insert(id, player);
         }
         let mut equipment = BTreeMap::new();
         for (&slot, attachments) in &story.models.equipment {
@@ -251,6 +265,7 @@ impl Models {
             shadow_widths,
             weapons,
             textures,
+            faces,
             overrides,
             equipment,
         })
@@ -283,6 +298,9 @@ impl Models {
                     material.update(material.region.pixels(vram), renderer);
                 }
             }
+        }
+        for faces in &mut self.faces {
+            faces.update(&story.state.patches, renderer);
         }
         let view = camera.map_or(story.state.view, |c| c.source_view());
         let mut output = Builder::new(view, level, renderer.graphics());

@@ -1406,3 +1406,21 @@ do not obscure geometry changes. The combined/split model-preparation fixture
 prints a geometry/material hash; `TENCHU_MODEL_PROFILE_REPEATS=20` additionally
 measures repeated Modern Ultra preparation after two warm-up builds.
 See [performance measurements](performance.md) for the comparison and its scope.
+
+
+`native_story_override_faces_match_source_archives` loads both owned discs and
+checks compatible hero/NPC facial patches against the JP story loader, including
+the source atlas relocation. It also loads the EU override catalogue when
+`TENCHU2_DISC` selects that edition. The fixture rejects the assumption that a
+T1 body supplies facial patches.
+
+`native_story_override_faces_follow_authored_cues_and_restore` uses JP events
+201, 2011 and 102 with Kagami, Matsunoshin and Toda body overrides. It compares
+source blink/mouth cues with a static-material control, checks unchanged
+serialized playback against an unmodified scene, and restores earlier expressions
+into already updated textures. Original, Modern High and Modern Ultra are
+captured under `TENCHU_MODEL_REVIEW`, with replacement artwork, fog and dynamic
+lighting disabled for a clear face comparison. Existing story checkpoint and
+body/custom-mesh override fixtures cover saved continuations and unsupported
+static materials. These isolated cutscene fixtures do not establish ordinary-play
+campaign parity.
