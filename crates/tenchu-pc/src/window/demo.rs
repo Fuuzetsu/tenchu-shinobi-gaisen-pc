@@ -140,7 +140,7 @@ impl Application {
                     scene.pitch = -0.75;
                     scene.distance = 9000.0;
                 }
-                if clip.feature == Feature::FlameMotion {
+                if matches!(clip.feature, Feature::FlameMotion | Feature::FireSparks) {
                     scene.target = lamp.light.position - Vec3::Y * 350.0;
                     scene.distance = 4200.0;
                     scene.pitch = -0.12;

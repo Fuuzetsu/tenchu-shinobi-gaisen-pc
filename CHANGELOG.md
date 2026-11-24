@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Modern sparks now give T1 bonfires and burning characters small warm embers
+  with fading trails, including the Mission 5 execution scene. Original retains
+  its square particles; the `fire-sparks` demo compares both appearances.
 - Remember separate sheathed unarmed styles for Rikimaru, Ayame and Tatsumaru
   under Movement. Choices follow the campaign hero across T1/native T2 and saves,
   independently of body and armed movesets. Each hero initially follows the

@@ -308,7 +308,7 @@ lifetime even outside the original camera view; disabling it restores the source
 particles without changing damage, AI, audio or RNG. Modern High/Ultra already
 enable fire lighting; Original keeps it disabled.
 
-**F1 → Contact effects → Modern impact sparks** enables the shared modern
+**F1 → Contact effects → Modern sparks** enables the shared modern
 sparks for grappling, projectile contacts and weapon blocks. **Spark amount**
 controls their density; dynamic lighting illuminates nearby surfaces from the
 impact and moving sparks. Modern High/Ultra enable this, while Original retains

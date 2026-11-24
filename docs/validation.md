@@ -1015,6 +1015,22 @@ expiry and clustering, discarded pool slots, blood/lightning/gunfire independenc
 and unchanged serialized game state. Native captures and logs are kept outside
 Git in `private/issues/impact-jitter`.
 
+T1 bonfire sparks: `MISC.C::proc_misc_bonfire_` emits ten `[100, 100, 60]`
+particles every 16 source ticks with velocity `[0, -60, 0]`, spread 100 and
+randomized lifetime below 30 ticks. `EFFECT.C` damage flames use the same color.
+Modern sparks recognizes that source color separately from weapon/lightning
+sparks and draws small warm embers with soft trails. Interpolation reconstructs
+the previous position using the velocity before `DrawBleed` adds gravity.
+Both emitters start with vertical velocity -60; bonfire slots created after the
+effect pass wait for their first source update before drawing modern embers.
+It changes no effect allocation, emitter, source timing or RNG. Disc fixtures
+cover source expiry, interpolation endpoints, density/overflow bounds, both
+camera paths, unchanged serialized state, the actual Mission 5 execution and
+live bonfire particles in both halves of the `fire-sparks` demo. The optional
+`TENCHU_FIRE_SPARK_REVIEW` directory records matched execution frames using the
+same Modern High settings with Modern sparks off/on. These are isolated source
+scene and presentation checks, not a new ordinary-play capture.
+
 Camera interpolation: Mission 1 forward/run-stop traces for both heroes measured
 an interpolated eye displacement of up to 14.97 game units from independent
 rotation/translation rounding. Recomputing translation from the rounded rotation

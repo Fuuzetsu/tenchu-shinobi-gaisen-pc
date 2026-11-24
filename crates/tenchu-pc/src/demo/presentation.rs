@@ -536,6 +536,11 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.lighting.directional.intensity = 0;
             g.lighting.intensity = 220;
         }
+        Feature::FireSparks => {
+            g.effects.sparks = p >= 0.5;
+            g.effects.spark_density = 100;
+            g.interpolation = true;
+        }
         Feature::Shadows => {
             g.lighting.directional.intensity = 0;
             g.lighting.shadows = section(p, 3) > 0;
@@ -1040,6 +1045,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             "Modern High · gentle shimmer and dancing shadows",
         ][section(p, 4)].into()),
         Feature::FireLights => text(format!("Authored fire lights: {}", on(l.fires))),
+        Feature::FireSparks => text(if g.effects.sparks {
+            "Warm embers · soft trails and fading glow · source particle motion".into()
+        } else {
+            "Original bonfire sparks · source particle motion".into()
+        }),
         Feature::Shadows => {
             text(["Shadows off", "Hard model shadows", "Soft model shadows"][section(p, 3)].into())
         }

@@ -44,6 +44,18 @@
     "shot": "lamp"
   },
   {
+    "id": "fire-sparks",
+    "title": "Bonfire sparks: original / modern",
+    "description": "Compare the original square sparks with small warm embers and soft fading trails at a Mission 5 bonfire. Uses the source particle positions and lifetimes without changing gameplay or RNG.",
+    "seconds": 12,
+    "mission": 5,
+    "character": 0,
+    "preset": 8,
+    "feature": "fire-sparks",
+    "shot": "fire",
+    "sharp_text": true
+  },
+  {
     "id": "fires",
     "title": "Warmth from authored fires",
     "description": "The original fire and bonfire placements become real light sources. Compare their effect on nearby surfaces with fire lighting disabled and enabled.",

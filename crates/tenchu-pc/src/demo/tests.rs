@@ -417,6 +417,81 @@ fn weapon_sparks_comparison_contains_live_blocks() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; the fire comparison must frame an authored bonfire with live source embers in both halves"]
+fn fire_sparks_comparison_contains_live_bonfire_particles() {
+    use glam::Vec3;
+    use tenchu_assets::misc::Kind;
+    use tenchu_core::effects::Effect;
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut demo = player(&["--clips", "fire-sparks"]);
+    let (mut game, _) = demo.load_game(&assets, None, None).unwrap();
+    let origin = Vec3::from(game.player().position.map(|v| v as f32).to_array());
+    let fire = crate::lighting::fire_sources(&game, 12000.0)
+        .min_by(|a, b| {
+            origin
+                .distance_squared(a.light.position)
+                .total_cmp(&origin.distance_squared(b.light.position))
+        })
+        .unwrap();
+    assert!(
+        game.misc.objects.iter().any(|object| {
+            matches!(object.kind, Kind::Bonfire(_))
+                && Vec3::from(object.position.map(|v| v as f32).to_array())
+                    == fire.light.position + Vec3::Y * 400.0
+        }),
+        "Fire camera targets a bonfire, not a spark-free flame sprite"
+    );
+    let toward = (origin - fire.light.position)
+        .with_y(0.0)
+        .normalize_or_zero();
+    assert!(
+        [
+            toward * 2200.0,
+            -toward * 2200.0,
+            Vec3::X * 2000.0,
+            Vec3::NEG_X * 2000.0,
+        ]
+        .into_iter()
+        .any(|offset| {
+            game.teleport_player(
+                (fire.light.position + offset)
+                    .to_array()
+                    .map(|n| n.round() as i32)
+                    .into(),
+                true,
+            )
+            .is_ok()
+        })
+    );
+    let half = u64::from(demo.clip().seconds) * 15;
+    let mut frames = [0; 2];
+    let mut settings = crate::settings::Settings::default();
+    let mut debug = crate::debug::Debug::new(&game).unwrap();
+    for tick in 0..half * 2 {
+        game.step(demo.buttons(tick)).unwrap();
+        if game
+            .effects
+            .active_slots()
+            .iter()
+            .flatten()
+            .any(|effect| matches!(effect, Effect::Bleed(spark) if spark.color == [100, 100, 60]))
+        {
+            frames[(tick / half) as usize] += 1;
+        }
+        demo.frame = tick * 2;
+        animate(&demo, &mut settings, &mut debug);
+        assert_eq!(settings.graphics.effects.sparks, tick >= half);
+    }
+    assert!(
+        frames.into_iter().all(|n| n > 150),
+        "live source sparks in both halves: {frames:?}"
+    );
+}
+
+#[test]
 fn studio_showcase_keeps_editor_frames_separate_from_playtest_ticks() {
     let mut player = player(&["--studio"]);
     assert_eq!(player.catalog.len(), 14);

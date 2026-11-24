@@ -88,7 +88,7 @@ impl Style {
         (self.lightning && matches!(graphic, Graphic::Bleed) && lightning_spark(color))
             || self.gunfire && matches!(graphic, Graphic::GunImpact(_) | Graphic::GunBleed)
             || self.sparks.is_some()
-                && (matches!(graphic, Graphic::Bleed) && metal_spark(color)
+                && (matches!(graphic, Graphic::Bleed) && (metal_spark(color) || fire_spark(color))
                     || matches!(graphic, Graphic::Impact(1)))
             || self.blood_style(graphic, color).is_some_and(|style| {
                 !style.uses_original()
@@ -106,6 +106,11 @@ impl Style {
 
 pub(crate) fn metal_spark(color: [u8; 3]) -> bool {
     matches!(color, [255, 255, 0] | [0, 127, 255])
+}
+
+pub(super) fn fire_spark(color: [u8; 3]) -> bool {
+    // MISC.C bonfires and EFFECT.C damage flames share this ember color.
+    color == [100, 100, 60]
 }
 
 pub(super) fn lightning_spark(color: [u8; 3]) -> bool {

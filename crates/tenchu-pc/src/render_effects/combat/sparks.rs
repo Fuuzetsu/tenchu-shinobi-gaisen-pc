@@ -1,4 +1,5 @@
 use super::{Painter, noise};
+use crate::render_effects::style::{fire_spark, metal_spark};
 use glam::Vec3;
 use tenchu_core::{effects::Effect, game::Game};
 
@@ -14,20 +15,57 @@ impl Painter<'_> {
                 continue;
             }
             match effect {
-                Some(Effect::Bleed(spark)) if super::super::style::metal_spark(spark.color) => {
-                    let velocity = Vec3::from(spark.velocity.map(f32::from));
+                Some(Effect::Bleed(spark))
+                    if fire_spark(spark.color) || metal_spark(spark.color) =>
+                {
+                    let ember = fire_spark(spark.color);
+                    // Both fire emitters start at -60; bonfires run after DrawBleed.
+                    if ember && spark.velocity[1] == -60 {
+                        continue;
+                    }
+                    let mut velocity = Vec3::from(spark.velocity.map(f32::from));
+                    if ember {
+                        // DrawBleed moves first, then adds one to the next vertical velocity.
+                        velocity.y -= 1.0;
+                    }
                     let position = Vec3::from(spark.position.map(|v| v as f32).to_array())
                         - velocity * (1.0 - alpha);
                     let projected =
                         velocity - self.camera.z_axis * velocity.dot(self.camera.z_axis);
                     let along = projected.try_normalize().unwrap_or(self.camera.y_axis);
                     let across = along.cross(self.camera.z_axis).normalize_or_zero();
-                    let fade = ((f32::from(spark.time) + 1.0 - alpha) / 6.0).clamp(0.0, 1.0);
-                    let cool = spark.color[2] != 0;
+                    let fade = ((f32::from(spark.time) + 1.0 - alpha)
+                        / if ember { 10.0 } else { 6.0 })
+                    .clamp(0.0, 1.0);
                     let count = usize::from(density) / 100
                         + usize::from(noise(slot as u32) < f32::from(density % 100) / 100.0);
                     for i in 0..count {
                         let seed = slot as u32 * 37 + i as u32 * 13;
+                        if ember {
+                            let radius = 3.0 + noise(seed + 1) * 3.0;
+                            let center = position - velocity * i as f32 * 0.18
+                                + across * (noise(seed + 2) - 0.5) * i as f32 * 8.0;
+                            self.patch_with_opacity(
+                                center - projected * 0.12,
+                                [
+                                    across * radius * 0.65,
+                                    along * projected.length().clamp(8.0, 60.0) * 0.24,
+                                ],
+                                [1.1, 0.23, 0.025],
+                                true,
+                                true,
+                                fade * 0.45,
+                            );
+                            self.patch_with_opacity(
+                                center,
+                                [self.camera.x_axis * radius, self.camera.y_axis * radius],
+                                [1.8, 0.75 * fade + 0.15, 0.08 * fade],
+                                true,
+                                true,
+                                fade,
+                            );
+                            continue;
+                        }
                         let width = 4.0 + noise(seed + 1) * 4.0;
                         let center = position - velocity * i as f32 * 0.3
                             + across * (noise(seed + 2) - 0.5) * i as f32 * 12.0;
@@ -36,7 +74,7 @@ impl Painter<'_> {
                         self.patch_with_opacity(
                             center,
                             [across * width, along * length],
-                            if cool {
+                            if spark.color[2] != 0 {
                                 [0.55, 1.2, 2.0]
                             } else {
                                 [2.0, 1.1, 0.3]
@@ -64,6 +102,9 @@ impl Painter<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod fire_tests;
 
 pub(crate) fn impact_flash(
     camera: glam::Mat3,

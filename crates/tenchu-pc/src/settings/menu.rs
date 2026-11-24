@@ -757,9 +757,9 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
             (
                 Item::ContactSparks,
-                "Modern impact sparks",
+                "Modern sparks",
                 on(s.graphics.effects.sparks),
-                "Sharp impact bursts and hot trails for weapon blocks, clashes, metal impacts and grappling. Moving sparks illuminate nearby surfaces when dynamic lighting is on. Cosmetic only.",
+                "Sharp impact bursts and hot trails for weapon blocks, clashes, metal impacts and grappling. T1 bonfires and burning characters gain small warm embers with soft fading trails. Moving impact sparks illuminate nearby surfaces when dynamic lighting is on. Cosmetic only.",
             ),
             (
                 Item::Gunfire,

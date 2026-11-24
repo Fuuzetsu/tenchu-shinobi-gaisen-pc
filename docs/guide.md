@@ -100,6 +100,12 @@ foreground objects, and the HUD stays clear. Both strengths range from 0 (off) t
 100%. Modern High uses 35% motion / 25% shimmer; Ultra uses 50% / 40%. Existing
 custom settings keep both off. Try `demo --clips flame-motion` for a comparison.
 
+**F1 → Contact effects → Modern sparks** also replaces T1's square bonfire and
+burning-character particles with small warm embers and soft fading trails.
+**Spark amount** controls the cosmetic density; source particle motion, timing
+and gameplay remain unchanged. Modern High/Ultra enable this, while Original
+keeps the original squares. Try `demo --clips fire-sparks` at a Mission 5 bonfire.
+
 The renderer automatically adapts local shadow detail to distance, reconstructs
 ambient occlusion from half-resolution samples and caches dense modern blood on
 suitable flat surfaces. Wet/snow terrain also shares soft local-shadow visibility
