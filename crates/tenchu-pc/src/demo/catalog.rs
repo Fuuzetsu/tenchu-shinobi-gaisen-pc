@@ -45,6 +45,7 @@ pub enum Feature {
     Bleeding,
     DeathGush,
     Dismemberment,
+    UnarmedKills,
     ShopLighting,
     Gunfire,
     WeaponSparks,

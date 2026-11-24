@@ -17,6 +17,20 @@ use std::ffi::OsString;
 use std::{path::PathBuf, time::Duration};
 use tenchu_assets::Result;
 
+pub(crate) fn unarmed_kill(game: &mut tenchu_core::game::Game, guard: usize) -> Result<()> {
+    let enemy = game.roster.get(guard);
+    let facing = enemy.rotation[1];
+    let offset = game
+        .math
+        .velocity(facing.wrapping_add(1024), 700, 0)
+        .map(i32::from);
+    let position = enemy.position.wrapping_add(offset.into());
+    game.teleport_player(position, true)?;
+    game.roster.get_mut(game.player_id).rotation[1] = facing.wrapping_add(2048);
+    game.roster.get_mut(guard).setup_think(0)?;
+    Ok(())
+}
+
 pub fn sparring(game: &mut tenchu_core::game::Game, guard: usize) -> Result<()> {
     let position = game.roster.get(guard).position;
     let delta = game.player().position.wrapping_sub(position);
@@ -424,7 +438,7 @@ impl Player {
                     0
                 }
             }
-            Feature::DeathGush | Feature::Dismemberment => {
+            Feature::DeathGush | Feature::Dismemberment | Feature::UnarmedKills => {
                 if tick == 30 {
                     SQUARE
                 } else {

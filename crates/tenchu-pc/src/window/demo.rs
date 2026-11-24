@@ -157,6 +157,10 @@ impl Application {
                     .filter(|&id| {
                         let actor = game.roster.get(id);
                         id != game.player_id
+                            && (clip.feature != Feature::UnarmedKills
+                                || ((0x10..0x80).contains(&actor.kind)
+                                    && game.editable_actor(id).is_ok()
+                                    && actor.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN == 0))
                             && actor.health > 0
                             && actor.patrol.is_some()
                             && (clip.randomizer.is_some() && actor.script_kind.is_some()
@@ -192,6 +196,7 @@ impl Application {
                         | Feature::BloodSnow
                         | Feature::DeathGush
                         | Feature::Dismemberment
+                        | Feature::UnarmedKills
                         | Feature::WeaponSparks
                         | Feature::GuardControls
                         | Feature::UnarmedAttacks
@@ -205,6 +210,7 @@ impl Application {
                         Feature::GuardControls
                             | Feature::DeathGush
                             | Feature::Dismemberment
+                            | Feature::UnarmedKills
                             | Feature::UnarmedAttacks
                     ) {
                         let facing = game.player().rotation[1];
@@ -226,7 +232,9 @@ impl Application {
                                     1300
                                 } else if matches!(
                                     clip.feature,
-                                    Feature::DeathGush | Feature::Dismemberment
+                                    Feature::DeathGush
+                                        | Feature::Dismemberment
+                                        | Feature::UnarmedKills
                                 ) {
                                     -800
                                 } else {
@@ -248,6 +256,7 @@ impl Application {
                                 | Feature::WoundSpurts
                                 | Feature::DeathGush
                                 | Feature::Dismemberment
+                                | Feature::UnarmedKills
                                 | Feature::GuardControls
                                 | Feature::UnarmedAttacks
                         )
@@ -295,8 +304,14 @@ impl Application {
                             player.max_health = 9999;
                         }
                     }
-                    if matches!(clip.feature, Feature::DeathGush | Feature::Dismemberment) {
+                    if matches!(
+                        clip.feature,
+                        Feature::DeathGush | Feature::Dismemberment | Feature::UnarmedKills
+                    ) {
                         game.roster.get_mut(actor).setup_think(0)?;
+                    }
+                    if clip.feature == Feature::UnarmedKills {
+                        demo::unarmed_kill(&mut game, actor)?;
                     }
                     scene.player_start = game.player().position;
                     scene.actor = Some(actor);
@@ -315,6 +330,7 @@ impl Application {
                         Feature::GuardControls
                             | Feature::DeathGush
                             | Feature::Dismemberment
+                            | Feature::UnarmedKills
                             | Feature::UnarmedAttacks
                     ) {
                         scene.distance = 5600.0;
@@ -332,6 +348,7 @@ impl Application {
                             | Feature::UnarmedAttacks
                             | Feature::DeathGush
                             | Feature::Dismemberment
+                            | Feature::UnarmedKills
                     )
                 {
                     self.settings.keep_enemies_active = true;

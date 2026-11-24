@@ -31,6 +31,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Fix rigid sheathed idle poses when selecting T2 boss movesets in either game.
   Use the host's existing sheathed idle when the source only supplies a bind
   pose, preserving authored idle animations, combat moves and original NPCs.
+- Add **Player model → Stow blades for unarmed kills** for T1 Rikimaru's
+  bone break and Ayame's leg lock, plus native T2's unarmed counter phases.
+  Keeps existing stowed equipment and the T2 sword finish, with no changes to
+  damage, timing or weapon state. Off by default; both heroes have demo clips.
 - Modern sparks now give T1 bonfires and burning characters small warm embers
   with fading trails, including the Mission 5 execution scene. Original retains
   its square particles; the `fire-sparks` demo compares both appearances.

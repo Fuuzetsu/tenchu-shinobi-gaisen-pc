@@ -79,6 +79,7 @@ pub enum Item {
     CharacterRefinement,
     HeroModels,
     RikimaruSheath,
+    StowUnarmedKills,
     FoliageDetail,
     GrappleDetail,
     ContactSparks,
@@ -1478,6 +1479,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         Page::PlayerModel => vec![
+            (
+                Item::StowUnarmedKills,
+                "Stow blades for unarmed kills",
+                on(s.graphics.models.stow_unarmed_kills),
+                "Keep blades in their scabbards during T1 Rikimaru's bone break and Ayame's leg lock. In native T2, covers Ayame's leg throw and Rikimaru's opening unarmed strikes against a drawing enemy; his sword finish remains armed. Visual only; timing, damage and weapon state are unchanged. Off by default.",
+            ),
             (
                 Item::RikimaruSheath,
                 "Tenchu 2 Rikimaru sheath",

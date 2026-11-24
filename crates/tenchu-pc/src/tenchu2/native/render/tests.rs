@@ -6,6 +6,7 @@ mod heroes;
 mod indexed;
 mod invisibility;
 mod items;
+mod stowed_kills;
 mod weather;
 
 #[test]

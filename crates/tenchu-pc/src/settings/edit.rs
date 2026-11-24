@@ -177,6 +177,7 @@ impl Item {
             Self::GrappleDetail => &mut settings.graphics.models.grapple,
             Self::HeroModels => &mut settings.graphics.models.heroes,
             Self::RikimaruSheath => &mut settings.graphics.models.rikimaru_sheath,
+            Self::StowUnarmedKills => &mut settings.graphics.models.stow_unarmed_kills,
             Self::ContactSparks => &mut settings.graphics.effects.sparks,
             Self::Lightning => &mut settings.graphics.effects.lightning,
             Self::StormBolts => &mut settings.graphics.weather.storm_bolts,

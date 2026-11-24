@@ -522,6 +522,15 @@ retained. This is a visual setting, independent of the Movement sheathing option
 Original and Modern quality presets leave it off. Try `rikimaru-t2-sheath` in
 the demo library for a before/after comparison.
 
+**Stow blades for unarmed kills** on **F1 → Player model** keeps the weapons in
+place on the body during T1 Rikimaru's third bone-breaking kill and Ayame's third
+leg-lock kill. In native T2 it covers Ayame's leg throw against a drawing enemy
+and Rikimaru's opening unarmed strikes in that counter; his later sword finish
+remains armed. It uses the existing stowed equipment and follows interpolation
+and body overrides. Kill poses, timing, damage and actual weapon state stay the
+same. Original and Modern High/Ultra presets leave this preference off; the
+`unarmed-kill-rikimaru` and `unarmed-kill-ayame` demos show the enabled option.
+
 **Override moveset** adopts an actor's registered animations, attacks and weapon
 profile independently of appearance. Search **Moveset source** for Onikage, for
 example, and keep **Player body → Original** to use his kicks as Ayame or Rikimaru.

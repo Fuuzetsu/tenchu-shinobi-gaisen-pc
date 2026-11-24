@@ -87,6 +87,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
                     | Feature::Bleeding
                     | Feature::DeathGush
                     | Feature::Dismemberment
+                    | Feature::UnarmedKills
                     | Feature::BloodSnow
                     | Feature::WeaponSparks
                     | Feature::GuardControls
@@ -122,6 +123,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
         Feature::GuardControls
         | Feature::DeathGush
         | Feature::Dismemberment
+        | Feature::UnarmedKills
         | Feature::UnarmedAttacks => target.y += 700.0,
         Feature::HeroModels | Feature::RikimaruSheath => camera.yaw += p * 1.6,
         Feature::Randomizer if player.clip().shot != Shot::Guard => {
@@ -251,6 +253,10 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.effects.sparks = p >= 0.5;
             g.effects.spark_density = 150;
             g.lighting.enabled = true;
+            g.interpolation = true;
+        }
+        Feature::UnarmedKills => {
+            g.models.stow_unarmed_kills = true;
             g.interpolation = true;
         }
         Feature::Dismemberment => {
@@ -930,6 +936,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         } else {
             "Original targeting · the closer guard behind is selected · same positions and inputs"
         }.into()),
+        Feature::UnarmedKills => text("Blades stay stowed during the unarmed paired kill · F1 → Player model · off by default".into()),
         Feature::Dismemberment => text("SA dismemberment · forced 100% head chance for demonstration · default 4% · disabled by default".into()),
         Feature::DeathGush => text(format!("{} death gush · 100% · 6 seconds · Original / Original HD / Modern selectable in F1", s.graphics.blood.gush_style.label())),
         Feature::Bleeding => text(match player.simulation_ticks {

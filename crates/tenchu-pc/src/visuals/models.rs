@@ -52,6 +52,7 @@ pub struct Models {
     imported_geometry: BTreeMap<usize, usize>,
     pub(super) player: Option<super::appearance::Appearance>,
     pub(super) equipment: Option<tenchu_assets::weapon::Equipment>,
+    pub(super) stow_unarmed_kills: bool,
     #[cfg(not(target_arch = "wasm32"))]
     pub(super) cast: super::appearance::cast::Cast,
     pub replacements: usize,
@@ -229,6 +230,7 @@ impl Models {
             imported_geometry,
             player: None,
             equipment: None,
+            stow_unarmed_kills: graphics.models.stow_unarmed_kills,
             #[cfg(not(target_arch = "wasm32"))]
             cast: Default::default(),
             motion: Default::default(),

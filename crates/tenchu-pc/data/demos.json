@@ -948,6 +948,28 @@
     "frontend": {"page": "shop", "language": "en"}
   },
   {
+    "id": "unarmed-kill-rikimaru",
+    "title": "Rikimaru: blades stowed during the unarmed kill",
+    "description": "Optional presentation: keep the blades in their scabbards for the third T1 stealth kill. Source poses, kill timing, damage and weapon state stay unchanged. Also supports native T2 unarmed counter phases. Off by default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 4,
+    "feature": "unarmed-kills",
+    "shot": "guard"
+  },
+  {
+    "id": "unarmed-kill-ayame",
+    "title": "Ayame: blades stowed during the unarmed kill",
+    "description": "Optional presentation: keep the blades in their scabbards for the third T1 stealth kill. Source poses, kill timing, damage and weapon state stay unchanged. Also supports native T2 unarmed counter phases. Off by default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": "unarmed-kills",
+    "shot": "guard"
+  },
+  {
     "id": "dismemberment",
     "title": "Stealth Assassins dismemberment",
     "description": "An optional rear stealth-kill decapitation using the original Gaisen model. This demonstration forces a head; the SA USA default is 4%. The head moves, bounces and remains beside the corpse. Disabled by default.",

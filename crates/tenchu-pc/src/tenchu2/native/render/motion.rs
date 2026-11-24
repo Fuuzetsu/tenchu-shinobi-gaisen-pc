@@ -1,5 +1,6 @@
 use super::*;
 use crate::visuals::{interpolation::Part as PartId, motion::Input};
+mod stowed;
 
 impl Drawing {
     pub(super) fn tick_motion(
@@ -251,7 +252,19 @@ impl Models {
                     );
                 }
             }
-            for root in instance.rig.weapons.iter().take(3).flatten() {
+            let stowed = self.stow_unarmed_kills
+                && owner == world.player
+                && stowed::unarmed_kill(actor, assets);
+            let mut weapons = instance.rig.weapons;
+            if stowed && actor.weapon_drawn() {
+                if definition.weapon & 0xf00 == 0x200 {
+                    weapons.swap(1, 4);
+                }
+                if matches!(definition.weapon & 0xf00, 0x100 | 0x200) {
+                    weapons.swap(0, 3);
+                }
+            }
+            for root in weapons.iter().take(3).flatten() {
                 let name = self
                     .weapon_names
                     .get(root)
@@ -267,6 +280,11 @@ impl Models {
                         ),
                         scene.world(root + 1 + index)?,
                     );
+                    if stowed && pose.is_some() {
+                        // Hidden holster parts have no interpolation samples. Follow their
+                        // interpolated body joint instead of the source hand's old sample.
+                        matrix = stowed::mount(root + 1 + index, instance, scene, &matrices)?;
+                    }
                     if let Some(target) = &custom_pose {
                         let mut parent = scene.models[*root].parent;
                         while let Some(id) = parent {

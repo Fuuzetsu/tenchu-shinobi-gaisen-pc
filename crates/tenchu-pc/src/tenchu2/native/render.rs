@@ -783,6 +783,7 @@ pub struct Models {
     items: Meshes,
     weapon_names: BTreeMap<usize, String>,
     weapon_actors: usize,
+    stow_unarmed_kills: bool,
     hud: hud::Artwork,
 }
 
@@ -1004,6 +1005,7 @@ impl Models {
             items,
             weapon_names: BTreeMap::new(),
             weapon_actors: 0,
+            stow_unarmed_kills: graphics.models.stow_unarmed_kills,
             hud: hud::Artwork::new(&assets.sprites, graphics, renderer)?,
         };
         models.rebind_weapons(assets, world)?;

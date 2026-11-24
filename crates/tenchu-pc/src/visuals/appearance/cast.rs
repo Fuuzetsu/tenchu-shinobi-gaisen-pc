@@ -130,6 +130,7 @@ impl CastFrame<'_> {
             visit_equipment(
                 &pose.actor,
                 &self.cast.actors[&root].equipment,
+                false,
                 &pose.matrices,
                 self.inspection,
                 include,

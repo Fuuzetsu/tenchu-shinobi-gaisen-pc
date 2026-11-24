@@ -19,6 +19,7 @@ pub mod library;
 pub mod picker;
 pub(crate) mod sheath;
 pub mod skin;
+mod stowed;
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -490,6 +491,8 @@ pub(super) fn visit_parts_filtered(
     });
     let sheath = appearance.and_then(|a| a.sheath.as_ref());
     let equipment = models.and_then(|m| m.equipment.as_ref());
+    let stowed =
+        models.is_some_and(|m| m.stow_unarmed_kills) && stowed::unarmed_kill(game.player());
     let compatible = appearance.is_none_or(|a| {
         a.parents == parents(&game.mission.models[&game.player().rendered_mesh_kind])
     });
@@ -502,7 +505,8 @@ pub(super) fn visit_parts_filtered(
     let posed_player = transforms
         .as_ref()
         .map(|_| rendered_player(game, inspection));
-    let player_matrices = (equipment.is_some()
+    let player_matrices = (stowed
+        || equipment.is_some()
         || sheath.is_some()
         || appearance.is_some_and(|a| a.meshes.has_skin()))
     .then(|| {
@@ -544,7 +548,7 @@ pub(super) fn visit_parts_filtered(
         {
             player_submitted = true;
             torso_submitted |= game.player().parts.get(1) == Some(&model);
-            if equipment.is_some() && !game.player().parts.contains(&model) {
+            if (equipment.is_some() || stowed) && !game.player().parts.contains(&model) {
                 return;
             }
         }
@@ -681,6 +685,17 @@ pub(super) fn visit_parts_filtered(
         visit_equipment(
             game.player(),
             equipment,
+            stowed,
+            player_matrices.as_ref().unwrap(),
+            inspection,
+            &include,
+            &mut visit,
+        );
+    }
+    if stowed && player_submitted && equipment.is_none() {
+        stowed::visit(
+            game,
+            sheath,
             player_matrices.as_ref().unwrap(),
             inspection,
             &include,
@@ -717,13 +732,14 @@ pub(super) fn visit_parts_filtered(
 fn visit_equipment(
     player: &tenchu_core::actor::Actor,
     equipment: &tenchu_assets::weapon::Equipment,
+    stowed: bool,
     matrices: &[Matrix],
     inspection: bool,
     include: impl Fn(Part) -> bool,
     mut visit: impl FnMut(Part, &[model::Geometry], Matrix),
 ) {
     let mut slots = [0, 1, 2, 3, 4];
-    if player.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN != 0 {
+    if !stowed && player.attribute & tenchu_core::ids::ATTR_WEAPON_DRAWN != 0 {
         equipment.draw.swap(&mut slots);
     }
     for (attachment, part) in equipment.attachments.iter().enumerate() {
