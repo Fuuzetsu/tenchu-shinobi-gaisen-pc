@@ -227,6 +227,7 @@ impl Application {
         let ready = native.generation == Some(native.playback.generation)
             && !native.menu.actor_assets_changed;
         let graphics = self.settings.rendering().graphics.clone();
+        native.transport.weather = graphics.weather.mode;
         let update = native.transport.frame_step(
             &mut native.playback,
             buttons,
@@ -344,6 +345,7 @@ impl Application {
         let ready = native.generation == Some(native.playback.generation)
             && !native.menu.actor_assets_changed;
         let graphics = self.settings.rendering().graphics.clone();
+        native.transport.weather = graphics.weather.mode;
         let feedback_enabled = self.focused
             && !input.paused
             && !input.pacing(&native.playback.content).1

@@ -37,6 +37,8 @@ pub struct Run {
     pub sequence: usize,
     pub mission: usize,
     pub random: Random,
+    #[serde(default)]
+    pub weather_thunder: [i16; 2],
     pub progress: Progress,
     pub summary: Summary,
     pub carry: Carry,
@@ -65,6 +67,7 @@ impl Run {
             sequence,
             mission,
             random: Random::new(seed),
+            weather_thunder: [0; 2],
             progress: Progress::default(),
             summary: Summary::default(),
             carry: Carry::default(),
@@ -114,6 +117,9 @@ impl Run {
             return Err("Tenchu 2 campaign does not match the loaded area".into());
         }
         world.random.calls += self.random.calls;
+        if let Some(weather) = &mut world.effects.weather {
+            [weather.thunder_time, weather.thunder_delay] = self.weather_thunder;
+        }
         world.statistics.clone_from(&self.summary.kills);
         world.ai.detections = self.summary.detections;
         world.effort = self.summary.effort as u16;
@@ -190,6 +196,9 @@ impl Run {
                 .wrapping_add(ticks % 30 / 3),
         };
         self.random = world.random;
+        if let Some(weather) = &world.effects.weather {
+            self.weather_thunder = [weather.thunder_time, weather.thunder_delay];
+        }
         let sequence = self.descriptor(campaign)?;
         if outcome.success() {
             self.go(campaign, sequence.next, Destination::Complete)

@@ -16,6 +16,7 @@ pub(super) struct State<C, D> {
     actor_voices: BTreeMap<usize, Option<Arc<VoiceSet>>>,
     pending: BTreeSet<String>,
     training: Option<tutorial::Training>,
+    music: music::Music,
     interpolation: Option<crate::visuals::interpolation::History>,
     navigation: Option<navigation::Input>,
     circle_action: tenchu_core::input::CircleAction,
@@ -40,6 +41,7 @@ impl Borrowed<'_> {
             actor_voices,
             pending,
             training,
+            music,
             interpolation,
             navigation,
             circle_action,
@@ -66,6 +68,7 @@ impl Borrowed<'_> {
         if let Some(training) = training {
             training.capture(out)?;
         }
+        music.capture(out)?;
         out.value(interpolation)?;
         out.value(navigation)?;
         out.value(circle_action)?;
@@ -81,6 +84,7 @@ impl Borrowed<'_> {
 impl Session {
     pub(super) fn snapshot(&self) -> Borrowed<'_> {
         let Self {
+            weather_sound: _,
             world,
             assets,
             frame,
@@ -90,6 +94,7 @@ impl Session {
             actor_voices,
             pending,
             training,
+            music,
             interpolation,
             navigation,
             circle_action,
@@ -105,6 +110,7 @@ impl Session {
             actor_voices: actor_voices.clone(),
             pending: pending.clone(),
             training: training.clone(),
+            music: music.clone(),
             interpolation: interpolation.clone(),
             navigation: *navigation,
             circle_action: *circle_action,
@@ -161,6 +167,7 @@ impl Owned {
             actor_voices,
             pending,
             training,
+            music,
             interpolation,
             navigation,
             circle_action,
@@ -168,6 +175,7 @@ impl Owned {
             ..
         } = self;
         Session {
+            weather_sound: None,
             world,
             assets,
             frame,
@@ -177,6 +185,7 @@ impl Owned {
             actor_voices,
             pending,
             training,
+            music,
             interpolation,
             navigation,
             circle_action,
@@ -189,6 +198,7 @@ impl Owned {
 impl Owned {
     fn validate(&self) -> Result<()> {
         let (world, assets, _) = &self.core;
+        self.music.validate()?;
         if self.signature != SIGNATURE
             || assets.resources.registry.edition != tenchu_assets::tenchu2::Edition::Japan
             || assets.hero >= 3

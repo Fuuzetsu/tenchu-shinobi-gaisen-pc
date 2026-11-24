@@ -6,6 +6,7 @@ mod death;
 mod menus;
 mod progression;
 mod state;
+mod weather;
 
 fn start(sequence: usize) -> Playback<crate::source::DiscSource> {
     let disc =

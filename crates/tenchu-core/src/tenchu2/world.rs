@@ -138,11 +138,16 @@ impl World {
             .sequences
             .get(layout.sequence)
             .ok_or("Missing Tenchu 2 mission descriptor")?;
+        let mut effects = super::effects::Effects::default();
+        if assets.level.gaisen.is_none() {
+            effects.weather =
+                super::effects::weather::Weather::for_map(layout.map, sequence.resource, false);
+        }
         let mut world = Self {
             tutorial: None,
             audio: super::audio::Audio::default(),
             items: super::items::Items::default(),
-            effects: super::effects::Effects::default(),
+            effects,
             camera: super::camera::Camera::new(&assets.camera),
             terrain: assets.level.collision.clone(),
             environment: super::environment::Environment::default(),

@@ -49,7 +49,10 @@ pub(super) mod state;
 mod story;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub(super) use tests::capture_unarmed_death;
 mod weapons;
+mod weather;
 mod wounds;
 pub(super) use story::Drawing as StoryDrawing;
 pub(super) use story::capture as capture_story;
@@ -220,6 +223,10 @@ impl Drawing {
         #[cfg(not(target_arch = "wasm32"))]
         if session.cinematic() {
             return Ok(());
+        }
+        if self.models.weapon_actors != session.world.actors.len() {
+            self.models
+                .rebind_weapons(&session.assets, &session.world)?;
         }
         self.tick_motion(session, &graphics.motion)?;
         if let Some(environment) = &mut self.scene.environment {
@@ -775,6 +782,7 @@ pub struct Models {
     imported_weapons: BTreeMap<String, Meshes>,
     items: Meshes,
     weapon_names: BTreeMap<usize, String>,
+    weapon_actors: usize,
     hud: hud::Artwork,
 }
 
@@ -995,6 +1003,7 @@ impl Models {
             imported_weapons,
             items,
             weapon_names: BTreeMap::new(),
+            weapon_actors: 0,
             hud: hud::Artwork::new(&assets.sprites, graphics, renderer)?,
         };
         models.rebind_weapons(assets, world)?;
@@ -1009,6 +1018,7 @@ impl Models {
                     .map(|(root, name)| (root, name.to_owned())),
             );
         }
+        self.weapon_actors = world.actors.len();
         Ok(())
     }
 

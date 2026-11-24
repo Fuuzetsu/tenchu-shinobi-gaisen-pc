@@ -124,6 +124,45 @@ fn unarmed_combo_hits_with_original_timings_and_retains_weapons() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; lethal optional kicks keep limbs attached after the attack ends, including saved deaths"]
+fn unarmed_lethal_hits_keep_limbs_attached() {
+    for character in 0..2 {
+        let (mut game, enemy) = ready(character);
+        game.combat.dismemberment = crate::game::dismemberment::Settings {
+            enabled: true,
+            arms: 100,
+            right_arm: 100,
+            ..Default::default()
+        };
+        game.roster.get_mut(enemy).health = 1;
+        let (mut baseline, baseline_enemy) = ready(character);
+        assert_eq!(enemy, baseline_enemy);
+        baseline.roster.get_mut(enemy).health = 1;
+        game.step(SQUARE).unwrap();
+        baseline.step(SQUARE).unwrap();
+        let mut saved = false;
+        for _ in 0..200 {
+            game.step(0).unwrap();
+            baseline.step(0).unwrap();
+            assert_eq!(game.random.seed, baseline.random.seed);
+            if !saved && game.roster.get(enemy).health == 0 {
+                let bytes = serde_json::to_vec(game.roster.get(enemy)).unwrap();
+                *game.roster.get_mut(enemy) = serde_json::from_slice(&bytes).unwrap();
+                for state in [&mut game, &mut baseline] {
+                    state
+                        .set_player_sheathing(Settings::default(), None)
+                        .unwrap();
+                }
+                saved = true;
+            }
+        }
+        assert!(saved, "hero {character}: no lethal kick");
+        assert!(!game.player().unarmed_attack());
+        assert!(game.roster.get(enemy).severed.is_none(), "hero {character}");
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; disabling unarmed combat during a kick finishes it, disabling all sheathing clears hits and draws blades"]
 fn unarmed_settings_changes_do_not_leave_attack_collisions() {
     for character in 0..2 {

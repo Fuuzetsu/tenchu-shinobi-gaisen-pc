@@ -12,6 +12,16 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
+The native T2 reinforcement renderer regression (#130) keeps one renderer alive
+while Seeded Mix callers add groups of 1 and 32, repeats a call, and restores
+checkpoints from before and after recruitment. Original, Modern High and Modern
+Ultra cover interpolated weapon bindings and unchanged serialized gameplay.
+The unfixed renderer returns `Missing native weapon instance` after recruitment;
+simulation-only fixtures did not expose the stale presentation cache. Run
+`native_reinforcements_keep_live_weapon_bindings` with `TENCHU2_DISC`,
+`TENCHU_MODEL_REVIEW` and a GPU. This is an isolated optional-mode reproduction,
+not a replay of the reporter's unavailable save or an ordinary-play comparison.
+
 The optional T2 Rikimaru sheath fixture loads both retail equipment catalogs and
 checks T1's original/armoured Rikimaru and unaffected Ayame, drawn/stowed states,
 Original/Ultra geometry, interpolated attachments, torso filtering, missing-disc
@@ -864,6 +874,21 @@ Audio language controls scene selection and duration, so a locale-only scene
 is not synthesized for another language. Native T2 JP has no translated caption
 assets and remains Japanese. Campaign saves are unchanged; mid-mission states
 include the caption tracks and use format 41.
+
+## Optional unarmed lethal hits
+
+The optional unarmed regression kills a guard with Onikage's limb contacts for
+both T1 heroes and with all three unarmed styles for all three native T2 heroes.
+Arm severing is forced to 100 percent. The death is saved immediately after the
+hit and resumed through the corpse animation; both limbs must stay attached.
+T1 also draws the blades after the lethal kick and compares RNG against the same
+fight with dismemberment disabled. The existing blade, dive, rear stealth and
+execution fixtures retain their separate severing checks.
+
+These are isolated optional-mode fixtures, not ordinary-play parity evidence.
+Native captures can be requested with `TENCHU_MODEL_REVIEW`; they use an isolated
+flat floor, default graphics with fog/artwork disabled and a fixed corpse view.
+The additional lethal-hit state uses mid-mission format 42.
 
 ## Persistent mid-mission states
 

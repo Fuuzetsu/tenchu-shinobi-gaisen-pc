@@ -130,6 +130,25 @@ impl Mission {
         self.phase == Phase::Playing { pending: None }
     }
 
+    pub fn boss_music(&self, enabled: bool, player_health: i16, first_target: i16) -> Option<u16> {
+        // GAME.EXE 80065b6c: called before entering the mission-end countdown.
+        if !enabled
+            || player_health == 0
+            || !matches!(self.phase, Phase::Playing { .. })
+            || !matches!(
+                self.objective,
+                Objective::Weaken { .. } | Objective::Defeat { .. }
+            )
+        {
+            return None;
+        }
+        Some(if matches!(first_target, 0xef | 0xf2 | 0xf9) {
+            10
+        } else {
+            9
+        })
+    }
+
     pub fn resolve_script(&mut self, outcome: Outcome) -> Result<()> {
         if self.objective != Objective::Scripted {
             return Err("Only scripted missions accept an external outcome".into());

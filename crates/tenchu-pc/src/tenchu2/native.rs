@@ -58,6 +58,7 @@ mod interpolation;
 mod melee_tests;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod models;
+mod music;
 mod navigation;
 #[cfg(not(target_arch = "wasm32"))]
 mod randomizer;
@@ -102,6 +103,7 @@ mod walking;
 mod window;
 
 pub struct Session {
+    pub weather_sound: Option<Sound>,
     pub world: World,
     pub assets: Assets,
     pub frame: Frame,
@@ -111,6 +113,7 @@ pub struct Session {
     actor_voices: BTreeMap<usize, Option<Arc<VoiceSet>>>,
     pub pending: BTreeSet<String>,
     training: Option<tutorial::Training>,
+    music: music::Music,
     pub interpolation: Option<crate::visuals::interpolation::History>,
     pub navigation: Option<navigation::Input>,
     pub circle_action: tenchu_core::input::CircleAction,
@@ -173,6 +176,7 @@ impl Session {
         let world = World::new(&layout, options, &assets)?;
         let bank = Arc::new(Audio::load(disc, hero, layout.map)?.bank);
         let mut session = Self::from_parts(world, assets, bank);
+        session.music = music::Music::load(disc)?;
         if layout.map == 0 {
             session.world.tutorial = Some(tenchu_core::tenchu2::tutorial::Training::new(
                 tenchu_assets::tenchu2::tutorial::Tutorial::load(disc)?,
@@ -219,6 +223,7 @@ impl Session {
         bank: Arc<tenchu_assets::audio::bank::Bank>,
     ) -> Self {
         Self {
+            weather_sound: None,
             world,
             assets,
             frame: Frame::default(),
@@ -228,6 +233,7 @@ impl Session {
             actor_voices: BTreeMap::new(),
             pending: BTreeSet::new(),
             training: None,
+            music: Default::default(),
             interpolation: None,
             navigation: None,
             circle_action: Default::default(),
@@ -250,6 +256,7 @@ impl Session {
     }
 
     fn step_world(&mut self, buttons: u16, observing_death: bool) -> Result<Vec<Sourced<Sound>>> {
+        self.weather_sound = None;
         self.feedback.poll();
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(scene) = &mut self.gaisen {
@@ -291,6 +298,7 @@ impl Session {
             wounds: Vec::new(),
             melee_hits: BTreeSet::new(),
             gunshots: Vec::new(),
+            music: None,
             pending: &mut self.pending,
         };
         let tick = self.world.tick;
@@ -335,6 +343,7 @@ impl Session {
                 volume: None,
             });
         }
+        let music = events.music;
         let mut sounds: Vec<_> = self.frame.ambience.into_iter().map(Sourced::from).collect();
         for request in events.requests {
             if let Some((direction, volume)) = request
@@ -363,6 +372,12 @@ impl Session {
                 });
             }
         }
+        if self.frame.effects.weather.thunder {
+            self.weather_sound =
+                self.world
+                    .audio
+                    .play(43, 0, 127, tick, &self.assets.resources.math);
+        }
         for index in actors..self.world.actors.len() {
             if let Some(caller) = self.world.actors[index].behavior.profile.recruited_by
                 && let Some(voice) = self.actor_voices.get(&caller).cloned()
@@ -373,6 +388,7 @@ impl Session {
         }
         sounds.extend(self.training_step().into_iter().map(Sourced::from));
         if !observing_death {
+            self.music.step(&self.world, music);
             sounds.extend(
                 self.world
                     .advance_mission(&self.assets)?
@@ -467,6 +483,7 @@ struct Output<'a> {
     wounds: Vec<contact::Wound>,
     melee_hits: BTreeSet<usize>,
     gunshots: Vec<contact::Gunshot>,
+    music: Option<u16>,
     pending: &'a mut BTreeSet<String>,
 }
 
@@ -522,6 +539,15 @@ impl Events for Output<'_> {
         let mut bank = None;
         let mut extra_voice = None;
         let (id, position) = match event {
+            Event::DeathMusic | Event::FallDeathMusic => {
+                let first = if event == Event::FallDeathMusic {
+                    15
+                } else {
+                    14
+                };
+                self.music = Some(u16::from(source.actor.kind as u8) * 2 + first);
+                return Ok(());
+            }
             Event::Rumble {
                 action,
                 kind,

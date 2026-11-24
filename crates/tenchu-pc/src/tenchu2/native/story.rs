@@ -35,7 +35,9 @@ impl Story {
     pub fn load(disc: &Disc<impl ReadAt>, sequence: usize, event: u16, seed: u32) -> Result<Self> {
         let resources = Resources::load(disc, event)?;
         let level = Level::japanese_scene(disc, resources.area, sequence, true)?;
-        let state = Playback::new(&resources, seed);
+        let mut state = Playback::new(&resources, seed);
+        state.effects.particles.weather =
+            tenchu_core::tenchu2::effects::weather::Weather::for_map(level.id, event, true);
         Ok(Self {
             sequence,
             event,

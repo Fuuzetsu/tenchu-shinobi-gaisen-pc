@@ -24,6 +24,7 @@ impl Actor {
         }
         self.clear_attack(ctx, 3)?;
         self.health = 0;
+        self.unarmed_death = false;
         self.attribute &= !ATTR_SUSPEND;
         ctx.scene.models[self.parts[0]].attribute |= crate::scene::COLLIDE;
         self.hit = None;
@@ -163,6 +164,7 @@ impl Actor {
         if self.health < 1 || world.intelligence.cinematic || self.motion.action == MOT_SWIM_EXIT {
             return Ok(None);
         }
+        self.unarmed_death = false;
         let hit = self.hit.ok_or("Hit actor has no collision slot")?;
         if self.id == world.player {
             ctx.camera.normal(self, ctx.math)?;
@@ -240,6 +242,7 @@ impl Actor {
         }
         let enemy_position = enemy.position;
         let enemy_kind = enemy.kind;
+        let unarmed = enemy.unarmed_attack();
         let protection = enemy.active_item == 12;
         let power = ctx.mission.weapons.attacks[enemy.attack_id(ctx, enemy.motion.action)].power;
         let delta =
@@ -401,6 +404,7 @@ impl Actor {
         let (mut next, movement);
         if self.health <= 0 {
             self.health = 0;
+            self.unarmed_death = unarmed;
             world.combat.death_sound = Some(self.id);
             if tier != 3 {
                 next = MOT_DEAD;

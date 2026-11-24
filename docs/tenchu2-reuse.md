@@ -138,6 +138,45 @@ research, decomp and viewer repositories were consulted read-only; none supplies
 the T2 campaign frontend. No sibling code or game assets were imported. Audit
 logs and disassembly remain in `private/t2-campaign-audit-20261113`.
 
+## Native T2 battle music
+
+The JP `GAME.EXE` scheduler at `80065b6c`–`80065cb4` requests music only when
+the suppression flag is zero, XA state is idle (`-1`) and player health is not
+zero. Objectives 3 and 4 select cue 10 for first-target kinds `EF`, `F2` and
+`F9`, otherwise cue 9. This runs before the mission-end countdown begins; an
+existing countdown skips the scheduler. Selection follows the mission target's
+authored kind, including the intermediate Tatsumaru encounter at sequence 203.
+
+The source cue table is `80081244`, with `MUSIC_J.XA` at path pointer
+`80013260`. The XA start routine `80016c68` reads its channel and BCD sector
+range. Callback `80016df8` checks the end sector and repeat byte; both battle
+cues are one-shot. The gameplay scheduler requests them again after the stream
+becomes idle. Native playback therefore retains the whole table extent at
+150 sectors/second on the nominal 30 Hz game clock, including the quiet tail
+after decoded audio ends, and explicitly restarts the one-shot clip. It does
+not derive this clock from renderer cadence or emulate CD seek latency.
+Player injury/status deaths replace it with `kind * 2 + 14` (`8001fed4`,
+`80021cd8`); falling/terrain deaths use `kind * 2 + 15` (`8001d4ac`).
+Scene changes stop the previous stream; save/rewind restores its cue and tick
+offset. Optional sandbox theme selection keeps its existing continuous loop.
+
+The Gaisen decomp, glitch-research music code and viewer were checked read-only;
+they do not supply this native T2 scheduler. This change reuses the port's XA
+parser, mixer, campaign transition and tutorial checkpoint patterns. A local
+Unicorn oracle, following the existing campaign oracle setup, executes the JP
+instructions across 18,432 objective/target/health/suppression/XA-state cases.
+Disc-backed isolated regressions cover all 24 authored boss areas (20 cue 9,
+four cue 10), decoded audio, repeated end boundaries, death replacement,
+mission-ending order, story transitions and checkpoint/rewind continuation.
+These are bounded audio fixtures, not ordinary-play campaign validation.
+Executable bytes, oracle JSONL and logs remain outside Git in the local
+`tenchu-discord-audit/fixes-20261124/126` evidence directory. Run the checks with
+`TENCHU2_DISC` and `TENCHU2_MUSIC_ORACLE` set:
+
+```sh
+./dev.sh cargo test -p tenchu-pc --lib tenchu2::native::music::tests -- --ignored --nocapture
+```
+
 ## Native T2 story effects
 
 The 2026-11-12 completion uses JP `EVENT.BIN` command dispatch `800d42b4`,
@@ -217,3 +256,82 @@ fields, original states, audio and video remain private under
 ordinary-play or pixel-for-pixel rendering comparison. The existing instruction
 oracles cover item timing, cancellation, targeting, placement and leaf motion.
 Sibling repositories were consulted read-only; no sibling code was imported.
+
+## Original native weather (#125)
+
+The native runtime previously had no source weather state or draw output. Story
+commands 35/36 changed a presentation flag, while only the optional PC weather
+renderer supplied precipitation. The source weather implementation now runs after
+the ordinary effect pool and before map ambience, matching `DrawEffects`.
+
+Read-only reference: `tenchu-2-decomp` at
+`4dc42d1451876954b7db456a3d11107fd74324bb`, matching JP `GAME.EXE`
+SHA-256 `3bbc636c1d18dba2827b61dab84ae247218d7073eab7482ce382d15402dd829b`.
+Relevant functions are `InitMapEffects` (`8003ab60`), rain init/draw/reset
+(`8004264c`, `800427d8`, `80042afc`), weather enable/disable/clear/thunder
+(`80042bfc`, `80042c0c`, `80042c18`, `80042c28`) and snow init/draw/reset
+(`80042ce0`, `80042e18`, `8004303c`). The matching sources are
+`src/game.exe/{map_effect_init,rain_init,rain_draw,rain_reset,snow_init,snow_draw,
+snow_reset,weather_control}.c`, `src/shared/effect_dispatch.inc` and
+`src/shared/rain_init.inc`. The three Gaisen research/viewer repositories were
+also reviewed read-only; their distinct T1 snow code was not used.
+
+| JP area | Gameplay sequences | Source weather |
+| --- | --- | --- |
+| Toda War Camp, map 8 | 28, 30, 128, 198, 200, 203 | Rain with thunder |
+| Gohda Castle, Ayame map 5 | 119, 121 | Rain |
+| Gohda Castle, Tatsumaru map 6 | 189, 191 | Rain |
+| Burning Dawn Temple, Rikimaru map 15 | 56, 58 | Snow |
+
+Map 15 resource 16 uses rain; event sequences suppress thunder. Each system owns
+eight 16-particle blocks. The port preserves signed halfword timers, rain's
+three-tick splash delay, the source block-stride pointer behavior, snow's
+nonaccumulating random drift, terrain-cursor differences, and random-call order.
+Rain uses the original additive gradient lines and `EFFECT.ARC` image 33;
+snow uses image 32 with source perspective scaling. Thunder retains the original
+white additive flash and sound 43, including its zero-delay sound omission.
+The thunder timer/delay globals survive area and event initialization.
+`SpawnSmoke` (`8003ddec`) and `SpawnMovementTrail` (`8003db48`) suppress only
+kind-zero dust while weather is enabled, before allocation or RNG. Their source
+predicates also apply to scripted dust; weather toggles and dust commands retain
+their order when they share a cutscene frame.
+
+Gameplay advances weather once at the existing display boundary before
+`finish_tick`; presentation redraws never advance it. Cutscene XA catch-up
+updates execute weather commands but omit weather drawing/state advancement,
+as the original `RunEventModule` does. Checkpoints retain particles, frame output
+and carried thunder timers. Optional Clear/Rain/Snow/storm settings replace the
+source drawing without suppressing its simulation or RNG consumption. Replacement
+modes also suppress the tagged source thunder cue while source audio state still
+advances; unrelated sound 43 events are retained. Presets need no new feature
+toggle or demo entry: Original weather is restored in the
+existing Original, Modern High and Modern Ultra defaults.
+
+Validation on 2026-11-24 reused `tools/check_weather.py` and
+`tools/check_weather_drawing.py` from the reference repository. A private adapter
+executes the original weather instructions and original terrain queries against
+the user's map collision data. All 12 initializations and 6,144 updates match
+particle state, terrain cursor, RNG seed/call count, 37 flash calls and five sound
+calls. Cases include moving camera references, enable/disable, event suppression,
+resource 16, nonunit stride and particle/thunder halfword edges. Projection is a
+supplied boundary in that instruction fixture; it is not a pixel comparison.
+
+Disc-backed integration checks cover all twelve gameplay layouts, a dry stage,
+the 28→29→30 and 56→57→58 gameplay/event/boss transitions, scripted weather
+commands on drawn and skipped frames, gameplay/cutscene checkpoint replay, and
+all seven weather choices under Original/Modern High/Modern Ultra. Additional
+checks cover dust allocation/RNG with enabled, disabled and absent weather,
+same-frame weather/dust command order, and source thunder filtering without
+changing game state or unrelated sound IDs. Before/after GPU captures use baseline
+`c3bbf1f1`, JP sequences 28/56/119/189, seed 1, fixed
+initial actor/camera state, 180 isolated source-effect updates, Original preset,
+retail artwork and hidden HUD. All eight images were inspected, as were rain/snow
+Modern High/Ultra and Clear captures. Evidence, scripts and logs remain outside
+Git under `~/.local/share/tenchu-discord-audit/fixes-20261124/125`.
+
+The existing BizHawk `TenchuWorker` capture tool also records retail reference
+rain and snow with explicit mission-routing setup writes. These controlled
+fixtures and instruction comparisons establish this weather fix; they do not
+constitute a new ordinary-play input/draw-skip recording, complete-game validation
+or pixel-for-pixel PS1 rendering parity. Native play remains JP-only; EU still
+uses the scenery sandbox.

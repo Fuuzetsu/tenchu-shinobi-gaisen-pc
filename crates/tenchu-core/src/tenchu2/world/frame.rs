@@ -141,13 +141,22 @@ impl World {
 
     pub fn update_effects(&mut self, assets: &Assets) -> Result<crate::tenchu2::effects::Frame> {
         let view = self.view();
-        let frame = self.effects.update(
+        let mut frame = self.effects.update(
             &mut self.scene,
             view,
             &self.terrain,
             &mut self.cursor,
             &assets.resources.math,
         )?;
+        if let Some(weather) = &mut self.effects.weather {
+            frame.weather = weather.update(
+                view,
+                &self.terrain,
+                &mut self.cursor,
+                &assets.resources.math,
+                &mut self.random,
+            )?;
+        }
         if self.random.next15() & 15 == 0 {
             self.effects.ambient_ripple(
                 self.actors[self.player].actor.position,
@@ -186,7 +195,7 @@ impl World {
                     assets.hero == 2 && self.map >= 12,
                 );
                 let event = if index == self.player && self.controls.death_music {
-                    Event::DeathMusic
+                    Event::FallDeathMusic
                 } else {
                     Event::Voice(15)
                 };

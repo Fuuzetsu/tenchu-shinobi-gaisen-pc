@@ -123,6 +123,8 @@ pub struct Actor {
     pub sheathing: Option<crate::game::sheathing::State>,
     pub bleeding: Option<crate::game::bleeding::State>,
     pub severed: Option<crate::game::dismemberment::Part>,
+    #[serde(default)]
+    pub(crate) unarmed_death: bool,
     pub(crate) suppress_idle_taunts: bool,
     #[serde(default)]
     pub(crate) imported_holster: bool,
@@ -246,6 +248,7 @@ impl Actor {
             sheathing: None,
             bleeding: None,
             severed: None,
+            unarmed_death: false,
             suppress_idle_taunts: false,
             imported_holster: false,
             sheathing_motions: Vec::new(),

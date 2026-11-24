@@ -62,6 +62,19 @@ pub const THEMES: [(u16, &str); 8] = [
 ];
 
 pub fn tracks(disc: &Disc<impl ReadAt>) -> Result<Vec<Track>> {
+    let mut cues = cues(disc)?;
+    THEMES
+        .iter()
+        .map(|&(id, _)| {
+            let mut track = cues.remove(&id).ok_or("Missing Tenchu 2 music cue")?;
+            // The optional sandbox repeats its selection independently of gameplay.
+            track.repeat = true;
+            Ok(track)
+        })
+        .collect()
+}
+
+pub fn cues(disc: &Disc<impl ReadAt>) -> Result<std::collections::BTreeMap<u16, Track>> {
     let (edition, bytes) = super::executable(disc)?;
     let addresses = edition.addresses();
     let exe = Executable::new(&bytes)?;
@@ -73,32 +86,28 @@ pub fn tracks(disc: &Disc<impl ReadAt>) -> Result<Vec<Track>> {
         .unwrap()
         .replace('\\', "/");
     let file = disc.find(&path)?;
-    let mut tracks = vec![None; THEMES.len()];
+    let mut tracks = std::collections::BTreeMap::new();
     for index in 0..64 {
         let row = exe.bytes(addresses.music_cues + index * 8, 8)?;
         if u16_le(row, 6)? == 0 {
-            return tracks
-                .into_iter()
-                .collect::<Option<Vec<_>>>()
-                .ok_or_else(|| "Missing Tenchu 2 music cue".into());
+            return Ok(tracks);
         }
         let id = u16_le(row, 0)?;
-        // Retail restarts some songs outside the XA callback, despite repeat = 0.
-        let Some(selected) = THEMES.iter().position(|&(cue, _)| cue == id) else {
-            continue;
-        };
         let start = time(&row[4..6])?;
         let end = time(&row[6..8])?;
         if row[3] > 31 || start >= end || end > file.size.div_ceil(2048) {
             return Err("Invalid Tenchu 2 music cue".into());
         }
-        tracks[selected] = Some(Track {
+        let track = Track {
             path: path.clone(),
             channel: row[3],
             start,
             end,
-            repeat: true,
-        });
+            repeat: row[2] != 0,
+        };
+        if tracks.insert(id, track).is_some() {
+            return Err("Duplicate Tenchu 2 music cue".into());
+        }
     }
     Err("Unterminated Tenchu 2 music table".into())
 }

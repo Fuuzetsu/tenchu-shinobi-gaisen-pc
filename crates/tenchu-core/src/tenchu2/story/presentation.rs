@@ -160,7 +160,10 @@ impl Presentation {
                         })
                     }
                     Command::CameraRoll(value) => self.camera_roll = *value,
-                    Command::Weather(enabled) => self.weather = *enabled,
+                    Command::Weather(enabled) => {
+                        self.weather = *enabled;
+                        output.effects.push(index);
+                    }
                     Command::Caption { duration, .. } => {
                         self.caption = (*duration != 0).then_some(Caption {
                             command: index,

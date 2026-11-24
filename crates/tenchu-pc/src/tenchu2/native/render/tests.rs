@@ -6,6 +6,7 @@ mod heroes;
 mod indexed;
 mod invisibility;
 mod items;
+mod weather;
 
 #[test]
 #[ignore = "requires TENCHU2_DISC, TENCHU_MODEL_REVIEW and GPU; sound marker geometry, labels and photo-mode suppression"]
@@ -2649,4 +2650,35 @@ fn distant_scenery_fixture(training: bool) {
         "moving props did not cast shadows ({changed} pixels)"
     );
     assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+}
+
+pub(in crate::tenchu2::native) fn capture_unarmed_death(
+    s: &crate::tenchu2::native::Session,
+    guard: usize,
+    path: &std::path::Path,
+) {
+    use glam::Vec3;
+    let graphics = crate::settings::Graphics {
+        fog: false,
+        asset_pack: false,
+        ..Default::default()
+    };
+    super::capture_frame(&s.assets.sprites.vram, &graphics, path, |renderer| {
+        let mut drawing = super::Drawing::new(s, &graphics, renderer)?;
+        let p = s.world.actors[guard].actor.position;
+        let center = Vec3::new(p.x as f32, p.y as f32 - 350.0, p.z as f32);
+        let mut camera = crate::debug::camera::Camera::from_view(s.world.camera.view, 300.0);
+        camera.position = center + Vec3::new(1800.0, -1600.0, 2000.0);
+        let direction = (center - camera.position).normalize();
+        camera.yaw = direction.x.atan2(direction.z);
+        camera.pitch = (-direction.y).asin();
+        drawing.camera = Some(camera);
+        drawing.show_hud = false;
+        drawing.update(s, renderer, None)?;
+        drawing.scene.backgrounds.clear();
+        drawing.scene.terrain = renderer.upload(&[]);
+        drawing.scene.props = renderer.upload(&[]);
+        Ok((drawing.scene, camera.source_view(), Vec::new()))
+    })
+    .unwrap();
 }

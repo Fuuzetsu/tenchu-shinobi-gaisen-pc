@@ -157,6 +157,7 @@ pub enum Event {
     Burn,
     Heal,
     DeathMusic,
+    FallDeathMusic,
     UseItem {
         item: Item,
         direction: Option<Position>,

@@ -432,6 +432,100 @@ fn native_unarmed_attacks_damage_actors() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; lethal optional punches/kicks must not sever limbs, including checkpoint continuation"]
+fn native_unarmed_lethal_hits_keep_limbs_attached() {
+    use tenchu_core::tenchu2::rig::WeaponMode;
+    let gaisen = gaisen();
+    for hero in 0..3 {
+        for style in UnarmedStyle::ALL {
+            let (mut s, guard) = super::super::dismemberment_tests::fixture(hero);
+            configure(&mut s, &gaisen, style);
+            weapon(&mut s, false);
+            s.world.controls.dismemberment = tenchu_core::game::dismemberment::Settings {
+                enabled: true,
+                arms: 100,
+                right_arm: 100,
+                ..Default::default()
+            };
+            let player = s.world.player;
+            let actor = &mut s.world.actors[guard].actor;
+            actor.position = Position::new(2000, 0, -2000);
+            actor.previous = actor.position;
+            actor.health = 1;
+            actor
+                .set_weapon(
+                    &mut s.world.instances[guard].rig,
+                    guard,
+                    &mut s.world.collision,
+                    &s.assets.resources,
+                    WeaponMode::Draw,
+                )
+                .unwrap();
+            actor
+                .set_body_collision(
+                    s.world.instances[guard].rig.joints[0],
+                    guard,
+                    &mut s.world.collision,
+                    true,
+                )
+                .unwrap();
+            s.world.publish(guard, &s.assets);
+            s.step(ATTACK).unwrap();
+            assert!(s.world.actors[player].actor.unarmed_attack());
+            let mut placed = false;
+            let mut saved = false;
+            for _ in 0..200 {
+                if !placed && s.world.actors[player].actor.attack.contacts != 0 {
+                    let contact = s
+                        .world
+                        .collision
+                        .slots()
+                        .iter()
+                        .find(|c| {
+                            c.owner == Some(player)
+                                && c.flags == tenchu_core::tenchu2::collision::WEAPON
+                                && c.position.y < -400
+                        })
+                        .unwrap()
+                        .position;
+                    let actor = &mut s.world.actors[guard].actor;
+                    actor.position.x = contact.x;
+                    actor.position.z = contact.z;
+                    actor.previous = actor.position;
+                    s.world.publish(guard, &s.assets);
+                    s.world
+                        .collision
+                        .compute(|m| s.world.scene.world(m))
+                        .unwrap();
+                    placed = true;
+                }
+                s.step(0).unwrap();
+                if !saved && s.world.actors[guard].actor.health == 0 {
+                    let checkpoint = s.capture_state().unwrap();
+                    s.restore_state(&checkpoint).unwrap();
+                    saved = true;
+                }
+            }
+            assert!(saved, "hero {hero}, {style:?}: no lethal hit");
+            if let Some(out) = std::env::var_os("TENCHU_MODEL_REVIEW") {
+                let out = std::path::PathBuf::from(out);
+                std::fs::create_dir_all(&out).unwrap();
+                super::super::render::capture_unarmed_death(
+                    &s,
+                    guard,
+                    &out.join(format!("unarmed-death-{hero}-{style:?}.png")),
+                );
+            }
+            assert!(
+                s.world.actors[guard].actor.severed().is_none(),
+                "hero {hero}, {style:?}"
+            );
+            assert!(!s.world.actors[player].actor.unarmed_attack());
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and Japanese TENCHU2_DISC; grounded direction, crouch and dodge attacks select the optional style and leave weapons stowed"]
 fn native_unarmed_directional_entries_and_contacts() {
     let gaisen = gaisen();

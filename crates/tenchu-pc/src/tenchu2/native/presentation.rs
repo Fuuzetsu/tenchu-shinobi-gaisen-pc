@@ -39,7 +39,7 @@ fn swap_menu_icons(
 }
 
 impl Update {
-    pub fn play_audio(&self, output: &Output) {
+    pub fn play_audio(&self, output: &Output, weather: crate::settings::WeatherMode) {
         if self.stop_music {
             output.send(Command::Music(None, false));
         }
@@ -48,6 +48,11 @@ impl Update {
         }
         for sound in &self.sounds {
             output.send(Command::Tenchu2Effect(sound.clone()));
+        }
+        if weather == crate::settings::WeatherMode::Original
+            && let Some(sound) = self.weather_sound
+        {
+            output.send(Command::Tenchu2Effect(sound.into()));
         }
         for sound in &self.original_sounds {
             output.send(Command::Effect(sound.clone()));
@@ -144,6 +149,7 @@ impl Content {
                 if let Some(training) = &session.training {
                     training.resume(session.world.tick, output);
                 }
+                session.music.resume(session.world.tick, output);
             }
             Self::Equipment(selection) => output.send(Command::Bank(selection.bank.clone())),
             Self::Results(results) => output.send(Command::Bank(results.bank.clone())),

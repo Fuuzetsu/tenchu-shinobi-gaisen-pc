@@ -16,6 +16,7 @@ mod spawn;
 pub mod sprites;
 pub mod surface;
 pub mod water;
+pub mod weather;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Effect {
@@ -48,6 +49,8 @@ pub struct Effects {
     pub entries: Vec<Effect>,
     pub blood_phase: bool,
     sprite_rotations: Vec<i32>,
+    #[serde(default)]
+    pub weather: Option<weather::Weather>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,6 +91,8 @@ pub struct Frame {
     pub quads: Vec<surface::Quad>,
     pub ribbons: Vec<ribbon::Drawing>,
     pub blood_sounds: Vec<Position>,
+    #[serde(default)]
+    pub weather: weather::Frame,
 }
 
 impl Effects {

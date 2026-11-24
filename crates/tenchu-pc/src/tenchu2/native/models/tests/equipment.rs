@@ -157,6 +157,7 @@ fn independent_equipment_and_voice_in_native_t2() {
                 wounds: Vec::new(),
                 melee_hits: BTreeSet::new(),
                 gunshots: Vec::new(),
+                music: None,
                 pending: &mut pending,
             };
             for cue in [0, 1, 2, 10, 13, 15] {
@@ -332,6 +333,7 @@ fn native_t2_uses_explicit_english_t1_voices() {
             wounds: Vec::new(),
             melee_hits: BTreeSet::new(),
             gunshots: Vec::new(),
+            music: None,
             pending: &mut pending,
         };
         for cue in [0, 1, 2, 6, 10, 13, 14, 15] {
