@@ -149,7 +149,7 @@ impl View {
                 if !menu.panel.open && !menu.modal_open() {
                     session.action = session
                         .content
-                        .controls(ctx, state.settings.circle_confirm, false)
+                        .controls(ctx, state.settings.menu_buttons(), false)
                         .or(session.action);
                     session.content.inspect(
                         ctx,
@@ -381,12 +381,12 @@ impl Application {
             self.paused = true;
         }
         self.menu
-            .controller(polled.menu_pressed, self.settings.circle_confirm);
+            .controller(polled.menu_pressed, self.settings.menu_buttons());
         if !self.menu.panel.open
             && !self.menu.modal_open()
             && self
                 .session
-                .controller_pause(polled.menu_pressed, self.settings.circle_confirm)
+                .controller_pause(polled.menu_pressed, self.settings.menu_buttons())
         {
             self.paused = !self.paused;
         }

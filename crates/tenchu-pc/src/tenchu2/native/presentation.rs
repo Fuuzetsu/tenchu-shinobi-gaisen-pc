@@ -171,15 +171,11 @@ impl Content {
     pub fn controls(
         &self,
         ctx: &egui::Context,
-        circle_confirm: bool,
+        menu_buttons: crate::settings::MenuButtons,
         switch_games: bool,
     ) -> Option<Action> {
         let mut action = None;
-        let (confirm, back) = if circle_confirm {
-            ("Circle", "Cross")
-        } else {
-            ("Cross", "Circle")
-        };
+        let (confirm, back) = menu_buttons.names();
         if let Self::Title(title) = self {
             action = title::controls(title, ctx, confirm, switch_games);
         } else if let Self::MissionSelection(selection) = self {
@@ -526,14 +522,14 @@ impl ContentDrawing {
                 Ok(())
             }
             (Self::MissionSelection(drawing), Content::MissionSelection(selection)) => {
-                drawing.update(selection, settings.circle_confirm)
+                drawing.update(selection, settings.menu_buttons())
             }
             (Self::Prologue(drawing), Content::Prologue(intro)) => {
                 drawing.update_prologue(intro, settings.sharp_text);
                 Ok(())
             }
             (Self::Equipment(drawing), Content::Equipment(selection)) => {
-                drawing.update(selection, settings.sharp_text, settings.circle_confirm);
+                drawing.update(selection, settings.sharp_text, settings.menu_buttons());
                 Ok(())
             }
             (Self::Gameplay(drawing), Content::Gameplay(session)) => {
@@ -553,7 +549,7 @@ impl ContentDrawing {
             }
             (Self::Movie { .. }, Content::Movie(_) | Content::TitleMovie { .. }) => Ok(()),
             (Self::Results(drawing), Content::Results(results)) => {
-                drawing.update(results, settings.sharp_text, settings.circle_confirm);
+                drawing.update(results, settings.sharp_text, settings.menu_buttons());
                 Ok(())
             }
             (Self::Empty, Content::Failed | Content::Complete) => Ok(()),

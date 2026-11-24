@@ -117,11 +117,11 @@ impl Editor {
             ui.label("Click a binding, then press a key, button or stick direction. Changes save automatically. × clears a binding; Escape cancels capture.");
             if tenchu2 {
                 ui.weak("Bindings are shared with Gaisen. Original T2 controls use Circle to guard/dash and R1 to crouch. F1 > Movement > Shift / Circle action can change this. Assigning an input moves it from its previous action.");
-                ui.weak("Original menus: Circle confirms, Cross cancels. Gameplay stance settings do not swap menu buttons.");
+                ui.weak("F1 → General → Menu buttons selects the confirm/back convention. Gameplay stance settings do not swap menu buttons.");
             } else {
             ui.weak("Actions shown for original layout 1. Other original layouts still apply. Assigning an input moves it from its previous action.");
             ui.weak("F1 > Movement > Shift / Circle action follows the moveset by default: T1 crouches; T2 guards/dashes, with R1 for crouch. In the T1 scheme, optional R1 guard mode holds guard with a fresh direction press to dash; hold crouch to roll.");
-            ui.weak("Menu buttons stay at their physical positions. F1 → General → Circle confirms in menus selects Japanese or Western confirmation.");
+            ui.weak("Menu buttons stay at their physical positions. F1 → General → Menu buttons selects the confirm/back convention.");
             }
             ui.horizontal(|ui| {
                 for (device, label) in [(Device::Keyboard, "Keyboard"), (Device::Controller, "Controller")] {

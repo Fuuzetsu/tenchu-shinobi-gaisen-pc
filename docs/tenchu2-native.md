@@ -71,10 +71,10 @@ JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
 desktop. A damaged or newer-format file reports an error instead of being reset.
 The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
-**General → Circle confirms in menus** applies to F1, mission selection,
-equipment, results and retry/death prompts in both launchers. Off uses
-South/Cross to confirm and East/Circle to go back; on reverses them. In equipment,
-confirm adds an item and back removes it; Start/Enter begins the mission.
+**General → Menu buttons** applies to F1, mission selection, equipment, results
+and retry/death prompts in both launchers. Choose Cross/Circle (South/East),
+Circle/Cross (East/South), or Cross/Triangle (South/North) for confirm/back.
+In equipment, confirm adds an item and back removes it; Start/Enter begins the mission.
 Controller menu positions ignore gameplay remapping, and touch controls follow
 the same convention. The source button legends and PC prompts update immediately.
 Enter/Esc retain their keyboard actions. Gameplay and cutscene skip buttons keep

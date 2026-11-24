@@ -857,3 +857,141 @@ fn shop_snow_follows_selection_before_mission_is_loaded() {
         assert_eq!(state, crate::session::tests::state(&campaign.game));
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC, TENCHU_MENU_REVIEW and GPU; three menu conventions update localized prompts and restore art without changing gameplay"]
+fn menu_conventions_update_prompts_and_preserve_gameplay() {
+    use crate::{
+        controls::{Command, gamepad_command},
+        settings::{MenuButtons, Settings},
+    };
+    let path = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Default::default()).unwrap();
+    let output = std::path::PathBuf::from(std::env::var_os("TENCHU_MENU_REVIEW").unwrap());
+    std::fs::create_dir_all(&output).unwrap();
+    let instance = wgpu::Instance::new(&Default::default());
+    let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+    let size = [1280, 720];
+    let format = wgpu::TextureFormat::Rgba8Unorm;
+    let mut renderer = pollster::block_on(crate::renderer::Renderer::new(
+        &adapter,
+        format,
+        size,
+        &Default::default(),
+    ))
+    .unwrap();
+    let ctx = egui::Context::default();
+    crate::fonts::install(&ctx);
+    let mut overlay = egui_wgpu::Renderer::new(&renderer.device, format, None, 1, false);
+    crate::frontend::gpu::register(&mut overlay, format);
+    let mut settings = Settings::default();
+    settings.graphics.asset_pack = false;
+    let before = crate::session::tests::state(&campaign.game);
+    for language in [
+        Language::English,
+        Language::Japanese,
+        Language::French,
+        Language::Italian,
+    ] {
+        frontend.language(&assets, language).unwrap();
+        for page in [
+            Page::Character,
+            Page::Missions,
+            Page::Options,
+            Page::Choice(1),
+        ] {
+            frontend.set_page(page);
+            frontend.ticks = 120;
+            let mut captures = Vec::new();
+            for (step, convention) in [
+                MenuButtons::CircleCross,
+                MenuButtons::CrossCircle,
+                MenuButtons::CrossTriangle,
+                MenuButtons::CircleCross,
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                settings.set_menu_buttons(convention);
+                let filename = output.join(format!(
+                    "t1-{language:?}-{page:?}-{step}-{convention:?}.png"
+                ));
+                for _ in 0..3 {
+                    let frame = ctx.run(
+                        egui::RawInput {
+                            screen_rect: Some(egui::Rect::from_min_size(
+                                egui::Pos2::ZERO,
+                                egui::vec2(size[0] as f32, size[1] as f32),
+                            )),
+                            ..Default::default()
+                        },
+                        |ctx| {
+                            frontend.show(ctx, &campaign, false, true, &settings);
+                        },
+                    );
+                    let jobs = ctx.tessellate(frame.shapes, frame.pixels_per_point);
+                    renderer.update_overlay_textures(
+                        &mut overlay,
+                        &mut Vec::new(),
+                        frame.textures_delta,
+                    );
+                    crate::capture::render_to_png(
+                        &mut renderer,
+                        size,
+                        format,
+                        &filename,
+                        |renderer, target| {
+                            renderer.draw(target, glam::Mat4::IDENTITY, &[], None)?;
+                            renderer.draw_overlay(
+                                target,
+                                &mut overlay,
+                                &jobs,
+                                &egui_wgpu::ScreenDescriptor {
+                                    size_in_pixels: size,
+                                    pixels_per_point: 1.0,
+                                },
+                            );
+                            Ok(())
+                        },
+                    )
+                    .unwrap();
+                }
+                assert_eq!(frontend.menu_buttons, convention);
+                if convention == MenuButtons::CrossTriangle && page != Page::Options {
+                    assert!(
+                        frontend.canvas.text.iter().any(|t| t.text.contains('△')),
+                        "{language:?}/{page:?}: missing Triangle legend"
+                    );
+                }
+                captures.push(std::fs::read(filename).unwrap());
+                assert_eq!(crate::session::tests::state(&campaign.game), before);
+            }
+            assert!(
+                captures[0] == captures[3],
+                "{language:?}/{page:?}: original did not restore"
+            );
+            if page != Page::Options {
+                assert!(captures[1] != captures[2]);
+            }
+        }
+    }
+    for convention in MenuButtons::ALL {
+        let (confirm, back) = convention.buttons();
+        frontend.set_page(Page::Options);
+        frontend.option_selection = 1;
+        frontend.ticks = 120;
+        for physical in [confirm, back] {
+            let Some(Command::Menu(action)) = gamepad_command(physical, false, false, convention)
+            else {
+                panic!("missing menu action")
+            };
+            frontend.action(action, &mut campaign, &assets).unwrap();
+            frontend.ticks = 120;
+        }
+        assert_eq!(frontend.page, Page::Options);
+        assert_eq!(crate::session::tests::state(&campaign.game), before);
+    }
+}

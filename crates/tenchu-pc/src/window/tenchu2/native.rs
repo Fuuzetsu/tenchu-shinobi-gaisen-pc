@@ -281,7 +281,7 @@ impl Application {
             .as_mut()
             .unwrap()
             .menu
-            .controller(update.menu_pressed, self.settings.circle_confirm);
+            .controller(update.menu_pressed, self.settings.menu_buttons());
         if !self.native_tenchu2.as_ref().unwrap().menu.panel.open
             && !self.native_tenchu2.as_ref().unwrap().menu.modal_open()
             && self
@@ -289,7 +289,7 @@ impl Application {
                 .as_mut()
                 .unwrap()
                 .playback
-                .controller_pause(update.menu_pressed, self.settings.circle_confirm)
+                .controller_pause(update.menu_pressed, self.settings.menu_buttons())
         {
             self.paused = !self.paused;
             self.sync_pause();
@@ -604,7 +604,7 @@ impl Application {
                 native.playback.action = native
                     .playback
                     .content
-                    .controls(ctx, self.settings.circle_confirm, true)
+                    .controls(ctx, self.settings.menu_buttons(), true)
                     .or(native.playback.action);
                 native.playback.content.inspect(
                     ctx,

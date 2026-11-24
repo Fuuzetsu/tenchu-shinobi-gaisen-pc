@@ -15,7 +15,7 @@ impl Application {
         let polled = self.controls.poll(self.focused);
         native
             .menu
-            .controller(polled.menu_pressed, self.settings.circle_confirm);
+            .controller(polled.menu_pressed, self.settings.menu_buttons());
         self.controls.clear();
         self.controls.stop_rumble();
         if let Some(audio) = &mut self.audio {

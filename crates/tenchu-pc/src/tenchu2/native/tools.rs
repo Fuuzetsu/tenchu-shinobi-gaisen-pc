@@ -305,7 +305,7 @@ impl Tools {
         if enabled {
             if menu {
                 controls
-                    .japanese_menu_buttons(settings.circle_confirm)
+                    .japanese_menu_buttons(settings.menu_buttons())
                     .swap_bytes()
             } else {
                 controls.buttons().swap_bytes()

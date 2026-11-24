@@ -1161,7 +1161,7 @@ impl View {
             ui::build(
                 campaign,
                 paused,
-                settings.circle_confirm,
+                settings.menu_buttons(),
                 error,
                 settings.sharp_text.then_some(&mut self.text),
             )
@@ -1291,7 +1291,7 @@ impl View {
                 crate::debug::Anchor::BottomLeft([12.0, 20.0]),
                 format!(
                     "Enter / {} / Start: continue",
-                    crate::controls::menu_labels(settings.circle_confirm).0
+                    crate::controls::menu_labels(settings.menu_buttons()).0
                 ),
                 [1.0, 0.85, 0.35],
             ));

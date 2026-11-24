@@ -366,7 +366,7 @@ impl Frontend {
         }
         self.canvas.text_label(
             Sprite::new(&self.mission_art.shop, -64.0, 97.0).region([0, 207, 192, 12]),
-            labels::shop_buttons(self.language, self.circle_confirm),
+            labels::shop_buttons(self.language, self.menu_buttons),
             egui::Color32::LIGHT_GRAY,
         );
         for (&item, &[x, y]) in campaign.shop.order.iter().zip(&campaign.shop.positions) {

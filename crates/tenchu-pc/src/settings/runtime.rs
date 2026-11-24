@@ -20,8 +20,8 @@ impl Runtime {
             && item == Item::VibrationAction(tenchu_core::effects::RumbleAction::TargetHit)
         {
             "Native T2's pulses when hitting animals or breakable scenery."
-        } else if self == Self::Tenchu2 && item == Item::CircleConfirm {
-            "Circle / East confirms in F1, mission selection, results and retry/death prompts; Cross / South goes back. Off reverses them. Equipment uses confirm to add and back to remove; Start/Enter begins. Physical menu buttons ignore gameplay remapping. Enter/Esc keep their keyboard actions; gameplay and cutscene skip buttons retain their source controls."
+        } else if self == Self::Tenchu2 && item == Item::MenuButtons {
+            "Choose Cross / Circle, Circle / Cross, or Cross / Triangle for confirm / back in F1, mission selection, results and retry/death prompts. Equipment uses confirm to add and back to remove; Start/Enter begins. Physical menu buttons ignore gameplay remapping. Enter/Esc keep their keyboard actions; gameplay and cutscene skip buttons retain their source controls."
         } else if self == Self::Tenchu2 && item == Item::CircleAction {
             "Default keeps native T2 controls for every model and moveset: Circle holds the guard stance, directions dodge, and R1 crouches. While settled against a wall, Circle plus a direction rolls away. By default, stowed weapons retain the stance and dodges but cannot block hits; enable Allow unarmed blocking to block frontal melee without drawing. Crouch explicitly swaps Circle and R1. Rebind physical buttons under General > Controls."
         } else if self == Self::Tenchu2 && item == Item::AnalogWalking {
@@ -222,7 +222,7 @@ impl Runtime {
             | CollisionOnly | Target(_) | PlayerPosition | CameraPosition | SnapFloor
             | Teleport | PickTeleport | ClickTeleport | KillActor | ClickKill | Screenshot
             | ActorPosition | PickActorPosition | MoveActor | RemoveActor | SpawnActor => None,
-            CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
+            MenuButtons | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,
             Sheathing | UnarmedAttacks | UnarmedStyle | HeroUnarmedStyle(_) | UnarmedGuard

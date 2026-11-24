@@ -40,14 +40,14 @@ fn time(clock: i32) -> String {
 pub fn build(
     campaign: &Campaign,
     paused: bool,
-    circle_confirm: bool,
+    menu_buttons: crate::settings::MenuButtons,
     error: Option<&str>,
     text: Option<&mut Vec<crate::fonts::Text>>,
 ) -> Geometry {
     if campaign.playing() && !paused && error.is_none() {
         return render_effects::build(&campaign.game);
     }
-    let (confirm, back) = crate::controls::menu_labels(circle_confirm);
+    let (confirm, back) = crate::controls::menu_labels(menu_buttons);
     let mut lines = Vec::new();
     let mut line = |x, y, text: String, color| lines.push((x, y, text, color));
     if let Some(error) = error {

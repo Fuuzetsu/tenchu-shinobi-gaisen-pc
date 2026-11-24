@@ -92,8 +92,12 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
         let before = state(&content);
         let mut drawing = ContentDrawing::new(&content, &settings.graphics, &mut renderer).unwrap();
         let mut captures = Vec::new();
-        for (step, circle_confirm) in [true, false, true].into_iter().enumerate() {
-            settings.circle_confirm = circle_confirm;
+        use crate::settings::MenuButtons::*;
+        for (step, convention) in [CircleCross, CrossCircle, CrossTriangle, CircleCross]
+            .into_iter()
+            .enumerate()
+        {
+            settings.set_menu_buttons(convention);
             drawing
                 .update(&content, &mut renderer, &Default::default(), &settings)
                 .unwrap();
@@ -111,7 +115,7 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
                         ..Default::default()
                     },
                     |ctx| {
-                        content.controls(ctx, circle_confirm, true);
+                        content.controls(ctx, convention, true);
                     },
                 );
                 renderer.update_overlay_textures(
@@ -120,7 +124,7 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
                     frame.textures_delta,
                 );
             }
-            let path = output.join(format!("{name}-{step}-circle-{circle_confirm}.png"));
+            let path = output.join(format!("{name}-{step}-{convention:?}.png"));
             crate::capture::render_to_png(
                 &mut renderer,
                 size,
@@ -138,7 +142,7 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
                         },
                         |ctx| {
                             drawing.paint(&content, ctx);
-                            content.controls(ctx, circle_confirm, true);
+                            content.controls(ctx, convention, true);
                         },
                     );
                     let jobs = ctx.tessellate(frame.shapes, frame.pixels_per_point);
@@ -167,8 +171,17 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
             );
         }
         assert!(captures[0] != captures[1], "{name}: prompt did not change");
+        if matches!(
+            content,
+            Content::MissionSelection(_) | Content::Equipment(_) | Content::Results(_)
+        ) {
+            assert!(
+                captures[1] != captures[2],
+                "{name}: Triangle prompt did not change"
+            );
+        }
         assert!(
-            captures[0] == captures[2],
+            captures[0] == captures[3],
             "{name}: original prompts did not restore"
         );
     }

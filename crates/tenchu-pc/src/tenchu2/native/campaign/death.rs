@@ -113,10 +113,14 @@ impl<S: ReadAt> Playback<S> {
         };
     }
 
-    pub fn controller_pause(&mut self, pressed: u16, circle_confirm: bool) -> bool {
-        use tenchu_core::input::{CIRCLE, CROSS, START};
+    pub fn controller_pause(
+        &mut self,
+        pressed: u16,
+        menu_buttons: crate::settings::MenuButtons,
+    ) -> bool {
+        use tenchu_core::input::START;
         if self.death.waiting() {
-            let confirm = if circle_confirm { CIRCLE } else { CROSS };
+            let (confirm, _) = menu_buttons.buttons();
             if pressed & (confirm | START) != 0 {
                 self.confirm();
             }

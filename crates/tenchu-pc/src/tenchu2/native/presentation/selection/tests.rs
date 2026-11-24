@@ -105,7 +105,7 @@ fn selection_portraits_gpu_review() {
                 continue;
             }
             let before = postcard::to_allocvec(&(&selection.state, &selection.motions)).unwrap();
-            let (frame, text) = build(&selection, Arc::default(), true).unwrap();
+            let (frame, text) = build(&selection, Arc::default(), true.into()).unwrap();
             let path = output.join(format!("gpu-hero-{hero}-tick-{tick}.png"));
             crate::capture::render_to_png(
                 &mut renderer,

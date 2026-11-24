@@ -128,8 +128,8 @@ fn native_hd_interface_restores_original_and_preserves_state() {
     settings.sharp_text = true;
     for (name, content) in cases {
         let before = state(&content);
-        for circle_confirm in [true, false] {
-            settings.circle_confirm = circle_confirm;
+        for convention in crate::settings::MenuButtons::ALL {
+            settings.set_menu_buttons(convention);
             settings.graphics.asset_pack = false;
             let mut drawing =
                 ContentDrawing::new(&content, &settings.graphics, &mut renderer).unwrap();
@@ -162,7 +162,7 @@ fn native_hd_interface_restores_original_and_preserves_state() {
                     hd,
                     "{name}: replacement not bound"
                 );
-                let path = output.join(format!("{name}-circle-{circle_confirm}-{i}-hd-{hd}.png"));
+                let path = output.join(format!("{name}-{convention:?}-{i}-hd-{hd}.png"));
                 capture(&mut drawing, &content, &mut renderer, &path);
                 captures.push(std::fs::read(path).unwrap());
                 assert!(

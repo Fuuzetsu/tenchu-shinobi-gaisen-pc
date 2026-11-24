@@ -130,10 +130,10 @@ fn native_death_hold_preserves_the_end_pose_effects_and_retry_state() {
             postcard::to_allocvec(&session(&held).world).unwrap(),
             stopped
         );
-        assert!(!held.controller_pause(0, false));
-        assert!(!held.controller_pause(tenchu_core::input::CIRCLE, false));
+        assert!(!held.controller_pause(0, false.into()));
+        assert!(!held.controller_pause(tenchu_core::input::CIRCLE, false.into()));
         assert!(held.action.is_none());
-        assert!(!held.controller_pause(tenchu_core::input::CROSS, false));
+        assert!(!held.controller_pause(tenchu_core::input::CROSS, false.into()));
         assert!(held.step(0).unwrap().stop_music);
         assert_eq!(held.generation, generation + 1);
         assert!(!held.death.waiting());
@@ -223,7 +223,7 @@ fn native_death_options_handle_late_changes_and_do_not_hold_success_or_detection
             if confirm {
                 playback.confirm();
             } else {
-                assert!(!playback.controller_pause(tenchu_core::input::START, true));
+                assert!(!playback.controller_pause(tenchu_core::input::START, true.into()));
             }
             playback.step(0).unwrap();
             assert!(matches!(playback.content, Content::Failed));

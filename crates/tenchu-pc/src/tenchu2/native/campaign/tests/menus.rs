@@ -44,20 +44,14 @@ fn buttons(content: &mut Content, settings: &Settings, buttons: u16) -> u16 {
 }
 
 #[test]
-#[ignore = "requires TENCHU2_DISC; both menu conventions traverse real selection, equipment, results and retry without changing gameplay/cutscene controls"]
+#[ignore = "requires TENCHU2_DISC; all menu conventions traverse real selection, equipment, results and retry without changing gameplay/cutscene controls"]
 fn native_menu_convention_applies_at_the_input_boundary() {
     let disc =
         || crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    for circle_confirm in [false, true] {
-        let settings = Settings {
-            circle_confirm,
-            ..Default::default()
-        };
-        let (confirm, back) = if circle_confirm {
-            (input::CIRCLE, input::CROSS)
-        } else {
-            (input::CROSS, input::CIRCLE)
-        };
+    for convention in crate::settings::MenuButtons::ALL {
+        let mut settings = Settings::default();
+        settings.set_menu_buttons(convention);
+        let (confirm, back) = convention.buttons();
         for cancel in [false, true] {
             let mut playback = Playback::menu(disc(), 2, 17, None).unwrap();
             for _ in 0..15 {
@@ -143,7 +137,7 @@ fn native_menu_convention_applies_at_the_input_boundary() {
         playback.step(0).unwrap();
         next(&mut playback);
         assert!(matches!(playback.content, Content::Gameplay(_)));
-        for physical in [input::CROSS, input::CIRCLE, input::R1] {
+        for physical in [input::CROSS, input::CIRCLE, input::TRIANGLE, input::R1] {
             assert_eq!(
                 buttons(&mut playback.content, &settings, physical),
                 physical.swap_bytes()

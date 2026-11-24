@@ -177,7 +177,7 @@ pub enum Item {
     Focus,
     MenuPause,
     MusicWhilePaused,
-    CircleConfirm,
+    MenuButtons,
     WaitAfterDeath,
     LiveDeathScene,
     ShopLighting,
@@ -1741,10 +1741,13 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Choose T1 cinematic subtitles independently of the game's Language option, which keeps selecting dialogue audio and scene/camera presentation. Uses the selected subtitle script's own timing and readable text. Follow game language preserves the linked original behavior. Also applies to movies and T1 scenes imported into T2; native T2 JP only has Japanese subtitles.",
             ),
             (
-                Item::CircleConfirm,
-                "Circle confirms in menus",
-                on(s.circle_confirm),
-                "Japanese: East / Circle confirms, South / Cross goes back. Off: Western (South confirms). Gameplay bindings and Enter/Esc stay unchanged. Menu buttons use their physical positions, independently of gameplay remapping.",
+                Item::MenuButtons,
+                "Menu buttons",
+                {
+                    let (confirm, back) = s.menu_buttons().names();
+                    format!("{confirm} / {back}")
+                },
+                "Confirm / back: Cross / Circle, Circle / Cross, or Stealth Assassins-style Cross / Triangle. Physical controller positions and matching prompts; independent of gameplay remapping. Enter/Esc keep their keyboard actions.",
             ),
             (
                 Item::Randomizer,

@@ -220,7 +220,6 @@ impl Item {
             Self::Focus => &mut settings.pause_on_defocus,
             Self::MenuPause => &mut settings.pause_in_menu,
             Self::MusicWhilePaused => &mut settings.music_while_paused,
-            Self::CircleConfirm => &mut settings.circle_confirm,
             Self::WaitAfterDeath => &mut settings.wait_after_death,
             Self::LiveDeathScene => &mut settings.live_death_scene,
             Self::ShopLighting => &mut settings.graphics.shop_lighting,
@@ -362,6 +361,11 @@ impl Item {
             } as u16;
         } else {
             match self {
+                Item::MenuButtons => settings.set_menu_buttons(cycle(
+                    settings.menu_buttons(),
+                    &super::MenuButtons::ALL,
+                    direction,
+                )),
                 Item::SubtitleLanguage => {
                     use tenchu_assets::script::Language::*;
                     settings.subtitle_language = cycle(
@@ -519,6 +523,7 @@ impl Item {
             *value = *self.number(&mut defaults).unwrap();
         } else {
             match self {
+                Item::MenuButtons => settings.set_menu_buttons(Default::default()),
                 Item::CircleAction => settings.circle_action = defaults.circle_action,
                 Item::SubtitleLanguage => settings.subtitle_language = defaults.subtitle_language,
                 Item::DirectionalColor => {

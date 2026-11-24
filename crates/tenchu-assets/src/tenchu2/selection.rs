@@ -160,7 +160,7 @@ impl Resources {
             }
         }
         let names = super::texture::image(&read("dai.tim")?)?;
-        let buttons = super::texture::image(&read("button.tim")?)?;
+        let buttons = menu_buttons(disc)?;
         let labels = super::texture::image(&read("select.tim")?)?;
         if names.size != [208, 240]
             || !buttons.size[1].is_multiple_of(5)
@@ -203,4 +203,13 @@ impl Resources {
             },
         })
     }
+}
+
+pub fn menu_buttons(disc: &Disc<impl ReadAt>) -> Result<Image> {
+    let volume = Volume::open(disc)?;
+    let image = super::texture::image(&volume.read(r"o:\cdimage\menu\image", "button.tim")?)?;
+    if image.size != [16, 80] {
+        return Err("Invalid Japanese menu button sheet".into());
+    }
+    Ok(image)
 }

@@ -23,7 +23,7 @@ pub(crate) struct Drawing {
     pub text: Vec<crate::fonts::Text>,
     artwork: Arc<Artwork>,
     tick: u32,
-    circle_confirm: bool,
+    menu_buttons: crate::settings::MenuButtons,
 }
 
 impl Drawing {
@@ -58,21 +58,29 @@ impl Drawing {
             }
         }
         let artwork = Arc::new(artwork);
-        let (frame, text) = build(selection, artwork.clone(), true)?;
+        let (frame, text) = build(
+            selection,
+            artwork.clone(),
+            crate::settings::MenuButtons::CircleCross,
+        )?;
         Ok(Self {
             frame,
             text,
             artwork,
             tick: selection.state.tick,
-            circle_confirm: true,
+            menu_buttons: crate::settings::MenuButtons::CircleCross,
         })
     }
 
-    pub fn update(&mut self, selection: &Selection, circle_confirm: bool) -> Result<()> {
-        if self.tick != selection.state.tick || self.circle_confirm != circle_confirm {
-            (self.frame, self.text) = build(selection, self.artwork.clone(), circle_confirm)?;
+    pub fn update(
+        &mut self,
+        selection: &Selection,
+        menu_buttons: crate::settings::MenuButtons,
+    ) -> Result<()> {
+        if self.tick != selection.state.tick || self.menu_buttons != menu_buttons {
+            (self.frame, self.text) = build(selection, self.artwork.clone(), menu_buttons)?;
             self.tick = selection.state.tick;
-            self.circle_confirm = circle_confirm;
+            self.menu_buttons = menu_buttons;
         }
         Ok(())
     }
@@ -81,7 +89,7 @@ impl Drawing {
 fn build(
     selection: &Selection,
     artwork: Arc<Artwork>,
-    circle_confirm: bool,
+    menu_buttons: crate::settings::MenuButtons,
 ) -> Result<(Arc<Frame>, Vec<crate::fonts::Text>)> {
     let state = &selection.state;
     let resources = &selection.resources;
@@ -157,8 +165,8 @@ fn build(
     }
     let width = resources.buttons.size[0] + resources.labels.size[0] + 8;
     let mut x = -(width as f32);
-    for (button, label) in [(1, 0), (2, 2)] {
-        let button = if circle_confirm { button } else { 3 - button };
+    let (confirm, back) = menu_buttons.source_rows();
+    for (button, label) in [(confirm, 0), (back, 2)] {
         let w = resources.buttons.size[0] as f32;
         canvas.sprite(
             Sprite::new(

@@ -1,3 +1,5 @@
+mod menu_buttons;
+pub use menu_buttons::MenuButtons;
 mod blood;
 pub(crate) mod edit;
 pub mod menu;
@@ -46,6 +48,7 @@ pub struct Settings {
     pub pause_in_menu: bool,
     pub music_while_paused: bool,
     pub circle_confirm: bool,
+    pub triangle_cancel: bool,
     pub wait_after_death: bool,
     pub live_death_scene: bool,
     pub keep_enemies_active: bool,
@@ -108,6 +111,7 @@ impl Default for Settings {
             pause_in_menu: true,
             music_while_paused: false,
             circle_confirm: false,
+            triangle_cancel: false,
             wait_after_death: false,
             live_death_scene: false,
             keep_enemies_active: false,

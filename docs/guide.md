@@ -34,11 +34,12 @@ stage/item blacklists and shareable seeds. Runs keep separate progress.
 library, live environment previews, mixed-game assets and event/cue editing.
 The original **Mission editor / F10** remains separate.
 
-**F1 → General → Circle confirms in menus** selects Japanese confirmation
-(East / Circle confirms, South / Cross goes back). Off keeps Western confirmation
-(South / Cross confirms, East / Circle goes back). These are physical controller
-positions, independent of gameplay remapping. Enter/Esc keep their keyboard roles,
-and START still retries the mission from results. Prompts follow the chosen convention.
+**F1 → General → Menu buttons** selects the controller confirm/back convention:
+Cross/Circle (the default), Circle/Cross, or Cross/Triangle. These use the physical
+South/East, East/South, or South/North buttons, independently of gameplay remapping.
+Enter/Esc keep their keyboard roles, and START still retries the mission from
+results. Prompts follow the chosen convention, including original and HD artwork.
+Existing Circle-confirm preferences retain their selection.
 This also applies to native T2's F1, mission selection, equipment, results and
 retry/death screens in both launchers. Native equipment uses confirm to add and
 back to remove, with Start/Enter to begin. Touch buttons follow the preference;

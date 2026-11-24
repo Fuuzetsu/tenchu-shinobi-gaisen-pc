@@ -20,6 +20,7 @@ pub struct Selection {
     pub state: Equipment,
     pub rules: Rules,
     pub images: Images,
+    pub buttons: tenchu_assets::frontend::Image,
     pub bank: Arc<tenchu_assets::audio::bank::Bank>,
 }
 
@@ -29,6 +30,7 @@ impl Selection {
             state: Equipment::new(stock, false),
             rules: Rules::load(disc)?,
             images: Images::load(disc)?,
+            buttons: tenchu_assets::tenchu2::selection::menu_buttons(disc)?,
             bank: Arc::new(Audio::load(disc, hero, map)?.bank),
         })
     }

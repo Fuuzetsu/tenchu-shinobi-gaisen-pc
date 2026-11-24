@@ -434,10 +434,10 @@ impl Menu {
         controls.clear();
     }
 
-    pub fn controller(&mut self, pressed: u16, circle_confirm: bool) {
+    pub fn controller(&mut self, pressed: u16, menu_buttons: settings::MenuButtons) {
         if self.benchmarks.running() {
             if matches!(
-                controls::gamepad_command(pressed, false, false, circle_confirm),
+                controls::gamepad_command(pressed, false, false, menu_buttons),
                 Some(controls::Command::Menu(MenuAction::Back))
             ) {
                 self.benchmarks.cancel("Cancelled by user");
@@ -446,7 +446,7 @@ impl Menu {
         }
         if self.modal_open() {
             if matches!(
-                controls::gamepad_command(pressed, false, false, circle_confirm),
+                controls::gamepad_command(pressed, false, false, menu_buttons),
                 Some(controls::Command::Menu(MenuAction::Back))
             ) {
                 self.pending = Some(Navigation::Action(MenuAction::Back));
@@ -462,7 +462,7 @@ impl Menu {
         } else if pressed & input::R1 != 0 {
             Some(Navigation::Page(1))
         } else {
-            match controls::gamepad_command(pressed, false, false, circle_confirm) {
+            match controls::gamepad_command(pressed, false, false, menu_buttons) {
                 Some(controls::Command::Menu(MenuAction::Replay)) => Some(Navigation::Reset),
                 Some(controls::Command::Menu(action)) => Some(Navigation::Action(action)),
                 _ => None,
@@ -1560,7 +1560,10 @@ mod tests {
                     .unwrap();
                 menu.panel.page = page;
                 menu.panel.row = row;
-                menu.controller(if circle { input::CIRCLE } else { input::CROSS }, circle);
+                menu.controller(
+                    if circle { input::CIRCLE } else { input::CROSS },
+                    circle.into(),
+                );
                 let mut action = Action::default();
                 let ctx = egui::Context::default();
                 let _ = ctx.run(egui::RawInput::default(), |ctx| {
@@ -1702,7 +1705,7 @@ mod tests {
                     samples: &[1, 4],
                     models: None,
                 };
-                menu.controller(input::CIRCLE, true);
+                menu.controller(input::CIRCLE, true.into());
                 let ctx = egui::Context::default();
                 let _ = ctx.run(egui::RawInput::default(), |ctx| {
                     menu.show(ctx, &mut state);
@@ -2050,34 +2053,30 @@ mod tests {
             },
         );
         assert_eq!(menu.panel.page, settings::menu::Page::Tenchu2);
-        menu.controller(tenchu_core::input::R1, false);
+        menu.controller(tenchu_core::input::R1, false.into());
         let _ = ctx.run(input(Vec::new()), |ctx| {
             menu.show(ctx, &mut state);
         });
         assert_eq!(menu.panel.page, settings::menu::Page::General);
         menu.panel.page = settings::menu::Page::PlayerModel;
-        menu.controller(tenchu_core::input::CROSS, false);
+        menu.controller(tenchu_core::input::CROSS, false.into());
         let _ = ctx.run(input(Vec::new()), |ctx| {
             menu.show(ctx, &mut state);
         });
         assert!(!menu.panel.model_picker && menu.panel.open);
         assert_eq!(*state.settings, Settings::default());
         assert!(!menu.panel.notice.is_empty());
-        for circle_confirm in [false, true] {
-            state.settings.circle_confirm = circle_confirm;
+        for convention in settings::MenuButtons::ALL {
+            state.settings.set_menu_buttons(convention);
             menu.panel.page = settings::menu::Page::General;
             menu.panel.touch_controls = true;
-            let back = if circle_confirm {
-                tenchu_core::input::CROSS
-            } else {
-                tenchu_core::input::CIRCLE
-            };
-            menu.controller(back, circle_confirm);
+            let (confirm, back) = convention.buttons();
+            menu.controller(back, convention);
             let _ = ctx.run(input(Vec::new()), |ctx| {
                 menu.show(ctx, &mut state);
             });
             assert!(!menu.panel.touch_controls && menu.panel.open);
-            menu.controller(back, circle_confirm);
+            menu.controller(back, convention);
             let _ = ctx.run(input(Vec::new()), |ctx| {
                 menu.show(ctx, &mut state);
             });
@@ -2090,26 +2089,20 @@ mod tests {
                 false,
             )
             .iter()
-            .position(|row| row.item == Item::CircleConfirm)
+            .position(|row| row.item == Item::MenuButtons)
             .unwrap();
-            menu.controller(
-                if circle_confirm {
-                    tenchu_core::input::CIRCLE
-                } else {
-                    tenchu_core::input::CROSS
-                },
-                circle_confirm,
-            );
+            menu.controller(confirm, convention);
             let _ = ctx.run(input(Vec::new()), |ctx| {
                 menu.show(ctx, &mut state);
             });
-            assert_eq!(state.settings.circle_confirm, !circle_confirm);
+            let expected = settings::edit::cycle(convention, &settings::MenuButtons::ALL, 1);
+            assert_eq!(state.settings.menu_buttons(), expected);
             let encoded = serde_json::to_vec(state.settings).unwrap();
             assert_eq!(
                 serde_json::from_slice::<Settings>(&encoded)
                     .unwrap()
-                    .circle_confirm,
-                !circle_confirm
+                    .menu_buttons(),
+                expected
             );
         }
     }

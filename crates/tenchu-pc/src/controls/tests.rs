@@ -178,7 +178,7 @@ fn menu_and_focus_changes_require_release_before_gameplay() {
         input::START
     );
     assert!(matches!(
-        gamepad_command(input::START, true, true, false),
+        gamepad_command(input::START, true, true, false.into()),
         Some(Command::Pause)
     ));
     assert!(
@@ -186,16 +186,16 @@ fn menu_and_focus_changes_require_release_before_gameplay() {
             input::CIRCLE | input::CROSS | input::SQUARE,
             true,
             false,
-            false
+            false.into()
         )
         .is_none()
     );
     assert!(matches!(
-        gamepad_command(input::CIRCLE, true, true, false),
+        gamepad_command(input::CIRCLE, true, true, false.into()),
         Some(Command::Menu(Action::Back))
     ));
     assert!(matches!(
-        gamepad_command(input::CROSS, false, false, false),
+        gamepad_command(input::CROSS, false, false, false.into()),
         Some(Command::Menu(Action::Confirm))
     ));
     assert_eq!(
@@ -221,78 +221,96 @@ fn menu_and_focus_changes_require_release_before_gameplay() {
 
 #[test]
 fn menu_convention_and_gameplay_rebinding_are_independent() {
+    use crate::settings::MenuButtons;
     use bindings::Target;
     let mut controls = Controls::default();
-    controls
-        .bindings
-        .bind_controller(Target::Square, 0, PadInput::Button(Button::South));
-    controls
-        .bindings
-        .bind_controller(Target::Triangle, 0, PadInput::Button(Button::East));
-    for circle_confirm in [false, true] {
-        for (button, gameplay, confirm) in [
-            (Button::South, input::SQUARE, !circle_confirm),
-            (Button::East, input::TRIANGLE, circle_confirm),
+    for (target, button) in [
+        (Target::Square, Button::South),
+        (Target::Triangle, Button::East),
+        (Target::Circle, Button::North),
+    ] {
+        controls
+            .bindings
+            .bind_controller(target, 0, PadInput::Button(button));
+    }
+    for convention in MenuButtons::ALL {
+        let (confirm, back) = convention.buttons();
+        for (button, gameplay, physical) in [
+            (Button::South, input::SQUARE, input::CROSS),
+            (Button::East, input::TRIANGLE, input::CIRCLE),
+            (Button::North, input::CIRCLE, input::TRIANGLE),
         ] {
             let remapped = controls.bindings.controller(|b| b == button, [0; 4]);
             let menu = bindings::menu_buttons(|b| b == button, [0; 4]);
             assert_eq!(remapped, u32::from(gameplay));
-            assert!(gamepad_command(remapped as u16, true, false, circle_confirm).is_none());
-            let Some(Command::Menu(action)) = gamepad_command(menu, false, false, circle_confirm)
-            else {
-                panic!("menu button must work even after rebinding gameplay")
-            };
-            assert!(matches!(
-                (action, confirm),
-                (Action::Confirm, true) | (Action::Back, false)
-            ));
+            assert!(gamepad_command(remapped as u16, true, false, convention).is_none());
+            let action = gamepad_command(menu, false, false, convention);
+            if physical == confirm {
+                assert!(matches!(action, Some(Command::Menu(Action::Confirm))));
+            } else if physical == back {
+                assert!(matches!(action, Some(Command::Menu(Action::Back))));
+            } else {
+                assert!(action.is_none());
+            }
             controls.pad.sample(0, remapped, true);
             controls.pad.sample_menu(0, menu, true);
             assert_eq!(controls.buttons(), gameplay);
-            let expected = if confirm { input::CIRCLE } else { input::CROSS };
-            assert_eq!(controls.japanese_menu_buttons(circle_confirm), expected);
+            let expected = if physical == confirm {
+                input::CIRCLE
+            } else if physical == back {
+                input::CROSS
+            } else if physical == input::TRIANGLE {
+                input::TRIANGLE
+            } else {
+                0
+            };
+            assert_eq!(controls.japanese_menu_buttons(convention), expected);
             controls.pad.sample_menu(0, 0, true);
             controls.pad.sample_menu(0, menu, true);
             controls.pad.sample_menu(0, 0, true);
-            assert_eq!(controls.japanese_menu_buttons(circle_confirm), expected);
-            assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+            assert_eq!(controls.japanese_menu_buttons(convention), expected);
+            assert_eq!(controls.japanese_menu_buttons(convention), 0);
             controls.pad.sample(0, 0, true);
-            assert!(matches!(
-                gamepad_command(input::START, false, false, circle_confirm),
-                Some(Command::Menu(Action::Start))
-            ));
-            assert!(matches!(
-                controls.key_command(KeyCode::Enter, false, false),
-                Some(Command::Menu(Action::Confirm))
-            ));
         }
+        assert!(matches!(
+            gamepad_command(input::START, false, false, convention),
+            Some(Command::Menu(Action::Start))
+        ));
+        assert!(matches!(
+            controls.key_command(KeyCode::Enter, false, false),
+            Some(Command::Menu(Action::Confirm))
+        ));
+        assert!(matches!(
+            controls.key_command(KeyCode::Escape, false, false),
+            Some(Command::Menu(Action::Back))
+        ));
+        assert!(matches!(
+            gamepad_command(back, true, true, convention),
+            Some(Command::Menu(Action::Back))
+        ));
     }
 }
 
 #[test]
 fn japanese_menu_input_preserves_taps_and_requires_release_after_focus_changes() {
-    for circle_confirm in [false, true] {
+    for convention in crate::settings::MenuButtons::ALL {
         let mut controls = Controls::default();
-        let confirm = if circle_confirm {
-            input::CIRCLE
-        } else {
-            input::CROSS
-        };
+        let (confirm, back) = convention.buttons();
         controls.touch(crate::touch::Sample {
             buttons: u32::from(confirm | input::UP),
             ..Default::default()
         });
         controls.touch(Default::default());
         assert_eq!(
-            controls.japanese_menu_buttons(circle_confirm),
+            controls.japanese_menu_buttons(convention),
             input::CIRCLE | input::UP
         );
-        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+        assert_eq!(controls.japanese_menu_buttons(convention), 0);
         controls.key(KeyCode::Space, true);
         controls.key(KeyCode::Space, false);
         assert_eq!(
-            controls.japanese_menu_buttons(circle_confirm),
-            if circle_confirm {
+            controls.japanese_menu_buttons(convention),
+            if confirm == input::CIRCLE {
                 input::CROSS
             } else {
                 input::CIRCLE
@@ -301,20 +319,20 @@ fn japanese_menu_input_preserves_taps_and_requires_release_after_focus_changes()
         controls.pad.sample_menu(0, confirm, true);
         controls.clear();
         controls.pad.sample_menu(0, confirm, true);
-        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+        assert_eq!(controls.japanese_menu_buttons(convention), 0);
         controls.pad.sample_menu(0, 0, true);
         controls.pad.sample_menu(0, confirm, true);
         controls.pad.sample_menu(0, 0, false);
-        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+        assert_eq!(controls.japanese_menu_buttons(convention), 0);
         controls
             .pad
-            .sample_menu(0, input::CROSS | input::CIRCLE | input::START, true);
+            .sample_menu(0, confirm | back | input::START, true);
         assert_eq!(
-            controls.japanese_menu_buttons(circle_confirm),
+            controls.japanese_menu_buttons(convention),
             input::CROSS | input::CIRCLE | input::START
         );
         controls.pad.disconnect(0);
-        assert_eq!(controls.japanese_menu_buttons(circle_confirm), 0);
+        assert_eq!(controls.japanese_menu_buttons(convention), 0);
     }
 }
 

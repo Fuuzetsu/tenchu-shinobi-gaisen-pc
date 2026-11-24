@@ -1373,7 +1373,7 @@ impl ApplicationHandler for Application {
                         update.menu_pressed,
                         false,
                         false,
-                        self.settings.circle_confirm,
+                        self.settings.menu_buttons(),
                     ) && let Some(event) = self.trial.controller(action, &self.assets)
                     {
                         self.trial_action(event);
@@ -1394,7 +1394,7 @@ impl ApplicationHandler for Application {
                         update.menu_pressed,
                         false,
                         false,
-                        self.settings.circle_confirm,
+                        self.settings.menu_buttons(),
                     ) {
                         self.settings_action(action);
                     }
@@ -1409,7 +1409,7 @@ impl ApplicationHandler for Application {
                         },
                         self.campaign.playing(),
                         self.paused,
-                        self.settings.circle_confirm,
+                        self.settings.menu_buttons(),
                     )
                 {
                     self.command(command, events);

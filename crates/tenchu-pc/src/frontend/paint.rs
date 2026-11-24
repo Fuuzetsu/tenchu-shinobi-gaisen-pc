@@ -63,13 +63,13 @@ impl Frontend {
         if self.high_definition != high_definition
             || self.artwork_enabled != settings.graphics.asset_pack
             || self.canvas.sharp_text != settings.sharp_text
-            || self.circle_confirm != settings.circle_confirm
+            || self.menu_buttons != settings.menu_buttons()
             || self.english_shuriken != settings.english_shuriken
         {
             self.high_definition = high_definition;
             self.artwork_enabled = settings.graphics.asset_pack;
             self.canvas.sharp_text = settings.sharp_text;
-            self.circle_confirm = settings.circle_confirm;
+            self.menu_buttons = settings.menu_buttons();
             self.english_shuriken = settings.english_shuriken;
             self.dirty = true;
         }
@@ -144,13 +144,9 @@ impl Frontend {
             },
             Color32::WHITE,
         );
-        let (confirm, back) = crate::controls::menu_labels(settings.circle_confirm);
+        let (confirm, back) = crate::controls::menu_labels(settings.menu_buttons());
         let help = if cfg!(target_os = "android") && self.notice.is_empty() {
-            let (confirm, back) = if settings.circle_confirm {
-                ("○", "×")
-            } else {
-                ("×", "○")
-            };
+            let (confirm, back) = settings.menu_buttons().symbols();
             if self.page == Page::Shop {
                 format!("Move: item   {confirm}: take   □: return   Start: begin   {back}: cancel")
             } else {
@@ -485,14 +481,16 @@ impl Frontend {
             Page::Title => self.paint_title(),
             Page::Character => {
                 let background = &self.character_images[0];
-                if self.circle_confirm && !self.canvas.sharp_text {
+                if self.menu_buttons == crate::settings::MenuButtons::CircleCross
+                    && !self.canvas.sharp_text
+                {
                     self.canvas.sprite(Sprite::new(background, 0.0, 0.0));
                 } else {
                     self.canvas
                         .background_without(background, [0, 208, 320, 20]);
                     self.canvas.text_label(
                         Sprite::new(background, 0.0, 98.0).region([0, 208, 224, 14]),
-                        labels::menu_buttons(self.language, self.circle_confirm),
+                        labels::menu_buttons(self.language, self.menu_buttons),
                         Color32::WHITE,
                     );
                 }
@@ -717,7 +715,8 @@ impl Frontend {
     fn paint_missions(&mut self, campaign: &Campaign) {
         let images = &self.mission_images;
         let background = &images[0];
-        if self.circle_confirm && !self.canvas.sharp_text {
+        if self.menu_buttons == crate::settings::MenuButtons::CircleCross && !self.canvas.sharp_text
+        {
             self.canvas.sprite(Sprite::new(background, 0.0, 0.0));
         } else {
             self.canvas
@@ -729,7 +728,7 @@ impl Frontend {
             );
             self.canvas.text_label(
                 Sprite::new(background, 0.0, 102.0).region([176, 210, 288, 14]),
-                labels::menu_buttons(self.language, self.circle_confirm),
+                labels::menu_buttons(self.language, self.menu_buttons),
                 Color32::from_rgb(30, 35, 65),
             );
         }
@@ -852,7 +851,7 @@ impl Frontend {
             menu_prompt(
                 &mut self.canvas,
                 Sprite::new(&images[3], 0.0, 96.0),
-                self.circle_confirm,
+                self.menu_buttons,
                 "終了",
             );
             return;
@@ -894,7 +893,7 @@ impl Frontend {
             menu_prompt(
                 &mut self.canvas,
                 Sprite::new(&images[4], 0.0, y),
-                self.circle_confirm,
+                self.menu_buttons,
                 "キャンセル",
             );
         }
@@ -1208,10 +1207,17 @@ pub(super) fn digits(
     }
 }
 
-fn menu_prompt(canvas: &mut Canvas, sprite: Sprite<'_>, circle_confirm: bool, back: &str) {
-    if circle_confirm {
-        canvas.label(sprite, format!("○ 決定　× {back}"), Color32::LIGHT_GRAY);
+fn menu_prompt(
+    canvas: &mut Canvas,
+    sprite: Sprite<'_>,
+    menu_buttons: crate::settings::MenuButtons,
+    back: &str,
+) {
+    let (confirm, cancel) = menu_buttons.symbols();
+    let text = format!("{confirm} 決定　{cancel} {back}");
+    if menu_buttons == crate::settings::MenuButtons::CircleCross {
+        canvas.label(sprite, text, Color32::LIGHT_GRAY);
     } else {
-        canvas.text_label(sprite, format!("× 決定　○ {back}"), Color32::LIGHT_GRAY);
+        canvas.text_label(sprite, text, Color32::LIGHT_GRAY);
     }
 }

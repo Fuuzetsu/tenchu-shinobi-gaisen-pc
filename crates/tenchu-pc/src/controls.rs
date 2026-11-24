@@ -32,25 +32,17 @@ pub fn keyboard_command(code: KeyCode, playing: bool) -> Option<Command> {
     })
 }
 
-pub fn menu_labels(circle_confirm: bool) -> (&'static str, &'static str) {
-    if circle_confirm {
-        ("East", "South")
-    } else {
-        ("South", "East")
-    }
+pub fn menu_labels(buttons: crate::settings::MenuButtons) -> (&'static str, &'static str) {
+    buttons.positions()
 }
 
 pub fn gamepad_command(
     pressed: u16,
     playing: bool,
     paused: bool,
-    circle_confirm: bool,
+    menu_buttons: crate::settings::MenuButtons,
 ) -> Option<Command> {
-    let (confirm, back) = if circle_confirm {
-        (input::CIRCLE, input::CROSS)
-    } else {
-        (input::CROSS, input::CIRCLE)
-    };
+    let (confirm, back) = menu_buttons.buttons();
     if playing && pressed & input::START != 0 {
         return Some(Command::Pause);
     }
@@ -325,8 +317,14 @@ impl Controls {
     }
 
     pub fn key_command(&self, code: KeyCode, playing: bool, paused: bool) -> Option<Command> {
-        keyboard_command(code, playing)
-            .or_else(|| gamepad_command(self.bindings.key(code) as u16, playing, paused, false))
+        keyboard_command(code, playing).or_else(|| {
+            gamepad_command(
+                self.bindings.key(code) as u16,
+                playing,
+                paused,
+                Default::default(),
+            )
+        })
     }
 
     pub fn key(&mut self, code: KeyCode, pressed: bool) -> bool {
@@ -412,7 +410,7 @@ impl Controls {
 
     /// Physical menu buttons, mapped to the Japanese screen's Circle-confirm convention.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn japanese_menu_buttons(&mut self, circle_confirm: bool) -> u16 {
+    pub fn japanese_menu_buttons(&mut self, menu_buttons: crate::settings::MenuButtons) -> u16 {
         let physical =
             (self.pad.menu_raw & !self.pad.menu_blocked) | mem::take(&mut self.pad.menu_pending);
         self.pad.pending = 0;
@@ -424,21 +422,7 @@ impl Controls {
             | self.keys.iter().fold(keyboard_touch, |buttons, key| {
                 buttons | self.bindings.key(*key)
             }) as u16;
-        if circle_confirm {
-            buttons
-        } else {
-            (buttons & !(input::CIRCLE | input::CROSS))
-                | if buttons & input::CIRCLE != 0 {
-                    input::CROSS
-                } else {
-                    0
-                }
-                | if buttons & input::CROSS != 0 {
-                    input::CIRCLE
-                } else {
-                    0
-                }
-        }
+        menu_buttons.japanese(buttons)
     }
 
     pub fn relative_buttons(&mut self) -> u16 {

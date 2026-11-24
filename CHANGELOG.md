@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **General → Menu buttons → Cross / Triangle** for Cross to confirm and
+  Triangle to go back in T1 and native T2. Localized prompts and original/HD
+  menu artwork follow the choice. Keep the existing Cross/Circle and Circle/Cross
+  preferences, keyboard actions and gameplay bindings.
+
 - Add **Movement → Back + attack special**, off by default, to trigger Gaisen's
   original Up–Down–Square attack with held Back plus attack. Uses the active
   moveset's authored special, including supported imports; unavailable moves and

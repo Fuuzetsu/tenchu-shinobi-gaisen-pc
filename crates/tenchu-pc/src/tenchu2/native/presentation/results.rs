@@ -89,9 +89,10 @@ pub(crate) struct Drawing {
     pub backdrop: Option<Arc<Image>>,
     pub text: Vec<crate::fonts::Text>,
     sharp_text: bool,
-    circle_confirm: bool,
+    menu_buttons: crate::settings::MenuButtons,
     artwork: Arc<Artwork>,
     western_panel: Image,
+    triangle_panel: Image,
 }
 
 impl Drawing {
@@ -101,10 +102,24 @@ impl Drawing {
         graphics: &crate::settings::Graphics,
     ) -> Result<Self> {
         let images = &results.resources;
-        let mut artwork =
-            super::artwork::load([&images.panel, &images.numbers, &images.ranks], graphics)?;
+        let mut artwork = super::artwork::load(
+            [
+                &images.panel,
+                &images.numbers,
+                &images.ranks,
+                &results.buttons,
+            ],
+            graphics,
+        )?;
         let western_panel =
             super::artwork::swap_icons(&images.panel, &mut artwork, [84, 195], 204, [16, 20]);
+        let triangle_panel = super::artwork::triangle_icon(
+            &western_panel,
+            &mut artwork,
+            [195, 204],
+            [16, 20],
+            &results.buttons,
+        );
         let artwork = Arc::new(artwork);
         let (frame, text) = build(
             results,
@@ -119,8 +134,9 @@ impl Drawing {
             text,
             artwork,
             western_panel,
+            triangle_panel,
             sharp_text: false,
-            circle_confirm: true,
+            menu_buttons: crate::settings::MenuButtons::CircleCross,
         })
     }
 
@@ -128,24 +144,24 @@ impl Drawing {
         &mut self,
         results: &super::super::results::Results,
         sharp_text: bool,
-        circle_confirm: bool,
+        menu_buttons: crate::settings::MenuButtons,
     ) {
-        if self.sharp_text == sharp_text && self.circle_confirm == circle_confirm {
+        if self.sharp_text == sharp_text && self.menu_buttons == menu_buttons {
             return;
         }
         (self.frame, self.text) = build(
             results,
             self.backdrop.as_deref(),
             sharp_text,
-            if circle_confirm {
-                &results.resources.panel
-            } else {
-                &self.western_panel
+            match menu_buttons {
+                crate::settings::MenuButtons::CircleCross => &results.resources.panel,
+                crate::settings::MenuButtons::CrossCircle => &self.western_panel,
+                crate::settings::MenuButtons::CrossTriangle => &self.triangle_panel,
             },
             self.artwork.clone(),
         );
         self.sharp_text = sharp_text;
-        self.circle_confirm = circle_confirm;
+        self.menu_buttons = menu_buttons;
     }
 }
 

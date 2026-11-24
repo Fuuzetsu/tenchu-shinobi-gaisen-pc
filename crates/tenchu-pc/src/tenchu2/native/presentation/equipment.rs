@@ -14,8 +14,9 @@ pub(crate) struct Drawing {
     tick: u32,
     artwork: Arc<Artwork>,
     sharp_text: bool,
-    circle_confirm: bool,
+    menu_buttons: crate::settings::MenuButtons,
     western_background: tenchu_assets::frontend::Image,
+    triangle_background: tenchu_assets::frontend::Image,
 }
 
 impl Drawing {
@@ -30,6 +31,7 @@ impl Drawing {
                 &images.names,
                 &images.capacity,
                 &images.digits,
+                &selection.buttons,
             ]
             .into_iter()
             .chain(&images.rings)
@@ -38,6 +40,13 @@ impl Drawing {
         )?;
         let western_background =
             super::artwork::swap_icons(&images.background, &mut artwork, [7, 55], 197, [16, 16]);
+        let triangle_background = super::artwork::triangle_icon(
+            &western_background,
+            &mut artwork,
+            [55, 197],
+            [16, 16],
+            &selection.buttons,
+        );
         let artwork = Arc::new(artwork);
         let (frame, text) = build(selection, false, &images.background, artwork.clone());
         Ok(Self {
@@ -46,26 +55,32 @@ impl Drawing {
             artwork,
             tick: selection.state.tick,
             sharp_text: false,
-            circle_confirm: true,
+            menu_buttons: crate::settings::MenuButtons::CircleCross,
             western_background,
+            triangle_background,
         })
     }
 
-    pub fn update(&mut self, selection: &Selection, sharp_text: bool, circle_confirm: bool) {
+    pub fn update(
+        &mut self,
+        selection: &Selection,
+        sharp_text: bool,
+        menu_buttons: crate::settings::MenuButtons,
+    ) {
         if self.tick != selection.state.tick
             || self.sharp_text != sharp_text
-            || self.circle_confirm != circle_confirm
+            || self.menu_buttons != menu_buttons
         {
-            let background = if circle_confirm {
-                &selection.images.background
-            } else {
-                &self.western_background
+            let background = match menu_buttons {
+                crate::settings::MenuButtons::CircleCross => &selection.images.background,
+                crate::settings::MenuButtons::CrossCircle => &self.western_background,
+                crate::settings::MenuButtons::CrossTriangle => &self.triangle_background,
             };
             (self.frame, self.text) =
                 build(selection, sharp_text, background, self.artwork.clone());
             self.tick = selection.state.tick;
             self.sharp_text = sharp_text;
-            self.circle_confirm = circle_confirm;
+            self.menu_buttons = menu_buttons;
         }
     }
 }

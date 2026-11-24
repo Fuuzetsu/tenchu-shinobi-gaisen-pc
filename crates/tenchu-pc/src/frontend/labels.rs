@@ -1,12 +1,8 @@
 use egui::Color32;
 use tenchu_assets::script::Language;
 
-pub fn menu_buttons(language: Language, circle_confirm: bool) -> String {
-    let (confirm, back) = if circle_confirm {
-        ('○', '×')
-    } else {
-        ('×', '○')
-    };
+pub fn menu_buttons(language: Language, menu_buttons: crate::settings::MenuButtons) -> String {
+    let (confirm, back) = menu_buttons.symbols();
     let (select, cancel) = match language {
         Language::English => ("Select", "Cancel"),
         Language::Japanese => ("決定", "キャンセル"),
@@ -16,8 +12,8 @@ pub fn menu_buttons(language: Language, circle_confirm: bool) -> String {
     format!("{confirm} {select}   {back} {cancel}")
 }
 
-pub fn shop_buttons(language: Language, circle_confirm: bool) -> String {
-    let confirm = if circle_confirm { '○' } else { '×' };
+pub fn shop_buttons(language: Language, menu_buttons: crate::settings::MenuButtons) -> String {
+    let (confirm, _) = menu_buttons.symbols();
     let (take, give_back) = match language {
         Language::English => ("Add", "Return"),
         Language::Japanese => ("取る", "戻す"),

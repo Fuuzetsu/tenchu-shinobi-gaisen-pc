@@ -1535,3 +1535,21 @@ exercise held backward movement, unavailable moves and NPC/crouch/guard/dash/
 air/script exclusions, plus committed attack/jump/injury actions. Imported
 movesets run on both T1 hero bodies with camera-relative Back at four view angles.
 These are isolated optional-control checks, not ordinary-play recordings.
+
+## Menu confirm/back conventions
+
+The host preference supports Cross/Circle, Circle/Cross and Cross/Triangle without
+changing gameplay bindings. Existing JSON Circle-confirm settings retain their
+meaning. Native menu input maps the physical choice to the source Circle/Cross
+interface only at menu boundaries; gameplay and cutscene inputs are untouched.
+The Triangle artwork is taken from the owned JP disc's existing 16×80 button
+sheet, using the same row as mission selection, including HD replacements.
+
+The controller fixture covers all three face-button conventions independently of
+remapped gameplay controls, keyboard actions and pending touch input. Native
+menu fixtures check selection, equipment, results and retry actions, F1 navigation,
+preference persistence, source-state equality and exact restoration of the old
+artwork. Disc/GPU fixtures capture the three conventions with source and HD menus;
+T1 additionally covers all four languages and character/mission/options pages.
+These are isolated menu tests, not an ordinary-play recording or a port of a
+regional frontend's complete layout.

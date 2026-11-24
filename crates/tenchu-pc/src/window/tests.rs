@@ -116,7 +116,7 @@ fn quick_launcher_touch_drag_moves_one_row_until_recentered() {
         app.controls.touch(app.touch.sample());
         let update = app.controls.poll(true);
         if let Some(Command::Menu(action)) =
-            controls::gamepad_command(update.menu_pressed, false, false, false)
+            controls::gamepad_command(update.menu_pressed, false, false, false.into())
         {
             app.action(action);
         }
@@ -130,7 +130,7 @@ fn quick_launcher_touch_drag_moves_one_row_until_recentered() {
     app.controls.touch(app.touch.sample());
     let update = app.controls.poll(true);
     let Some(Command::Menu(action)) =
-        controls::gamepad_command(update.menu_pressed, false, false, false)
+        controls::gamepad_command(update.menu_pressed, false, false, false.into())
     else {
         panic!("recentered stick must select again")
     };
@@ -147,21 +147,21 @@ fn results_start_retries_while_confirm_advances() {
         for (command, retry) in [
             (controls::keyboard_command(KeyCode::Space, false), true),
             (
-                controls::gamepad_command(input::START, false, false, false),
+                controls::gamepad_command(input::START, false, false, false.into()),
                 true,
             ),
             (controls::keyboard_command(KeyCode::F5, false), true),
             (controls::keyboard_command(KeyCode::Enter, false), false),
             (
-                controls::gamepad_command(input::START, false, false, true),
+                controls::gamepad_command(input::START, false, false, true.into()),
                 true,
             ),
             (
-                controls::gamepad_command(input::CIRCLE, false, false, true),
+                controls::gamepad_command(input::CIRCLE, false, false, true.into()),
                 false,
             ),
             (
-                controls::gamepad_command(input::CROSS, false, false, false),
+                controls::gamepad_command(input::CROSS, false, false, false.into()),
                 false,
             ),
         ] {
