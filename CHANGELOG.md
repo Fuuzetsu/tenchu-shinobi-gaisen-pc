@@ -8,6 +8,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Opening, training and ending movies now use the built-in decoder when FFmpeg
   is missing on Windows or Linux. No installation or download is needed for
   playback; explicit FFmpeg paths remain supported and report configuration errors.
+- Add optional **Movement → Double guard draws / sheathes** for Gaisen's
+  enhanced guard controls. Two quick guard taps draw or stow, while held guard,
+  directional dodges and committed actions keep their behavior. Requires weapon
+  sheathing; off by default. Native T2 retains its original shortcut.
 - Add **General → Menu buttons → Cross / Triangle** for Cross to confirm and
   Triangle to go back in T1 and native T2. Localized prompts and original/HD
   menu artwork follow the choice. Keep the existing Cross/Circle and Circle/Cross
@@ -73,7 +77,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
   at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
   weather commands and timing; optional weather settings remain available.
-- Mid-mission savestates use format 47. Load older states with the game build
+- Mid-mission savestates use format 48. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
 ## 0.35.14 — 2026-11-15

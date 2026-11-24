@@ -48,6 +48,7 @@ pub enum Item {
     AnalogWalking,
     WalkThreshold,
     Sheathing,
+    DoubleGuard,
     UnarmedAttacks,
     UnarmedStyle,
     HeroUnarmedStyle(usize),
@@ -593,6 +594,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Draw / sheathe weapons",
                 on(s.sheathing.enabled),
                 "GAMEPLAY EDIT: press the rebindable Draw / sheathe action (H by default; assign a controller button under General > Controls). Uses NinjaB/Kunoichi animations; cannot interrupt attacks, injuries or jumps. Grounded attacks draw first; stealth kills and air attacks equip automatically. Off by default; disables input recording and TRIAL records.",
+            ),
+            (
+                Item::DoubleGuard,
+                "Double guard draws / sheathes",
+                on(s.sheathing.double_guard),
+                "GAMEPLAY EDIT: in Gaisen, tap guard twice quickly with no other buttons to draw or stow weapons. Requires Draw / sheathe weapons and Circle Block / dodge or R1 guard controls. Uses the original six-tick input window from a free standing, moving or guarding stance. Held guard and directional dodges remain unchanged; crouching or unsafe presses are discarded. Off by default. Native T2 keeps its original stow-only shortcut and character restrictions.",
             ),
             (
                 Item::UnarmedAttacks,

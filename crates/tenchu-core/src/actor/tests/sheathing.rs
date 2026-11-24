@@ -1,6 +1,7 @@
 use super::*;
 use crate::game::sheathing::{Motions, Settings};
 use crate::input::*;
+mod double_guard;
 
 pub(super) fn ready(character: i16, settings: Settings) -> (Game, usize) {
     let mut game = oracle::game(0, character);

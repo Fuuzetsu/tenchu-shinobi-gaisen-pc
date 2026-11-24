@@ -416,6 +416,10 @@ impl Player {
                 190 | 240 => SQUARE,
                 _ => 0,
             },
+            Feature::DoubleGuard => match tick {
+                30 | 33..=90 | 150 | 153..=210 => tenchu_core::input::CIRCLE,
+                _ => 0,
+            },
             Feature::AnalogWalking => {
                 if tick < 240 {
                     UP

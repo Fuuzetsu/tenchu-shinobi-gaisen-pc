@@ -95,6 +95,19 @@ impl Pad {
         0
     }
 
+    pub(crate) fn consume_double_press(&mut self, button: u16) -> bool {
+        // Releasing another button while guard stays held is not a fresh tap.
+        if self.held == button && self.previous != button && self.trigger & button == 0 {
+            self.push(0);
+        }
+        if self.held == button && self.trigger & button != 0 && self.stream[..2] == [button; 2] {
+            self.push(0);
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn issue(&mut self, commands: &[Command], id: u16) -> u16 {
         if let Some(c) = commands.iter().find(|c| c.id == id) {
             self.stream[..c.inputs.len() - 1].copy_from_slice(&c.inputs[1..]);
@@ -140,5 +153,38 @@ mod tests {
         let input = pad.issue(&commands, 7);
         pad.update(input);
         assert_eq!(pad.consume(&commands), 7);
+    }
+
+    #[test]
+    fn optional_double_press_requires_two_fresh_bare_taps_in_the_source_window() {
+        for gap in 1..8 {
+            let mut pad = Pad::default();
+            pad.update(R1);
+            assert!(!pad.consume_double_press(R1));
+            for _ in 0..gap {
+                pad.update(0);
+                assert!(!pad.consume_double_press(R1));
+            }
+            pad.update(R1);
+            assert_eq!(pad.consume_double_press(R1), gap < 5, "release gap {gap}");
+            for _ in 0..20 {
+                pad.update(R1);
+                assert!(!pad.consume_double_press(R1));
+            }
+        }
+        for chord in [UP, DOWN, LEFT, RIGHT, CIRCLE, L1, SQUARE, CROSS] {
+            let mut pad = Pad::default();
+            for input in [R1 | chord, R1, 0, R1] {
+                pad.update(input);
+                assert!(!pad.consume_double_press(R1), "chord {chord:x}");
+            }
+            pad.update(0);
+            pad.update(R1);
+            assert!(pad.consume_double_press(R1));
+            assert!(
+                !pad.consume_double_press(R1),
+                "consumed pairs must not queue"
+            );
+        }
     }
 }

@@ -52,6 +52,7 @@ pub enum Feature {
     GuardControls,
     AnalogWalking,
     Sheathing,
+    DoubleGuard,
     UnarmedAttacks,
     AttackAssist(bool),
     EnemyBehavior(tenchu_core::ai::profiles::Combat),

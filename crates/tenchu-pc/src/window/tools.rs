@@ -937,6 +937,7 @@ impl Application {
                 self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
             }
             Item::Sheathing
+            | Item::DoubleGuard
             | Item::SheathedOneHit
             | Item::StaySheathed
             | Item::UnarmedAttacks
@@ -944,6 +945,8 @@ impl Application {
                 let mut settings = self.settings.sheathing;
                 if item == Item::Sheathing {
                     settings.enabled = !settings.enabled;
+                } else if item == Item::DoubleGuard {
+                    settings.double_guard = !settings.double_guard;
                 } else if item == Item::StaySheathed {
                     settings.stay_sheathed = !settings.stay_sheathed;
                 } else if item == Item::UnarmedAttacks {

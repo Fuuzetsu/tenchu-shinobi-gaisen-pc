@@ -1,5 +1,6 @@
 use super::*;
 use tenchu_core::{game::sheathing::Settings as Sheathing, ids::*, input};
+mod double_guard;
 
 fn ready(character: i16) -> Application {
     let mut app = application(Options {

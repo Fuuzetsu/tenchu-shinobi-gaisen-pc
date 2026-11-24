@@ -224,6 +224,12 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             settings.sheathing.enabled = true;
             g.interpolation = true;
         }
+        Feature::DoubleGuard => {
+            settings.sheathing.enabled = true;
+            settings.sheathing.double_guard = true;
+            settings.circle_action = tenchu_core::input::CircleAction::Guard;
+            g.interpolation = true;
+        }
         Feature::UnarmedAttacks => {
             settings.sheathing.enabled = true;
             settings.sheathing.unarmed = true;
@@ -917,6 +923,12 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             100..190 => "Weapons stay stowed while moving · speed, sight and vulnerability are configurable",
             190..240 => "Attack draws first · stealth kills draw immediately for their paired animation",
             _ => "Armed attacks retain the hero's original moveset · assign a controller button in Controls",
+        }.into()),
+        Feature::DoubleGuard => text(match player.simulation_ticks {
+            0..34 => "Tap guard twice: optional Gaisen shortcut stows the blades",
+            34..150 => "Holding guard does not toggle again · no other buttons in the double tap",
+            150..211 => "Two more guard taps draw the blades · committed actions cannot be interrupted",
+            _ => "F1 → Movement → Double guard draws / sheathes · requires sheathing and enhanced guard controls",
         }.into()),
         Feature::UnarmedAttacks => text(match player.simulation_ticks {
             0..90 => "Put away the blades · Unarmed attacks is a separate optional gameplay setting",

@@ -48,6 +48,7 @@ impl UnarmedStyle {
 #[serde(default)]
 pub struct Settings {
     pub enabled: bool,
+    pub double_guard: bool,
     pub unarmed: bool,
     pub unarmed_style: UnarmedStyle,
     pub speed: u16,
@@ -61,6 +62,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             enabled: false,
+            double_guard: false,
             unarmed: false,
             unarmed_style: UnarmedStyle::Onikage,
             speed: 100,

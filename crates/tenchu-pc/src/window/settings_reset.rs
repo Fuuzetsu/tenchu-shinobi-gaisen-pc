@@ -75,6 +75,7 @@ impl Application {
             Item::QuickShurikenDodge => self.set_quick_shuriken_dodge(s.quick_shuriken_dodge),
             Item::StrictCorpseSight => self.set_strict_corpse_sight(s.strict_corpse_sight),
             Item::Sheathing
+            | Item::DoubleGuard
             | Item::UnarmedAttacks
             | Item::UnarmedStyle
             | Item::SheathedSpeed
@@ -85,6 +86,7 @@ impl Application {
                 let mut settings = self.settings.sheathing;
                 match item {
                     Item::Sheathing => settings.enabled = s.sheathing.enabled,
+                    Item::DoubleGuard => settings.double_guard = s.sheathing.double_guard,
                     Item::UnarmedAttacks => settings.unarmed = s.sheathing.unarmed,
                     Item::UnarmedStyle => settings.unarmed_style = s.sheathing.unarmed_style,
                     Item::SheathedSpeed => settings.speed = s.sheathing.speed,

@@ -820,6 +820,28 @@
     "shot": "player"
   },
   {
+    "id": "double-guard-rikimaru",
+    "title": "Rikimaru: double guard draws and sheathes",
+    "description": "Optional Gaisen shortcut: two quick guard taps stow, then two more draw. Holding guard does not repeat. Requires weapon sheathing and enhanced guard controls; off by default. Native T2 keeps its original stow-only command.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 4,
+    "feature": "double-guard",
+    "shot": "player"
+  },
+  {
+    "id": "double-guard-ayame",
+    "title": "Ayame: double guard draws and sheathes",
+    "description": "Optional Gaisen shortcut: two quick guard taps stow, then two more draw. Holding guard does not repeat. Requires weapon sheathing and enhanced guard controls; off by default. Native T2 keeps its original stow-only command.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": "double-guard",
+    "shot": "player"
+  },
+  {
     "id": "sheathe-rikimaru",
     "title": "Rikimaru: draw and sheathe",
     "description": "NinjaA's motions let Rikimaru put away and draw his own blade. Attacks still use the original hero moveset. Off by default; H or a chosen controller binding toggles weapons.",

@@ -187,6 +187,9 @@ impl Runtime {
             StaySheathed => Some(
                 "Native T2 already preserves the current weapon state after injury and knockdown. This option changes T1's automatic draw after recovery; it is not needed here.",
             ),
+            DoubleGuard => Some(
+                "This optional draw/stow toggle is for Gaisen. Native T2 retains its original double-guard stow command, including its character and story restrictions.",
+            ),
             BackSpecial => Some(
                 "This shortcuts Gaisen's Up–Down–Square command, including imported movesets with that action. Native T2 has no equivalent command; its original attacks and controls remain unchanged.",
             ),

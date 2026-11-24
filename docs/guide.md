@@ -1677,6 +1677,20 @@ reset these options, graphical presets leave them alone, and enabling sheathing
 disables ordinary input recording and TRIAL records. Savestates and rewind retain
 the stance and settings. Try `sheathe-ayame` and `sheathe-rikimaru` demos.
 
+**Double guard draws / sheathes** adds an optional Gaisen shortcut: tap the guard
+button twice within the original six-tick command window, with no other buttons
+held. Enable **Draw / sheathe weapons** and either **Shift / Circle action →
+Block / dodge** or **R1 guard / dash / roll** first. It toggles both ways, using
+the same draw/stow animations as the separate action, from a free standing,
+moving or guarding stance. Holding guard does not repeat it; directions still
+dodge, and presses during crouches, attacks, injuries, jumps or scripted scenes
+are discarded. Off by default and independent
+of graphics presets. Try `double-guard-rikimaru` and `double-guard-ayame` in the
+demo library. Native T2 retains its original stow-only command and restrictions;
+this option does not change that host. **Guard stance draws weapon** still takes
+priority on the first R1 press when enabled; turn it off to use R1 for both
+stowing and drawing without that automatic draw.
+
 **Stay sheathed after damage** also covers an enemy jumping into you: the original
 body collision can trigger a hurt animation without reducing health. Enable this
 option to retain stowed weapons after that reaction. **Guard stance draws weapon**

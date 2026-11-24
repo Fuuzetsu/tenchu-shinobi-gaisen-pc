@@ -28,7 +28,15 @@ impl Actor {
             .sheathing
             .as_mut()
             .is_some_and(|s| std::mem::take(&mut s.requested));
-        (requested
+        let double_guard = self
+            .sheathing
+            .as_ref()
+            .is_some_and(|s| s.settings.enabled && s.settings.double_guard)
+            && self.id == world.player
+            && (world.intelligence.guard_controls || self.circle_guards(world.intelligence))
+            && self.pad.consume_double_press(R1)
+            && self.status != State::Crouch;
+        ((requested || double_guard)
             && self.id == world.player
             && self.free_stance()
             && self.health > 0
