@@ -476,6 +476,7 @@ impl Application {
             && !self.settings.attack_assist
             && !self.settings.behavior_profiles.enabled
             && !self.settings.multi_target_attacks
+            && !self.settings.full_enemy_melee_damage
             && !self.settings.model_moveset
             && matches!(action, Action::Confirm)
             && let Screen::Inventory(loadout) = &self.campaign.screen
@@ -527,7 +528,8 @@ impl Application {
                         || self.settings.damage_escalation.enabled()
                         || self.settings.attack_assist
                         || self.settings.behavior_profiles.enabled
-                        || self.settings.multi_target_attacks)
+                        || self.settings.multi_target_attacks
+                        || self.settings.full_enemy_melee_damage)
                 {
                     self.menu.notice = "Recording disabled: gameplay modified".into();
                     eprintln!("{}", self.menu.notice);
@@ -1723,6 +1725,7 @@ pub fn run(
         .game
         .set_damage_escalation(settings.damage_escalation);
     campaign.game.combat.multi_target = settings.multi_target_attacks;
+    campaign.game.combat.full_enemy_melee_damage = settings.full_enemy_melee_damage;
     campaign.game.combat.attack_assist = settings.attack_assist;
     campaign
         .game

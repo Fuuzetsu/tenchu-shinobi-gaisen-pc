@@ -70,6 +70,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && !settings.attack_assist
             && !settings.behavior_profiles.enabled
             && !settings.multi_target_attacks
+            && !settings.full_enemy_melee_damage
             && (!p.active
                 || (settings.reinforcement_limit == 0
                     && settings.reinforcement_call == Default::default()))

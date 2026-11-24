@@ -643,6 +643,7 @@ impl Menu {
         settings.dismemberment = defaults.dismemberment;
         settings.damage_escalation = defaults.damage_escalation;
         settings.multi_target_attacks = defaults.multi_target_attacks;
+        settings.full_enemy_melee_damage = defaults.full_enemy_melee_damage;
         settings.attack_assist = defaults.attack_assist;
         settings.behavior_profiles = defaults.behavior_profiles;
         settings.reinforcement_limit = defaults.reinforcement_limit;
@@ -753,6 +754,11 @@ impl Menu {
                             } else {
                                 state.settings.damage_escalation.maximum = defaults.maximum;
                             }
+                            Ok(())
+                        }
+                        Item::FullEnemyMeleeDamage => {
+                            state.settings.full_enemy_melee_damage =
+                                Settings::default().full_enemy_melee_damage;
                             Ok(())
                         }
                         Item::MultiTargetAttacks | Item::AttackAssist => {
@@ -871,6 +877,11 @@ impl Menu {
                             *field = (i32::from(*field) + delta * step).clamp(0, maximum) as u16;
                             Ok(())
                         }
+                        Item::FullEnemyMeleeDamage => {
+                            state.settings.full_enemy_melee_damage =
+                                !state.settings.full_enemy_melee_damage;
+                            Ok(())
+                        }
                         Item::MultiTargetAttacks | Item::AttackAssist => {
                             let field = if item == Item::MultiTargetAttacks {
                                 &mut state.settings.multi_target_attacks
@@ -970,6 +981,8 @@ impl Menu {
                                 state.settings.quick_shuriken_dodge = defaults.quick_shuriken_dodge;
                                 state.settings.strict_corpse_sight = defaults.strict_corpse_sight;
                                 state.settings.multi_target_attacks = defaults.multi_target_attacks;
+                                state.settings.full_enemy_melee_damage =
+                                    defaults.full_enemy_melee_damage;
                                 state.settings.attack_assist = defaults.attack_assist;
                                 state.settings.damage_escalation = defaults.damage_escalation;
                                 state.settings.behavior_profiles = defaults.behavior_profiles;
@@ -1307,6 +1320,7 @@ mod tests {
                 Item::QuickShurikenDodge,
                 Item::StrictCorpseSight,
                 Item::MultiTargetAttacks,
+                Item::FullEnemyMeleeDamage,
                 Item::AttackAssist,
                 Item::DetectionDamage,
                 Item::DetectionDamageLimit,
@@ -1321,6 +1335,7 @@ mod tests {
             };
             assert!(session.world.ai.quick_shuriken_dodge && session.world.ai.strict_corpse_sight);
             assert!(session.world.controls.multi_target_attacks);
+            assert!(session.world.controls.full_enemy_melee_damage);
             assert!(session.world.controls.attack_assist);
             assert_eq!(session.world.ai.damage_escalation.increment, 10);
             assert_eq!(session.world.ai.damage_escalation.maximum, 125);
@@ -1328,6 +1343,7 @@ mod tests {
             expected.ai.quick_shuriken_dodge = false;
             expected.ai.strict_corpse_sight = false;
             expected.controls.multi_target_attacks = false;
+            expected.controls.full_enemy_melee_damage = false;
             expected.controls.attack_assist = false;
             expected.set_damage_escalation(Default::default());
             if let Some(item) = reset {
@@ -1337,6 +1353,7 @@ mod tests {
                     Item::QuickShurikenDodge,
                     Item::StrictCorpseSight,
                     Item::MultiTargetAttacks,
+                    Item::FullEnemyMeleeDamage,
                     Item::AttackAssist,
                     Item::DetectionDamage,
                     Item::DetectionDamageLimit,

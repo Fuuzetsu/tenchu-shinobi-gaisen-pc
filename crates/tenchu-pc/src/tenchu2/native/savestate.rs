@@ -210,6 +210,7 @@ fn restore_snapshot(
     settings.quick_shuriken_dodge = saved.preferences.quick_shuriken_dodge;
     settings.strict_corpse_sight = saved.preferences.strict_corpse_sight;
     settings.multi_target_attacks = saved.preferences.multi_target_attacks;
+    settings.full_enemy_melee_damage = saved.preferences.full_enemy_melee_damage;
     settings.attack_assist = saved.preferences.attack_assist;
     settings.unarmed_guard = saved.preferences.unarmed_guard;
     settings.damage_escalation = saved.preferences.damage_escalation;

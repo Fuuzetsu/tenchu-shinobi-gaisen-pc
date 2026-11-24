@@ -106,6 +106,7 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             quick_shuriken_dodge: true,
             strict_corpse_sight: true,
             multi_target_attacks: true,
+            full_enemy_melee_damage: true,
             attack_assist: true,
             damage_escalation: tenchu_core::ai::escalation::Settings {
                 increment: 50,
@@ -169,6 +170,7 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             settings.quick_shuriken_dodge = false;
             settings.strict_corpse_sight = false;
             settings.multi_target_attacks = false;
+            settings.full_enemy_melee_damage = false;
             settings.attack_assist = false;
             settings.damage_escalation = Default::default();
             settings.behavior_profiles = Default::default();
@@ -188,6 +190,7 @@ fn native_rewind_restores_without_rebuilding_matching_scenes() {
             elapsed += started.elapsed();
             assert!(settings.quick_shuriken_dodge && settings.strict_corpse_sight);
             assert!(settings.multi_target_attacks);
+            assert!(settings.full_enemy_melee_damage);
             assert!(settings.attack_assist);
             assert_eq!(settings.damage_escalation.increment, 50);
             assert_eq!(settings.damage_escalation.maximum, 200);

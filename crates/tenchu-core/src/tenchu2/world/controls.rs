@@ -49,6 +49,7 @@ pub struct Controls {
     pub walking: Option<Walking>,
     pub dismemberment: crate::game::dismemberment::Settings,
     pub multi_target_attacks: bool,
+    pub full_enemy_melee_damage: bool,
     pub attack_assist: bool,
 }
 
@@ -74,6 +75,7 @@ impl Default for Controls {
             walking: None,
             dismemberment: Default::default(),
             multi_target_attacks: false,
+            full_enemy_melee_damage: false,
             attack_assist: false,
         }
     }

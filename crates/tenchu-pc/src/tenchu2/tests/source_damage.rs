@@ -32,6 +32,25 @@ fn native_weapon_projectile_damage_and_resurrection_match_source() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_DAMAGE_ORACLE; full NPC melee damage leaves player and projectile/item paths identical to retail"]
+fn full_enemy_melee_damage_preserves_player_and_item_source_rules() {
+    let rows: Vec<Value> = cases("TENCHU2_DAMAGE_ORACLE")
+        .filter(|row: &Value| {
+            row["hit"].as_i64().unwrap() >= 0
+                || row["player"] == true
+                || row["attacker_player"] == true
+        })
+        .map(|mut row| {
+            row["full_enemy_melee_damage"] = json!(true);
+            row
+        })
+        .collect();
+    assert!(rows.len() > 20_000);
+    compare_damage(&rows);
+    eprintln!("{} unchanged source player/item damage cases", rows.len());
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_GUARD_DAMAGE_ORACLE; armed/stowed guard and backward movement against retail damage instructions"]
 fn native_guard_weapon_states_match_retail() {
     let rows: Vec<Value> = cases("TENCHU2_GUARD_DAMAGE_ORACLE").collect();
@@ -135,6 +154,7 @@ fn compare_damage(rows: &[Value]) -> (usize, usize, usize) {
             difficulty: int("difficulty") as i16,
             armor: flag("armor"),
             unarmed_guard: row["unarmed_guard"].as_bool().unwrap_or(false),
+            full_enemy_melee_damage: row["full_enemy_melee_damage"].as_bool().unwrap_or(false),
             drain_attack: flag("drain"),
             drain_uses: 0,
             story_triggered: flag("story"),

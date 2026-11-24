@@ -769,6 +769,7 @@ fn combat_settings_apply_and_reset() {
     for (index, item) in [
         Item::IndependentAttacks,
         Item::MultiTargetAttacks,
+        Item::FullEnemyMeleeDamage,
         Item::AttackAssist,
         Item::BehaviorProfiles,
         Item::QuickShurikenDodge,
@@ -787,6 +788,7 @@ fn combat_settings_apply_and_reset() {
         let enabled = |app: &Application| match item {
             Item::IndependentAttacks => app.campaign.game.intelligence.independent_attacks,
             Item::AttackAssist => app.campaign.game.combat.attack_assist,
+            Item::FullEnemyMeleeDamage => app.campaign.game.combat.full_enemy_melee_damage,
             Item::BehaviorProfiles => app.campaign.game.intelligence.profiles.enabled,
             Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
             Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
@@ -804,6 +806,7 @@ fn combat_settings_apply_and_reset() {
         let selected = |settings: &Settings| match item {
             Item::IndependentAttacks => settings.independent_attacks,
             Item::AttackAssist => settings.attack_assist,
+            Item::FullEnemyMeleeDamage => settings.full_enemy_melee_damage,
             Item::BehaviorProfiles => settings.behavior_profiles.enabled,
             Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
             Item::StrictCorpseSight => settings.strict_corpse_sight,
@@ -856,6 +859,20 @@ fn combat_settings_apply_and_reset() {
         let recordings: Vec<_> = std::fs::read_dir(&directory).unwrap().collect();
         assert_eq!(recordings.len(), 1);
         std::fs::remove_dir_all(directory).unwrap();
+        if item == Item::FullEnemyMeleeDamage {
+            let state = app.capture_state().unwrap();
+            let rewind = app.capture_rewind().unwrap();
+            for bytes in [Some(state.as_slice()), None] {
+                app.set_full_enemy_melee_damage(false);
+                if let Some(bytes) = bytes {
+                    app.restore_state(bytes).unwrap();
+                } else {
+                    app.restore_rewind(&rewind).unwrap();
+                }
+                assert!(enabled(&app));
+                assert!(selected(&app.settings));
+            }
+        }
     }
 }
 #[test]

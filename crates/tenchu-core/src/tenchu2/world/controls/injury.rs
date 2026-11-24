@@ -110,6 +110,7 @@ impl<E: Events> Driver<'_, E> {
             difficulty: i16::from(c.difficulty),
             armor: c.controls.armor,
             unarmed_guard: c.controls.unarmed_guard,
+            full_enemy_melee_damage: c.controls.full_enemy_melee_damage,
             drain_attack: c.controls.drain_attack,
             drain_uses: c.controls.drain_uses,
             story_triggered: c.controls.story_triggered,

@@ -126,6 +126,9 @@ impl Application {
             | Item::ActorIdle => self.edit_behavior(item, 0, true)?,
             Item::AttackAssist => self.set_attack_assist(s.attack_assist),
             Item::MultiTargetAttacks => self.set_multi_target_attacks(s.multi_target_attacks),
+            Item::FullEnemyMeleeDamage => {
+                self.set_full_enemy_melee_damage(s.full_enemy_melee_damage)
+            }
             Item::ReinforcementsPerCall => {
                 self.set_reinforcement_call(tenchu_core::roster::ReinforcementCall {
                     count: s.reinforcement_call.count,

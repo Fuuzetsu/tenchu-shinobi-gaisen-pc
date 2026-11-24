@@ -44,6 +44,7 @@ pub struct DamageInput {
     pub difficulty: i16,
     pub armor: bool,
     pub unarmed_guard: bool,
+    pub full_enemy_melee_damage: bool,
     pub drain_attack: bool,
     pub drain_uses: u8,
     pub story_triggered: bool,
@@ -341,7 +342,7 @@ impl Damage<'_, '_> {
             if self.actor.is_stealth_vulnerable() {
                 power = -2;
             }
-        } else {
+        } else if !self.input.full_enemy_melee_damage {
             power /= 3;
         }
         let point = body.wrapping_add(self.input.contact).map(|v| v / 2);

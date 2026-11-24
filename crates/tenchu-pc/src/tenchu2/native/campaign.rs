@@ -130,6 +130,7 @@ impl<S: ReadAt> Playback<S> {
                 .world
                 .set_damage_escalation(settings.damage_escalation);
             session.world.controls.multi_target_attacks = settings.multi_target_attacks;
+            session.world.controls.full_enemy_melee_damage = settings.full_enemy_melee_damage;
             session.world.controls.attack_assist = settings.attack_assist;
             session.world.controls.unarmed_guard = settings.unarmed_guard;
             session.world.controls.dismemberment = settings.dismemberment;

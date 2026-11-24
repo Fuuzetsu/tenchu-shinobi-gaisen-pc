@@ -1572,6 +1572,18 @@ persists across missions. Changing it ends input recording; TRIAL records are
 disabled while it is on. Gameplay presets and **Reset simulation tweaks** restore
 the original shared timer. Graphical presets and Retro mode leave it alone.
 
+**Simulation → Full enemy melee damage** removes the original reduction to one-third damage
+when one NPC hits another with a melee weapon in T1 or native T2. It is off by
+default. Other source modifiers remain: T1's protection charms and dog multiplier,
+and T2's victim-skill reduction outside its highest difficulty. T1's difficulty
+bonus remains limited to player attacks. Player armor, optional sheathed damage
+penalties and repeated-detection bonuses do not transfer to NPCs. Blocking and
+recoil remain original; the larger final damage can select a stronger original
+reaction or become lethal. Player attacks, projectile/item damage and special
+attacks keep their existing rules. Gameplay presets and resets turn it off;
+graphical presets leave it alone. Saves and rewind retain the choice. It disables
+ordinary input recording and TRIAL records.
+
 **Simulation → Forward melee assist** prefers enemies within 60° of the player's
 facing and the original 3,000-unit target range. Candidates need a clear
 chest-to-chest terrain path and must be on a similar level. Targets nearer the

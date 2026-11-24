@@ -14,6 +14,7 @@ pub struct Combat {
     pub life_bars: Vec<(usize, i16, i16)>,
     pub armor: bool,
     pub multi_target: bool,
+    pub full_enemy_melee_damage: bool,
     pub attack_assist: bool,
 }
 

@@ -229,8 +229,8 @@ impl Runtime {
             | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,
             GodMode | Armor | SightDistance | Stealth | KeepEnemiesActive | GiveItems
             | ClearItems | Inventory(_) | Reset | ResetTweaks | GameplayPreset
-            | QuickShurikenDodge | StrictCorpseSight | MultiTargetAttacks | AttackAssist
-            | DetectionDamage | DetectionDamageLimit => None,
+            | QuickShurikenDodge | StrictCorpseSight | MultiTargetAttacks
+            | FullEnemyMeleeDamage | AttackAssist | DetectionDamage | DetectionDamageLimit => None,
             BehaviorProfiles
             | BehaviorCombat
             | BehaviorIdle

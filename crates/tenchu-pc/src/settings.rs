@@ -63,6 +63,7 @@ pub struct Settings {
     pub dismemberment: tenchu_core::game::dismemberment::Settings,
     pub damage_escalation: tenchu_core::ai::escalation::Settings,
     pub multi_target_attacks: bool,
+    pub full_enemy_melee_damage: bool,
     pub attack_assist: bool,
     pub behavior_profiles: tenchu_core::ai::profiles::Settings,
     pub reinforcement_limit: u16,
@@ -123,6 +124,7 @@ impl Default for Settings {
             dismemberment: Default::default(),
             damage_escalation: Default::default(),
             multi_target_attacks: false,
+            full_enemy_melee_damage: false,
             attack_assist: false,
             behavior_profiles: Default::default(),
             reinforcement_limit: 0,
@@ -217,6 +219,7 @@ impl Settings {
         self.walking.enabled = game.walking.is_some();
         self.damage_escalation = game.intelligence.damage_escalation;
         self.multi_target_attacks = game.combat.multi_target;
+        self.full_enemy_melee_damage = game.combat.full_enemy_melee_damage;
         self.attack_assist = game.combat.attack_assist;
         self.behavior_profiles = game.intelligence.profiles;
         self.sight_percent = game.intelligence.sight_percent;
@@ -530,6 +533,7 @@ mod tests {
     fn retro_is_a_rendering_view_and_restores_all_preferences() {
         let mut settings = Settings {
             keep_enemies_active: true,
+            full_enemy_melee_damage: true,
             sight_percent: 125,
             cutscene_speed: 4,
             subtitle_language: Some(tenchu_assets::script::Language::English),
@@ -575,6 +579,7 @@ mod tests {
         assert!(original.player_model.is_empty());
         assert_eq!(original.moveset_model, settings.moveset_model);
         assert_eq!(original.sheathing, selected.sheathing);
+        assert!(original.full_enemy_melee_damage);
         assert_eq!(original.hero_unarmed_styles, selected.hero_unarmed_styles);
         assert_eq!(original.alternate_death_chance, 0);
         assert_eq!(
@@ -584,6 +589,7 @@ mod tests {
         let stored = serde_json::to_vec(&settings).unwrap();
         settings = serde_json::from_slice(&stored).unwrap();
         assert_eq!(settings.sheathing, selected.sheathing);
+        assert!(settings.full_enemy_melee_damage);
         assert_eq!(settings.hero_unarmed_styles, selected.hero_unarmed_styles);
         settings.retro = false;
         assert_eq!(settings, selected);
@@ -593,6 +599,7 @@ mod tests {
         ));
         settings.set_visual_preset(presets::MODERN_ULTRA);
         assert_eq!(settings.sheathing, selected.sheathing);
+        assert!(settings.full_enemy_melee_damage);
         assert_eq!(settings.hero_unarmed_styles, selected.hero_unarmed_styles);
         assert_eq!(settings.graphics.weather.mode, WeatherMode::Snow);
         assert_eq!(settings.sight_percent, 125);

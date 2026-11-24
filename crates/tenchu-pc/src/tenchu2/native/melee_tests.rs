@@ -1,3 +1,5 @@
+mod friendly_fire;
+
 use super::*;
 use tenchu_core::tenchu2::{
     actor::Velocity,

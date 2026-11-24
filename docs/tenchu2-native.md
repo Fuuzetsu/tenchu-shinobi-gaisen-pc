@@ -729,3 +729,24 @@ cover progression, failure and retry through all three campaigns, including
 uninterrupted narration, story scenes, movies and credits. Neither is a complete
 recorded campaign playthrough; see [validation coverage](validation.md).
 EU assets remain supported without an EU-native AI runtime.
+
+## Optional full enemy melee damage
+
+Simulation's **Full enemy melee damage** bypasses only the original NPC/NPC
+`damage /= 3` in `ControlCurrentActorDamage` (`GAME.EXE` `800202bc`, research
+`tenchu-2-decomp/src/game.exe/actor_damage.c`). The default continues through the
+unmodified branch. Skill/difficulty and player armor are evaluated earlier;
+blocking and attacker recoil remain before the optional divisor. Projectiles,
+items, player contacts and special damage do not use the new branch. T1 applies
+the same optional bypass in `DamageControl` (`MAIN.EXE` `8001d6bc`, research
+`tenchu-decomp/src/main.exe/MOTION.C`); charm, dog and player armor arithmetic
+retain their source order. No RNG calls are introduced or moved.
+
+Validation uses the existing 8,192-case T1 C harness, an optional variant with
+only that NPC divisor removed from the loaded C routine, and the existing
+41,400-case native retail damage oracle. The 39,534 native player/item oracle cases also
+run with the option enabled. A 128-case native NPC contact fixture covers small
+powers and division edges, victim skill/difficulty, player-only armor/detection/
+sheathed settings and unchanged recoil; a paired block retains identical world
+and RNG state. These are isolated optional
+behavior checks, not recorded ordinary-play route claims.

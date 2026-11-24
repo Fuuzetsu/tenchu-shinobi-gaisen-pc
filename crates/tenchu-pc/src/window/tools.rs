@@ -149,6 +149,14 @@ impl Application {
         self.campaign.game.combat.multi_target = enabled;
     }
 
+    pub(super) fn set_full_enemy_melee_damage(&mut self, enabled: bool) {
+        if self.campaign.game.combat.full_enemy_melee_damage != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.full_enemy_melee_damage = enabled;
+        self.campaign.game.combat.full_enemy_melee_damage = enabled;
+    }
+
     pub(super) fn set_attack_assist(&mut self, enabled: bool) {
         if self.campaign.game.combat.attack_assist != enabled {
             self.stop_edited_recording();
@@ -411,6 +419,7 @@ impl Application {
             self.set_dismemberment(previous.dismemberment);
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
+            self.set_full_enemy_melee_damage(previous.full_enemy_melee_damage);
             self.set_attack_assist(previous.attack_assist);
             self.set_behavior_profiles(previous.behavior_profiles);
             let _ = self.sync_model_moveset();
@@ -514,6 +523,7 @@ impl Application {
         self.set_dismemberment(Default::default());
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
+        self.set_full_enemy_melee_damage(false);
         self.set_attack_assist(false);
         self.set_behavior_profiles(Default::default());
         self.set_reinforcement_limit(0);
@@ -824,6 +834,7 @@ impl Application {
                 self.set_dismemberment(Default::default());
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
+                self.set_full_enemy_melee_damage(false);
                 self.set_attack_assist(false);
                 self.set_behavior_profiles(Default::default());
                 if self.debug.sight_percent != 100 {
@@ -898,6 +909,9 @@ impl Application {
             | Item::ActorCombat
             | Item::ActorIdle => self.edit_behavior(item, direction, false)?,
             Item::AttackAssist => self.set_attack_assist(!self.settings.attack_assist),
+            Item::FullEnemyMeleeDamage => {
+                self.set_full_enemy_melee_damage(!self.settings.full_enemy_melee_damage)
+            }
             Item::MultiTargetAttacks => {
                 self.set_multi_target_attacks(!self.settings.multi_target_attacks);
             }
@@ -1013,6 +1027,7 @@ impl Application {
                 self.set_dismemberment(Default::default());
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
+                self.set_full_enemy_melee_damage(false);
                 self.set_attack_assist(false);
                 self.set_behavior_profiles(Default::default());
                 self.set_reinforcement_limit(0);

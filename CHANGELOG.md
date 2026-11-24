@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **Simulation → Full enemy melee damage**, off by default, for T1 and native
+  T2. Remove the original NPC-on-NPC melee reduction to one-third damage while retaining
+  other source modifiers, blocking and damage reactions. Player attacks,
+  projectiles and special damage keep their existing rules.
 - Strengthen optional Blizzard weather with denser blowing snow, directional
   trails and cold mist. Weather mist controls the veil while roofs and walls
   preserve shelter; Original weather and enemy detection remain unchanged.
@@ -44,7 +48,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
   at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
   weather commands and timing; optional weather settings remain available.
-- Mid-mission savestates use format 45. Load older states with the game build
+- Mid-mission savestates use format 46. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
 ## 0.35.14 — 2026-11-15

@@ -471,6 +471,7 @@ impl Application {
         game.combat.dismemberment = self.settings.dismemberment;
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
+        game.combat.full_enemy_melee_damage = self.settings.full_enemy_melee_damage;
         game.combat.attack_assist = self.settings.attack_assist;
         game.set_behavior_profiles(self.settings.behavior_profiles);
         self.campaign.game = game;
@@ -616,6 +617,8 @@ impl Application {
                 .game
                 .set_damage_escalation(self.settings.damage_escalation);
             self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
+            self.campaign.game.combat.full_enemy_melee_damage =
+                self.settings.full_enemy_melee_damage;
             self.campaign.game.combat.attack_assist = self.settings.attack_assist;
             self.campaign
                 .game

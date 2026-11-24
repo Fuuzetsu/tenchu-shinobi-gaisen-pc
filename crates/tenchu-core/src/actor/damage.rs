@@ -349,7 +349,7 @@ impl Actor {
                 self.health = 0;
             }
             damage = damage.wrapping_add(world.intelligence.difficulty.damage_bonus());
-        } else if self.id != world.player {
+        } else if self.id != world.player && !world.combat.full_enemy_melee_damage {
             damage /= 3;
         }
         if enemy_kind == 0xa9 {

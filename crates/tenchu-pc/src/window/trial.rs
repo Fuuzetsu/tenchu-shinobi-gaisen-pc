@@ -159,6 +159,7 @@ impl Application {
             || self.settings.attack_assist
             || self.settings.behavior_profiles.enabled
             || self.settings.multi_target_attacks
+            || self.settings.full_enemy_melee_damage
             || self.settings.sight_percent != 100
             || self.settings.model_moveset
             || game.player().invulnerable
@@ -226,6 +227,12 @@ mod tests {
         assert!(app.game_tick(0));
         assert!(!app.trial.eligible);
         app.set_multi_target_attacks(false);
+        app.set_full_enemy_melee_damage(true);
+        app.apply_trial(Event::Play { preview: false }).unwrap();
+        assert!(app.campaign.game.combat.full_enemy_melee_damage);
+        assert!(app.game_tick(0));
+        assert!(!app.trial.eligible);
+        app.set_full_enemy_melee_damage(false);
         app.set_attack_assist(true);
         app.apply_trial(Event::Play { preview: false }).unwrap();
         assert!(app.campaign.game.combat.attack_assist);

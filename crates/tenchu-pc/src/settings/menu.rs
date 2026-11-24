@@ -249,6 +249,7 @@ pub enum Item {
     DetectionDamage,
     DetectionDamageLimit,
     MultiTargetAttacks,
+    FullEnemyMeleeDamage,
     AttackAssist,
     BehaviorProfiles,
     BehaviorCombat,
@@ -2236,6 +2237,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Independent enemy attacks",
                 on(s.independent_attacks),
                 "GAMEPLAY EDIT: each enemy uses its own attack cooldown instead of sharing a timer. More enemies can attack together; individual attack speed is unchanged. Ends recording.",
+            ),
+            (
+                Item::FullEnemyMeleeDamage,
+                "Full enemy melee damage",
+                on(s.full_enemy_melee_damage),
+                "Remove the original reduction to one-third damage when one NPC hits another with a melee weapon. Retains other source modifiers, blocking and damage reactions; does not copy player armor, sheathed penalties or detection bonuses to NPCs. Player attacks, projectiles and special damage are unchanged. Gameplay option; off by default; disables input recording and TRIAL records.",
             ),
             (
                 Item::MultiTargetAttacks,

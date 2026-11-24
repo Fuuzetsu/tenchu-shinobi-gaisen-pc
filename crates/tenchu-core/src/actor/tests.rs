@@ -324,6 +324,16 @@ fn both_characters_finish_each_stealth_pair_and_leave_a_corpse() {
 #[test]
 #[ignore = "requires TENCHU_DISC, TENCHU_DECOMP and a C compiler; original DamageControl"]
 fn human_and_item_damage_match_original_c() {
+    compare_damage_with_original_c(false);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC, TENCHU_DECOMP and C compiler; only the original NPC melee divisor is bypassed, preserving other damage, reactions and RNG"]
+fn full_enemy_melee_damage_preserves_other_source_rules() {
+    compare_damage_with_original_c(true);
+}
+
+fn compare_damage_with_original_c(full_enemy_melee_damage: bool) {
     let mut game = oracle::game(0, 0);
     let template = game.player().clone();
     let id = template.id;
@@ -415,6 +425,11 @@ fn human_and_item_damage_match_original_c() {
         routines.push_str(oracle::function(&source, signature));
         routines.push('\n');
     }
+    if full_enemy_melee_damage {
+        let friendly = "if (Me_MOTION_C != StagePlayer)\n                {\n                    dmg = dmg / 3;\n                }";
+        assert_eq!(routines.matches(friendly).count(), 1);
+        routines = routines.replace(friendly, "/* optional full NPC melee damage */");
+    }
     let harness = constants()
         + &include_str!("tests/damage.c")
             .replace(
@@ -464,7 +479,10 @@ fn human_and_item_damage_match_original_c() {
         game.effects = crate::effects::Effects::default();
         game.intelligence = crate::ai::Intelligence::default();
         game.statistics = crate::game::Statistics::default();
-        game.combat = Combat::default();
+        game.combat = Combat {
+            full_enemy_melee_damage,
+            ..Default::default()
+        };
         game.intelligence.difficulty = [
             crate::ai::Difficulty::Easy,
             crate::ai::Difficulty::Normal,
