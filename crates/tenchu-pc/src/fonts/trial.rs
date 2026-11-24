@@ -35,7 +35,7 @@ pub fn text(sprite: &Sprite, character: char) -> Text {
         color: color(sprite.color.map(|n| f32::from(n) / 128.0)),
         size: height * sy * 1.10,
         width: width * sx,
-        centered: true,
+        align: crate::fonts::Align::Center,
     }
 }
 

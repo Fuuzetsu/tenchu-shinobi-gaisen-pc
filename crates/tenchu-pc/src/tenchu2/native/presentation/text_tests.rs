@@ -238,7 +238,11 @@ fn native_hd_menu_text_preserves_state_and_restores_original_artwork() {
     ];
     let instance = wgpu::Instance::new(&Default::default());
     let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
-    let size = [1280, 720];
+    let size = if std::env::var_os("TENCHU2_HUD_SMALL").is_some() {
+        [640, 360]
+    } else {
+        [1280, 720]
+    };
     let mut renderer = pollster::block_on(Renderer::new(
         &adapter,
         wgpu::TextureFormat::Rgba8Unorm,

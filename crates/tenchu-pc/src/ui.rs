@@ -201,7 +201,7 @@ pub fn build(
                     color: crate::fonts::color(color),
                     size: 12.0,
                     width: 300.0 - f32::from(x + 140),
-                    centered: false,
+                    align: crate::fonts::Align::Left,
                 }),
         );
         render_effects::panel(&campaign.game.mission.font, &[])

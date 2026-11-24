@@ -134,6 +134,7 @@ fn build(
         }
         canvas.sprite(Sprite::new(&images.items[slot.item], x, 90.0));
     }
+    let first = canvas.text.len();
     for (x, row) in [(44.0, state.remaining / 10), (54.0, state.remaining % 10)] {
         canvas.label(
             Sprite::new(&images.capacity, x, -73.0).row(usize::from(row), 10),
@@ -141,6 +142,10 @@ fn build(
             egui::Color32::WHITE,
         );
     }
+    let capacity = canvas.text.split_off(first);
+    canvas
+        .text
+        .extend(crate::fonts::compact_numbers(capacity, 10.0));
     if state.stock.items[selection.rules.cells[state.selected].item].is_some() {
         if state.description >= 3 {
             let name = selection.rules.cells[state.selected].name;
@@ -158,7 +163,7 @@ fn build(
             color: egui::Color32::WHITE,
             size: 15.0,
             width: 256.0,
-            centered: false,
+            align: crate::fonts::Align::Left,
         });
     }
     canvas.fade((i32::from(state.fade).abs() + 1) / 2);
@@ -175,12 +180,12 @@ fn quantity(
     let digits = value.to_string();
     if canvas.sharp_text {
         canvas.text.push(crate::fonts::Text {
-            position: egui::pos2(x - 5.0 * (digits.len() - 1) as f32 - 2.0, y - 5.0),
+            position: egui::pos2(x, y - 5.0),
             width: 5.0 * digits.len() as f32,
             text: digits,
             color: egui::Color32::WHITE,
             size: 6.75,
-            centered: false,
+            align: crate::fonts::Align::LastDigit,
         });
         return;
     }

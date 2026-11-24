@@ -146,7 +146,9 @@ close-up detail; the editable pack workflow below supplies genuinely new art.
 
 **F1 → Visual assets → High-definition text** draws HUD numbers, in-game
 subtitles, quick launcher/pause panels and separate original-menu
-labels with a portable outline font at the window's resolution. English,
+labels with a portable outline font at the window's resolution. HUD numbers use
+compact spacing and keep their final digit aligned as values change; native T2
+equipment and results use the same spacing. English,
 Japanese, French and Italian are supported; the original options screens keep
 their Japanese wording. It is off in Original and enabled in the modern quality tiers. It does not change text timing,
 navigation or gameplay. It includes all ten mission titles and the five ranks.

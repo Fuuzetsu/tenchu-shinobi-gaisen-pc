@@ -237,6 +237,7 @@ fn append(canvas: &mut Canvas, results: &super::super::results::Results, panel: 
 }
 
 fn number(canvas: &mut Canvas, image: &Image, text: &str, x: i32, y: i32) {
+    let first = canvas.text.len();
     for (i, character) in text.bytes().enumerate() {
         let row = match character {
             b'0'..=b'9' => usize::from(character - b'0'),
@@ -252,4 +253,8 @@ fn number(canvas: &mut Canvas, image: &Image, text: &str, x: i32, y: i32) {
             egui::Color32::WHITE,
         );
     }
+    let digits = canvas.text.split_off(first);
+    canvas
+        .text
+        .extend(crate::fonts::compact_numbers(digits, 8.0));
 }

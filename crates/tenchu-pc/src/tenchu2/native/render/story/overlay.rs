@@ -87,7 +87,7 @@ pub(super) fn append(
             color: egui::Color32::WHITE,
             size: 14.0,
             width: 300.0,
-            centered: true,
+            align: crate::fonts::Align::Center,
         });
     }
     text

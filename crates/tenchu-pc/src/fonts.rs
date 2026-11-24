@@ -6,13 +6,20 @@ use tenchu_core::{game::Game, hud::Sprite};
 #[cfg(test)]
 mod tests;
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Align {
+    Left,
+    Center,
+    LastDigit,
+}
+
 pub struct Text {
     pub position: Pos2,
     pub text: String,
     pub color: Color32,
     pub size: f32,
     pub width: f32,
-    pub centered: bool,
+    pub align: Align,
 }
 
 pub fn install(ctx: &egui::Context) {
@@ -46,6 +53,55 @@ pub fn color(rgb: [f32; 3]) -> Color32 {
     Color32::from_rgb(r, g, b)
 }
 
+pub(crate) fn compact_numbers(texts: Vec<Text>, advance: f32) -> Vec<Text> {
+    let numeric = |text: &Text| {
+        text.text.len() == 1
+            && matches!(text.text.as_bytes()[0], b'0'..=b'9' | b'+' | b'-')
+            && text.align == Align::Center
+            && text.width > 0.0
+            && text.size > 0.0
+    };
+    let mut texts = texts.into_iter().peekable();
+    let mut runs = Vec::new();
+    while let Some(mut run) = texts.next() {
+        if !numeric(&run) {
+            runs.push(run);
+            continue;
+        }
+        let width = run.width;
+        let mut last = run.position.x;
+        let mut right = last;
+        let mut direction = 0.0;
+        while let Some(next) = texts.peek() {
+            let step = next.position.x - last;
+            if !numeric(next)
+                || next.position.y != run.position.y
+                || next.size != run.size
+                || next.width != width
+                || next.color != run.color
+                || step.abs() != advance
+                || (direction != 0.0 && step != direction)
+            {
+                break;
+            }
+            let next = texts.next().unwrap();
+            if step < 0.0 {
+                run.text.insert_str(0, &next.text);
+            } else {
+                run.text.push_str(&next.text);
+            }
+            run.width += width;
+            right = right.max(next.position.x);
+            last = next.position.x;
+            direction = step;
+        }
+        run.position.x = right;
+        run.align = Align::LastDigit;
+        runs.push(run);
+    }
+    runs
+}
+
 pub fn paint(ctx: &egui::Context, rect: Rect, texts: &[Text]) {
     let painter = ctx
         .layer_painter(egui::LayerId::background())
@@ -60,8 +116,14 @@ pub fn paint(ctx: &egui::Context, rect: Rect, texts: &[Text]) {
             galley = painter.layout_no_wrap(text.text.clone(), font, text.color);
         }
         let mut pos = rect.center() + text.position.to_vec2() * scale;
-        if text.centered {
-            pos.x -= galley.size().x / 2.0;
+        match text.align {
+            Align::Left => {}
+            Align::Center => pos.x -= galley.size().x / 2.0,
+            Align::LastDigit => {
+                if let Some(digit) = galley.rows.last().and_then(|row| row.glyphs.last()) {
+                    pos.x -= digit.pos.x + digit.advance_width / 2.0;
+                }
+            }
         }
         painter.galley_with_override_text_color(
             pos + Vec2::splat((scale * 0.45).max(1.0)),
@@ -111,7 +173,7 @@ pub fn game_text(
             color: Color32::WHITE,
             size: 10.0,
             width: 180.0,
-            centered: true,
+            align: Align::Center,
         });
     }
     if show_hud && sharp_text {
@@ -124,9 +186,10 @@ pub fn game_text(
                 color: Color32::WHITE,
                 size: 9.0,
                 width: 60.0,
-                centered: true,
+                align: Align::Center,
             });
         }
+        let mut numbers = Vec::new();
         for sprite in &game.hud.sprites {
             if sprite.rotation == 0
                 && let Some(character) = trial::timer(game, sprite.image)
@@ -140,7 +203,7 @@ pub fn game_text(
                 continue;
             };
             let scale = sprite.scale.map(|n| f32::from(n) / 4096.0);
-            text.push(Text {
+            numbers.push(Text {
                 position: Pos2::new(
                     f32::from(sprite.xy[0]) - (f32::from(sprite.origin[0]) - 2.0) * scale[0],
                     f32::from(sprite.xy[1])
@@ -151,9 +214,10 @@ pub fn game_text(
                 color: color(sprite.color.map(|n| f32::from(n) / 128.0)),
                 size: f32::from(sprite.image.size[1]) * scale[1] * 1.35,
                 width: 4.5 * scale[0],
-                centered: true,
+                align: Align::Center,
             });
         }
+        text.extend(compact_numbers(numbers, 6.0));
     }
     let alternate = subtitles.filter(|language| *language != game.mission.scripts.language);
     let caption = if let Some(language) = alternate {
@@ -188,7 +252,7 @@ pub fn game_text(
                 color: Color32::WHITE,
                 size: 14.0,
                 width: 300.0,
-                centered: true,
+                align: Align::Center,
             });
         }
     }

@@ -68,7 +68,7 @@ fn training_sound_overlay_is_visible_without_changing_the_scene() {
                         color: crate::fonts::color(color),
                         size: 5.0,
                         width: 200.0,
-                        centered: false,
+                        align: crate::fonts::Align::Left,
                     })
                 })
                 .collect();

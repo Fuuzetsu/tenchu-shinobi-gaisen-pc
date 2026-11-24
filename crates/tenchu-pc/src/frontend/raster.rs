@@ -150,7 +150,7 @@ impl Canvas {
             color,
             size: (height * 0.8).min(14.0),
             width: sprite.source[2] as f32 * sprite.scale.x.abs() * width_scale,
-            centered: true,
+            align: crate::fonts::Align::Center,
         });
     }
 

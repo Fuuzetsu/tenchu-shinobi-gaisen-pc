@@ -1,6 +1,194 @@
 use super::*;
 
 #[test]
+fn numeric_runs_keep_last_digit_center_and_font_size() {
+    let ctx = egui::Context::default();
+    install(&ctx);
+    let _ = ctx.run(Default::default(), |ctx| {
+        for advance in [5.0, 6.0, 8.0, 10.0] {
+            for number in ["0", "9", "10", "67", "100", "987", "-110", "+240"] {
+                for reverse in [false, true] {
+                    let mut digits: Vec<_> = number
+                        .chars()
+                        .enumerate()
+                        .map(|(i, digit)| Text {
+                            position: Pos2::new(
+                                100.0 - (number.len() - i - 1) as f32 * advance,
+                                20.0,
+                            ),
+                            text: digit.to_string(),
+                            color: Color32::WHITE,
+                            size: 6.75,
+                            width: 4.5,
+                            align: Align::Center,
+                        })
+                        .collect();
+                    if reverse {
+                        digits.reverse();
+                    }
+                    let texts = compact_numbers(digits, advance);
+                    assert_eq!(texts.len(), 1);
+                    let text = &texts[0];
+                    assert_eq!(text.text, number);
+                    assert_eq!(text.position, Pos2::new(100.0, 20.0));
+                    assert_eq!(text.align, Align::LastDigit);
+                    for scale in [1.5, 3.0] {
+                        let galley = ctx.fonts(|fonts| {
+                            fonts.layout_no_wrap(
+                                text.text.clone(),
+                                id(text.size * scale),
+                                text.color,
+                            )
+                        });
+                        assert!(
+                            galley.size().x <= text.width * scale,
+                            "{number}: shrank the font"
+                        );
+                        if number.len() > 1 {
+                            assert!(
+                                galley.size().x
+                                    < (advance * (number.len() - 1) as f32 + 4.5) * scale
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+#[test]
+fn numeric_paint_keeps_the_last_glyph_center_with_padded_source_cells() {
+    let ctx = egui::Context::default();
+    install(&ctx);
+    for (size, width, advance) in [(6.75, 4.5, 6.0), (12.8, 16.0, 8.0)] {
+        for number in ["2", "03", "100", "-110"] {
+            for [w, h] in [[640.0, 360.0], [1280.0, 720.0]] {
+                let digit = |character: char, x| Text {
+                    position: Pos2::new(x, 0.0),
+                    text: character.to_string(),
+                    color: Color32::WHITE,
+                    size,
+                    width,
+                    align: Align::Center,
+                };
+                let mut text = vec![digit(number.chars().next_back().unwrap(), 100.0)];
+                text.extend(compact_numbers(
+                    number
+                        .chars()
+                        .enumerate()
+                        .map(|(i, ch)| digit(ch, 100.0 - (number.len() - i - 1) as f32 * advance))
+                        .collect(),
+                    advance,
+                ));
+                let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(w, h));
+                let output = ctx.run(
+                    egui::RawInput {
+                        screen_rect: Some(rect),
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        paint(ctx, rect, &text);
+                    },
+                );
+                let centers: Vec<_> = output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| {
+                        let egui::Shape::Text(text) = &shape.shape else {
+                            return None;
+                        };
+                        if text.override_text_color.is_some() {
+                            return None;
+                        }
+                        let last = text.galley.rows.last()?.glyphs.last()?;
+                        Some(text.pos.x + last.pos.x + last.advance_width / 2.0)
+                    })
+                    .collect();
+                assert_eq!(centers.len(), 2);
+                assert!(
+                    (centers[0] - centers[1]).abs() <= 0.5,
+                    "{number}, cell{width}, viewport{w}: {centers:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn numeric_runs_preserve_animation_style_and_separate_readouts() {
+    let digit = |x| Text {
+        position: Pos2::new(x, 20.0),
+        text: "1".into(),
+        color: Color32::WHITE,
+        size: 6.75,
+        width: 4.5,
+        align: Align::Center,
+    };
+    for boundary in 0..7 {
+        let mut second = digit(5.0);
+        match boundary {
+            0 => second.position.x += 1.0,
+            1 => second.position.y += 1.0,
+            2 => second.color = Color32::RED,
+            3 => second.size *= 1.25,
+            4 => second.width *= 1.25,
+            5 => second.align = Align::Left,
+            _ => second.text = ":".into(),
+        }
+        assert_eq!(compact_numbers(vec![digit(0.0), second], 5.0).len(), 2);
+    }
+    let reversed = compact_numbers(vec![digit(0.0), digit(5.0), digit(0.0)], 5.0);
+    assert_eq!(
+        reversed.len(),
+        2,
+        "a separate overlapping counter joined the run"
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; isolated health/Ki/item glyphs retain source sprites and fixed HD anchors for both heroes"]
+fn hud_numbers_group_source_digits_without_changing_the_game() {
+    let assets = tenchu_assets::game::GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    for hero in 0..2 {
+        let mut game = crate::session::Options {
+            character: hero,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.step(0).unwrap();
+        for value in [1, 10, 100] {
+            game.hud.sprites.clear();
+            for [x, y] in [[-148, 105], [-100, 100], [140, 100]] {
+                for (i, digit) in value.to_string().bytes().rev().enumerate() {
+                    let mut image = game.mission.images[51];
+                    image.size[0] = 4;
+                    image.uv[0] = image.uv[0].wrapping_add((digit - b'0') * 4);
+                    game.hud
+                        .sprites
+                        .push(Sprite::new(image, [x - i as i16 * 6, y]));
+                }
+            }
+            let before = postcard::to_allocvec(&game).unwrap();
+            let texts = game_text(&game, true, true, true, None);
+            assert_eq!(texts.len(), 3);
+            for (text, x) in texts.iter().zip([-148.0, -100.0, 140.0]) {
+                assert_eq!(text.text, value.to_string());
+                assert_eq!(text.position.x, x);
+                assert_eq!(text.align, Align::LastDigit);
+            }
+            assert!(game_text(&game, true, true, false, None).is_empty());
+            assert!(game_text(&game, false, true, true, None).is_empty());
+            assert_eq!(postcard::to_allocvec(&game).unwrap(), before);
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; compares independent subtitles with four live localized scenes and preserves the source scene"]
 fn independent_scene_subtitles_follow_localized_cues_without_changing_the_scene() {
     use std::collections::BTreeMap;
@@ -181,7 +369,7 @@ fn outline_font_contains_localized_letters_and_keeps_layout_within_the_view() {
                         color: Color32::WHITE,
                         size: 14.0,
                         width: 280.0,
-                        centered: false,
+                        align: Align::Left,
                     })
                     .collect();
                 paint(ctx, rect, &text);

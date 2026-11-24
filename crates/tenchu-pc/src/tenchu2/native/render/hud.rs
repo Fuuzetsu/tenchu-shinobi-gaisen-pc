@@ -122,7 +122,7 @@ pub(super) fn bleeding_text(
             color: crate::fonts::color(color.map(|c| c - fade)),
             size: 8.0,
             width: 290.0,
-            centered: false,
+            align: crate::fonts::Align::Left,
         });
     }
     let world = &session.world;
@@ -138,14 +138,14 @@ pub(super) fn bleeding_text(
             color: crate::fonts::color([1.0 - fade; 3]),
             size: 8.0,
             width: 70.0,
-            centered: true,
+            align: crate::fonts::Align::Center,
         });
     }
     texts
 }
 
 pub(super) fn text(frame: &[Primitive], fade: Option<u8>) -> Vec<crate::fonts::Text> {
-    frame
+    let digits = frame
         .iter()
         .rev()
         .filter_map(|primitive| {
@@ -170,10 +170,11 @@ pub(super) fn text(frame: &[Primitive], fade: Option<u8>) -> Vec<crate::fonts::T
                 ),
                 size: 6.75 * scale,
                 width: 4.5 * scale,
-                centered: true,
+                align: crate::fonts::Align::Center,
             })
         })
-        .collect()
+        .collect();
+    crate::fonts::compact_numbers(digits, 5.0)
 }
 
 pub(super) fn append(
@@ -274,6 +275,64 @@ pub(super) fn append(
 mod tests {
     use crate::settings::{Graphics, Settings};
     use tenchu_core::tenchu2::{ai::status::Ki, inventory::Inventory};
+
+    #[test]
+    fn native_numbers_keep_source_anchors_fades_and_rotation() {
+        use tenchu_core::tenchu2::hud::{Health, Hud};
+        for value in [1, 10, 100] {
+            let mut hud = Hud::default();
+            let mut items = [0; 21];
+            items[0] = 255;
+            items[1] = value;
+            hud.step(
+                Health {
+                    current: i16::from(value),
+                    maximum: 100,
+                    poisoned: false,
+                },
+                0,
+                &Inventory::from_amounts(items),
+                Ki::Nearby(value),
+                |_| None,
+            )
+            .unwrap();
+            let before = postcard::to_allocvec(&hud).unwrap();
+            let text = super::text(&hud.frame, None);
+            for x in [-64.0, -110.0] {
+                let number = text.iter().find(|text| text.position.x == x).unwrap();
+                assert_eq!(number.text, value.to_string());
+                assert_eq!(number.align, crate::fonts::Align::LastDigit);
+            }
+            assert!(
+                text.iter()
+                    .any(|t| t.position.x > 0.0 && t.text == value.to_string())
+            );
+            let faded = super::text(&hud.frame, Some(128));
+            assert_eq!(faded.len(), text.len());
+            for (before, after) in text.iter().zip(faded) {
+                assert_eq!(before.text, after.text);
+                assert_eq!(before.position, after.position);
+                assert!(after.color.r() < before.color.r());
+            }
+            assert!(super::text(&hud.frame, Some(255)).is_empty());
+            assert_eq!(postcard::to_allocvec(&hud).unwrap(), before);
+            let sprite = hud
+                .frame
+                .iter_mut()
+                .find_map(|p| match p {
+                    super::Primitive::Sprite(s) if matches!(s.image, super::Image::Digit(_)) => {
+                        Some(s)
+                    }
+                    _ => None,
+                })
+                .unwrap();
+            sprite.rotation = 1;
+            assert!(
+                super::digit(sprite).is_none(),
+                "animated digit must retain the source sprite"
+            );
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU2_DISC, TENCHU2_ASSET_PACK, TENCHU2_UI_REVIEW and GPU; all item icons, clipped health fills, Ki blend classes, digit slices and exact original restoration"]
@@ -593,6 +652,56 @@ mod tests {
                 "HD text did not change the readouts (post={post})"
             );
         }
+
+        session.frame.transition_fade = None;
+        let instance = wgpu::Instance::new(&Default::default());
+        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+        let graphics = Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        let format = wgpu::TextureFormat::Rgba8Unorm;
+        let mut renderer = pollster::block_on(crate::renderer::Renderer::new(
+            &adapter,
+            format,
+            [640, 360],
+            &session.assets.sprites.vram,
+        ))
+        .unwrap();
+        renderer.configure(&graphics);
+        let mut drawing = super::super::Drawing::new(&session, &graphics, &mut renderer).unwrap();
+        let target = renderer.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Small native HUD"),
+            size: wgpu::Extent3d {
+                width: 640,
+                height: 360,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let mut captures = Vec::new();
+        for (index, sharp) in [false, true, false].into_iter().enumerate() {
+            drawing.sharp_text = sharp;
+            drawing.update(&session, &mut renderer, None).unwrap();
+            drawing
+                .draw(&target.create_view(&Default::default()), &mut renderer)
+                .unwrap();
+            crate::fonts::capture(&renderer, &target, &drawing.texts);
+            let path = output.join(format!("hud-small-{index}-hd-{sharp}.png"));
+            crate::capture::read_texture(&renderer, &target, &path).unwrap();
+            captures.push(std::fs::read(path).unwrap());
+            assert_eq!(postcard::to_allocvec(&session.world).unwrap(), world);
+        }
+        assert_ne!(captures[0], captures[1]);
+        assert_eq!(
+            captures[0], captures[2],
+            "small Original HUD did not restore"
+        );
 
         use super::super::super::{campaign::Content, presentation::ContentDrawing};
         session.frame.transition_fade = None;

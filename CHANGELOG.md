@@ -22,6 +22,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   by default and switches complete compatible movesets only from a free grounded
   stance, preserving body, independent equipment/voice and unarmed preferences.
 
+- Tighten high-definition HUD numbers in T1 and native T2, keeping health, Ki and
+  item counts aligned as values change. Apply the same compact spacing to native
+  T2 equipment and results; Original retains its disc sprites and spacing.
 - Replace the optional bleeding banner with a small red drop beside health while
   bleeding in T1 and native T2. **Bleeding → Detailed bleeding status** restores
   the countdown; bandage stock and treatment remain in the item selector.

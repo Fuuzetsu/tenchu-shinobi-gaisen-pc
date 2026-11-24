@@ -1174,7 +1174,7 @@ pub(super) fn digits(
             color: Color32::WHITE,
             size: if vertical { 8.0 } else { 12.0 },
             width,
-            centered: true,
+            align: crate::fonts::Align::Center,
         });
         return;
     }

@@ -160,7 +160,7 @@ fn build(
             color: egui::Color32::WHITE,
             size: 15.0,
             width: 256.0,
-            centered: false,
+            align: crate::fonts::Align::Left,
         });
     }
     let width = resources.buttons.size[0] + resources.labels.size[0] + 8;

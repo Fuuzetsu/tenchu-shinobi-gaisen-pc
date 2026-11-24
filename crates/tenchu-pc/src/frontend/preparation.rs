@@ -401,7 +401,7 @@ impl Frontend {
                     color: egui::Color32::from_rgb(65, 167, 190),
                     size: 14.0,
                     width: image.size[0] as f32,
-                    centered: false,
+                    align: crate::fonts::Align::Left,
                 });
                 17.min(image.size[1])
             } else {
