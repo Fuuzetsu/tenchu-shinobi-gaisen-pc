@@ -1238,6 +1238,17 @@ RNG. Master/effects volume and pause apply to thunder. Graphics presets never
 select a storm automatically. `demo --clips rainstorm,snowstorm` previews them;
 add `--sound --video storm.mp4` to include thunder in an offline recording.
 
+**Blizzard** adds harsher blowing snow, wind-aligned trails and cold mist without
+lightning or thunder. Its particle budget is three times ordinary snow, capped
+at 1,152/2,688/5,376 particles for Low/Medium/High weather detail. **Wind strength**
+controls the drift; **Weather mist** controls the distant veil and overcast sky.
+Try precipitation 100%, wind 100% and mist 75–100% for strong conditions, or set
+mist to 0 for clear air. Walls and roofs shelter particles and the portions of
+the view beneath cover. This is cosmetic: enemy detection, source weather RNG
+and gameplay visibility rules are unchanged. Modern High/Ultra preserve your
+weather choice; Original stays unchanged. `demo --clips blizzard` compares clear
+air with strong blowing snow and mist.
+
 Rain has additional controls on that same page:
 
 - **Wet reflections** (0–300%) controls sky and shadowed sun/moon/lamp highlights.
@@ -1250,8 +1261,9 @@ Rain has additional controls on that same page:
 - **Pooling speed** (0.25–10x) changes wetness and puddle build-up. At full rain,
   1x wets surfaces in about 20 seconds and builds puddles over a minute; 10x takes
   roughly 2 and 7 seconds. Drying is gradual and independent of that multiplier.
-- **Rain haze** obscures distant views independently of black fog, with less haze
-  along sheltered portions of the view. It does not change enemy detection.
+- **Weather mist** obscures distant views in rain and Blizzard independently of
+  black fog, with less haze along sheltered portions of the view. It does not
+  change enemy detection.
 - **Rain streak visibility** changes drop/splash visibility without increasing
   the particle count. **Roof drip amount** controls rivulets and recurring eave
   drips; runoff has its own bounded budget and still works with streak visibility

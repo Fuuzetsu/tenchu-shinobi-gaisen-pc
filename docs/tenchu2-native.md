@@ -562,6 +562,8 @@ is never consumed). Armour has its own checkbox; unused item slots are omitted.
 **F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
 wind-directed shelter on terrain and static props, accumulation, runoff, tracks,
 and synthesized ambience/thunder. These overrides remain optional in every preset.
+**Blizzard** adds dense wind-driven snow trails and cold mist without thunder;
+**Weather mist** adjusts its distant veil while sheltered views remain clearer.
 **Original** draws the disc's rain in Toda War Camp and Gohda Castle and snow at
 Rikimaru's Burning Dawn Temple, including source splashes, thunder and cutscene
 weather commands. Original, Modern High and Modern Ultra retain this default.

@@ -995,7 +995,7 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::Weather,
                     "Weather",
                     weather.mode.name().into(),
-                    "Original retains the mission weather. Other choices replace presentation only. Rainstorm and Snowstorm add lightning and delayed thunder. Blizzard adds dense, strongly wind-driven snow and howling wind without lightning; gameplay is unchanged.",
+                    "Original retains the mission weather. Other choices replace presentation only. Rainstorm and Snowstorm add lightning and delayed thunder. Blizzard adds dense, strongly wind-driven snow trails, cold mist and howling wind without lightning; gameplay is unchanged.",
                 ),
                 (
                     Item::ClearWeather,
@@ -1107,9 +1107,9 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
                 (
                     Item::RainHaze,
-                    "Rain haze",
+                    "Weather mist",
                     format!("{}%", weather.haze),
-                    "Rain obscures distant views, independently of black fog. Sheltered sections of the view stay clearer. Visual only: enemy detection is unchanged.",
+                    "Rain haze or dense cold mist in Blizzard mode obscures distant views independently of black fog. Sheltered sections of the view stay clearer. 0 keeps the air clear. Visual only: enemy detection is unchanged.",
                 ),
                 (
                     Item::RainStreaks,

@@ -35,7 +35,7 @@ fn prewarmed_weather_continues_at_the_game_tick_without_clearing() {
 #[test]
 fn changing_wind_redirects_existing_rain_and_snow_and_rechecks_shelter() {
     let surfaces = surfaces();
-    for mode in [WeatherMode::Rain, WeatherMode::Snow] {
+    for mode in [WeatherMode::Rain, WeatherMode::Snow, WeatherMode::Blizzard] {
         let mut weather = Weather::default();
         let mut settings = Settings {
             mode,
@@ -438,6 +438,7 @@ fn blizzard_has_wind_snow_and_no_thunder() {
     let mut weather = Weather::default();
     for tick in 0..1800 {
         weather.tick(tick, Vec3::ZERO, &surfaces, &settings);
+        assert!(weather.particles.len() <= settings.particles());
         assert_eq!(weather.thunder(), None);
         assert_eq!(weather.sample(&settings, 0.5).flash, 0.0);
     }
@@ -463,4 +464,53 @@ fn blizzard_has_wind_snow_and_no_thunder() {
         ..settings
     };
     assert_eq!(weather.ambience(&surfaces, &muted).wind, 0.0);
+}
+
+#[test]
+fn blizzard_trails_follow_projected_wind_without_advancing_weather() {
+    let camera = Mat4::perspective_lh(std::f32::consts::FRAC_PI_2, 1.0, 1.0, 10000.0);
+    let mut settings = Settings {
+        mode: WeatherMode::Blizzard,
+        wind: 100,
+        heading: 90,
+        ..Default::default()
+    };
+    let weather = Weather {
+        mode: settings.mode,
+        particles: vec![Particle {
+            previous: Vec3::new(0.0, 0.0, 3000.0),
+            position: Vec3::new(100.0, 30.0, 3000.0),
+            velocity: settings.velocity(36.0),
+            hit: None,
+            life: 60,
+            size: 12.0,
+        }],
+        ..Default::default()
+    };
+    let state = postcard::to_allocvec(&weather).unwrap();
+    let velocity = weather.particles[0].velocity.with_z(0.0).normalize();
+    for alpha in [0.0, 0.25, 0.5, 1.0] {
+        let geometry = weather.geometry(camera, alpha, &settings);
+        assert_eq!(geometry.vertices.len(), 6);
+        let points: Vec<_> = geometry
+            .vertices
+            .iter()
+            .map(|v| Vec3::from(v.position))
+            .collect();
+        let width = points[1] - points[0];
+        let trail = points[2] - points[0];
+        assert!(trail.normalize().dot(velocity).abs() > 0.999);
+        assert!(trail.length() > width.length() * 3.0);
+        let center = points.into_iter().sum::<Vec3>() / 6.0;
+        assert!(
+            center.distance(
+                weather.particles[0]
+                    .previous
+                    .lerp(weather.particles[0].position, alpha)
+            ) < 0.001
+        );
+    }
+    assert_eq!(postcard::to_allocvec(&weather).unwrap(), state);
+    settings.mode = WeatherMode::Original;
+    assert!(weather.geometry(camera, 0.5, &settings).vertices.is_empty());
 }

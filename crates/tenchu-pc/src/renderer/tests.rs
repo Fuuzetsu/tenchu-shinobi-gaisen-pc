@@ -3,6 +3,7 @@ use crate::render_mesh;
 use tenchu_assets::model::{Corner, Face, Geometry, Texture};
 use tenchu_core::math::Matrix;
 
+mod blizzard;
 mod blood_composite;
 mod contact;
 mod feedback;

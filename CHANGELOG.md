@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Strengthen optional Blizzard weather with denser blowing snow, directional
+  trails and cold mist. Weather mist controls the veil while roofs and walls
+  preserve shelter; Original weather and enemy detection remain unchanged.
 - Shorten automatic graphics tuning in T1 and native T2 with quick trials across
   every scene, followed by full-duration validation before applying the result.
   Show tuning phase, scene progress and elapsed time; cancellation keeps settings.

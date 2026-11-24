@@ -512,7 +512,12 @@ mod tests {
             session.step(0).unwrap();
         }
         let before = serde_json::to_vec(&session.world).unwrap();
-        for mode in [WeatherMode::Original, WeatherMode::Snow, WeatherMode::Rain] {
+        for mode in [
+            WeatherMode::Original,
+            WeatherMode::Snow,
+            WeatherMode::Rain,
+            WeatherMode::Blizzard,
+        ] {
             let mut graphics = Graphics {
                 fog: false,
                 asset_pack: false,
@@ -522,6 +527,10 @@ mod tests {
             graphics.weather.amount = 100;
             graphics.weather.snow = 100;
             graphics.weather.pooling = 1000;
+            if mode == WeatherMode::Blizzard {
+                graphics.weather.wind = 100;
+                graphics.weather.haze = 100;
+            }
             let path = output.join(format!("native-weather-{mode:?}.png"));
             super::super::capture_frame(
                 &session.assets.sprites.vram,
@@ -557,7 +566,7 @@ mod tests {
                             &graphics.weather,
                             snow,
                         );
-                        if mode == WeatherMode::Snow {
+                        if mode.snow() {
                             assert!(snow > 0.5);
                             assert!(
                                 !e.footprints

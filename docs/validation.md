@@ -261,6 +261,23 @@ tracks sample the terrain actually being drawn. Before/after captures and logs
 remain in `private/two-releases-20261110/native-vegetation`. These controlled
 fixtures do not add ordinary-play or campaign coverage.
 
+The optional Blizzard revision (#103) has matched roof/street captures from
+Mission 1 at maximum amount, wind and detail, with mist at 0 and 100. Before the
+change, both mist values produced identical pixels: the setting only affected
+rain. The revised shared renderer adds cold mist along exposed view segments,
+while a fully covered fixture must remain pixel-identical to clear air. A GPU
+fixture compares the cached view volume with the direct portable shader under
+opposite winds; existing rain/snow shelter fixtures remain separate regressions.
+Particle checks cover wind changes, source-independent interpolation, shelter,
+bounded counts and absence of thunder. Native T2's stage fixture includes Blizzard,
+preserves serialized gameplay state and retains weather/tracks through a visual
+rebuild. Original, Snow and Rain captures are compared with the unchanged build.
+Use `TENCHU_DISC`, `TENCHU_BLIZZARD_REVIEW` and a GPU with the ignored
+`blizzard_on_actual_roofs_and_streets` test to reproduce the T1 views. These are
+optional presentation fixtures, not a retail Blizzard algorithm or new
+ordinary-play verification; original weather and its source update code are
+unchanged.
+
 Optional native T2 walking has controlled fixtures for all three heroes, selected
 Gaisen/T2 moveset overrides and an imported T1 stage after its cinematic. They
 check actual walk speeds, restoration of each moveset's run, committed actions,

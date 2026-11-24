@@ -165,6 +165,13 @@ fn rain_color() -> vec3<f32> {
         + vec3(0.3, 0.34, 0.4) * lighting.source.z;
 }
 
+fn weather_haze_color() -> vec3<f32> {
+    if BLIZZARD_ENABLED {
+        return mix(vec3(0.035, 0.05, 0.075), vec3(0.42, 0.48, 0.56), camera.detail.w);
+    }
+    return rain_color();
+}
+
 fn storm_light(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, precomputed: bool) -> vec3<f32> {
     if !WEATHER_ENABLED || lighting.source.z == 0.0 { return vec3(0.0); }
     return storm_illumination(normal, weather_exposure(surface, position, precomputed, false));
@@ -295,7 +302,7 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
 }
 
 fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool, precomputed: bool, rain_enabled: bool) -> vec3<f32> {
-    if !rain_enabled || !WEATHER_ENABLED || lighting.rain.y == 0.0 { return input; }
+    if (!rain_enabled && !BLIZZARD_ENABLED) || !WEATHER_ENABLED || lighting.rain.y == 0.0 { return input; }
     var haze = -1.0;
     if CACHED_RAIN && camera.motion.z != 0.0 {
         let clip = camera.matrix * vec4(position, 1.0);
@@ -317,7 +324,7 @@ fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool, precompu
         let shelter = rain_view_exposure(start0, start1, delta0, delta1, radius, weather_scale(0, precomputed), weather_scale(1, precomputed));
         haze = min(0.94, 1.0 - exp(-distance * lighting.rain.y * shelter / 18000.0));
     }
-    var color = rain_color();
+    var color = weather_haze_color();
     if !linear { color = pow(color, vec3(1.0 / 2.2)); }
     return mix(input, color, haze);
 }

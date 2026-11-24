@@ -1581,7 +1581,7 @@
   {
     "id": "blizzard",
     "title": "A howling blizzard",
-    "description": "Dense wind-driven snow and a changing wind howl. Shelter muffles the ambience; Blizzard has no lightning or thunder.",
+    "description": "Dense blowing snow, long wind-driven trails and cold mist sweep from clear air to a harsh blizzard. Roofs and walls shelter particles and mist, and muffle the wind howl. Blizzard has no lightning or thunder.",
     "seconds": 18,
     "mission": 1,
     "character": 1,

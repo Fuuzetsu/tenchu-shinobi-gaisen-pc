@@ -831,10 +831,7 @@ impl Renderer {
             f32::from(water.flow) / 100.0,
             f32::from(water.foam) / 100.0,
         ]);
-        let cache_rain = !self.gl
-            && self.graphics.weather.mode.rain()
-            && self.graphics.weather.amount > 0
-            && self.graphics.weather.haze > 0;
+        let cache_rain = !self.gl && self.graphics.weather.haze_strength() > 0.0;
         let rays = (self.wet_lighting.is_some() || cache_rain)
             .then(|| wet_lighting::camera_rays(matrix))
             .flatten();

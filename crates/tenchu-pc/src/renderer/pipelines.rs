@@ -9,6 +9,7 @@ pub(super) struct Options {
     hdr: bool,
     weather: bool,
     rain: bool,
+    blizzard: bool,
     water: bool,
     coarse_shadows: bool,
     forward_weather: bool,
@@ -36,6 +37,7 @@ impl Options {
             hdr: graphics.post.enabled,
             weather: graphics.weather.mode != crate::settings::WeatherMode::Original,
             rain: graphics.weather.mode.rain(),
+            blizzard: graphics.weather.mode == crate::settings::WeatherMode::Blizzard,
             water: graphics.water.enabled,
             coarse_shadows: super::wet_lighting::configured(graphics, samples, false),
             forward_weather,
@@ -228,7 +230,7 @@ impl Options {
 
     fn module(self, device: &wgpu::Device, gl: bool, pass: &str) -> wgpu::ShaderModule {
         let common = format!(
-            "const CACHED_RAIN: bool = {}; const FLAME_MOTION: bool = {}; const ADAPTIVE_SHADOWS: bool = {}; const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const SHADOW_FILTER_TAPS: u32 = {}u; const SHADOW_FILTER_GROUP: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "const CACHED_RAIN: bool = {}; const FLAME_MOTION: bool = {}; const ADAPTIVE_SHADOWS: bool = {}; const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const BLIZZARD_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const SHADOW_FILTER_TAPS: u32 = {}u; const SHADOW_FILTER_GROUP: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
             !gl,
             self.flame_motion,
             self.adaptive_shadows,
@@ -239,6 +241,7 @@ impl Options {
             self.hdr,
             self.weather,
             self.rain,
+            self.blizzard,
             self.water,
             crate::lighting::MAX_SCENE_LIGHTS,
             crate::lighting::MAX_LIGHTS,

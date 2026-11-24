@@ -450,7 +450,8 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             match player.clip().feature {
                 Feature::Blizzard => {
                     g.weather.mode = crate::settings::WeatherMode::Blizzard;
-                    g.weather.wind = (25.0 + wave * 50.0) as u16;
+                    g.weather.wind = (50.0 + wave * 50.0) as u16;
+                    g.weather.haze = (wave * 100.0) as u16;
                     g.weather.wind_volume = 85;
                     g.sky.time = 1020;
                 }
@@ -941,7 +942,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         } else {
             "Pulsing jets follow wounds · weaken over 4 seconds · cosmetic only".into()
         }),
-        Feature::Blizzard => meter("Blizzard wind", g.weather.wind, 100),
+        Feature::Blizzard => text(format!("Blizzard · wind {}% · mist {}% · shelter stays clear", g.weather.wind, g.weather.haze)),
         Feature::Rainstorm | Feature::Snowstorm => text(
             "Branching sky bolts · sheltered flashes · delayed natural thunder · denser precipitation".into(),
         ),

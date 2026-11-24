@@ -323,17 +323,23 @@ impl Weather {
                 continue;
             }
             let snow = self.mode.snow();
-            let axis = if snow {
+            let blowing = self.mode == WeatherMode::Blizzard;
+            let drift = p.velocity - forward * p.velocity.dot(forward);
+            let axis = if blowing {
+                drift.try_normalize().unwrap_or(up)
+            } else if snow {
                 up
             } else {
                 p.velocity.normalize_or_zero()
             };
-            let side = if snow {
+            let side = if snow && !blowing {
                 right
             } else {
                 axis.cross(forward).normalize_or_zero()
             };
-            let length = if snow {
+            let length = if blowing {
+                p.size + drift.length() * 0.16
+            } else if snow {
                 p.size
             } else {
                 (p.velocity.length() * if runoff { 1.8 } else { 0.8 }).min(650.0)
@@ -343,7 +349,9 @@ impl Weather {
             } else {
                 f32::from(settings.streaks) / 100.0
             };
-            let width = if snow {
+            let width = if blowing {
+                p.size * 0.65
+            } else if snow {
                 p.size
             } else {
                 p.size.max((distance * 0.0005).min(60.0)) * strength.sqrt()

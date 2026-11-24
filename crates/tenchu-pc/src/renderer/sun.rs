@@ -134,7 +134,7 @@ impl Frame {
             };
             self.rain = [
                 f32::from(settings.reflections) / 100.0,
-                amount * f32::from(settings.haze) / 100.0,
+                settings.haze_strength(),
                 amount,
                 f32::from(settings.snow_drift) / 100.0,
             ];

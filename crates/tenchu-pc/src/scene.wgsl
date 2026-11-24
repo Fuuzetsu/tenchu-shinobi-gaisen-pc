@@ -370,7 +370,9 @@ fn sky_color(direction: vec3<f32>) -> vec4<f32> {
     let halo = pow(alignment, 500.0) * 0.12;
     color += lighting.sun_color.rgb * (disc * 2.0 + halo) * min(1.0, lighting.sun_direction.w * 12.0);
     if WEATHER_ENABLED {
-        color = mix(color, rain_color(), lighting.rain.y * (0.5 + 0.4 * (1.0 - height)));
+        var haze = lighting.rain.y * (0.5 + 0.4 * (1.0 - height));
+        if BLIZZARD_ENABLED { haze = min(1.0, haze); }
+        color = mix(color, weather_haze_color(), haze);
         color += vec3(0.18, 0.22, 0.3) * lighting.source.z;
     }
     color *= camera.options.x;

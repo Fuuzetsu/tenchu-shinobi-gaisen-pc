@@ -143,7 +143,9 @@ impl Weather {
     pub fn particles(&self) -> usize {
         let count =
             [384, 896, 1792][usize::from(self.quality.min(2))] * usize::from(self.amount) / 100;
-        if self.mode.storm() || self.mode == WeatherMode::Blizzard {
+        if self.mode == WeatherMode::Blizzard {
+            count * 3
+        } else if self.mode.storm() {
             count * 3 / 2
         } else {
             count
@@ -155,7 +157,7 @@ impl Weather {
         let wind = f32::from(self.wind) * speed / self.fall_speed()
             * if self.mode.snow() { 0.65 } else { 1.0 }
             * if self.mode == WeatherMode::Blizzard {
-                2.5
+                3.5
             } else {
                 1.0
             };
@@ -166,7 +168,49 @@ impl Weather {
         self.velocity(self.fall_speed()).normalize()
     }
 
+    pub fn haze_strength(&self) -> f32 {
+        let haze = f32::from(self.amount) / 100.0 * f32::from(self.haze) / 100.0;
+        if self.mode == WeatherMode::Blizzard {
+            haze * 2.5
+        } else if self.mode.rain() {
+            haze
+        } else {
+            0.0
+        }
+    }
+
     fn fall_speed(&self) -> f32 {
         if self.mode.snow() { 36.0 } else { 380.0 }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn blizzard_mist_is_optional_and_other_weather_keeps_its_strength() {
+        let mut settings = Weather {
+            amount: 83,
+            haze: 61,
+            ..Default::default()
+        };
+        for mode in WeatherMode::ALL {
+            settings.mode = mode;
+            let strength = settings.haze_strength();
+            if mode.rain() {
+                assert_eq!(strength, 0.83 * 61.0 / 100.0);
+            } else if mode == WeatherMode::Blizzard {
+                assert!(strength > 1.0 && strength < 2.5);
+            } else {
+                assert_eq!(strength, 0.0);
+            }
+        }
+        settings.mode = WeatherMode::Blizzard;
+        settings.haze = 0;
+        assert_eq!(settings.haze_strength(), 0.0);
+        settings.haze = 100;
+        settings.amount = 0;
+        assert_eq!(settings.haze_strength(), 0.0);
     }
 }
