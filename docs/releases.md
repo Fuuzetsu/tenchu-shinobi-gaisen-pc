@@ -232,9 +232,11 @@ Do not merge or push any older, unfiltered history back into this repository.
   Wine coverage and CI startup checks. Physical Windows/ARM GPU gameplay and a
   real Apple Silicon build/runtime still need testing. No macOS binary is offered.
   Windows downloads are unsigned; there is no installer or automatic updater.
-- **External dependency:** FFmpeg is not bundled in portable downloads. Movies
-  and video export need it installed (or `TENCHU_FFMPEG` set). Nix supplies it for
-  source builds. Browser preparation also needs the native tool and user's disc.
+- **External dependency (updated for v0.36.0):** FFmpeg is not bundled in portable
+  downloads. Movies use the built-in decoder when it is absent. Video export and
+  browser preparation still need FFmpeg installed (or `TENCHU_FFMPEG` set); Nix
+  supplies it for source builds. Browser preparation also needs the native tool
+  and user's disc.
 - **Game scope:** the `TRIAL.EXE` challenges and mission editor are included from
   v0.8.0. The supported retail disc is SLPS-019.01 only. Unknown
   action/asset variants still produce diagnostics instead of silently guessing;

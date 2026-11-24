@@ -4,9 +4,11 @@ A portable Rust port of **Tenchu: Shinobi Gaisen (SLPS-019.01)**: all ten missio
 training, original menus, endings and the mission editor. Faithful game logic at its original rate,
 with optional modern graphics and smooth rendering. No PlayStation BIOS needed.
 
-**Bring your own original game disc:** select its **`.cue`** and keep all referenced
-**`.bin` files** beside it. Original game data is not included. Other Tenchu releases are not
-supported. Startup checks the game/menu executables and base artwork with SHA-256.
+**Bring your own Shinobi Gaisen disc:** select its **`.cue`** and keep all referenced
+**`.bin` files** beside it. Original game data is not included; other Tenchu 1 discs
+cannot replace the base SLPS-019.01 disc. Connect an additional Japanese Tenchu 2
+disc for [native Tenchu 2 play](docs/tenchu2-native.md).
+Startup checks the game/menu executables and base artwork with SHA-256.
 
 ## Download and play
 

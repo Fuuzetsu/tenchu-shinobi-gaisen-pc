@@ -80,8 +80,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
   at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
   weather commands and timing; optional weather settings remain available.
-- Mid-mission savestates use format 48. Load older states with the game build
-  that created them; campaign progress files remain compatible.
+- Mid-mission savestates and exported `.treplay` rewind recordings use format 48.
+  Load older states and recordings with the game build that created them;
+  campaign progress files remain compatible.
 
 ## 0.35.14 — 2026-11-15
 

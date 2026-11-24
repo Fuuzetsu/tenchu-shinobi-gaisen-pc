@@ -1,7 +1,7 @@
 # Tenchu 2 replacement artwork
 
 Download `tenchu2-hd.tar.zst` from
-[tenchu2-artwork-v3](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v3).
+[tenchu2-artwork-v4](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v4).
 Use game v0.33.0 or newer for the HD interface (v0.20.1 or newer for mission artwork). Put the archive beside the executable or Linux
 launcher, or import it with **Import Tenchu 2 HD artwork** in the Android launcher.
 Enable **F1 → Visual assets → Replacement artwork**. Desktop and Android can
@@ -9,7 +9,13 @@ download or update this pack directly on that page. **High-definition text**
 controls sharp numeric readouts and narration lettering independently.
 The Gaisen artwork pack is independent; either or both can be installed.
 
-Version 3 contains 4,640 replacements. It adds 64 Japanese interface identities:
+Version 4 retains all 4,640 replacements and reconstructs the aiming reticle
+from the user's disc at runtime. Its original outlined four-blade silhouette and
+colors replace version 3's filled pinwheel; no original pixels are shipped.
+The reticle remains independent of high-definition text, with unchanged aiming
+behavior and Original artwork when replacements are disabled.
+
+Version 3 introduced 4,640 replacements. It adds 64 Japanese interface identities:
 all 21 inventory icons (shared by equipment, the carried-item row and pickup
 notices), HUD frames/fills, Ki symbols, reticle and selection markers; title,
 mission-selection, equipment and results screens; the prologue and all six
