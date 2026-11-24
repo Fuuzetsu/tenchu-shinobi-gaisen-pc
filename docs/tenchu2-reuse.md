@@ -138,6 +138,45 @@ research, decomp and viewer repositories were consulted read-only; none supplies
 the T2 campaign frontend. No sibling code or game assets were imported. Audit
 logs and disassembly remain in `private/t2-campaign-audit-20261113`.
 
+## Native T2 battle music
+
+The JP `GAME.EXE` scheduler at `80065b6c`–`80065cb4` requests music only when
+the suppression flag is zero, XA state is idle (`-1`) and player health is not
+zero. Objectives 3 and 4 select cue 10 for first-target kinds `EF`, `F2` and
+`F9`, otherwise cue 9. This runs before the mission-end countdown begins; an
+existing countdown skips the scheduler. Selection follows the mission target's
+authored kind, including the intermediate Tatsumaru encounter at sequence 203.
+
+The source cue table is `80081244`, with `MUSIC_J.XA` at path pointer
+`80013260`. The XA start routine `80016c68` reads its channel and BCD sector
+range. Callback `80016df8` checks the end sector and repeat byte; both battle
+cues are one-shot. The gameplay scheduler requests them again after the stream
+becomes idle. Native playback therefore retains the whole table extent at
+150 sectors/second on the nominal 30 Hz game clock, including the quiet tail
+after decoded audio ends, and explicitly restarts the one-shot clip. It does
+not derive this clock from renderer cadence or emulate CD seek latency.
+Player injury/status deaths replace it with `kind * 2 + 14` (`8001fed4`,
+`80021cd8`); falling/terrain deaths use `kind * 2 + 15` (`8001d4ac`).
+Scene changes stop the previous stream; save/rewind restores its cue and tick
+offset. Optional sandbox theme selection keeps its existing continuous loop.
+
+The Gaisen decomp, glitch-research music code and viewer were checked read-only;
+they do not supply this native T2 scheduler. This change reuses the port's XA
+parser, mixer, campaign transition and tutorial checkpoint patterns. A local
+Unicorn oracle, following the existing campaign oracle setup, executes the JP
+instructions across 18,432 objective/target/health/suppression/XA-state cases.
+Disc-backed isolated regressions cover all 24 authored boss areas (20 cue 9,
+four cue 10), decoded audio, repeated end boundaries, death replacement,
+mission-ending order, story transitions and checkpoint/rewind continuation.
+These are bounded audio fixtures, not ordinary-play campaign validation.
+Executable bytes, oracle JSONL and logs remain outside Git in the local
+`tenchu-discord-audit/fixes-20261124/126` evidence directory. Run the checks with
+`TENCHU2_DISC` and `TENCHU2_MUSIC_ORACLE` set:
+
+```sh
+./dev.sh cargo test -p tenchu-pc --lib tenchu2::native::music::tests -- --ignored --nocapture
+```
+
 ## Native T2 story effects
 
 The 2026-11-12 completion uses JP `EVENT.BIN` command dispatch `800d42b4`,

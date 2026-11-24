@@ -144,6 +144,7 @@ impl Content {
                 if let Some(training) = &session.training {
                     training.resume(session.world.tick, output);
                 }
+                session.music.resume(session.world.tick, output);
             }
             Self::Equipment(selection) => output.send(Command::Bank(selection.bank.clone())),
             Self::Results(results) => output.send(Command::Bank(results.bank.clone())),

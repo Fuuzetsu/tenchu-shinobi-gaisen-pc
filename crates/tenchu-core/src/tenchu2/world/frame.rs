@@ -186,7 +186,7 @@ impl World {
                     assets.hero == 2 && self.map >= 12,
                 );
                 let event = if index == self.player && self.controls.death_music {
-                    Event::DeathMusic
+                    Event::FallDeathMusic
                 } else {
                     Event::Voice(15)
                 };

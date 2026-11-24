@@ -53,6 +53,7 @@ impl Owned {
             actor_voices,
             pending,
             training,
+            music,
             interpolation,
             navigation,
             circle_action,
@@ -76,6 +77,7 @@ impl Owned {
         std::mem::swap(actor_voices, &mut session.actor_voices);
         std::mem::swap(pending, &mut session.pending);
         std::mem::swap(training, &mut session.training);
+        std::mem::swap(music, &mut session.music);
         std::mem::swap(interpolation, &mut session.interpolation);
         std::mem::swap(navigation, &mut session.navigation);
         std::mem::swap(circle_action, &mut session.circle_action);

@@ -662,10 +662,13 @@ impl<S: ReadAt> Playback<S> {
                     Some(self.run.finish_area(&session.world, &self.campaign)?)
                 } else {
                     update.sounds = session.step(buttons)?;
+                    update.music = session.music.audio(&self.disc)?;
                     if let (Some(training), Some(state)) =
                         (&mut session.training, &session.world.tutorial)
+                        && let Some(clip) = training.audio(&self.disc, state)?
                     {
-                        update.music = training.audio(&self.disc, state)?;
+                        session.music.interrupt();
+                        update.music = Some(clip);
                     }
                     if let Some(active) = &mut self.randomizer.active {
                         active.replenish(session);

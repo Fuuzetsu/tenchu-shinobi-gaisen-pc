@@ -10,6 +10,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   preserving blade kills and scripted executions.
 - Fix native T2 freezing after optional reinforcement calls, including Seeded
   Mix: newly summoned guards now render with their weapons.
+- Restore native Tenchu 2 boss and final-battle music from the original disc,
+  including battle restarts, death music and saved playback positions.
 - Mid-mission savestates use format 42. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
