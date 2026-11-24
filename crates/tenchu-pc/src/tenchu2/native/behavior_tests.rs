@@ -24,7 +24,7 @@ fn profiles(combat: Combat) -> Settings {
     }
 }
 
-fn fixture() -> (Session, usize) {
+pub(super) fn fixture() -> (Session, usize) {
     let (mut s, guard) = bleeding_tests::fixture();
     s.world.keep_all_active = true;
     for index in 0..s.world.actors.len() {
@@ -86,7 +86,7 @@ fn decide(s: &mut Session, id: usize) -> u16 {
         .unwrap()
 }
 
-fn cover(s: &mut Session) {
+pub(super) fn cover(s: &mut Session) {
     let node = s.world.terrain.cells[0].nodes[0];
     let [left, near, right, far] = node.bounds;
     s.world.terrain.cells[0].nodes = vec![
@@ -108,7 +108,7 @@ fn cover(s: &mut Session) {
     s.world.cursor = Default::default();
 }
 
-fn pending(s: &mut Session, guard: usize) {
+pub(super) fn pending(s: &mut Session, guard: usize) {
     ready(s, guard, Position::new(0, 0, 22000));
     s.world.actors[guard].actor.flags |= 3;
     s.world.actors[guard].behavior.profile.recruitment = Recruitment::Requested;

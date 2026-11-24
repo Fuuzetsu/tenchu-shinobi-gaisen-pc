@@ -12,6 +12,16 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
+The native T2 reinforcement renderer regression (#130) keeps one renderer alive
+while Seeded Mix callers add groups of 1 and 32, repeats a call, and restores
+checkpoints from before and after recruitment. Original, Modern High and Modern
+Ultra cover interpolated weapon bindings and unchanged serialized gameplay.
+The unfixed renderer returns `Missing native weapon instance` after recruitment;
+simulation-only fixtures did not expose the stale presentation cache. Run
+`native_reinforcements_keep_live_weapon_bindings` with `TENCHU2_DISC`,
+`TENCHU_MODEL_REVIEW` and a GPU. This is an isolated optional-mode reproduction,
+not a replay of the reporter's unavailable save or an ordinary-play comparison.
+
 The optional T2 Rikimaru sheath fixture loads both retail equipment catalogs and
 checks T1's original/armoured Rikimaru and unaffected Ayame, drawn/stowed states,
 Original/Ultra geometry, interpolated attachments, torso filtering, missing-disc

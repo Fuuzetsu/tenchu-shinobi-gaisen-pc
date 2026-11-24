@@ -8,6 +8,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Optional unarmed punches and kicks no longer sever limbs in T1 or native T2.
   Remember the lethal strike through death animations and saved-state restores,
   preserving blade kills and scripted executions.
+- Fix native T2 freezing after optional reinforcement calls, including Seeded
+  Mix: newly summoned guards now render with their weapons.
 - Mid-mission savestates use format 42. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
