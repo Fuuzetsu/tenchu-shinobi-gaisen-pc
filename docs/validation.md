@@ -1478,3 +1478,20 @@ lighting disabled for a clear face comparison. Existing story checkpoint and
 body/custom-mesh override fixtures cover saved continuations and unsupported
 static materials. These isolated cutscene fixtures do not establish ordinary-play
 campaign parity.
+
+### T2 boss sheathed idle fallback
+
+The optional T2 moveset importer omits the shared zero-duration neutral clip 1
+used by bosses such as Kagami, Toda and armoured Jubei. This is a bind pose,
+not an authored idle. T1 then retains its existing ninja sheathed idle; native
+T2 retains the selected campaign hero's idle. Other zero-duration poses remain
+valid, and original native NPC registrations are not modified.
+
+The disc-backed `imported_t2_idle_catalog_matches_source` fixture compares every
+supported imported idle with the JP/EU source archive. The `placeholder_idles`
+fixtures cover both T1 heroes and all three native heroes, Kagami/Toda/armoured
+Jubei moves, an authored Todanin idle, and body-only overrides. They verify
+stowed/armed transitions, selected attacks, saved continuation and unchanged
+native NPC definitions. Paired captures use the same controlled state and
+camera before/after the fix. These isolated optional-mode checks do not replace
+recorded ordinary-play validation.

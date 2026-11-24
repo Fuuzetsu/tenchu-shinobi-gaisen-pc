@@ -92,6 +92,10 @@ pub fn load(
                 }
                 continue;
             };
+            // Bosses share this bind pose; retain the host's sheathed idle.
+            if action == MOT_NORMAL && id == 1 && source.duration == 0 {
+                continue;
+            }
             let mut clip = source.gaisen_pose();
             clip.id = if kind < 3 {
                 base + id

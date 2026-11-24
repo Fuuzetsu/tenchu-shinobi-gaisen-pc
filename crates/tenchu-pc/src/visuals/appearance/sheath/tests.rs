@@ -10,6 +10,7 @@ use crate::{
     },
 };
 
+mod idle;
 mod mixed;
 
 #[test]

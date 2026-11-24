@@ -2,6 +2,8 @@ use super::*;
 use crate::tenchu2::native::Session;
 use tenchu_core::tenchu2::{actor::Velocity, ai::Program};
 
+mod idle;
+
 #[test]
 #[ignore = "requires both discs; T1 hero overrides retain the native sheathed idle and selected draw/attack motions"]
 fn native_t1_heroes_keep_sheathed_idle_fallback() {
@@ -150,6 +152,7 @@ fn capture(session: &Session, donor: &Game, path: &std::path::Path) {
     use glam::{Mat4, Vec3};
     let graphics = crate::settings::Graphics {
         fog: false,
+        asset_pack: false,
         ..Default::default()
     };
     let mut review = crate::capture::review::Review::new(&donor.mission).unwrap();

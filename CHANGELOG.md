@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix rigid sheathed idle poses when selecting T2 boss movesets in either game.
+  Use the host's existing sheathed idle when the source only supplies a bind
+  pose, preserving authored idle animations, combat moves and original NPCs.
 - Modern sparks now give T1 bonfires and burning characters small warm embers
   with fading trails, including the Mission 5 execution scene. Original retains
   its square particles; the `fire-sparks` demo compares both appearances.
