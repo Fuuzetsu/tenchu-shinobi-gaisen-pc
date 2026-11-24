@@ -68,6 +68,7 @@ pub struct Drawing {
     pub alpha: f32,
     pub show_hud: bool,
     pub sharp_text: bool,
+    pub bleeding_details: bool,
     pub subtitle_language: Option<tenchu_assets::script::Language>,
     pub texts: Vec<crate::fonts::Text>,
     pub labels: Vec<crate::debug::Label>,
@@ -180,6 +181,7 @@ impl Drawing {
             view: session.world.camera.view,
             show_hud: true,
             sharp_text: false,
+            bleeding_details: false,
             subtitle_language: None,
             texts: Vec::new(),
             camera: None,
@@ -320,6 +322,8 @@ impl Drawing {
             Presentation {
                 show_hud: self.show_hud,
                 sharp_text: self.sharp_text,
+                bleeding_indicator: !self.bleeding_details
+                    && hud::bleeding_state(session).is_some_and(|s| s.active),
                 alpha: if renderer.graphics().interpolation {
                     self.alpha
                 } else {
@@ -343,7 +347,8 @@ impl Drawing {
             Vec::new()
         };
         if self.show_hud {
-            self.texts.extend(hud::bleeding_text(session));
+            self.texts
+                .extend(hud::bleeding_text(session, self.bleeding_details));
         }
         self.scene.lighting.update_emitters(
             &session.frame.effects.emitters,
@@ -718,6 +723,7 @@ pub fn capture(
         let mut drawing = Drawing::new(session, graphics, renderer)?;
         drawing.show_hud = settings.show_hud;
         drawing.sharp_text = settings.sharp_text;
+        drawing.bleeding_details = settings.bleeding_details;
         drawing.subtitle_language = settings.subtitle_language;
         drawing.update(session, renderer, None)?;
         let view = drawing.view;
@@ -800,6 +806,7 @@ pub struct Presentation<'a> {
     pub alpha: f32,
     pub show_hud: bool,
     pub sharp_text: bool,
+    pub bleeding_indicator: bool,
     pub camera: Option<crate::debug::camera::Camera>,
     pub pose: Option<&'a PoseFrame>,
     pub motion: Option<&'a crate::visuals::motion::Frame>,
@@ -815,6 +822,7 @@ impl Default for Presentation<'_> {
             alpha: 1.0,
             show_hud: false,
             sharp_text: false,
+            bleeding_indicator: false,
             camera: None,
             pose: None,
             motion: None,
@@ -1064,6 +1072,7 @@ impl Models {
             alpha,
             show_hud,
             sharp_text,
+            bleeding_indicator,
             camera,
             pose,
             motion,
@@ -1231,6 +1240,9 @@ impl Models {
                 sharp_text,
                 &self.hud,
             );
+            if bleeding_indicator {
+                render_effects::bleeding::draw(&mut output.surfaces, [-44.0, 91.0], 16.0);
+            }
         }
         if let Some(fade) = frame.fade {
             output.screen_sprite(

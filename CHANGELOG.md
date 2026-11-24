@@ -18,6 +18,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   by default and switches complete compatible movesets only from a free grounded
   stance, preserving body, independent equipment/voice and unarmed preferences.
 
+- Replace the optional bleeding banner with a small red drop beside health while
+  bleeding in T1 and native T2. **Bleeding → Detailed bleeding status** restores
+  the countdown; bandage stock and treatment remain in the item selector.
 - Add **Movement → Back + attack special**, off by default, to trigger Gaisen's
   original Up–Down–Square attack with held Back plus attack. Uses the active
   moveset's authored special, including supported imports; unavailable moves and

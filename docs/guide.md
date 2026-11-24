@@ -1540,8 +1540,10 @@ to use one. **B** (rebind **Use bandage** in Controls) and **Use bandage** on th
 Bleeding page remain quick-use shortcuts. Treatment is instant while grounded and free to act; it
 consumes one bandage only when bleeding and does not heal. It cannot interrupt
 an attack, injury, climb, swim or cutscene. Holding the action does not consume
-another bandage. The HUD shows status, remaining time, stock and the current
-binding. The F1 button queues treatment for the next gameplay tick; **Carried
+another bandage. A small red drop beside health appears only while bleeding;
+bandage stock stays in the item selector. Enable **Detailed bleeding status** on
+the Bleeding page to restore the status/countdown banner (and the quick-use
+binding in Gaisen). The F1 button queues treatment for the next gameplay tick; **Carried
 bandages** edits the current stock for experiments. Changing the mission loadout
 does not refill it. Bandages do not replace disc items or use campaign shop stock.
 
@@ -1554,8 +1556,8 @@ status and supply; input-only recordings and TRIAL records are disabled while
 it is enabled. Try `demo --clips bleeding-bandages` for a staged demonstration.
 
 The mechanic also works in native T2 JP and imported T1 stages. Native wounds
-and supply carry through areas and cutscenes and reset on retry; its HUD shows
-status and stock. The save/rewind and demo statements above apply to Gaisen;
+and supply carry through areas and cutscenes and reset on retry; it uses the same
+compact status option and carried bandages. The save/rewind and demo statements above apply to Gaisen;
 those native T2 adapters remain pending. See [native T2 support](tenchu2-native.md).
 
 **F1 → Enemy behavior** offers optional decisions for ordinary living guards.

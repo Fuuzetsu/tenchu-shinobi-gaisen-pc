@@ -5,6 +5,7 @@ use tenchu_core::effects::Graphic;
 pub struct Style {
     pub show_trial_timer: bool,
     pub sharp_text: bool,
+    pub bleeding_details: bool,
     pub hd_hud: bool,
     pub subtitle_language: Option<tenchu_assets::script::Language>,
     pub blood: Blood,
@@ -21,6 +22,7 @@ impl Default for Style {
         Self {
             show_trial_timer: true,
             sharp_text: false,
+            bleeding_details: false,
             hd_hud: false,
             subtitle_language: None,
             blood: Blood::default(),
@@ -39,6 +41,7 @@ impl From<&Settings> for Style {
         Self {
             show_trial_timer: settings.show_trial_timer,
             sharp_text: settings.sharp_text,
+            bleeding_details: settings.bleeding_details,
             hd_hud: settings.graphics.asset_pack,
             subtitle_language: settings.subtitle_language,
             blood: settings.graphics.blood,

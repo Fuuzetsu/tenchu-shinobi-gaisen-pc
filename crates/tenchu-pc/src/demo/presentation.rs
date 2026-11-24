@@ -284,6 +284,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.post.vignette = 0;
         }
         Feature::Bleeding => {
+            settings.bleeding_details = false;
             settings.bleeding = tenchu_core::game::bleeding::Settings {
                 enabled: true,
                 chance: 100,
@@ -941,7 +942,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         Feature::DeathGush => text(format!("{} death gush · 100% · 6 seconds · Original / Original HD / Modern selectable in F1", s.graphics.blood.gush_style.label())),
         Feature::Bleeding => text(match player.simulation_ticks {
             0..150 => "Optional gameplay: enemy hits start bleeding · 3 HP/s in this demonstration",
-            150..240 => "Opponent stands down · bleeding continues until treatment · cosmetic blood is independent",
+            150..240 => "Red drop beside health: bleeding · detailed countdown available in F1 → Bleeding",
             _ => "Use a bandage: stops blood loss without healing · chance, duration, damage and stock are configurable",
         }.into()),
         Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {

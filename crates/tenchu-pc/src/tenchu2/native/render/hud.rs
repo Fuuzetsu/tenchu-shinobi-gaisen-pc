@@ -76,43 +76,56 @@ fn digit(sprite: &Sprite) -> Option<u8> {
     }
 }
 
-pub(super) fn bleeding_text(session: &super::super::Session) -> Vec<crate::fonts::Text> {
+pub(super) fn bleeding_state(
+    session: &super::super::Session,
+) -> Option<&tenchu_core::game::bleeding::State> {
     let world = &session.world;
     let actor = &world.actors[world.player].actor;
-    let Some(state) = &actor.bleeding else {
-        return Vec::new();
-    };
     if actor.health <= 0
         || !world.mission.input_allowed()
         || session.frame.transition_fade == Some(255)
     {
-        return Vec::new();
+        return None;
     }
     #[cfg(not(target_arch = "wasm32"))]
     if session.cinematic() {
-        return Vec::new();
+        return None;
     }
-    let status = if !state.active {
-        "No bleeding".into()
-    } else if state.settings.seconds == 0 {
-        "Bleeding until treated".into()
-    } else {
-        format!("Bleeding · {} s", state.remaining.div_ceil(30))
+    actor.bleeding.as_ref()
+}
+
+pub(super) fn bleeding_text(
+    session: &super::super::Session,
+    details: bool,
+) -> Vec<crate::fonts::Text> {
+    let Some(state) = bleeding_state(session) else {
+        return Vec::new();
     };
     let fade = f32::from(session.frame.transition_fade.unwrap_or(0)) / 255.0;
-    let color = if state.active {
-        [1.0, 0.4, 0.35]
-    } else {
-        [0.8; 3]
-    };
-    let mut texts = vec![crate::fonts::Text {
-        position: egui::pos2(-145.0, -65.0),
-        text: format!("{status} · {} bandages", state.bandages),
-        color: crate::fonts::color(color.map(|c| c - fade)),
-        size: 8.0,
-        width: 290.0,
-        centered: false,
-    }];
+    let mut texts = Vec::new();
+    if details {
+        let status = if !state.active {
+            "No bleeding".into()
+        } else if state.settings.seconds == 0 {
+            "Bleeding until treated".into()
+        } else {
+            format!("Bleeding · {} s", state.remaining.div_ceil(30))
+        };
+        let color = if state.active {
+            [1.0, 0.4, 0.35]
+        } else {
+            [0.8; 3]
+        };
+        texts.push(crate::fonts::Text {
+            position: egui::pos2(-145.0, -65.0),
+            text: format!("{status} · {} bandages", state.bandages),
+            color: crate::fonts::color(color.map(|c| c - fade)),
+            size: 8.0,
+            width: 290.0,
+            centered: false,
+        });
+    }
+    let world = &session.world;
     if world.controls.hud.bandage_selected()
         && let Some(sprite) = world.controls.hud.frame.iter().find_map(|p| match p {
             Primitive::Sprite(s) if s.image == Image::Bandage => Some(s),
@@ -429,26 +442,67 @@ mod tests {
         session.step(0).unwrap();
         assert!(session.world.controls.hud.bandage_selected());
         let before = postcard::to_allocvec(&session.world).unwrap();
-        for hd in [false, true] {
-            settings.sharp_text = hd;
+        for (preset, name) in [
+            (0, "original"),
+            (crate::settings::presets::MODERN_HIGH, "high"),
+            (crate::settings::presets::MODERN_ULTRA, "ultra"),
+        ] {
+            settings.set_visual_preset(preset);
             assert!(
-                super::bleeding_text(&session)
+                super::bleeding_text(&session, false)
                     .iter()
                     .any(|t| t.text == "Bandage")
             );
-            let path = output.join(format!("bleeding-hd-{hd}.png"));
-            super::super::capture(&session, &settings, &path).unwrap();
+            assert!(
+                !super::bleeding_text(&session, false)
+                    .iter()
+                    .any(|t| t.text.contains("bleeding") || t.text.contains("Bleeding"))
+            );
+            for details in [true, false] {
+                settings.bleeding_details = details;
+                assert_eq!(
+                    super::bleeding_text(&session, details)
+                        .iter()
+                        .any(|t| t.text.starts_with("Bleeding ·")),
+                    details
+                );
+                let path = output.join(format!("native-{name}-details-{details}.png"));
+                super::super::capture(&session, &settings, &path).unwrap();
+            }
             session.frame.transition_fade = Some(255);
-            assert!(super::bleeding_text(&session).is_empty());
-            let path = output.join(format!("bleeding-faded-hd-{hd}.png"));
+            assert!(super::bleeding_state(&session).is_none());
+            assert!(super::bleeding_text(&session, true).is_empty());
+            let path = output.join(format!("native-{name}-faded.png"));
             super::super::capture(&session, &settings, &path).unwrap();
             let image = crate::visuals::pack::decode_png(&std::fs::read(path).unwrap()).unwrap();
             assert!(image.rgba.chunks_exact(4).all(|p| p[..3] == [0; 3]));
             session.frame.transition_fade = None;
         }
+        session.world.actors[0].actor.health = 0;
+        assert!(super::bleeding_state(&session).is_none());
+        assert!(super::bleeding_text(&session, true).is_empty());
+        session.world = postcard::from_bytes(&before).unwrap();
         settings.show_hud = false;
-        super::super::capture(&session, &settings, &output.join("bleeding-hidden.png")).unwrap();
+        let hidden = output.join("native-hidden.png");
+        super::super::capture(&session, &settings, &hidden).unwrap();
         assert!(postcard::to_allocvec(&session.world).unwrap() == before);
+        session.world.actors[0]
+            .actor
+            .bleeding
+            .as_mut()
+            .unwrap()
+            .clear();
+        assert!(!super::bleeding_state(&session).unwrap().active);
+        assert_eq!(super::bleeding_text(&session, false).len(), 1);
+        let treated_hidden = output.join("native-treated-hidden.png");
+        super::super::capture(&session, &settings, &treated_hidden).unwrap();
+        assert_eq!(
+            std::fs::read(&hidden).unwrap(),
+            std::fs::read(&treated_hidden).unwrap()
+        );
+        settings.show_hud = true;
+        super::super::capture(&session, &settings, &output.join("native-treated.png")).unwrap();
+        session.world = postcard::from_bytes(&before).unwrap();
         let expected = {
             session.step(0).unwrap();
             postcard::to_allocvec(&session.world).unwrap()

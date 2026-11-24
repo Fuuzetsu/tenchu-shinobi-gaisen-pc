@@ -25,6 +25,7 @@ pub enum Item {
     SeveredStyle,
     SeveredSeconds,
     Bleeding,
+    BleedingDetails,
     BleedChance,
     BleedSeconds,
     BleedDamage,
@@ -439,6 +440,12 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Player bleeding",
                 on(s.bleeding.enabled),
                 "Optional gameplay: enemy melee and piercing projectiles can cause blood loss. Refreshes duration instead of stacking, leaves at least 1 HP, and pauses during scripted scenes. Cosmetic blood settings are independent. Disables input-only recordings and TRIAL records.",
+            ),
+            (
+                Item::BleedingDetails,
+                "Detailed bleeding status",
+                on(s.bleeding_details),
+                "Off: a red drop beside health appears only while bleeding. On: show the detailed status and countdown. Bandage stock stays in the item selector; select with L2/R2 and use Triangle, or quick-use with B (rebind in Controls).",
             ),
             (
                 Item::BleedChance,

@@ -166,6 +166,7 @@ impl Item {
         Some(match self {
             Self::BurningSpatial => &mut settings.burning_sound.spatial,
             Self::Bleeding => &mut settings.bleeding.enabled,
+            Self::BleedingDetails => &mut settings.bleeding_details,
             Self::Dismemberment => &mut settings.dismemberment.enabled,
             Self::SaExecutionScene => &mut settings.dismemberment.execution_scene,
             Self::PlayerDismemberment => &mut settings.dismemberment.player,

@@ -210,6 +210,7 @@ impl Application {
                 alpha,
             });
             if self.settings.show_hud
+                && self.settings.bleeding_details
                 && !self.debug.photo_mode
                 && self.campaign.playing()
                 && !self.campaign.game.cinematic.active
