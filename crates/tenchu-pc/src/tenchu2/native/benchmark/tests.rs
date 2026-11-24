@@ -72,106 +72,130 @@ fn native_benchmark_scenes_and_restore() {
     let initial = output.join("benchmark-normal-before.png");
     crate::capture::read_texture(&renderer, &target, &initial).unwrap();
     let mut benchmarks = Benchmarks::default();
-    benchmarks
-        .start(
-            &playback.disc,
-            shared::Options {
-                seconds: 2,
-                output: Some(output.join("report.json")),
-                ..Default::default()
-            },
-            &settings,
-            &mut renderer,
-            &adapter.get_info(),
-        )
-        .unwrap();
-    let mut last = Instant::now();
-    let mut frames = 0;
-    loop {
-        let mut timing = CpuFrame {
-            interval: last.elapsed().as_secs_f32() * 1000.0,
-            ..Default::default()
-        };
-        last = Instant::now();
-        if !benchmarks
-            .advance(&playback.disc, &mut renderer, &mut timing)
-            .unwrap()
-        {
-            break;
-        }
-        let scene = benchmarks.scene.as_ref().unwrap();
-        let run = benchmarks.ui.run.as_mut().unwrap();
-        let Content::Gameplay(session) = &scene.content else {
-            unreachable!()
-        };
-        assert_eq!(session.world.tick, 30 + (run.frame / 2) as u32);
-        let phase = Instant::now();
-        scene
-            .drawing
-            .draw(&scene.content, &view, &mut renderer)
-            .unwrap();
-        timing.draw.submit = phase.elapsed().as_secs_f32() * 1000.0;
-        renderer.device.poll(wgpu::Maintain::Wait);
-        run.record(timing, renderer.timings.as_ref());
-        if run.frame == 90 {
-            crate::capture::read_texture(
-                &renderer,
-                &target,
-                &output.join(format!("{}.png", scene.clip.id)),
-            )
-            .unwrap();
-        }
-        frames += 1;
-    }
-    assert_eq!(frames, 480);
-    let finished = benchmarks.finish(None).unwrap();
-    let report: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(output.join("report.json")).unwrap()).unwrap();
-    assert_eq!(report["scenes"].as_array().unwrap().len(), 4);
-    for scene in report["scenes"].as_array().unwrap() {
-        assert_eq!(scene["frame"]["samples"], 60);
-    }
     let mut presets = crate::settings::library::Manager::new(output.join("presets.json"));
     let store = crate::settings::Store {
         path: output.join("settings.json"),
     };
-    restore(
-        &playback,
-        &mut drawing,
-        &mut renderer,
-        &mut settings,
-        &mut presets,
-        &store,
-        Some(finished),
-    )
-    .unwrap();
-    assert_eq!(
-        postcard::to_allocvec(&drawing.capture_state().unwrap()).unwrap(),
-        visual_before
-    );
-    drawing
-        .update(
-            &playback.content,
+    for (name, auto_target) in [("report", None), ("auto-report", Some(30))] {
+        benchmarks
+            .start(
+                &playback.disc,
+                shared::Options {
+                    seconds: if auto_target.is_some() { 5 } else { 2 },
+                    auto_target,
+                    offscreen: true,
+                    exit: true,
+                    output: Some(output.join(format!("{name}.json"))),
+                    ..Default::default()
+                },
+                &settings,
+                &mut renderer,
+                &adapter.get_info(),
+            )
+            .unwrap();
+        let mut last = Instant::now();
+        let mut frames = 0;
+        loop {
+            let mut timing = CpuFrame {
+                interval: last.elapsed().as_secs_f32() * 1000.0,
+                ..Default::default()
+            };
+            last = Instant::now();
+            if !benchmarks
+                .advance(&playback.disc, &mut renderer, &mut timing)
+                .unwrap()
+            {
+                break;
+            }
+            let scene = benchmarks.scene.as_ref().unwrap();
+            let run = benchmarks.ui.run.as_mut().unwrap();
+            let Content::Gameplay(session) = &scene.content else {
+                unreachable!()
+            };
+            assert_eq!(session.world.tick, 30 + (run.frame / 2) as u32);
+            let phase = Instant::now();
+            scene
+                .drawing
+                .draw(&scene.content, &view, &mut renderer)
+                .unwrap();
+            timing.draw.submit = phase.elapsed().as_secs_f32() * 1000.0;
+            renderer.device.poll(wgpu::Maintain::Wait);
+            run.record(timing, renderer.timings.as_ref());
+            if run.frame == 90 {
+                crate::capture::read_texture(
+                    &renderer,
+                    &target,
+                    &output.join(format!("{}.png", scene.clip.id)),
+                )
+                .unwrap();
+            }
+            frames += 1;
+        }
+        if auto_target.is_none() {
+            assert_eq!(frames, 480);
+        }
+        let finished = benchmarks.finish(None).unwrap();
+        let report: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(output.join(format!("{name}.json"))).unwrap())
+                .unwrap();
+        let scenes = report["scenes"].as_array().unwrap();
+        if auto_target.is_some() {
+            assert!(scenes.len() >= 4);
+            assert!(scenes[..4].iter().all(|scene| scene["frames"] == 300));
+            let trials = report["trials"].as_array().unwrap();
+            let selected = &trials[report["selected_trial"].as_u64().unwrap() as usize];
+            let first = selected["first_scene"].as_u64().unwrap() as usize;
+            assert_eq!(selected["scene_count"], 4);
+            for (scene, clip) in scenes[first..first + 4].iter().zip(&benchmarks.clips) {
+                assert_eq!(scene["id"], clip.id);
+                assert_eq!(scene["frames"], 300);
+                assert_eq!(scene["frame"]["samples"], 240);
+            }
+        } else {
+            assert_eq!(scenes.len(), 4);
+            for scene in scenes {
+                assert_eq!(scene["frames"], 120);
+                assert_eq!(scene["frame"]["samples"], 60);
+            }
+        }
+        restore(
+            &playback,
+            &mut drawing,
             &mut renderer,
-            &Default::default(),
-            &settings,
+            &mut settings,
+            &mut presets,
+            &store,
+            Some(finished),
         )
         .unwrap();
-    drawing
-        .draw(&playback.content, &view, &mut renderer)
-        .unwrap();
-    let restored = output.join("benchmark-normal-restored.png");
-    crate::capture::read_texture(&renderer, &target, &restored).unwrap();
-    assert!(
-        std::fs::read(initial).unwrap() == std::fs::read(restored).unwrap(),
-        "normal pixels changed"
-    );
-    assert!(
-        playback.capture_state().unwrap() == before,
-        "benchmark changed normal campaign"
-    );
-    assert_eq!(settings, original);
-    assert!(!store.path.exists() && !output.join("presets.json").exists());
+        assert_eq!(
+            postcard::to_allocvec(&drawing.capture_state().unwrap()).unwrap(),
+            visual_before
+        );
+        drawing
+            .update(
+                &playback.content,
+                &mut renderer,
+                &Default::default(),
+                &settings,
+            )
+            .unwrap();
+        drawing
+            .draw(&playback.content, &view, &mut renderer)
+            .unwrap();
+        let restored = output.join("benchmark-normal-restored.png");
+        crate::capture::read_texture(&renderer, &target, &restored).unwrap();
+        assert!(
+            std::fs::read(&initial).unwrap() == std::fs::read(restored).unwrap(),
+            "normal pixels changed"
+        );
+        assert!(
+            playback.capture_state().unwrap() == before,
+            "benchmark changed normal campaign"
+        );
+        assert_eq!(settings, original);
+        assert!(!store.path.exists() && !output.join("presets.json").exists());
+    }
     // An interrupted optimisation also leaves an active seed and its return context intact.
     playback.prepare_randomizer(None).unwrap();
     let seeded = crate::randomizer::Run::new(crate::randomizer::Document::for_source(
@@ -192,8 +216,10 @@ fn native_benchmark_scenes_and_restore() {
         .start(
             &playback.disc,
             shared::Options {
-                seconds: 2,
+                seconds: 5,
                 auto_target: Some(30),
+                offscreen: true,
+                output: Some(output.join("cancelled-report.json")),
                 ..Default::default()
             },
             &settings,
@@ -201,15 +227,46 @@ fn native_benchmark_scenes_and_restore() {
             &adapter.get_info(),
         )
         .unwrap();
-    for _ in 0..4 {
+    let mut last = Instant::now();
+    let mut screening_seen = false;
+    loop {
+        let mut timing = CpuFrame {
+            interval: last.elapsed().as_secs_f32() * 1000.0,
+            ..Default::default()
+        };
+        last = Instant::now();
         assert!(
             benchmarks
-                .advance(&playback.disc, &mut renderer, &mut CpuFrame::default())
+                .advance(&playback.disc, &mut renderer, &mut timing)
                 .unwrap()
         );
+        let scene = benchmarks.scene.as_ref().unwrap();
+        let run = benchmarks.ui.run.as_mut().unwrap();
+        screening_seen |= run.frames() == 120;
+        if !screening_seen {
+            // Force one candidate search so cancellation exercises the later validation phase.
+            timing.simulation = 1000.0;
+        }
+        let phase = Instant::now();
+        scene
+            .drawing
+            .draw(&scene.content, &view, &mut renderer)
+            .unwrap();
+        timing.draw.submit = phase.elapsed().as_secs_f32() * 1000.0;
+        renderer.device.poll(wgpu::Maintain::Wait);
+        run.record(timing, renderer.timings.as_ref());
+        if screening_seen && run.frames() > 120 {
+            break;
+        }
     }
     let finished = benchmarks.finish(Some("Cancelled by user".into())).unwrap();
     assert!(finished.recommendation.is_none());
+    let cancelled: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(output.join("cancelled-report.json")).unwrap())
+            .unwrap();
+    assert!(cancelled["selected_trial"].is_null());
+    assert!(cancelled["recommendation"].is_null());
+    assert!(!cancelled["trials"].as_array().unwrap().is_empty());
     restore(
         &playback,
         &mut drawing,

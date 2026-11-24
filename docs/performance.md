@@ -377,7 +377,7 @@ artwork still needs an installed pack; no preset supplies game assets.
 **Auto-optimise graphics** starts at Ultra and tunes individual controls using
 the [per-setting measurements](graphics-performance.md) as an ordering heuristic.
 Choose a 30/60/120 FPS target and keep the game focused at your intended playing
-resolution. This can take several minutes; close heavy background workloads.
+resolution. Close heavy background workloads while measuring.
 
 - GPU pressure first tests smaller local shadow maps, 2× MSAA, fewer local
   shadows, smaller sun/moon maps and contact shading. Further reductions to
@@ -390,12 +390,23 @@ resolution. This can take several minutes; close heavy background workloads.
   blood remain at Ultra settings. Artwork and **all** selected weather parameters
   are retained. It never adds black sight fog or switches to Original as a fallback.
 
-Every candidate runs every scene, with 60 warm-up and 240 measured frames
-each. A candidate is kept if it passes the target or reduces the aggregate
+The initial Ultra pass uses 60 warm-up and 240 measured frames per scene and
+stops if it meets the target. Otherwise, the search screens individual changes
+across every scene, with 60 warm-up and 60 measured frames each. Any selected
+change then gets full-duration validation across the whole scene catalog.
+If that longer validation misses the target, remaining candidates use the
+longer measurements too, starting from the better full measurement of Ultra
+or the validated change. A short screening result is never applied without
+validation. An unchanged Ultra result reuses its original full measurement.
+The regular **Benchmark current graphics** duration is unchanged.
+
+A candidate is kept if it passes the target or reduces the aggregate
 normalized time over budget by at least 3%; otherwise it is reverted. This
 compares measured costs on the current device, rather than assuming the same
 millisecond savings on every GPU. It is a bounded search, not an exhaustive
-search of every setting combination.
+search of every setting combination: at most 22 configurations and one
+validation pass. The progress window shows the phase, trial, scene count and
+elapsed time; **Cancel (Esc)** remains available throughout.
 
 A passing result needs CPU/GPU p95 below 85% of the frame budget and observed
 frame p95 within 12% of the target interval in **every** scene. If CPU/GPU work
@@ -407,7 +418,10 @@ The result is saved and applied as **Auto-optimised** when the original session
 is restored. Cancellation changes nothing. If no candidate meets the target,
 it retains the best measured configuration and says the target was missed.
 Expand **Tuning decisions** in the results to see each accepted/reverted change;
-JSON reports include trial scene ranges and the selected trial too.
+JSON reports include trial scene ranges and the selected trial too. Schema 4
+also records each scene's actual frame count including warm-up. Scene and run
+elapsed times include their setup/loading intervals; the CPU/GPU distributions
+still exclude loading and warm-up.
 
 This is a short sample, not a guarantee for every scene or unusual weather/mod.
 Re-run after changing resolution, artwork or hardware. Missing GPU timestamps
@@ -419,9 +433,13 @@ Built-ins and Auto-optimised are protected. The library is `presets.json` next t
 the preferences (`TENCHU_PRESETS` overrides it); browsers use local storage.
 For a non-persistent automatic report, use `benchmark DISC --auto 60 --output
 report.json`. CLI benchmarks never overwrite preferences or preset libraries.
+`--seconds` sets the initial and validation duration (8 seconds by default);
+candidate screening uses 2 seconds. Choosing `--seconds 2` measures each
+configuration once without a duplicate validation pass.
 
-The individual tuner was also exercised at 4K with the full artwork pack and
-**always-active enemies** enabled, while the existing TAS searches continued.
+The earlier full-duration individual tuner was also exercised at 4K with the
+full artwork pack and **always-active enemies** enabled, while the existing TAS
+searches continued.
 It measured 18 configurations / 72 scenes (240 CPU and 239 GPU samples each),
 kept the requested weather/artwork and cheap enhancements, and correctly reported
 that the 60 FPS target was **not** reached:

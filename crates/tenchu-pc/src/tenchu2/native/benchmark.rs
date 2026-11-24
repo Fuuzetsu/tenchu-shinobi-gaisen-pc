@@ -122,6 +122,7 @@ impl Benchmarks {
             renderer.size(),
             renderer.format(),
             artwork.into(),
+            self.clips.len(),
         ));
         self.ui.open = false;
         self.last = None;

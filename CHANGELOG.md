@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Shorten automatic graphics tuning in T1 and native T2 with quick trials across
+  every scene, followed by full-duration validation before applying the result.
+  Show tuning phase, scene progress and elapsed time; cancellation keeps settings.
 - Fix rigid sheathed idle poses when selecting T2 boss movesets in either game.
   Use the host's existing sheathed idle when the source only supplies a bind
   pose, preserving authored idle animations, combat moves and original NPCs.

@@ -5,6 +5,7 @@ use serde::Serialize;
 mod tuning;
 
 const WARMUP: u64 = 60;
+const SCREEN_SECONDS: u16 = 2;
 const WORK_HEADROOM: f32 = 0.85;
 const FRAME_TOLERANCE: f32 = 1.12;
 
@@ -63,6 +64,9 @@ pub(crate) struct Run<S = Saved> {
     pub frame: u64,
     pub scene: usize,
     pub title: String,
+    scene_count: usize,
+    started: Instant,
+    scene_started: Instant,
     tuner: Option<tuning::Tuner>,
     trial_start: usize,
 }
@@ -101,6 +105,8 @@ pub(super) struct SceneResult {
     id: String,
     title: String,
     artwork: String,
+    frames: u64,
+    elapsed_seconds: f32,
     frame: Distribution,
     cpu_work: Distribution,
     simulation_audio: Distribution,
@@ -124,6 +130,8 @@ pub(crate) struct Report {
     offscreen: bool,
     warmup_frames: u64,
     frames_per_scene: u64,
+    screening_frames_per_scene: Option<u64>,
+    elapsed_seconds: f32,
     graphics: settings::Graphics,
     artwork: String,
     scenes: Vec<SceneResult>,
@@ -202,6 +210,8 @@ impl<S> Run<S> {
             id: id.into(),
             title: self.title.clone(),
             artwork: self.artwork.clone(),
+            frames: self.frame,
+            elapsed_seconds: self.scene_started.elapsed().as_secs_f32(),
             frame: Distribution::new(cpu.iter().map(|f| f.interval)),
             cpu_work: Distribution::new(
                 cpu.iter()
@@ -219,6 +229,7 @@ impl<S> Run<S> {
         cpu.clear();
         gpu.clear();
         scene.clear();
+        self.scene_started = Instant::now();
         true
     }
 }
@@ -298,6 +309,7 @@ pub(crate) struct Finished<S> {
 impl<S> Benchmarks<S> {
     pub fn finish(&mut self, cancelled: Option<String>) -> Option<Finished<S>> {
         let mut run = self.run.take()?;
+        run.report.elapsed_seconds = run.started.elapsed().as_secs_f32();
         run.report.cancelled = cancelled;
         if let Some(tuner) = run.tuner {
             run.report.trials = tuner.trials;
@@ -332,6 +344,7 @@ impl<S> Run<S> {
         size: [u32; 2],
         format: wgpu::TextureFormat,
         artwork: String,
+        scene_count: usize,
     ) -> Self {
         let mut settings = if options.auto_target.is_some() {
             tuning::starting_settings(current)
@@ -355,7 +368,7 @@ impl<S> Run<S> {
             .max()
             .unwrap_or(1);
         let report = Report {
-            schema: 3,
+            schema: 4,
             gpu_scene_columns: crate::renderer::timing::SCENE_COLUMNS,
             adapter: adapter.name.clone(),
             backend: format!("{:?}", adapter.backend),
@@ -364,6 +377,10 @@ impl<S> Run<S> {
             offscreen: options.offscreen,
             warmup_frames: WARMUP,
             frames_per_scene: u64::from(options.seconds) * 60,
+            screening_frames_per_scene: options
+                .auto_target
+                .map(|_| u64::from(options.seconds.min(SCREEN_SECONDS)) * 60),
+            elapsed_seconds: 0.0,
             graphics: settings.graphics.clone(),
             artwork,
             scenes: Vec::new(),
@@ -393,7 +410,12 @@ impl<S> Run<S> {
                     .create_view(&Default::default())
             }),
             tuner: options.auto_target.map(|fps| {
-                tuning::Tuner::new(fps, options.offscreen, renderer.sample_counts.clone())
+                tuning::Tuner::new(
+                    fps,
+                    options.offscreen,
+                    renderer.sample_counts.clone(),
+                    options.seconds > SCREEN_SECONDS,
+                )
             }),
             saved,
             options,
@@ -404,6 +426,9 @@ impl<S> Run<S> {
             frame: 0,
             scene: 0,
             title: String::new(),
+            scene_count,
+            started: Instant::now(),
+            scene_started: Instant::now(),
             trial_start: 0,
         }
     }
@@ -413,9 +438,12 @@ impl<S> Run<S> {
         self.options.offscreen
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn frames(&self) -> u64 {
-        self.report.frames_per_scene
+        if self.tuner.as_ref().is_some_and(tuning::Tuner::screening) {
+            u64::from(self.options.seconds.min(SCREEN_SECONDS)) * 60
+        } else {
+            self.report.frames_per_scene
+        }
     }
 
     pub fn next_trial(&mut self) -> bool {
@@ -467,11 +495,18 @@ impl<S> Benchmarks<S> {
                         ui.strong(tuner.label());
                     }
                     ui.label(format!(
-                        "Scene {} · {} / {} frames",
+                        "Scene {} / {} · {} / {} frames",
                         run.scene + 1,
+                        run.scene_count,
                         run.frame,
-                        run.report.frames_per_scene
+                        run.frames()
                     ));
+                    ui.add(egui::ProgressBar::new(
+                        (run.scene as f32 + run.frame as f32 / run.frames() as f32)
+                            / run.scene_count as f32,
+                    ));
+                    let elapsed = run.started.elapsed().as_secs();
+                    ui.weak(format!("Elapsed {}:{:02}", elapsed / 60, elapsed % 60));
                     ui.weak(if run.frame <= WARMUP {
                         "Warming up (excluded from results)"
                     } else {
@@ -497,7 +532,7 @@ impl<S> Benchmarks<S> {
                         self.pending = Some(Options { auto_target: Some(self.target_fps), seconds: 5, ..Default::default() });
                     }
                 });
-                ui.weak("Automatic optimisation starts at Ultra, measures CPU/GPU pressure and tests individual adjustments across all scenes. Unhelpful changes are reverted. Artwork, weather and gameplay settings are kept. This can take several minutes.");
+                ui.weak("Automatic optimisation measures Ultra first. If needed, it screens individual adjustments using short paths through every scene, then validates the selection with longer measurements. Up to 22 configurations; unhelpful changes are reverted. Artwork, weather and gameplay settings are kept.");
                 if let Some(report) = &self.report {
                     ui.separator();
                     ui.label(format!("{} · {} · {} × {}", report.adapter, report.backend, report.size[0], report.size[1]));
@@ -581,6 +616,7 @@ impl Application {
             view.size,
             view.config.format,
             view.artwork_status(),
+            player.playlist.len(),
         ));
         self.demo = Some(player);
         self.benchmarks.open = false;
@@ -605,6 +641,9 @@ impl Application {
             run.finish_scene(&player.clip().id);
             if !player.next() {
                 if run.next_trial() {
+                    for clip in &mut player.catalog {
+                        clip.seconds = (run.frames() / 60) as u16;
+                    }
                     player.reset(0);
                 } else {
                     return self.finish_benchmark(None);

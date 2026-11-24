@@ -98,7 +98,7 @@ fn run() -> Result<()> {
     if args[0] == "benchmark" {
         if args.len() < 2 || args[1] == "--help" {
             println!(
-                "tenchu-pc benchmark DISC [--preset NAME | --auto 30|60|120] [--size WIDTHxHEIGHT] [--seconds 2..120] [--output REPORT.json] [--offscreen]\nUses native T2 scenes for a Japanese T2 disc, or T1 scenes for Gaisen. Runs fixed scenes through the live renderer, excludes loading and 60 warm-up frames per scene, reports CPU/GPU distributions, and exits. The default uses your current graphics. Keep the window focused; Esc cancels. No preferences or saves are written. --offscreen excludes window presentation and waits for each GPU frame; use it for profiling on a virtual display, not as a prediction of interactive FPS."
+                "tenchu-pc benchmark DISC [--preset NAME | --auto 30|60|120] [--size WIDTHxHEIGHT] [--seconds 2..120] [--output REPORT.json] [--offscreen]\nUses native T2 scenes for a Japanese T2 disc, or T1 scenes for Gaisen. Runs fixed scenes through the live renderer, excludes loading and 60 warm-up frames per scene, reports CPU/GPU distributions, and exits. The default uses your current graphics. --auto measures Ultra at --seconds (default 8), screens any needed adjustments for 2 seconds per scene, then validates selected changes at full duration. Keep the window focused; Esc cancels. No preferences or saves are written. --offscreen excludes window presentation and waits for each GPU frame; use it for profiling on a virtual display, not as a prediction of interactive FPS."
             );
             return Ok(());
         }
