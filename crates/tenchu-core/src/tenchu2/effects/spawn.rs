@@ -133,7 +133,7 @@ impl Effects {
         hidden: bool,
         random: &mut Random,
     ) -> Result<()> {
-        if kind == 0 && hidden {
+        if kind == 0 && (hidden || self.weather.as_ref().is_some_and(|weather| weather.enabled)) {
             return Ok(());
         }
         let bubbles = kind > 1;
@@ -212,7 +212,7 @@ impl Effects {
         math: &Math,
         random: &mut Random,
     ) -> Result<()> {
-        if kind == 0 && hidden {
+        if kind == 0 && (hidden || self.weather.as_ref().is_some_and(|weather| weather.enabled)) {
             return Ok(());
         }
         let (image, count, lifetime) = match kind {

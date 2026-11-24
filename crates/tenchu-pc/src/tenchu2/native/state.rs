@@ -84,6 +84,7 @@ impl Borrowed<'_> {
 impl Session {
     pub(super) fn snapshot(&self) -> Borrowed<'_> {
         let Self {
+            weather_sound: _,
             world,
             assets,
             frame,
@@ -174,6 +175,7 @@ impl Owned {
             ..
         } = self;
         Session {
+            weather_sound: None,
             world,
             assets,
             frame,

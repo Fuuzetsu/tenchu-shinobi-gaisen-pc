@@ -63,6 +63,7 @@ mod source_terrain;
 mod source_title;
 mod source_wall;
 mod source_weapons;
+mod source_weather;
 mod source_world;
 
 #[test]

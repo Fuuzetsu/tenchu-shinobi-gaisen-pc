@@ -6,6 +6,7 @@ use tenchu_core::clock::GameClock;
 
 #[derive(Default)]
 pub struct Transport {
+    pub weather: crate::settings::WeatherMode,
     pub recent: crate::diagnostics::Recent<super::diagnostics::Input>,
     clock: GameClock,
     generation: Option<u64>,
@@ -151,7 +152,7 @@ impl Transport {
             && !self.accelerated
             && let Some(output) = output
         {
-            update.play_audio(output);
+            update.play_audio(output, self.weather);
         }
         if changed {
             self.clock.discard_host_backlog();

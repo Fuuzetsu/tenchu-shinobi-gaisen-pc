@@ -60,6 +60,7 @@ pub(super) enum Origin {
 
 #[derive(Default)]
 pub struct Update {
+    pub weather_sound: Option<Sound>,
     pub sounds: Vec<tenchu_assets::audio::voice::Sourced<Sound>>,
     pub original_sounds: Vec<tenchu_assets::audio::voice::Sourced<tenchu_core::audio::Sound>>,
     pub stop_music: bool,
@@ -405,6 +406,9 @@ impl<S: ReadAt> Playback<S> {
                         self.run.random.seed,
                     )?;
                     story.state.random = self.run.random;
+                    if let Some(weather) = &mut story.state.effects.particles.weather {
+                        [weather.thunder_time, weather.thunder_delay] = self.run.weather_thunder;
+                    }
                     story.step(true)?;
                     let audio = story
                         .resources
@@ -557,6 +561,7 @@ impl<S: ReadAt> Playback<S> {
                         )?;
                         run.progress.clone_from(&self.run.progress);
                         run.random = self.run.random;
+                        run.weather_thunder = self.run.weather_thunder;
                         self.run = run;
                         if hero != 2 && self.run.progress.records[hero][0].time_tenths == 59999 {
                             self.content = Content::Prologue(Box::new(
@@ -651,6 +656,7 @@ impl<S: ReadAt> Playback<S> {
                     } else {
                         if self.death.live() {
                             update.sounds = session.observe_death()?;
+                            update.weather_sound = session.weather_sound;
                         }
                         session.frame.transition_fade = None;
                         None
@@ -662,6 +668,7 @@ impl<S: ReadAt> Playback<S> {
                     Some(self.run.finish_area(&session.world, &self.campaign)?)
                 } else {
                     update.sounds = session.step(buttons)?;
+                    update.weather_sound = session.weather_sound;
                     update.music = session.music.audio(&self.disc)?;
                     if let (Some(training), Some(state)) =
                         (&mut session.training, &session.world.tutorial)
@@ -684,6 +691,9 @@ impl<S: ReadAt> Playback<S> {
             Content::Story { story, .. } => {
                 if let Some(ending) = story.state.ending.filter(|e| e.complete) {
                     self.run.random = story.state.random;
+                    if let Some(weather) = &story.state.effects.particles.weather {
+                        self.run.weather_thunder = [weather.thunder_time, weather.thunder_delay];
+                    }
                     Some(self.run.advance(&self.campaign, ending.skip)?)
                 } else {
                     story.step(true)?;

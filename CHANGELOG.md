@@ -12,6 +12,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   Mix: newly summoned guards now render with their weapons.
 - Restore native Tenchu 2 boss and final-battle music from the original disc,
   including battle restarts, death music and saved playback positions.
+- Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
+  at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
+  weather commands and timing; optional weather settings remain available.
 - Mid-mission savestates use format 42. Load older states with the game build
   that created them; campaign progress files remain compatible.
 

@@ -548,8 +548,13 @@ is never consumed). Armour has its own checkbox; unused item slots are omitted.
 
 **F1 → Weather** uses the same rain/snow/storm renderer as Gaisen, including
 wind-directed shelter on terrain and static props, accumulation, runoff, tracks,
-and synthesized ambience/thunder. Weather remains optional in every preset.
-Original leaves native weather unchanged. **Tracks on original snow** supports
+and synthesized ambience/thunder. These overrides remain optional in every preset.
+**Original** draws the disc's rain in Toda War Camp and Gohda Castle and snow at
+Rikimaru's Burning Dawn Temple, including source splashes, thunder and cutscene
+weather commands. Original, Modern High and Modern Ultra retain this default.
+**Clear** suppresses the original precipitation; selecting another weather mode
+replaces its drawing. These presentation choices do not change source weather
+updates or gameplay RNG. **Tracks on original snow** supports
 recognized snowy surfaces, including imported T1 stages, without generated snowfall.
 Native T2 artwork recognition and moving-prop shelter remain separate work.
 Replacing artwork retains wetness/snow, footprint decals and the visual sky clock

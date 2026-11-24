@@ -185,6 +185,9 @@ impl Playback {
         };
         self.effects
             .animate_sprites(resources, &self.actors, view, self.ending.is_none(), draw);
+        if let Some(weather) = &mut self.effects.particles.weather {
+            weather.enabled = self.presentation.weather;
+        }
         if draw {
             self.effects.frame = self.effects.particles.update(
                 &mut scene,
@@ -193,6 +196,15 @@ impl Playback {
                 &mut self.effects.cursor,
                 math,
             )?;
+            if let Some(weather) = &mut self.effects.particles.weather {
+                self.effects.frame.weather = weather.update(
+                    view,
+                    &level.collision,
+                    &mut self.effects.cursor,
+                    math,
+                    &mut self.random,
+                )?;
+            }
         }
         self.update_exit();
         Ok(changes)

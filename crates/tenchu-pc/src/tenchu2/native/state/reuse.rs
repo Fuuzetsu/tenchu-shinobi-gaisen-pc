@@ -44,6 +44,7 @@ impl Owned {
     }
 
     pub(in crate::tenchu2::native) fn swap(&mut self, session: &mut Session) {
+        session.weather_sound = None;
         let Self {
             signature: _,
             core: (world, assets, frame),

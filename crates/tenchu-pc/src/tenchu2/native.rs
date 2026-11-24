@@ -103,6 +103,7 @@ mod walking;
 mod window;
 
 pub struct Session {
+    pub weather_sound: Option<Sound>,
     pub world: World,
     pub assets: Assets,
     pub frame: Frame,
@@ -222,6 +223,7 @@ impl Session {
         bank: Arc<tenchu_assets::audio::bank::Bank>,
     ) -> Self {
         Self {
+            weather_sound: None,
             world,
             assets,
             frame: Frame::default(),
@@ -254,6 +256,7 @@ impl Session {
     }
 
     fn step_world(&mut self, buttons: u16, observing_death: bool) -> Result<Vec<Sourced<Sound>>> {
+        self.weather_sound = None;
         self.feedback.poll();
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(scene) = &mut self.gaisen {
@@ -368,6 +371,12 @@ impl Session {
                     bank: request.source.map(|(bank, _)| bank),
                 });
             }
+        }
+        if self.frame.effects.weather.thunder {
+            self.weather_sound =
+                self.world
+                    .audio
+                    .play(43, 0, 127, tick, &self.assets.resources.math);
         }
         for index in actors..self.world.actors.len() {
             if let Some(caller) = self.world.actors[index].behavior.profile.recruited_by

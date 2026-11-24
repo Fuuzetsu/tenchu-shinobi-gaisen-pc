@@ -257,6 +257,9 @@ impl Builder {
             }
             self.surface(vertices, blend);
         }
+        if graphics.weather.mode == crate::settings::WeatherMode::Original {
+            self.original_weather(&frame.weather, sprites, view, reproject);
+        }
         Ok(())
     }
 }

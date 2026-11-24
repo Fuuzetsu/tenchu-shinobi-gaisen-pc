@@ -113,6 +113,11 @@ impl Effects {
         random: &mut Random,
         camera_direction: Position,
     ) -> Result<()> {
+        if let Command::Weather(enabled) = command
+            && let Some(weather) = &mut self.particles.weather
+        {
+            weather.enabled = *enabled;
+        }
         let Command::Effect {
             kind,
             position,

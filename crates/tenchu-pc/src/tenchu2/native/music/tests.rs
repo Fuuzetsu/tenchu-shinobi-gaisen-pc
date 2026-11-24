@@ -184,7 +184,7 @@ fn native_boss_music_covers_every_campaign_battle() {
                     .any(|sample| sample.unsigned_abs() > 100)
             );
             let (output, receiver) = Output::recording();
-            update.play_audio(&output);
+            update.play_audio(&output, crate::settings::WeatherMode::Original);
             assert_eq!(
                 receiver
                     .try_iter()

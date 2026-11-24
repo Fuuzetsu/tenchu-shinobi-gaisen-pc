@@ -319,6 +319,7 @@ impl Application {
             .as_mut()
             .filter(|v| v.generation == self.session.generation && !self.menu.actor_assets_changed);
         let graphics = self.settings.rendering().graphics.clone();
+        self.transport.weather = graphics.weather.mode;
         let update = self.transport.frame_step(
             &mut self.session,
             buttons,
@@ -429,6 +430,7 @@ impl Application {
             .as_mut()
             .filter(|v| v.generation == self.session.generation && !self.menu.actor_assets_changed);
         let graphics = self.settings.rendering().graphics.clone();
+        self.transport.weather = graphics.weather.mode;
         let feedback_enabled = self.focused
             && !input.paused
             && !input.pacing(&self.session.content).1
