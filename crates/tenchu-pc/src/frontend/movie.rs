@@ -2,6 +2,7 @@ use super::captions::Playback;
 use super::raster::Canvas;
 use crate::source::{DiscSource, open_disc};
 use std::{
+    ffi::OsStr,
     io::{Read, Write},
     path::Path,
     process::{Child, Command, Stdio},
@@ -36,12 +37,23 @@ impl Decoder {
         if cfg!(target_os = "android") || std::env::var_os("TENCHU_RUST_MOVIES").is_some() {
             return Self::portable(path, movie);
         }
+        let configured = std::env::var_os("TENCHU_FFMPEG");
+        Self::external(
+            path,
+            movie,
+            configured
+                .as_deref()
+                .unwrap_or_else(|| OsStr::new("ffmpeg")),
+            configured.is_none(),
+        )
+    }
+
+    fn external(path: &Path, movie: Movie, ffmpeg: &OsStr, fallback: bool) -> Result<Self> {
         let disc = open_disc(path)?;
         let entry = disc.find(movie.path())?;
         disc.xa_sector(entry.sector)?;
         let audio_disc = open_disc(path)?;
-        let ffmpeg = std::env::var_os("TENCHU_FFMPEG").unwrap_or_else(|| "ffmpeg".into());
-        let mut child = Command::new(ffmpeg)
+        let child = Command::new(ffmpeg)
             .args([
                 "-hide_banner",
                 "-loglevel",
@@ -65,10 +77,18 @@ impl Decoder {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| {
-                format!("Start movie decoder: {e}. Install FFmpeg or set TENCHU_FFMPEG.")
-            })?;
+            .spawn();
+        let mut child = match child {
+            Ok(child) => child,
+            Err(error) if fallback && error.kind() == std::io::ErrorKind::NotFound => {
+                return Self::portable(path, movie);
+            }
+            Err(error) => {
+                return Err(format!(
+                    "Start movie decoder {ffmpeg:?}: {error}. Check TENCHU_FFMPEG, or set TENCHU_RUST_MOVIES=1 to use the built-in decoder."
+                ));
+            }
+        };
         let mut input = child.stdin.take().unwrap();
         let mut output = child.stdout.take().unwrap();
         let cancelled = Arc::new(AtomicBool::new(false));
@@ -320,7 +340,7 @@ mod tests {
     use web_time::Instant;
 
     #[test]
-    #[ignore = "requires TENCHU_DISC and FFmpeg; decodes every opening/training/ending frame and XA track"]
+    #[ignore = "requires TENCHU_DISC; decodes every opening/training/ending frame and XA track"]
     fn all_movies_decode_to_the_source_endpoint_with_captions_and_audio() {
         let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
         let assets = GameAssets::open(open_disc(path.as_ref()).unwrap()).unwrap();
@@ -378,7 +398,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires TENCHU_DISC and FFmpeg; compares movie cues at varied display cadences and cancels decoder workers"]
+    #[ignore = "requires TENCHU_DISC; compares movie cues at varied display cadences and cancels decoder workers"]
     fn display_cadence_and_early_exit_do_not_lose_movie_cues() {
         let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
         let assets = GameAssets::open(open_disc(path.as_ref()).unwrap()).unwrap();
@@ -417,6 +437,43 @@ mod tests {
             let player =
                 Player::new(path.as_ref(), &assets, Movie::Opening, Language::English).unwrap();
             drop(player);
+        }
+    }
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; missing default FFmpeg falls back, explicit paths and other startup errors remain actionable"]
+    fn missing_decoder_falls_back_without_hiding_explicit_configuration_errors() {
+        let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+        let missing = std::env::temp_dir()
+            .join(format!("tenchu-missing-decoder-{}", std::process::id()))
+            .join("ffmpeg.exe");
+        assert!(!missing.exists());
+        let decoder =
+            Decoder::external(path.as_ref(), Movie::Training, missing.as_os_str(), true).unwrap();
+        assert!(decoder.child.is_none());
+        let pixels = decoder
+            .frames
+            .as_ref()
+            .unwrap()
+            .recv_timeout(Duration::from_secs(30))
+            .unwrap()
+            .unwrap();
+        assert_eq!(pixels.len(), 320 * 240 * 4);
+        let audio = decoder
+            .audio
+            .recv_timeout(Duration::from_secs(30))
+            .unwrap()
+            .unwrap();
+        assert_eq!(audio.rate, 37800);
+        assert!(!audio.frames.is_empty());
+        drop(decoder);
+        for (program, fallback) in [(missing.as_os_str(), false), (path.as_os_str(), true)] {
+            let error = match Decoder::external(path.as_ref(), Movie::Training, program, fallback) {
+                Ok(_) => panic!("invalid configured decoder unexpectedly started"),
+                Err(error) => error,
+            };
+            assert!(error.contains("Check TENCHU_FFMPEG"), "{error}");
+            assert!(error.contains("built-in decoder"), "{error}");
         }
     }
 }

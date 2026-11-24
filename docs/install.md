@@ -23,8 +23,10 @@
    Other editions of Tenchu are not supported. The game verifies the required
    disc data and remembers this path for next time. No PlayStation BIOS is needed.
 
-4. For opening/ending movies, install **FFmpeg** or put `ffmpeg.exe` beside the
-   Windows executable. See [platform details](guide.md#build-and-inspect-a-disc).
+4. Opening/ending movies use the built-in decoder if **FFmpeg** is not installed.
+   Playback needs no extra download. An existing FFmpeg installation or explicit
+   `TENCHU_FFMPEG` path is still supported; video export requires FFmpeg. See
+   [platform details](guide.md#build-and-inspect-a-disc).
 
 ## Add HD artwork
 

@@ -15,8 +15,10 @@ x86_64 for ordinary Intel/AMD PCs, aarch64 for 64-bit ARM Linux.
 
 An installed Vulkan or OpenGL GPU driver, a graphical desktop and working
 desktop audio are required for gameplay. GPU drivers are supplied by your OS.
-Install FFmpeg through your distribution for opening/ending movies and video
-export, or set TENCHU_FFMPEG to its executable. FFmpeg is not bundled.
+Opening/ending movies use the built-in decoder when FFmpeg is absent.
+For video export or browser preparation, install FFmpeg through your distribution
+or set TENCHU_FFMPEG to its executable. FFmpeg is not bundled. An invalid explicit
+path reports an error; remove it or set TENCHU_RUST_MOVIES=1 for built-in playback.
 
 Supply your own Shinobi Gaisen disc. Keep the CUE and referenced BIN files
 together. Startup verifies MAIN.EXE, MENU.EXE, ENDING.EXE and DATA.VOL against

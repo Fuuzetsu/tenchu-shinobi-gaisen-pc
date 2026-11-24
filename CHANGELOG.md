@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Opening, training and ending movies now use the built-in decoder when FFmpeg
+  is missing on Windows or Linux. No installation or download is needed for
+  playback; explicit FFmpeg paths remain supported and report configuration errors.
 - Add **General → Menu buttons → Cross / Triangle** for Cross to confirm and
   Triangle to go back in T1 and native T2. Localized prompts and original/HD
   menu artwork follow the choice. Keep the existing Cross/Circle and Circle/Cross

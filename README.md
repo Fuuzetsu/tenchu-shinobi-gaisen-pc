@@ -35,8 +35,9 @@ Or launch directly: `tenchu-pc play "/path/to/game.cue"` (Windows:
 shared libraries; Nix is not needed to run them. Use your OS's GPU drivers.
 The last verified disc is remembered. Next time, launch without a path to reuse
 it; an explicit path always wins, and missing/invalid discs reopen the picker.
-Install **FFmpeg** for opening/ending movies, or place `ffmpeg.exe` beside the
-Windows executable. [Platform details](docs/guide.md#build-and-inspect-a-disc).
+Opening/ending movies use the built-in decoder when **FFmpeg** is absent.
+Video export and browser preparation require FFmpeg.
+[Platform details](docs/guide.md#build-and-inspect-a-disc).
 
 **F1** opens settings. **General → Benchmarks… → Auto-optimise graphics** tests your
 hardware and saves **Auto-optimised** for your chosen FPS target. Low/Medium/High/

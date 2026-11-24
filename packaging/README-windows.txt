@@ -9,10 +9,13 @@ is missing or invalid, the picker opens again. An explicit path takes priority.
 F1 > General > Controls remaps keyboard/controller inputs and saves the bindings.
 F1 > Vibration adjusts global and per-action controller strength (0-200%).
 
-Install Windows FFmpeg and add its bin directory to PATH for opening/ending
-movies and video export, or set:
+Opening/ending movies use the built-in decoder when FFmpeg is absent.
+For video export or browser preparation, install Windows FFmpeg and add its
+bin directory to PATH, or set:
   $env:TENCHU_FFMPEG = 'C:\Tools\ffmpeg\bin\ffmpeg.exe'
 Windows builds are linked from https://ffmpeg.org/download.html.
+An invalid explicit path reports an error. Remove the override or set
+TENCHU_RUST_MOVIES=1 to use the built-in movie decoder.
 
 Supply your own Shinobi Gaisen disc. Keep the CUE and referenced BIN files
 together. Startup verifies MAIN.EXE, MENU.EXE, ENDING.EXE and DATA.VOL against

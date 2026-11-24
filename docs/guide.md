@@ -660,9 +660,14 @@ PowerShell:
 .\tenchu-pc.exe play 'C:\Games\Tenchu\game.cue'
 ```
 
-Keep the CUE and its referenced BIN files together. Opening/ending movies and
-video export also need a Windows `ffmpeg.exe` on `PATH`, or an explicit
-`$env:TENCHU_FFMPEG = 'C:\Tools\ffmpeg\bin\ffmpeg.exe'`. FFmpeg links Windows
+Keep the CUE and its referenced BIN files together. Opening/ending movies use
+the built-in decoder when FFmpeg is missing, without installing or downloading
+anything. An existing Windows `ffmpeg.exe` on `PATH` or beside the game remains
+supported, as does an explicit
+`$env:TENCHU_FFMPEG = 'C:\Tools\ffmpeg\bin\ffmpeg.exe'`. An invalid explicit path
+still reports an error; correct it, remove that environment variable, or set
+`$env:TENCHU_RUST_MOVIES = '1'` to select the built-in movie decoder directly.
+Video export and browser asset preparation still require FFmpeg. FFmpeg links Windows
 builds from its [download page](https://ffmpeg.org/download.html). `--quick`
 opens the development launcher directly. Saves/settings use the existing
 `TENCHU_SAVE`/`TENCHU_SETTINGS` overrides or `%APPDATA%\tenchu-shinobi-gaisen-pc`.
@@ -700,8 +705,9 @@ available for 14 days for diagnostics. See [releasing](releases.md).
 
 Extract Linux archives with `tar -xzf`, keep the whole directory together and
 run `./tenchu-pc play /path/to/game.cue`. Nix is **not required** to run these
-bundles. They use the installed GPU drivers; FFmpeg remains an external
-dependency on both Linux and Windows. Browser downloads need a `data/` directory
+bundles. They use the installed GPU drivers. FFmpeg is optional for disc-movie
+playback, and remains an external dependency for video export and browser asset
+preparation on Linux and Windows. Browser downloads need a `data/` directory
 prepared from your own disc with `tenchu-pc prepare-web`; see the included
 `README.txt`. Archives include build provenance and never include disc assets.
 
@@ -929,7 +935,9 @@ rank and the Grand Master reward. Enter/South continues, R/F5/West retries and
 Esc/East returns to the menu. Training shows its separate leaderboard. The final
 mission retains its epilogue and credits before the results screen.
 
-Movies require raw Mode 2 BIN/CUE data and the Nix-provided FFmpeg decoder.
+Movies require raw Mode 2 BIN/CUE data. Desktop playback uses FFmpeg when
+available and the built-in decoder when the default FFmpeg command is missing;
+Android uses the built-in decoder. No network access or installation is needed.
 Cooked ISO images can still run gameplay; an unavailable movie shows a message
 and Enter continues. Movies run at their authored 15 fps independently of the
 display; menu animation uses 60 Hz and the mission selector 30 Hz. Opening,
