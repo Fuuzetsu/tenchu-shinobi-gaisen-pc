@@ -879,9 +879,12 @@ impl Application {
         }
         if export_unarmed {
             let native = self.native_tenchu2.as_mut().unwrap();
-            native
-                .menu
-                .export_unarmed(&native.playback, self.settings.sheathing.unarmed_style);
+            native.menu.export_unarmed(
+                &native.playback,
+                self.settings
+                    .sheathing_for(native.playback.run.hero)
+                    .unarmed_style,
+            );
             native.transport.discard_backlog();
             self.last_frame = Instant::now();
         }

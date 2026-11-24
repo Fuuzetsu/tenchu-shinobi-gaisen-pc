@@ -138,11 +138,10 @@ impl Application {
                 &self.assets,
                 self.settings.walking.enabled,
             )?;
-            crate::sheathing::configure(
-                &mut self.campaign.game,
-                &self.assets,
-                self.settings.sheathing,
-            )?;
+            let sheathing = self
+                .settings
+                .sheathing_for(self.campaign.game.player().kind as usize);
+            crate::sheathing::configure(&mut self.campaign.game, &self.assets, sheathing)?;
             self.campaign.game.set_bleeding(self.settings.bleeding);
             self.campaign.game.combat.dismemberment = self.settings.dismemberment;
             self.campaign

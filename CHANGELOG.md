@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Remember separate sheathed unarmed styles for Rikimaru, Ayame and Tatsumaru
+  under Movement. Choices follow the campaign hero across T1/native T2 and saves,
+  independently of body and armed movesets. Each hero initially follows the
+  existing default style; reset an individual choice to follow that default again.
 - Fix floating Rikimaru sword grips and overlapping T1/T2 scabbards with mixed
   equipment, including the optional T2 sheath. Keep independent T1 swords'
   stowed grips and restore draw/sheath sounds when selecting T1 hero moves or

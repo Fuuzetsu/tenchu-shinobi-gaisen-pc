@@ -11,12 +11,24 @@ impl Application {
         }
         let style = UnarmedStyle::from_moves(&moves);
         crate::storage::atomic_write(&crate::sheathing::imports::file(style).path()?, &bytes)?;
-        self.set_sheathing(tenchu_core::game::sheathing::Settings {
+        let hero = self.campaign.game.player().kind as usize;
+        let previous = self.settings.hero_unarmed_styles[hero];
+        if previous.is_some() {
+            self.settings.hero_unarmed_styles[hero] = Some(style);
+        }
+        if let Err(error) = self.set_sheathing(tenchu_core::game::sheathing::Settings {
             enabled: true,
             unarmed: true,
-            unarmed_style: style,
+            unarmed_style: if previous.is_some() {
+                self.settings.sheathing.unarmed_style
+            } else {
+                style
+            },
             ..self.settings.sheathing
-        })?;
+        }) {
+            self.settings.hero_unarmed_styles[hero] = previous;
+            return Err(error);
+        }
         self.campaign.game.set_player_t2_unarmed(&moves)?;
         if self.studio_previous.is_none() {
             self.settings_store.write(&self.settings)?;
@@ -56,7 +68,9 @@ impl Application {
 
     pub(super) fn export_unarmed(&mut self) -> Result<()> {
         if crate::sheathing::imports::export(&crate::sheathing::imports::load(
-            self.settings.sheathing.unarmed_style,
+            self.settings
+                .sheathing_for(self.campaign.game.player().kind as usize)
+                .unarmed_style,
         )?)? {
             self.menu.notice =
                 "Exported imported game data for personal use on your other devices.".into();

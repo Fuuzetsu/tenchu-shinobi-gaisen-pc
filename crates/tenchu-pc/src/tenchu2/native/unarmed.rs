@@ -234,7 +234,7 @@ impl<S: ReadAt> campaign::Playback<S> {
         settings: &crate::settings::Settings,
     ) -> Result<()> {
         if let campaign::Content::Gameplay(session) = &mut self.content {
-            session.configure_onikage(assets, settings.sheathing)?;
+            session.configure_onikage(assets, settings.sheathing_for(session.assets.hero))?;
         }
         Ok(())
     }

@@ -281,21 +281,22 @@ impl Application {
 
     fn configure_gameplay(&mut self) -> Result<()> {
         use tenchu_core::game::sheathing::UnarmedStyle;
-        if let Content::Gameplay(session) = &mut self.session.content
-            && self.settings.sheathing.unarmed_style == UnarmedStyle::Onikage
-            && session.needs_unarmed(self.settings.sheathing)
-        {
-            let mut load = || {
-                let saved = crate::storage::UserFile::LastDisc.path()?;
-                let path = crate::startup::remembered_path(&saved)
+        if let Content::Gameplay(session) = &mut self.session.content {
+            let sheathing = self.settings.sheathing_for(session.assets.hero);
+            if sheathing.unarmed_style == UnarmedStyle::Onikage && session.needs_unarmed(sheathing)
+            {
+                let mut load = || {
+                    let saved = crate::storage::UserFile::LastDisc.path()?;
+                    let path = crate::startup::remembered_path(&saved)
                     .ok_or("Open Gaisen once with play to connect its disc for Onikage attacks. Tatsumaru uses the current T2 disc.")?;
-                let assets = crate::startup::open(&path)?;
-                session.configure_onikage(&assets, self.settings.sheathing)
-            };
-            if let Err(error) = load() {
-                self.settings.sheathing.unarmed = false;
-                self.store.write(&self.settings)?;
-                self.menu.panel.notice = error;
+                    let assets = crate::startup::open(&path)?;
+                    session.configure_onikage(&assets, sheathing)
+                };
+                if let Err(error) = load() {
+                    self.settings.sheathing.unarmed = false;
+                    self.store.write(&self.settings)?;
+                    self.menu.panel.notice = error;
+                }
             }
         }
         self.session.configure(&self.settings)
@@ -803,8 +804,12 @@ impl Application {
             self.last = Instant::now();
         }
         if export_unarmed {
-            self.menu
-                .export_unarmed(&self.session, self.settings.sheathing.unarmed_style);
+            self.menu.export_unarmed(
+                &self.session,
+                self.settings
+                    .sheathing_for(self.session.run.hero)
+                    .unarmed_style,
+            );
             self.transport.discard_backlog();
             self.last = Instant::now();
         }

@@ -48,6 +48,7 @@ pub enum Item {
     Sheathing,
     UnarmedAttacks,
     UnarmedStyle,
+    HeroUnarmedStyle(usize),
     SheathedSpeed,
     SheathedVisibility,
     SheathedDamage,
@@ -590,9 +591,33 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
             (
                 Item::UnarmedStyle,
-                "Unarmed style",
+                "Default unarmed style",
                 s.sheathing.unarmed_style.name().into(),
                 "Onikage uses your Gaisen disc. Tatsumaru and Wang Xiaohai import punches and kicks from Tenchu 2 Europe or Japan, with that edition's hit frames and striking limbs adapted to Gaisen combat. Import below first. All styles work with either hero; finish an unarmed attack before switching styles.",
+            ),
+            (
+                Item::HeroUnarmedStyle(0),
+                "Rikimaru unarmed style",
+                s.hero_unarmed_styles[0]
+                    .map_or("Follow default", |style| style.name())
+                    .into(),
+                "Remember this style for Rikimaru's campaign in both games, independent of his selected body or armed moveset. Follow default uses Default unarmed style. Import T2 moves below before using them in T1.",
+            ),
+            (
+                Item::HeroUnarmedStyle(1),
+                "Ayame unarmed style",
+                s.hero_unarmed_styles[1]
+                    .map_or("Follow default", |style| style.name())
+                    .into(),
+                "Remember this style for Ayame's campaign in both games, independent of her selected body or armed moveset. Follow default uses Default unarmed style. Import T2 moves below before using them in T1.",
+            ),
+            (
+                Item::HeroUnarmedStyle(2),
+                "Tatsumaru unarmed style",
+                s.hero_unarmed_styles[2]
+                    .map_or("Follow default", |style| style.name())
+                    .into(),
+                "Remember this style for Tatsumaru's native T2 campaign, independent of his selected body or armed moveset. Follow default uses Default unarmed style. This preference does not apply to a Tatsumaru body selected for another hero.",
             ),
             (
                 Item::SheathedSpeed,

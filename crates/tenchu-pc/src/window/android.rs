@@ -28,7 +28,9 @@ impl Application {
                 }
                 "unarmed" => self.install_unarmed(crate::sheathing::imports::from_path(
                     &path,
-                    self.settings.sheathing.unarmed_style,
+                    self.settings
+                        .sheathing_for(self.campaign.game.player().kind as usize)
+                        .unarmed_style,
                 )?),
                 "trial" => {
                     if path.metadata().map_err(|e| e.to_string())?.len() > 8192 {

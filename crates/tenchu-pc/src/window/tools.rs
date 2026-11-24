@@ -197,18 +197,52 @@ impl Application {
         mut settings: tenchu_core::game::sheathing::Settings,
     ) -> Result<()> {
         settings.validate();
+        let effective = tenchu_core::game::sheathing::Settings {
+            unarmed_style: self.settings.hero_unarmed_styles
+                [self.campaign.game.player().kind as usize]
+                .unwrap_or(settings.unarmed_style),
+            ..settings
+        };
+        let previous = self
+            .campaign
+            .game
+            .player()
+            .sheathing
+            .as_ref()
+            .map(|s| s.settings);
         let voices = self.campaign.game.mission.imported_voices.len();
-        crate::sheathing::configure(&mut self.campaign.game, &self.assets, settings)?;
+        crate::sheathing::configure(&mut self.campaign.game, &self.assets, effective)?;
         if self.campaign.game.mission.imported_voices.len() != voices
             && let Some(audio) = &mut self.audio
         {
             audio.refresh_actor_bank(&self.assets, &self.campaign.game)?;
         }
-        if self.settings.sheathing != settings {
+        let current = self
+            .campaign
+            .game
+            .player()
+            .sheathing
+            .as_ref()
+            .map(|s| s.settings);
+        if self.settings.sheathing != settings || previous != current {
             self.stop_edited_recording();
             self.controls.clear();
         }
         self.settings.sheathing = settings;
+        Ok(())
+    }
+
+    pub(super) fn set_hero_unarmed_style(
+        &mut self,
+        hero: usize,
+        style: Option<tenchu_core::game::sheathing::UnarmedStyle>,
+    ) -> Result<()> {
+        let previous = self.settings.hero_unarmed_styles[hero];
+        self.settings.hero_unarmed_styles[hero] = style;
+        if let Err(error) = self.set_sheathing(self.settings.sheathing) {
+            self.settings.hero_unarmed_styles[hero] = previous;
+            return Err(error);
+        }
         Ok(())
     }
 
@@ -474,6 +508,7 @@ impl Application {
         self.set_unarmed_guard(false);
         self.set_circle_action(Default::default());
         self.set_walking(false)?;
+        self.settings.hero_unarmed_styles = [None; 3];
         self.set_sheathing(Default::default())?;
         self.set_bleeding(Default::default());
         self.set_dismemberment(Default::default());
@@ -783,6 +818,7 @@ impl Application {
                 self.set_unarmed_guard(false);
                 self.set_circle_action(Default::default());
                 self.set_walking(false)?;
+                self.settings.hero_unarmed_styles = [None; 3];
                 self.set_sheathing(Default::default())?;
                 self.set_bleeding(Default::default());
                 self.set_dismemberment(Default::default());
@@ -887,6 +923,11 @@ impl Application {
                 }
                 self.set_sheathing(settings)?;
             }
+            Item::HeroUnarmedStyle(hero) => {
+                let style =
+                    settings::unarmed::cycle(self.settings.hero_unarmed_styles[hero], direction);
+                self.set_hero_unarmed_style(hero, style)?;
+            }
             Item::SheathedSpeed | Item::SheathedVisibility | Item::SheathedDamage => {
                 let mut settings = self.settings.sheathing;
                 let field = match item {
@@ -966,6 +1007,7 @@ impl Application {
                 self.set_unarmed_guard(false);
                 self.set_circle_action(Default::default());
                 self.set_walking(false)?;
+                self.settings.hero_unarmed_styles = [None; 3];
                 self.set_sheathing(Default::default())?;
                 self.set_bleeding(Default::default());
                 self.set_dismemberment(Default::default());

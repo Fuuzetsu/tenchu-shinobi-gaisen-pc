@@ -222,8 +222,8 @@ impl Runtime {
             CircleConfirm | CircleAction | CameraRelative | AlignAim | FollowActor
             | FollowDistance | RecenterOrbit | MouseSensitivity | StickSensitivity
             | StickDeadzone | InvertCameraY | AnalogWalking | WalkThreshold => None,
-            Sheathing | UnarmedAttacks | UnarmedStyle | UnarmedGuard | SheathedSpeed
-            | SheathedVisibility | SheathedDamage | SheathedOneHit => None,
+            Sheathing | UnarmedAttacks | UnarmedStyle | HeroUnarmedStyle(_) | UnarmedGuard
+            | SheathedSpeed | SheathedVisibility | SheathedDamage | SheathedOneHit => None,
             Dismemberment | HeadRest | SaExecutionScene | SeverStealth | SeverDive | SeverArms
             | SeverSide | PlayerDismemberment | PlayerSeverHead | PlayerSeverArms
             | PlayerSeverSide | SeveredBlood | SeveredStyle | SeveredSeconds => None,

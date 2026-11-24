@@ -465,7 +465,8 @@ impl Application {
         game.intelligence.unarmed_guard = self.settings.unarmed_guard;
         game.intelligence.circle_action = self.settings.circle_action;
         crate::walking::configure(&mut game, &self.assets, self.settings.walking.enabled)?;
-        crate::sheathing::configure(&mut game, &self.assets, self.settings.sheathing)?;
+        let sheathing = self.settings.sheathing_for(game.player().kind as usize);
+        crate::sheathing::configure(&mut game, &self.assets, sheathing)?;
         game.set_bleeding(self.settings.bleeding);
         game.combat.dismemberment = self.settings.dismemberment;
         game.set_damage_escalation(self.settings.damage_escalation);

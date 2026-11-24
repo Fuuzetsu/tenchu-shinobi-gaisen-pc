@@ -1655,12 +1655,6 @@ pub fn run(
             )
         }
     };
-    if settings.sheathing.unarmed_style.tenchu2_kind().is_some()
-        && let Err(error) = crate::sheathing::imports::load(settings.sheathing.unarmed_style)
-    {
-        settings.sheathing.unarmed_style = Default::default();
-        notice = error;
-    }
     #[cfg(target_arch = "wasm32")]
     {
         settings.fullscreen = false;
@@ -1707,7 +1701,22 @@ pub fn run(
     campaign.game.intelligence.unarmed_guard = settings.unarmed_guard;
     campaign.game.intelligence.circle_action = settings.circle_action;
     crate::walking::configure(&mut campaign.game, &assets, settings.walking.enabled)?;
-    crate::sheathing::configure(&mut campaign.game, &assets, settings.sheathing)?;
+    if !native_tenchu2 {
+        let hero = campaign.game.player().kind as usize;
+        let style = settings.sheathing_for(hero).unarmed_style;
+        if style.tenchu2_kind().is_some()
+            && let Err(error) = crate::sheathing::imports::load(style)
+        {
+            if settings.hero_unarmed_styles[hero].is_some() {
+                settings.sheathing.unarmed = false;
+            } else {
+                settings.sheathing.unarmed_style = Default::default();
+            }
+            notice = error;
+        }
+        let sheathing = settings.sheathing_for(hero);
+        crate::sheathing::configure(&mut campaign.game, &assets, sheathing)?;
+    }
     campaign.game.set_bleeding(settings.bleeding);
     campaign.game.combat.dismemberment = settings.dismemberment;
     campaign

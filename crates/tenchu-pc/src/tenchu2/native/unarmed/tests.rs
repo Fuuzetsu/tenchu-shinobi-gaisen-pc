@@ -665,3 +665,110 @@ fn native_unarmed_script_and_air_controls_stay_native() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires both discs; all three campaign heroes retain individual unarmed styles through body/armed-moveset replacement and reload"]
+fn native_per_hero_unarmed_styles_ignore_body_and_armed_moveset() {
+    use crate::visuals::appearance::library::Library;
+    use campaign::{Content, Playback};
+    let gaisen = gaisen();
+    let library = Library::load(&gaisen).unwrap();
+    let mut donor = super::super::models::donor(&gaisen).unwrap();
+    let settings = crate::settings::Settings {
+        sheathing: Settings {
+            enabled: true,
+            unarmed: true,
+            unarmed_style: UnarmedStyle::WangXiaohai,
+            ..Default::default()
+        },
+        hero_unarmed_styles: [
+            Some(UnarmedStyle::Tatsumaru),
+            Some(UnarmedStyle::Onikage),
+            None,
+        ],
+        player_model: "disc:1".into(),
+        model_moveset: true,
+        moveset_model: "disc:135".into(),
+        ..Default::default()
+    };
+    for (hero, sequence) in [9, 119, 191].into_iter().enumerate() {
+        let mut playback = Playback::load(disc(), sequence, 2, 17, Some([0; 21]), None).unwrap();
+        for replaced in [false, true] {
+            if replaced {
+                let Content::Gameplay(s) = &mut playback.content else {
+                    unreachable!()
+                };
+                s.models
+                    .sync(
+                        &mut s.world,
+                        &mut s.assets,
+                        &mut donor,
+                        &library,
+                        &Arc::default(),
+                        &settings,
+                    )
+                    .unwrap();
+            }
+            playback.configure_onikage(&gaisen, &settings).unwrap();
+            playback.configure(&settings).unwrap();
+            let Content::Gameplay(s) = &mut playback.content else {
+                unreachable!()
+            };
+            assert_eq!(s.assets.hero, hero);
+            let actor = &s.world.actors[s.world.player].actor;
+            let expected = settings.sheathing_for(hero).unarmed_style;
+            assert_eq!(actor.sheathing.unwrap().settings.unarmed_style, expected);
+            assert_eq!(actor.unarmed.as_ref().unwrap().moves.style, expected);
+            for _ in 0..30 {
+                s.step(0).unwrap();
+            }
+            weapon(s, false);
+            s.step(ATTACK).unwrap();
+            assert!(s.world.actors[s.world.player].actor.unarmed_attack());
+            for _ in 0..90 {
+                s.step(0).unwrap();
+            }
+            let kind = s.world.actors[s.world.player].actor.definition_kind();
+            let armed = s
+                .assets
+                .resources
+                .registry
+                .actor(kind)
+                .unwrap()
+                .motions
+                .clone();
+            let mut changed = settings.clone();
+            changed.hero_unarmed_styles[hero] = Some(if expected == UnarmedStyle::Onikage {
+                UnarmedStyle::Tatsumaru
+            } else {
+                UnarmedStyle::Onikage
+            });
+            playback.configure_onikage(&gaisen, &changed).unwrap();
+            playback.configure(&changed).unwrap();
+            let Content::Gameplay(s) = &playback.content else {
+                unreachable!()
+            };
+            assert_eq!(s.world.actors[s.world.player].actor.definition_kind(), kind);
+            assert_eq!(
+                s.assets.resources.registry.actor(kind).unwrap().motions,
+                armed
+            );
+            playback.load_current().unwrap();
+        }
+        playback.configure_onikage(&gaisen, &settings).unwrap();
+        playback.configure(&settings).unwrap();
+        let Content::Gameplay(s) = &playback.content else {
+            unreachable!()
+        };
+        assert_eq!(
+            s.world.actors[s.world.player]
+                .actor
+                .unarmed
+                .as_ref()
+                .unwrap()
+                .moves
+                .style,
+            settings.sheathing_for(hero).unarmed_style
+        );
+    }
+}

@@ -638,6 +638,7 @@ impl Menu {
         settings.circle_action = defaults.circle_action;
         settings.walking = defaults.walking;
         settings.sheathing = defaults.sheathing;
+        settings.hero_unarmed_styles = defaults.hero_unarmed_styles;
         settings.bleeding = defaults.bleeding;
         settings.dismemberment = defaults.dismemberment;
         settings.damage_escalation = defaults.damage_escalation;
@@ -797,6 +798,10 @@ impl Menu {
                                 Settings::default().sheathing.unarmed_style;
                             Ok(())
                         }
+                        Item::HeroUnarmedStyle(hero) => {
+                            state.settings.hero_unarmed_styles[hero] = None;
+                            Ok(())
+                        }
                         Item::SheathedOneHit => {
                             state.settings.sheathing.one_hit =
                                 Settings::default().sheathing.one_hit;
@@ -911,6 +916,13 @@ impl Menu {
                                 state.settings.sheathing.unarmed_style.cycle(delta);
                             Ok(())
                         }
+                        Item::HeroUnarmedStyle(hero) => {
+                            state.settings.hero_unarmed_styles[hero] = settings::unarmed::cycle(
+                                state.settings.hero_unarmed_styles[hero],
+                                delta,
+                            );
+                            Ok(())
+                        }
                         Item::SheathedOneHit => {
                             state.settings.sheathing.one_hit = !state.settings.sheathing.one_hit;
                             Ok(())
@@ -951,6 +963,7 @@ impl Menu {
                                 state.settings.unarmed_guard = defaults.unarmed_guard;
                                 state.settings.walking = defaults.walking;
                                 state.settings.sheathing = defaults.sheathing;
+                                state.settings.hero_unarmed_styles = defaults.hero_unarmed_styles;
                                 state.settings.dismemberment = defaults.dismemberment;
                                 state.settings.bleeding = defaults.bleeding;
                                 state.settings.sight_percent = defaults.sight_percent;
@@ -1185,6 +1198,9 @@ mod tests {
             (Item::UnarmedAttacks, 1),
             (Item::UnarmedGuard, 1),
             (Item::UnarmedStyle, 1),
+            (Item::HeroUnarmedStyle(0), 3),
+            (Item::HeroUnarmedStyle(1), 1),
+            (Item::HeroUnarmedStyle(2), 2),
             (Item::SheathedSpeed, 100),
             (Item::SheathedVisibility, -100),
             (Item::SheathedDamage, 100),
@@ -1207,6 +1223,10 @@ mod tests {
         assert!(session.world.controls.unarmed_guard);
         assert_eq!(
             actual.unarmed_style,
+            tenchu_core::game::sheathing::UnarmedStyle::WangXiaohai
+        );
+        assert_eq!(
+            state.settings.sheathing.unarmed_style,
             tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru
         );
         assert!(
@@ -1234,6 +1254,9 @@ mod tests {
             Item::UnarmedAttacks,
             Item::UnarmedGuard,
             Item::UnarmedStyle,
+            Item::HeroUnarmedStyle(0),
+            Item::HeroUnarmedStyle(1),
+            Item::HeroUnarmedStyle(2),
             Item::SheathedSpeed,
             Item::SheathedVisibility,
             Item::SheathedDamage,
@@ -1243,6 +1266,7 @@ mod tests {
             assert!(menu.panel.notice.is_empty(), "{}", menu.panel.notice);
         }
         assert_eq!(state.settings.sheathing, Default::default());
+        assert_eq!(state.settings.hero_unarmed_styles, [None; 3]);
         playback.configure(state.settings).unwrap();
         let super::super::campaign::Content::Gameplay(session) = &playback.content else {
             unreachable!()

@@ -138,10 +138,11 @@ impl<S: ReadAt> Playback<S> {
             }
             session.world.set_bleeding(self.bleeding);
             session.configure_walking(&self.disc, settings.walking.enabled)?;
-            session.configure_t2_unarmed(&self.disc, settings.sheathing)?;
+            let sheathing = settings.sheathing_for(session.assets.hero);
+            session.configure_t2_unarmed(&self.disc, sheathing)?;
             session
                 .world
-                .set_player_sheathing(settings.sheathing, &session.assets)?;
+                .set_player_sheathing(sheathing, &session.assets)?;
         }
         Ok(())
     }

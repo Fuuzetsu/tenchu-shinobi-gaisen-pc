@@ -654,6 +654,10 @@ fn widget(
         Item::UnarmedStyle => tenchu_core::game::sheathing::UnarmedStyle::ALL
             .map(|s| s.name().into())
             .into(),
+        Item::HeroUnarmedStyle(_) => std::iter::once("Follow default")
+            .chain(tenchu_core::game::sheathing::UnarmedStyle::ALL.map(|style| style.name()))
+            .map(String::from)
+            .collect(),
         Item::BehaviorCombat | Item::ActorCombat => (item == Item::ActorCombat)
             .then_some("Follow global")
             .into_iter()

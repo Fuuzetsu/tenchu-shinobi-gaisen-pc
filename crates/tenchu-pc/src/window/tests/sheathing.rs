@@ -644,3 +644,89 @@ fn tatsumaru_directional_second_strikes_keep_source_motion() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and TENCHU_T2_MOVES; named hero choices survive actual launcher switches, mid-attack saves/rewind and individual resets"]
+fn per_hero_unarmed_styles_switch_save_and_reset() {
+    use tenchu_core::game::sheathing::UnarmedStyle::{Onikage, Tatsumaru};
+    let mut app = ready(0);
+    app.apply_item(Item::UnarmedAttacks, 1).unwrap();
+    app.apply_item(Item::HeroUnarmedStyle(0), 2).unwrap();
+    app.apply_item(Item::HeroUnarmedStyle(1), 1).unwrap();
+    let choices = [Some(Tatsumaru), Some(Onikage), None];
+    assert_eq!(app.settings.hero_unarmed_styles, choices);
+    assert_eq!(app.settings.sheathing.unarmed_style, Onikage);
+    let selected = |app: &Application| {
+        app.campaign
+            .game
+            .player()
+            .sheathing
+            .as_ref()
+            .unwrap()
+            .settings
+            .unarmed_style
+    };
+    assert_eq!(selected(&app), Tatsumaru);
+    press_sheathe(&mut app);
+    app.game_tick(input::SQUARE);
+    assert_eq!(
+        app.campaign.game.player().status,
+        tenchu_core::actor::State::Attack
+    );
+    let saved = app.capture_state().unwrap();
+    assert!(app.set_hero_unarmed_style(0, Some(Onikage)).is_err());
+    assert_eq!(app.settings.hero_unarmed_styles, choices);
+    app.set_hero_unarmed_style(1, Some(Tatsumaru)).unwrap();
+    assert_eq!(selected(&app), Tatsumaru);
+    app.restore_state(&saved).unwrap();
+    assert_eq!(app.settings.hero_unarmed_styles, choices);
+    assert_eq!(app.settings.sheathing.unarmed_style, Onikage);
+    assert_eq!(selected(&app), Tatsumaru);
+    for _ in 0..90 {
+        app.game_tick(0);
+    }
+    app.settings.rewind_seconds = 5;
+    app.game_tick(0);
+    let rewind = app.rewind.entries.len() - 1;
+    app.set_hero_unarmed_style(1, None).unwrap();
+    app.game_tick(0);
+    app.rewind_to(rewind).unwrap();
+    assert_eq!(app.settings.hero_unarmed_styles, choices);
+    for (hero, style) in [(1, Onikage), (0, Tatsumaru)] {
+        app.campaign.screen = Screen::Launcher;
+        app.campaign.cursor = 2;
+        app.action(Action::Right);
+        app.campaign.cursor = 1;
+        app.action(Action::Confirm);
+        app.action(Action::Confirm);
+        assert!(app.error.is_none(), "{:?}", app.error);
+        assert_eq!(app.campaign.game.player().kind, hero);
+        assert_eq!(selected(&app), style);
+        assert_eq!(app.settings.hero_unarmed_styles, choices);
+    }
+    let library = crate::visuals::appearance::library::Library::load(&app.assets).unwrap();
+    app.settings.player_model = "disc:1".into();
+    app.settings.model_moveset = true;
+    app.settings.moveset_model = "disc:135".into();
+    library
+        .moveset(&app.settings)
+        .unwrap()
+        .unwrap()
+        .apply_moveset(&mut app.campaign.game, Default::default())
+        .unwrap();
+    app.set_sheathing(app.settings.sheathing).unwrap();
+    assert_eq!(app.campaign.game.player().kind, 0);
+    assert_eq!(selected(&app), Tatsumaru);
+    assert_eq!(app.campaign.game.moveset.kind, Some(135));
+    app.reset_item(Item::HeroUnarmedStyle(0)).unwrap();
+    assert_eq!(selected(&app), Onikage);
+    assert_eq!(app.campaign.game.moveset.kind, Some(135));
+    assert_eq!(
+        app.settings.hero_unarmed_styles,
+        [None, Some(Onikage), None]
+    );
+    app.set_hero_unarmed_style(0, Some(Tatsumaru)).unwrap();
+    app.apply_item(Item::ResetTweaks, 1).unwrap();
+    assert_eq!(app.settings.hero_unarmed_styles, [None; 3]);
+    assert!(app.campaign.game.player().sheathing.is_none());
+}

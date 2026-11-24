@@ -153,6 +153,11 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         settings.sheathing.enabled = true;
         settings.sheathing.unarmed = true;
         settings.sheathing.unarmed_style = tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru;
+        settings.hero_unarmed_styles = [
+            Some(tenchu_core::game::sheathing::UnarmedStyle::WangXiaohai),
+            Some(tenchu_core::game::sheathing::UnarmedStyle::Onikage),
+            None,
+        ];
         settings.sheathing.speed = 125;
         settings.sheathing.visibility = 50;
         settings.sheathing.damage = 200;
@@ -208,6 +213,7 @@ fn native_savestates_restore_gameplay_preferences_and_continue() {
         assert_eq!(current.bleeding, settings.bleeding);
         assert_eq!(current.walking, settings.walking);
         assert_eq!(current.sheathing, settings.sheathing);
+        assert_eq!(current.hero_unarmed_styles, settings.hero_unarmed_styles);
         assert_eq!(current.dismemberment, settings.dismemberment);
         assert!(current.quick_shuriken_dodge && current.strict_corpse_sight);
         assert!(current.multi_target_attacks);

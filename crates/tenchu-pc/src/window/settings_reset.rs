@@ -95,6 +95,7 @@ impl Application {
                 }
                 self.set_sheathing(settings)?;
             }
+            Item::HeroUnarmedStyle(hero) => self.set_hero_unarmed_style(hero, None)?,
             Item::AnalogWalking => self.set_walking(s.walking.enabled)?,
             Item::GuardDraw => {
                 self.stop_edited_recording();

@@ -1624,7 +1624,16 @@ chosen armed moveset. Turning the unarmed option off lets a kick finish; turning
 sheathing off entirely cancels it and clears its hitboxes. Try `unarmed-ayame`
 and `unarmed-rikimaru` for the Gaisen style.
 
-**Unarmed style → Tatsumaru (Tenchu 2)** adds a five-hit punch/kick combo plus
+**Default unarmed style** retains the shared choice. **Rikimaru unarmed style**,
+**Ayame unarmed style** and **Tatsumaru unarmed style** can override it separately;
+all start at **Follow default**. Choices follow the named campaign hero, shared
+across T1/native T2, regardless of the selected body or armed moveset. For example,
+Rikimaru can use Tatsumaru's punches while Ayame keeps Onikage's kicks. Savestates
+and rewind retain these choices. Reset one hero's row to follow the default again;
+gameplay resets clear all three overrides. Graphical presets and retro comparison
+leave them unchanged. Tatsumaru's row applies to his native T2 campaign.
+
+**Default unarmed style → Tatsumaru (Tenchu 2)** adds a five-hit punch/kick combo plus
 side, crouch, lunge and back attacks for either hero. On desktop, use **Import
 Tatsumaru moves…** on the Movement page and select your **Tenchu 2 Europe
 (SLES-02452)** CUE, with its BIN alongside it. Importing enables sheathing and
@@ -1632,7 +1641,7 @@ unarmed attacks; stow your weapons to fight barehanded. The import is stored
 locally and remains available after restarting. Finish an attack before changing
 styles. Onikage remains available without another disc.
 
-**Unarmed style → Wang Xiaohai (Tenchu 2)** adds his five-strike punch/kick
+**Default unarmed style → Wang Xiaohai (Tenchu 2)** adds his five-strike punch/kick
 combo, left/right attacks and forward lunge. Use **Import Wang Xiaohai moves…**
 with your supported T2 Japan or Europe disc. His hand and foot hitboxes, damage,
 combo windows and motion come from that disc. He has no crouched or backward

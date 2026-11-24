@@ -29,6 +29,7 @@ mod navigation;
 pub use navigation::Navigation;
 mod walking;
 pub use walking::Walking;
+pub(crate) mod unarmed;
 
 use serde::{Deserialize, Serialize};
 mod store;
@@ -57,6 +58,7 @@ pub struct Settings {
     pub circle_action: tenchu_core::input::CircleAction,
     pub walking: Walking,
     pub sheathing: tenchu_core::game::sheathing::Settings,
+    pub hero_unarmed_styles: [Option<tenchu_core::game::sheathing::UnarmedStyle>; 3],
     pub bleeding: tenchu_core::game::bleeding::Settings,
     pub dismemberment: tenchu_core::game::dismemberment::Settings,
     pub damage_escalation: tenchu_core::ai::escalation::Settings,
@@ -116,6 +118,7 @@ impl Default for Settings {
             circle_action: Default::default(),
             walking: Walking::default(),
             sheathing: Default::default(),
+            hero_unarmed_styles: [None; 3],
             bleeding: Default::default(),
             dismemberment: Default::default(),
             damage_escalation: Default::default(),
@@ -170,6 +173,7 @@ impl Settings {
     }
 
     pub(crate) fn restore_playback_preferences(&mut self, saved: &Self) {
+        self.hero_unarmed_styles = saved.hero_unarmed_styles;
         self.wait_after_death = saved.wait_after_death;
         self.live_death_scene = saved.live_death_scene;
         self.navigation.clone_from(&saved.navigation);
@@ -200,6 +204,7 @@ impl Settings {
             },
             |s| s.settings,
         );
+        self.sheathing.unarmed_style = saved.sheathing.unarmed_style;
         self.bleeding = game.player().bleeding.as_ref().map_or(
             tenchu_core::game::bleeding::Settings {
                 enabled: false,
@@ -538,6 +543,11 @@ mod tests {
                 unarmed_style: tenchu_core::game::sheathing::UnarmedStyle::WangXiaohai,
                 ..Default::default()
             },
+            hero_unarmed_styles: [
+                Some(tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru),
+                Some(tenchu_core::game::sheathing::UnarmedStyle::Onikage),
+                None,
+            ],
             alternate_death_chance: 50,
             model_moveset_options: tenchu_core::game::moveset::Options {
                 player_movement: true,
@@ -565,6 +575,7 @@ mod tests {
         assert!(original.player_model.is_empty());
         assert_eq!(original.moveset_model, settings.moveset_model);
         assert_eq!(original.sheathing, selected.sheathing);
+        assert_eq!(original.hero_unarmed_styles, selected.hero_unarmed_styles);
         assert_eq!(original.alternate_death_chance, 0);
         assert_eq!(
             original.model_moveset_options,
@@ -573,6 +584,7 @@ mod tests {
         let stored = serde_json::to_vec(&settings).unwrap();
         settings = serde_json::from_slice(&stored).unwrap();
         assert_eq!(settings.sheathing, selected.sheathing);
+        assert_eq!(settings.hero_unarmed_styles, selected.hero_unarmed_styles);
         settings.retro = false;
         assert_eq!(settings, selected);
         assert!(matches!(
@@ -581,6 +593,7 @@ mod tests {
         ));
         settings.set_visual_preset(presets::MODERN_ULTRA);
         assert_eq!(settings.sheathing, selected.sheathing);
+        assert_eq!(settings.hero_unarmed_styles, selected.hero_unarmed_styles);
         assert_eq!(settings.graphics.weather.mode, WeatherMode::Snow);
         assert_eq!(settings.sight_percent, 125);
         assert_eq!(settings.subtitle_language, selected.subtitle_language);
