@@ -23,13 +23,18 @@ impl Library {
             if body.parts.len() != 15 {
                 continue;
             }
-            let equipment = if let Some(equipment) = known.get(&(character.weapon, character.width))
-            {
+            let key = (
+                character.weapon,
+                character.width,
+                (character.kind < 2).then_some(character.kind),
+            );
+            let equipment = if let Some(equipment) = known.get(&key) {
                 Arc::clone(equipment)
             } else {
                 game.set_player_moveset(Some(character), &body.clips, Default::default())?;
-                let equipment = Arc::new(game.player_equipment(&vram)?);
-                known.insert((character.weapon, character.width), equipment.clone());
+                let equipment =
+                    Arc::new(crate::sheathing::equipment(&game, character.kind, &vram)?);
+                known.insert(key, equipment.clone());
                 equipment
             };
             body.equipment = Some(equipment);

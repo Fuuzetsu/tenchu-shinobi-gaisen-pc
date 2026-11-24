@@ -10,6 +10,8 @@ use crate::{
     },
 };
 
+mod mixed;
+
 #[test]
 #[ignore = "requires TENCHU_DISC and TENCHU2_DISC; optional sheath geometry, outfits, equipment, interpolation and original fallback"]
 fn rikimaru_sheath_preserves_source_state_and_equipment() {

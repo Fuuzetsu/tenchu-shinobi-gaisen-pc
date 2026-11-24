@@ -36,8 +36,35 @@ pub(super) fn replacement(game: &Game, selection: &str, library: &Library) -> Op
         })
 }
 
+pub(super) fn equipped(game: &Game) -> Option<Attachment> {
+    let weapon = game.player().weapons[4].as_ref()?;
+    let model = game.mission.weapons.imported_models.get(&weapon.kind)?;
+    if model.source_id != "tenchu2/weapons/ninC/0" {
+        return None;
+    }
+    Some(Attachment {
+        part: 1,
+        slot: 4,
+        position: [0, 0, 60],
+        melee: false,
+        model: model.clone(),
+    })
+}
+
+pub(super) fn grip_mount(position: [i16; 3]) -> tenchu_core::math::Matrix {
+    let (_, mut mount) = crate::sheathing::stowed_transform(0, 2).unwrap();
+    let guard = mount.apply_large([1, 70, -82].into());
+    mount.translation =
+        std::array::from_fn(|i| [-144, -439, 149][i] + i32::from(position[i]) - guard[i]).into();
+    mount
+}
+
 pub(super) fn remove_original(parts: &mut [model::Part]) -> bool {
-    let Some(torso) = parts.get_mut(1).and_then(|p| p.geometry.first_mut()) else {
+    parts.get_mut(1).is_some_and(remove_torso)
+}
+
+pub(crate) fn remove_torso(part: &mut model::Part) -> bool {
+    let Some(torso) = part.geometry.first_mut() else {
         return false;
     };
     // RIKIMAUA has a continuous armoured back and no built-in scabbard.

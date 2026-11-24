@@ -38,9 +38,16 @@ pub(crate) fn stowed_mount(
         return None;
     }
     actor.sheathing.as_ref()?;
+    stowed_transform(actor.kind, slot)
+}
+
+pub(crate) fn stowed_transform(
+    hero: i16,
+    slot: usize,
+) -> Option<(usize, tenchu_core::math::Matrix)> {
     // Bind to the mouths of the heroes' built-in scabbards, not the ninja
     // animation's hand positions (its swords are carried in different places).
-    let (part, rotation, translation) = match (actor.kind, slot) {
+    let (part, rotation, translation) = match (hero, slot) {
         (0, 2) => (
             1,
             [[3439, 20, -2225], [-2225, 30, -3439], [0, 4096, 36]],
@@ -65,6 +72,52 @@ pub(crate) fn stowed_mount(
             translation: translation.into(),
         },
     ))
+}
+
+pub(crate) fn equipment(
+    game: &Game,
+    hero: i16,
+    vram: &std::sync::Arc<tenchu_assets::texture::Vram>,
+) -> Result<tenchu_assets::weapon::Equipment> {
+    use tenchu_assets::weapon::{Attachment, ImportedModel};
+    let mut equipment = game.player_equipment(vram)?;
+    if !(0..2).contains(&hero) {
+        return Ok(equipment);
+    }
+    let kind = if hero == 0 {
+        tenchu_assets::weapon::kind::NINJA
+    } else {
+        tenchu_assets::weapon::kind::KODATI
+    };
+    for slot in 2..4 {
+        if !equipment.attachments.iter().any(|part| part.slot == slot) {
+            continue;
+        }
+        let Some((part, mut mount)) = stowed_transform(hero, slot) else {
+            continue;
+        };
+        let position = mount.translation.to_array().map(|v| v as i16);
+        mount.translation = Default::default();
+        let mut geometry = game.mission.weapons.grips[&kind].clone();
+        for part in &mut geometry {
+            for vertex in part.vertices.iter_mut().chain(&mut part.normals) {
+                *vertex = mount.transform(*vertex).to_array().map(|v| v as i16);
+            }
+        }
+        equipment.attachments.push(Attachment {
+            part,
+            position,
+            slot: slot - 2,
+            melee: false,
+            model: std::sync::Arc::new(ImportedModel {
+                id: format!("gaisen:weapons/{kind}/grip"),
+                source_id: format!("weapons/{kind:04x}/grip"),
+                geometry,
+                vram: vram.clone(),
+            }),
+        });
+    }
+    Ok(equipment)
 }
 
 pub(crate) fn onikage_attacks(

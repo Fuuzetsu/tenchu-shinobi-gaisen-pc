@@ -48,6 +48,28 @@ three angles. This validates the optional presentation swap, not ordinary-play
 parity or native EU gameplay. Run the ignored `rikimaru_sheath_preserves` test
 with `TENCHU_DISC` and `TENCHU2_DISC`; `TENCHU_SHEATH_REVIEW` enables captures.
 
+The mixed-equipment regression (#127) additionally checks the real T1 sword's
+missing hand-covered grip span, the fitted optional sheath, duplicate built-in
+scabbard removal and independently selected stowed grips. T1 and native T2
+fixtures exercise actual draw/stow transitions, nonzero decoded PCM and saved
+continuation; the native fixture covers all three heroes. Original T1 hero voice
+programs and samples remain byte-identical while an additional source ninja
+program supplies their optional draw/stow cues. Presentation checks cover normal
+and armoured T1 Rikimaru, a T2 body, Original/Modern High/Modern Ultra, both sheath
+settings, source/HD artwork and explicit geometry overrides. Use the ignored
+`mixed_rikimaru_swords` and `mixed_rikimaru_presentation_choices` filters; the
+latter requires configured `TENCHU_ASSET_PACK` and `TENCHU2_ASSET_PACK`.
+`TENCHU_SHEATH_REVIEW` writes controlled GPU captures outside Git. This is
+optional equipment/presentation validation, not an ordinary-play parity claim.
+
+The fitting uses the original `NINJA` (`0x13`) guard and handle vertices and the
+T2 `ninB` grip / `ninC` scabbard, retaining the existing optional 60-unit back
+offset. Only the stowed T1 mesh fills its hand-covered gap; the held sword and
+source animation tracks are unchanged. The added transition samples come from
+the Mission 1 appearance-table programs for NinjaB (`0x21`) and NinjaC (`0x22`),
+the same source banks used by the existing optional sheathing feature. No source
+draw/stow callbacks, combat contacts or RNG order change.
+
 The T2 guard/wall-roll review runs 72 focused damage cases through each retail
 edition's original instructions: all three heroes, drawn/stowed state, guard and
 backward movement, three incoming directions, and guard held/released. Both

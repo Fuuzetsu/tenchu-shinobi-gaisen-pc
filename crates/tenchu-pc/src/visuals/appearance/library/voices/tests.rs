@@ -60,10 +60,7 @@ fn localized_voices_override_imported_movesets_and_follow_language() {
             let sounds = game.audio_with_burning([], None).unwrap();
             assert_eq!(sounds.len(), 5);
             for sound in &sounds[..4] {
-                assert!(
-                    postcard::to_allocvec(sound.bank.as_ref().unwrap()).unwrap()
-                        == postcard::to_allocvec(&expected.bank).unwrap()
-                );
+                assert_source_voice(sound.bank.as_ref().unwrap(), &expected.bank);
             }
             assert!(Arc::ptr_eq(
                 sounds[4].bank.as_ref().unwrap(),
@@ -73,10 +70,7 @@ fn localized_voices_override_imported_movesets_and_follow_language() {
             let restored: tenchu_core::game::Game =
                 postcard::from_bytes(&postcard::to_allocvec(&game).unwrap()).unwrap();
             for sound in &restored.audio_with_burning([], None).unwrap()[..4] {
-                assert!(
-                    postcard::to_allocvec(sound.bank.as_ref().unwrap()).unwrap()
-                        == postcard::to_allocvec(&expected.bank).unwrap()
-                );
+                assert_source_voice(sound.bank.as_ref().unwrap(), &expected.bank);
             }
         }
     }
@@ -103,4 +97,14 @@ fn localized_voices_override_imported_movesets_and_follow_language() {
             &library.voice_in("disc:1", language).unwrap().unwrap().bank
         ));
     }
+}
+
+fn assert_source_voice(actual: &Bank, expected: &Bank) {
+    let mut original: Bank = postcard::from_bytes(&postcard::to_allocvec(actual).unwrap()).unwrap();
+    original.programs.truncate(expected.programs.len());
+    original.samples.truncate(expected.samples.len());
+    assert_eq!(
+        postcard::to_allocvec(&original).unwrap(),
+        postcard::to_allocvec(expected).unwrap()
+    );
 }

@@ -277,6 +277,25 @@ impl Models {
                             parent = scene.models[id].parent;
                         }
                     }
+                    if custom_pose.is_none()
+                        && assets
+                            .model_sources
+                            .get(&definition.model)
+                            .and_then(|ids| ids.get(tenchu_assets::tenchu2::BONES[1]))
+                            .is_some_and(|id| id == "actors/0000/1")
+                        && (matches!(name.as_str(), "ninB" | "ninC")
+                            || assets.weapon_imports.get(name).is_some_and(|model| {
+                                matches!(
+                                    model.source_id.as_str(),
+                                    "tenchu2/weapons/ninB/0" | "tenchu2/weapons/ninC/0"
+                                )
+                            }))
+                    {
+                        matrix.translation = matrix.translation.wrapping_add(
+                            matrices[tenchu_assets::tenchu2::BONES[1]]
+                                .apply_large([0, 0, 60].into()),
+                        );
+                    }
                     visit(
                         interpolation::part(
                             instance.rig.root,

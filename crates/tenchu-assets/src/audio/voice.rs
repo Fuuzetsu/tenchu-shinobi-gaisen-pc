@@ -13,6 +13,7 @@ pub enum Dialect {
 pub struct VoiceSet {
     pub bank: Arc<Bank>,
     pub dialect: Dialect,
+    pub weapon_cue_program: Option<u8>,
 }
 
 #[derive(Clone)]
@@ -39,10 +40,16 @@ impl VoiceSet {
         Ok(Self {
             bank: Arc::new(bank),
             dialect,
+            weapon_cue_program: None,
         })
     }
 
     pub fn cue(&self, host: Dialect, id: u8, dead: bool) -> i16 {
+        if id <= 1
+            && let Some(program) = self.weapon_cue_program
+        {
+            return i16::from(program) * 16 + i16::from(id);
+        }
         let id = match (host, self.dialect) {
             (Dialect::Gaisen, Dialect::Tenchu2) => match id {
                 6 | 7 => 13,

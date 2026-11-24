@@ -17,7 +17,7 @@ use tenchu_core::{game::Game, math::Matrix};
 pub(crate) mod cast;
 pub mod library;
 pub mod picker;
-mod sheath;
+pub(crate) mod sheath;
 pub mod skin;
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -193,7 +193,8 @@ impl Appearance {
             .models
             .rikimaru_sheath
             .then(|| sheath::replacement(game, selection, library?))
-            .flatten();
+            .flatten()
+            .or_else(|| sheath::equipped(game));
         if selection.is_empty() && sheath.is_none() {
             return Ok(None);
         }
@@ -598,12 +599,46 @@ pub(super) fn visit_parts_filtered(
                     .as_ref()
                     .filter(|w| w.model == model)
                 && weapon.kind == tenchu_assets::weapon::kind::NINJA
-                && let Some((part, mut mount)) = crate::sheathing::stowed_mount(game.player(), 2)
+                && crate::sheathing::stowed_mount(game.player(), 2).is_some()
             {
-                mount.translation =
-                    std::array::from_fn(|i| [-144, -439, 149][i] + i32::from(sheath.position[i]))
-                        .into();
-                matrix = player_matrices.as_ref().unwrap()[part].compose(&mount);
+                matrix = player_matrices.as_ref().unwrap()[1]
+                    .compose(&sheath::grip_mount(sheath.position));
+            }
+            if sheath.is_some()
+                && game.player().weapons.iter().flatten().any(|weapon| {
+                    weapon.model == model
+                        && game
+                            .mission
+                            .weapons
+                            .imported_models
+                            .get(&weapon.kind)
+                            .is_some_and(|source| {
+                                matches!(
+                                    source.source_id.as_str(),
+                                    "tenchu2/weapons/ninB/0" | "tenchu2/weapons/ninC/0"
+                                )
+                            })
+                })
+            {
+                matrix.translation = matrix.translation.wrapping_add(
+                    player_matrices.as_ref().unwrap()[1].apply_large([0, 0, 60].into()),
+                );
+            }
+            if let Some(sheath) = sheath
+                && game.player().weapons.iter().flatten().any(|weapon| {
+                    weapon.model == model
+                        && game
+                            .mission
+                            .weapons
+                            .imported_models
+                            .get(&weapon.kind)
+                            .is_some_and(|source| source.source_id == "weapons/0013/grip")
+                })
+            {
+                matrix = player_matrices.as_ref().unwrap()[1].compose(&Matrix {
+                    translation: sheath::grip_mount(sheath.position).translation,
+                    ..Default::default()
+                });
             }
         }
         if let Part::Actor { root, .. } = key

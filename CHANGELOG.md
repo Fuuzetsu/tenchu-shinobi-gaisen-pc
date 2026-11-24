@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix floating Rikimaru sword grips and overlapping T1/T2 scabbards with mixed
+  equipment, including the optional T2 sheath. Keep independent T1 swords'
+  stowed grips and restore draw/sheath sounds when selecting T1 hero moves or
+  weapons in either game.
 - Add the original European Kagami/Toda execution to native T2 through
   **Persistent effects → Uncensored execution scenes**, including the severed
   head, ignition and throw. Requires a connected EU disc and uses its English
@@ -24,7 +28,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
   at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
   weather commands and timing; optional weather settings remain available.
-- Mid-mission savestates use format 44. Load older states with the game build
+- Mid-mission savestates use format 45. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
 ## 0.35.14 — 2026-11-15

@@ -304,7 +304,11 @@ pub(super) fn convert_weapons(
         std::borrow::Cow::Borrowed(&source.equipment)
     } else {
         let donor = donor.ok_or("Connect the T1 disc to use these weapons")?;
-        std::borrow::Cow::Owned(donor.player_equipment(&Arc::new(donor.mission.vram.clone()))?)
+        std::borrow::Cow::Owned(crate::sheathing::equipment(
+            donor,
+            body.character.as_ref().unwrap().kind,
+            &Arc::new(donor.mission.vram.clone()),
+        )?)
     };
     let mut contacts = BTreeMap::new();
     for contact in attacks.values().flat_map(|a| a.contacts.iter().flatten()) {

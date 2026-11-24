@@ -357,8 +357,12 @@ fn native_t2_uses_explicit_english_t1_voices() {
             } else {
                 &Arc::new(expected.clone())
             };
+            let mut original: Bank =
+                postcard::from_bytes(&postcard::to_allocvec(&bank).unwrap()).unwrap();
+            original.programs.truncate(voice.bank.programs.len());
+            original.samples.truncate(voice.bank.samples.len());
             assert!(
-                postcard::to_allocvec(&bank).unwrap()
+                postcard::to_allocvec(&original).unwrap()
                     == postcard::to_allocvec(&voice.bank).unwrap()
             );
             assert_eq!(i16::from(sound), voice.cue(Dialect::Tenchu2, cue, false));

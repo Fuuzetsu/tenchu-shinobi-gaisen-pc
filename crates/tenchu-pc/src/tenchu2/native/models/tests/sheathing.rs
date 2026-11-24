@@ -189,3 +189,146 @@ fn capture(session: &Session, donor: &Game, path: &std::path::Path) {
         .capture(camera, &[&terrain, &props, &actors], None, false, path)
         .unwrap();
 }
+
+#[test]
+#[ignore = "requires both discs; mixed Rikimaru equipment keeps a single scabbard and audible draw/stow cues on all native heroes"]
+fn native_mixed_rikimaru_swords() {
+    let gaisen = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&gaisen).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let mut donor = donor(&gaisen).unwrap();
+    for hero in 0..3 {
+        for (moves, weapon) in [
+            ("tenchu2-jp:rikimaru", ""),
+            ("tenchu2-jp:rikimaru", "disc:0"),
+            ("disc:0", ""),
+            ("disc:0", "tenchu2-jp:rikimaru"),
+        ] {
+            let mut session = Session::with_options(
+                &disc,
+                9,
+                tenchu_core::tenchu2::world::Options {
+                    hero,
+                    seed: 1,
+                    difficulty: 2,
+                    inventory: Default::default(),
+                },
+                false,
+            )
+            .unwrap();
+            let player = session.world.player;
+            for (id, agent) in session.world.actors.iter_mut().enumerate() {
+                if id != player {
+                    agent.behavior.programs.idle = Program::Disabled;
+                }
+            }
+            for _ in 0..30 {
+                session.step(0).unwrap();
+            }
+            let mut settings = Settings {
+                player_model: "disc:0".into(),
+                model_moveset: true,
+                moveset_model: moves.into(),
+                weapon_model: weapon.into(),
+                ..Default::default()
+            };
+            settings.sheathing.enabled = true;
+            session
+                .models
+                .sync(
+                    &mut session.world,
+                    &mut session.assets,
+                    &mut donor,
+                    &library,
+                    &Arc::default(),
+                    &settings,
+                )
+                .unwrap();
+            session
+                .world
+                .set_player_sheathing(settings.sheathing, &session.assets)
+                .unwrap();
+            session
+                .restore_state(&session.capture_state().unwrap())
+                .unwrap();
+            let t2 = weapon == "tenchu2-jp:rikimaru"
+                || weapon.is_empty() && moves == "tenchu2-jp:rikimaru";
+            assert_eq!(
+                session.assets.models["override-player"].parts[BONES[1]].geometry[0]
+                    .faces
+                    .len(),
+                if t2 { 52 } else { 65 }
+            );
+            super::super::super::sheathing_tests::weapon(&mut session, true);
+            for drawing in [false, true] {
+                session.world.actors[player]
+                    .actor
+                    .sheathing
+                    .as_mut()
+                    .unwrap()
+                    .input(true);
+                let mut peaks = Vec::new();
+                for _ in 0..150 {
+                    let sounds = session.step(0).unwrap();
+                    session.world.actors[player]
+                        .actor
+                        .sheathing
+                        .as_mut()
+                        .unwrap()
+                        .input(false);
+                    for sound in sounds
+                        .into_iter()
+                        .filter(|s| s.sound.id & 15 == u8::from(!drawing))
+                    {
+                        let mut pcm = tenchu_audio::Mixer::new(48000);
+                        pcm.play_at_from(
+                            sound.bank.as_ref().unwrap_or(&session.bank),
+                            usize::from(sound.sound.slot),
+                            i16::from(sound.sound.id),
+                            sound.sound.volume,
+                            sound.sound.note,
+                        );
+                        peaks.push(
+                            (0..24000)
+                                .flat_map(|_| pcm.frame())
+                                .map(f32::abs)
+                                .fold(0.0, f32::max),
+                        );
+                    }
+                }
+                assert_eq!(session.world.actors[player].actor.weapon_drawn(), drawing);
+                assert_eq!(
+                    peaks.len(),
+                    1,
+                    "hero={hero} moves={moves} weapon={weapon} drawing={drawing}"
+                );
+                assert!(
+                    peaks[0] > 0.01,
+                    "silent transition: hero={hero} moves={moves} weapon={weapon} drawing={drawing}"
+                );
+                eprintln!(
+                    "native hero={hero} moves={moves} weapon={weapon} drawing={drawing} peaks={peaks:?}"
+                );
+                if hero == 0
+                    && let Some(directory) = std::env::var_os("TENCHU_SHEATH_REVIEW")
+                {
+                    let directory = std::path::PathBuf::from(directory);
+                    std::fs::create_dir_all(&directory).unwrap();
+                    let state = postcard::to_allocvec(&session.world).unwrap();
+                    capture(
+                        &session,
+                        &donor,
+                        &directory.join(format!(
+                            "native-moves-{}-weapon-{}-draw-{drawing}.png",
+                            moves.replace(':', "-"),
+                            weapon.replace(':', "-")
+                        )),
+                    );
+                    assert_eq!(postcard::to_allocvec(&session.world).unwrap(), state);
+                }
+            }
+        }
+    }
+}

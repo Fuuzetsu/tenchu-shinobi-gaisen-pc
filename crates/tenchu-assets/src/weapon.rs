@@ -303,6 +303,15 @@ fn grips(models: &BTreeMap<i16, Vec<Geometry>>) -> BTreeMap<i16, Vec<Geometry>> 
                             <= span[axis] / 2
                     })
                 });
+                if kind == kind::NINJA {
+                    // The held sword omits the grip beneath the hand. Its
+                    // stowed copy needs that span to meet the guard.
+                    for vertex in &mut geometry.vertices {
+                        if vertex[2] == 60 {
+                            vertex[2] = -68;
+                        }
+                    }
+                }
             }
             Some((kind, grip))
         })

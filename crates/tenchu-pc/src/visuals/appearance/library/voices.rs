@@ -17,6 +17,14 @@ pub(super) const LANGUAGES: [(Language, &str, &str); 4] = [
 
 impl Library {
     pub(super) fn load_voices(&mut self, assets: &GameAssets<impl ReadAt>) -> Result<()> {
+        let ninja_programs = [0x21, 0x22].map(|kind| {
+            Executable::new(&assets.executable)?
+                .appearance(1)?
+                .iter()
+                .position(|&entry| entry == kind)
+                .map(|index| index + 6)
+                .ok_or_else(|| "Missing ninja weapon sounds".to_string())
+        });
         let mut groups: BTreeMap<_, Vec<_>> = BTreeMap::new();
         for (i, body) in self.bodies.iter().enumerate() {
             if let Some(voice) = body.voice {
@@ -34,7 +42,26 @@ impl Library {
                     let voice = if let Some(voice) = programs.get(&program) {
                         voice.clone()
                     } else {
-                        let voice = Arc::new(VoiceSet::extract(&bank, program, Dialect::Gaisen)?);
+                        let mut voice = VoiceSet::extract(&bank, program, Dialect::Gaisen)?;
+                        if let Some(hero) = self.bodies[index]
+                            .character
+                            .as_ref()
+                            .map(|c| c.kind)
+                            .filter(|&kind| (0..2).contains(&kind))
+                        {
+                            let source = Bank::load(assets, 1, hero, language)?;
+                            // Retail heroes never draw or sheathe; keep their
+                            // voices and supply only the optional weapon cues.
+                            voice.weapon_cue_program = Some(
+                                Arc::get_mut(&mut voice.bank).unwrap().import_program(
+                                    &source,
+                                    *ninja_programs[hero as usize]
+                                        .as_ref()
+                                        .map_err(Clone::clone)?,
+                                )? as u8,
+                            );
+                        }
+                        let voice = Arc::new(voice);
                         programs.insert(program, voice.clone());
                         voice
                     };

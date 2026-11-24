@@ -296,7 +296,7 @@ impl Override {
             turn: actor.turn,
             drawn: actor.weapon_drawn(),
         });
-        let replacement_parts = body
+        let mut replacement_parts = body
             .map(|body| native_parts(body, &assets.models[&original.definition.model].parts))
             .transpose()?;
         let mut definition = original.definition.clone();
@@ -353,6 +353,27 @@ impl Override {
             ));
         }
         if let Some(body) = body {
+            if matches!(
+                body.resource.as_str(),
+                "HUMAN/RIKIMARU.MAD" | "HUMAN/RIKIMAUA.MAD"
+            ) && assets
+                .resources
+                .weapons
+                .parts(definition.weapon)
+                .any(|part| {
+                    part.model.as_ref().is_some_and(|name| {
+                        name == "ninC"
+                            || assets
+                                .weapon_imports
+                                .get(name)
+                                .is_some_and(|model| model.source_id == "tenchu2/weapons/ninC/0")
+                    })
+                })
+            {
+                crate::visuals::appearance::sheath::remove_torso(
+                    &mut replacement_parts.as_mut().unwrap()[BONES[1]],
+                );
+            }
             let name = "override-player".to_owned();
             let parts = replacement_parts.unwrap();
             assets
