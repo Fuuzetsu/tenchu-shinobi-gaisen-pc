@@ -438,9 +438,22 @@ and body-wound jets, including imported/custom player bodies. They advance on
 logic ticks and respect Clear blood. Modern High/Ultra already enable this
 presentation effect when a part exists; Original remains unchanged. The shared
 dismemberment demo covers Gaisen; native demo playback is still pending.
-**SA Kataoka execution scene** applies to Rikimaru's imported T1 Mission 5 story,
-with any native hero, and retains Gaisen's localized dialogue and audio. Enable
-it before the scene begins. Native T2 campaign scenes keep their source behavior.
+
+**Uncensored execution scenes** restores Kagami's execution of Toda in native
+T2, including the detached head, blood, ignition and throw. Connect an owned
+European T2 disc through **F6 → Connect another disc…**, then start Japanese
+native play and enable the option before the scene. Both discs stay remembered.
+The option uses the complete EU event with English audio, no Japanese captions
+and its original 25 Hz scene timing. Gameplay and the rest of the campaign retain
+the Japanese source and 30 Hz updates. The option starts off, and an unconnected
+or moved EU disc keeps the Japanese scene. Restoring an EU-scene checkpoint in
+a fresh session requires reconnecting that disc; changing the option mid-scene
+does not replace its active tracks. Graphics presets do not enable the option.
+
+The same option applies to Rikimaru's imported T1 Mission 5 story, with any
+native hero, and retains Gaisen's localized dialogue and audio. That scene needs
+no additional disc. Native T2 demo playback remains pending; use F6's Toda War
+Camp event 113 (sequence 201) to preview the optional scene.
 
 **F1 → Player model** uses the shared searchable gallery of Gaisen and connected
 T2 discs. Choose a body, enable **Override moveset**, then leave **Moveset source**

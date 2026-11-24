@@ -16,6 +16,7 @@ pub struct Model {
 }
 
 pub struct Resources {
+    pub edition: Edition,
     pub area: usize,
     pub results_fade: i16,
     pub script: Script,
@@ -99,25 +100,47 @@ impl<S: ReadAt> Files<'_, S> {
 impl Resources {
     pub fn load(disc: &Disc<impl ReadAt>, event: u16) -> Result<Self> {
         let volume = Volume::open(disc)?;
-        if volume.edition != Edition::Japan {
-            return Err("Native Tenchu 2 story requires the Japanese disc".into());
+        let edition = volume.edition;
+        if edition == Edition::Europe && event != 113 {
+            return Err("Only the optional Toda execution supports European story assets".into());
         }
         let cab = volume.read(r"o:\cdimage\game\cab\event", &format!("E{event}.CAB"))?;
-        let script = Script::parse(cab_member(
+        let mut script = Script::parse(cab_member(
             &cab,
             r"o:\cdimage\game\event",
             &format!("E{event}.EVT"),
         )?)?;
+        if edition == Edition::Europe {
+            // EVENT.BIN's EU catalog omits SAKI (JP 267). Keep shared rendering IDs.
+            let canonical = |id: i16| {
+                id.checked_add(i16::from(id >= 267))
+                    .ok_or("Invalid European story model")
+            };
+            for actor in &mut script.actors {
+                actor.model = canonical(actor.model)?;
+                actor.texture_model = canonical(actor.texture_model)?;
+            }
+            for expression in &mut script.expressions {
+                expression.model = canonical(expression.model)?;
+            }
+        }
         let module = volume.read(r"o:\cdimage\game\module", "event.bin")?;
         let audio = if u16_le(&script.audio, 6)? == 0 {
             None
         } else {
-            let path = module_string(&module, 0x94c)?
-                .trim_start_matches('\\')
-                .split(';')
-                .next()
-                .unwrap()
-                .replace('\\', "/");
+            let path = module_string(
+                &module,
+                if edition == Edition::Japan {
+                    0x94c
+                } else {
+                    0x944
+                },
+            )?
+            .trim_start_matches('\\')
+            .split(';')
+            .next()
+            .unwrap()
+            .replace('\\', "/");
             let file = disc.find(&path)?;
             let start = super::super::music::time(&script.audio[4..6])?;
             let end = super::super::music::time(&script.audio[6..8])?;
@@ -134,12 +157,13 @@ impl Resources {
         };
         let area = match script.area {
             Some(area) => area,
-            None => crate::slice(&module, 0x6f98, 142 * 4)?
+            None if edition == Edition::Japan => crate::slice(&module, 0x6f98, 142 * 4)?
                 .chunks_exact(4)
                 .find(|row| u16_le(row, 0) == Ok(event))
                 .and_then(|row| usize::try_from(i16_le(row, 2).ok()?).ok())
                 .filter(|&area| area < 24)
                 .ok_or("Missing Tenchu 2 story area")?,
+            None => return Err("Missing European Toda execution area".into()),
         };
         let textures = volume.read(r"o:\cdimage\game\cab\event", &format!("E{event}.ARC"))?;
         let count = u32_le(&textures, 0)? as usize;
@@ -182,7 +206,7 @@ impl Resources {
             .map(|&id| {
                 Picture::parse(&files.read(
                     r"o:\cdimage\game\event",
-                    &format!("{}.tim", model_name(&module, id)?),
+                    &format!("{}.tim", model_name(&module, edition, id)?),
                 )?)
             })
             .collect::<Result<_>>()?;
@@ -200,7 +224,7 @@ impl Resources {
             if models.contains_key(&id) || effects.contains_key(&id) {
                 continue;
             }
-            let name = model_name(&module, id)?;
+            let name = model_name(&module, edition, id)?;
             if id < 106
                 && let Some(archive) =
                     files.optional(r"o:\cdimage\game\event", &format!("{name}.arc"))?
@@ -212,7 +236,12 @@ impl Resources {
                 let offset = if id < 11 {
                     [0; 2]
                 } else {
-                    [u16_le(&module, 0x6920)?, u16_le(&module, 0x6922)?]
+                    let at = if edition == Edition::Japan {
+                        0x6920
+                    } else {
+                        0x6000
+                    };
+                    [u16_le(&module, at)?, u16_le(&module, at + 2)?]
                 };
                 faces.insert(
                     id,
@@ -317,8 +346,16 @@ impl Resources {
             });
         }
         Ok(Self {
+            edition,
             area,
-            results_fade: i16_le(&module, 0x68e4 + area * 2)?,
+            results_fade: i16_le(
+                &module,
+                (if edition == Edition::Japan {
+                    0x68e4
+                } else {
+                    0x5fc4
+                }) + area * 2,
+            )?,
             script,
             models,
             effects,
@@ -343,16 +380,23 @@ fn upload(vram: &mut Vram, archive: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn model_name(module: &[u8], id: i16) -> Result<String> {
+fn model_name(module: &[u8], edition: Edition, id: i16) -> Result<String> {
     let id = usize::try_from(id)
         .ok()
         .filter(|&id| id < 294)
         .ok_or("Invalid Tenchu 2 story model")?;
-    let table = if id < 106 { 0x699c } else { 0x6b44 };
-    let index = if id < 106 { id } else { id - 106 };
+    if edition == Edition::Europe && id == 267 {
+        return Err("Missing European story model SAKI".into());
+    }
+    let (table, base) = if edition == Edition::Japan {
+        (0x699c, 0x800d0610)
+    } else {
+        (0x6064, 0x800ce598)
+    };
+    let index = id - usize::from(edition == Edition::Europe && id > 267);
     let address = u32_le(module, table + index * 4)?;
     let offset = address
-        .checked_sub(0x800d0610)
+        .checked_sub(base)
         .ok_or("Invalid Tenchu 2 story model name")? as usize;
     let name = module_string(module, offset)?;
     if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {

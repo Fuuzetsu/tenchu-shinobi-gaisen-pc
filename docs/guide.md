@@ -1064,9 +1064,12 @@ dismemberment**, with USA Rev 1 chances by default. **Player dismemberment** has
 its own toggle and head/forearm/side probabilities; both toggles start off.
 **Severed wound bleeding** and its duration control extra jets from the body and
 drips from detached parts. Ground marks still use your selected ground-blood style.
-**SA Kataoka execution scene** separately restores Rikimaru's Mission 5 execution
+**Uncensored execution scenes** separately restores Rikimaru's Mission 5 execution
 shots and severed head, while keeping the selected language's dialogue and audio.
-Enable it before the scene starts; it is off by default and needs no extra disc.
+This T1 scene needs no extra disc. In [native T2](tenchu2-native.md), the same option
+uses a connected European disc's complete Kagami/Toda execution with English
+audio and its original timing. Without that disc, T2 keeps the Japanese scene.
+Enable it before the scene starts; it is off by default.
 See [cross-version details](cross-version-research.md) for the source rules and
 the port's player extension.
 

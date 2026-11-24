@@ -112,7 +112,7 @@ impl Content {
             Self::Prologue(intro) => f64::from(intro.state.tick) / 15.0,
             Self::Introduction(intro) => f64::from(intro.state.tick) / 15.0,
             Self::Movie(movie) | Self::TitleMovie { movie, .. } => movie.seconds(),
-            Self::Story { story, .. } => f64::from(story.state.frame.max(0)) / 30.0,
+            Self::Story { story, .. } => story.seconds(),
             _ => return,
         };
         output.send(Command::SeekMusic(seconds));

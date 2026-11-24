@@ -14,6 +14,8 @@ use tenchu_core::{
 };
 
 #[cfg(not(target_arch = "wasm32"))]
+pub(super) mod execution;
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) mod state;
 
 pub struct Story {
@@ -29,12 +31,33 @@ pub struct Story {
     pub contact: super::contact::History,
     rules: Rules,
     basis: [[i16; 4]; 33],
+    phase: u8,
 }
 
 impl Story {
     pub fn load(disc: &Disc<impl ReadAt>, sequence: usize, event: u16, seed: u32) -> Result<Self> {
         let resources = Resources::load(disc, event)?;
         let level = Level::japanese_scene(disc, resources.area, sequence, true)?;
+        Self::new(
+            disc,
+            sequence,
+            event,
+            seed,
+            resources,
+            level,
+            Rules::load(disc)?,
+        )
+    }
+
+    fn new(
+        disc: &Disc<impl ReadAt>,
+        sequence: usize,
+        event: u16,
+        seed: u32,
+        resources: Resources,
+        level: Level,
+        rules: Rules,
+    ) -> Result<Self> {
         let mut state = Playback::new(&resources, seed);
         state.effects.particles.weather =
             tenchu_core::tenchu2::effects::weather::Weather::for_map(level.id, event, true);
@@ -47,16 +70,24 @@ impl Story {
             interpolation: None,
             models: Default::default(),
             sprites: Sprites::load(disc)?,
-            rules: Rules::load(disc)?,
+            rules,
             contact: Default::default(),
             math: Math {
                 tables: math_tables(disc)?,
             },
             basis: motions::spline_basis(disc)?,
+            phase: 0,
         })
     }
 
     pub fn step(&mut self, draw: bool) -> Result<()> {
+        if self.state.frame >= 0 {
+            self.phase += self.frames_per_second();
+            if self.phase < 30 {
+                return Ok(());
+            }
+            self.phase -= 30;
+        }
         let changes = self.state.step(
             &self.resources,
             &self.basis,
@@ -89,6 +120,24 @@ impl Story {
             self.interpolation = Some(history);
         }
         Ok(())
+    }
+
+    pub fn frames_per_second(&self) -> u8 {
+        match self.resources.edition {
+            tenchu_assets::tenchu2::Edition::Japan => 30,
+            tenchu_assets::tenchu2::Edition::Europe => 25,
+        }
+    }
+
+    pub fn seconds(&self) -> f64 {
+        (f64::from(self.state.frame.max(0)) + f64::from(self.phase) / 30.0)
+            / f64::from(self.frames_per_second())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(super) fn interpolation_alpha(&self, alpha: f32) -> f32 {
+        // A held EU source tick must not replay the previous interpolation pair.
+        if self.phase == 25 { 1.0 } else { alpha }
     }
 
     pub fn interpolate(&mut self, enabled: bool) -> Result<()> {

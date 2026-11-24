@@ -97,6 +97,7 @@ impl<S: ReadAt> Playback<S> {
             keep_all_active,
             circle_action,
             bleeding,
+            execution_scene: _,
             gaisen,
             gaisen_water_depth,
             randomizer,
@@ -234,13 +235,12 @@ impl<S: ReadAt> Playback<S> {
                         Content::Story {
                             story: previous,
                             audio,
-                        } if previous.resources.audio == story.resources.audio => audio.clone(),
-                        _ => story
-                            .resources
-                            .audio
-                            .as_ref()
-                            .map(|track| Clip::load(&self.disc, track).map(Arc::new))
-                            .transpose()?,
+                        } if previous.resources.edition == story.resources.edition
+                            && previous.resources.audio == story.resources.audio =>
+                        {
+                            audio.clone()
+                        }
+                        _ => story.audio(&self.disc)?,
                     };
                     Content::Story {
                         story: Box::new(story),

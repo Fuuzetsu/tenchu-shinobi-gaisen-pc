@@ -1283,9 +1283,9 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
             (
                 Item::SaExecutionScene,
-                "SA Kataoka execution scene",
+                "Uncensored execution scenes",
                 on(s.dismemberment.execution_scene),
-                "Restore Stealth Assassins' Rikimaru/Kataoka execution camera sequence in Mission 5, including the severed head. Keeps Gaisen's localized dialogue and audio; no additional disc required. Enable before the scene starts; off by default. Independent of random enemy/player severing chances.",
+                "Restore Stealth Assassins' Rikimaru/Kataoka execution in T1 Mission 5 with Gaisen dialogue and audio. In native T2, use the connected European disc's complete Kagami/Toda execution, including English audio and original scene timing; without that disc the Japanese scene remains. Enable before the scene starts; off by default and independent of severing chances.",
             ),
             (
                 Item::SeveredStyle,

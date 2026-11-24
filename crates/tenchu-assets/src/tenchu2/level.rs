@@ -61,6 +61,13 @@ impl Level {
         Self::load_variant(disc, id, Variant::Base, None)
     }
 
+    pub fn european_execution(disc: &Disc<impl ReadAt>) -> Result<Self> {
+        if super::Edition::detect(disc)? != super::Edition::Europe {
+            return Err("Toda execution restoration requires the European disc".into());
+        }
+        Self::load_variant(disc, 8, Variant::Event, None)
+    }
+
     pub fn japanese_sequence(
         disc: &Disc<impl ReadAt>,
         layout: &super::layout::Layout,

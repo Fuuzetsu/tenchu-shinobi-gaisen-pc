@@ -47,13 +47,20 @@ byte-identical between PAL SA and Gaisen. Of 57 shared HUMAN MAD models, 54 had
 identical decoded geometry after ignoring texture addresses/UVs, including both
 heroes and Kataoka. Detached parts therefore require no SA assets at runtime.
 
-**SA Kataoka execution scene** is a separate, off-by-default option on the same
+**Uncensored execution scenes** is a separate, off-by-default option on the same
 page. Enable it before Rikimaru's Mission 5 ending to restore SA's actor placement,
 execution shots and guaranteed head detachment. It needs no SA disc: the motion
 data already exists in Gaisen. The port adapts the SA camera units by a factor of
 ten and retains Gaisen's captions, voice/music schedule and scene duration in all
 four languages. It does not alter Ayame's ending or TRIAL missions. Random enemy
 and player dismemberment can remain disabled.
+
+In native T2, this option imports the complete European Kagami/Toda execution
+from a connected EU disc. The Japanese event lacks the detached-head animation;
+the EU event supplies the body, head, fire, throw, camera and English soundtrack.
+It retains the EU scene's 25 Hz timing and returns to the Japanese campaign.
+Other T2 events and the disabled/missing-disc fallback use the Japanese source.
+See [source details](tenchu2-reuse.md#optional-european-toda-execution).
 
 Severed-wound presentation follows the detached part, including scripted actors
 whose life remains `-1`. The local decomp's `src/main.exe/CHRANIM.C`

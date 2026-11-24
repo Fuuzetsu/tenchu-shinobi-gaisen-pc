@@ -3,13 +3,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use tenchu_assets::texture::Vram;
 
-const SIGNATURE: &str = "native-tenchu2-jp-story-2";
+const SIGNATURE: &str = "native-tenchu2-story-3";
 
 #[derive(Serialize, Deserialize)]
 pub(in crate::tenchu2::native) struct State<P, V> {
     signature: String,
     pub(in crate::tenchu2::native) sequence: usize,
     event: u16,
+    edition: tenchu_assets::tenchu2::Edition,
+    phase: u8,
     playback: P,
     textures: BTreeMap<i16, V>,
     interpolation: Option<crate::visuals::interpolation::History>,
@@ -29,6 +31,8 @@ impl Borrowed<'_> {
             signature,
             sequence,
             event,
+            edition,
+            phase,
             playback,
             textures,
             interpolation,
@@ -38,6 +42,8 @@ impl Borrowed<'_> {
         out.value(signature)?;
         out.value(sequence)?;
         out.value(event)?;
+        out.value(edition)?;
+        out.value(phase)?;
         out.value(playback)?;
         out.value(&textures.len())?;
         for (id, vram) in textures {
@@ -65,11 +71,14 @@ impl Story {
             contact,
             rules: _,
             basis: _,
+            phase,
         } = self;
         State {
             signature: SIGNATURE.into(),
             sequence: *sequence,
             event: *event,
+            edition: resources.edition,
+            phase: *phase,
             playback: state,
             textures: resources
                 .models
@@ -101,7 +110,10 @@ impl Owned {
         if self.signature != SIGNATURE {
             return Err("Not a native T2 cutscene state".into());
         }
-        if self.sequence != story.sequence || self.event != story.event {
+        if self.sequence != story.sequence
+            || self.event != story.event
+            || self.edition != story.resources.edition
+        {
             return Ok(false);
         }
         self.validate(&story.resources)?;
@@ -117,6 +129,7 @@ impl Owned {
         std::mem::swap(&mut self.interpolation, &mut story.interpolation);
         std::mem::swap(&mut self.models, &mut story.models);
         std::mem::swap(&mut self.contact, &mut story.contact);
+        std::mem::swap(&mut self.phase, &mut story.phase);
     }
 
     pub(in crate::tenchu2::native) fn restore(
@@ -132,7 +145,7 @@ impl Owned {
         }) {
             return Err("Invalid native T2 cutscene identity".into());
         }
-        let mut restored = Story::load(disc, self.sequence, self.event, 1)?;
+        let mut restored = Story::load_edition(disc, self.sequence, self.event, 1, self.edition)?;
         self.validate(&restored.resources)?;
         let State {
             playback,
@@ -140,6 +153,7 @@ impl Owned {
             interpolation,
             models,
             contact,
+            phase,
             ..
         } = self;
         for (id, vram) in textures {
@@ -149,6 +163,7 @@ impl Owned {
         restored.interpolation = interpolation;
         restored.models = models;
         restored.contact = contact;
+        restored.phase = phase;
         Ok(restored)
     }
 }
@@ -156,7 +171,12 @@ impl Owned {
 impl Owned {
     fn validate(&self, resources: &Resources) -> Result<()> {
         let state = &self.playback;
-        if !(-1..=resources.script.duration as i16).contains(&state.frame)
+        if self.edition != resources.edition
+            || self.phase >= 30
+            || !self.phase.is_multiple_of(5)
+            || (self.edition == tenchu_assets::tenchu2::Edition::Japan && self.phase != 0)
+            || (state.frame == -1 && self.phase != 0)
+            || !(-1..=resources.script.duration as i16).contains(&state.frame)
             || state.actors.len() != resources.script.actors.len()
             || !self.textures.keys().eq(resources.models.keys())
             || self.textures.values().any(|v| v.words.len() != 1024 * 512)

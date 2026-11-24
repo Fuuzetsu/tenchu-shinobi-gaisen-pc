@@ -58,7 +58,7 @@ impl Runtime {
         } else if self == Self::Tenchu2 && item == Item::SeverStealth {
             "Chance at the first source blood event in a rear stealth kill. Default 4%; other stealth-kill directions do not sever limbs."
         } else if self == Self::Tenchu2 && item == Item::SaExecutionScene {
-            "Only applies to Rikimaru's Kataoka execution in imported T1 Mission 5. Uses the existing SA camera/head sequence with Gaisen dialogue and audio. Enable before the scene starts; native T2 campaign scenes are unchanged."
+            "Restore Kagami's Toda execution from your connected European T2 disc: source head, body, blood, fire and throw tracks, English audio and original scene timing. Connect the EU disc through F6 or --tenchu2 before starting native JP play; a missing EU disc keeps the Japanese scene. Also restores Kataoka's execution in imported T1 Mission 5. Enable before the scene starts."
         } else if self == Self::Tenchu2 && item == Item::UnarmedAttacks {
             "GAMEPLAY EDIT: with Draw / sheathe enabled and weapons stowed, use the selected grounded punches/kicks and combos. Draw explicitly to use your armed moveset. Existing weapons, voices and source stealth kills are retained. Disabling lets the active attack finish. Off by default."
         } else if self == Self::Tenchu2 && item == Item::UnarmedStyle {

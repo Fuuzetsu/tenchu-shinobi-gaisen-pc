@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add the original European Kagami/Toda execution to native T2 through
+  **Persistent effects → Uncensored execution scenes**, including the severed
+  head, ignition and throw. Requires a connected EU disc and uses its English
+  audio and scene timing. Off by default; the Japanese scene remains the fallback.
 - Compatible T2 player appearances now blink and move their mouths during native
   T2 cutscenes, using the scene's original cues and each selected body's facial
   textures. Preserve playback and expressions through save/rewind.
@@ -20,7 +24,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Restore original Tenchu 2 rain in Toda War Camp and Gohda Castle, and snowfall
   at Rikimaru's Burning Dawn Temple. Preserve source splashes, thunder, cutscene
   weather commands and timing; optional weather settings remain available.
-- Mid-mission savestates use format 43. Load older states with the game build
+- Mid-mission savestates use format 44. Load older states with the game build
   that created them; campaign progress files remain compatible.
 
 ## 0.35.14 — 2026-11-15

@@ -81,6 +81,8 @@ impl Transport {
     pub fn interpolation(&self, playback: &Playback<impl ReadAt>, input: Input) -> f32 {
         if input.paused || input.pacing(&playback.content).0 == 0.0 || playback.death.frozen() {
             1.0
+        } else if let Content::Story { story, .. } = &playback.content {
+            story.interpolation_alpha(self.clock.interpolation())
         } else {
             self.clock.interpolation()
         }

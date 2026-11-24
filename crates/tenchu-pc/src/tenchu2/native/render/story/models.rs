@@ -289,7 +289,7 @@ impl Models {
         let resources = &story.resources;
         let level = &story.level;
         let math = &story.math;
-        renderer.visual_time = f32::from(story.state.frame.max(0)) / 30.0;
+        renderer.visual_time = story.seconds() as f32;
         for textures in &mut self.textures {
             let vram = &resources.models[&textures.owner].vram;
             if textures.revision != Some(vram.revision) {

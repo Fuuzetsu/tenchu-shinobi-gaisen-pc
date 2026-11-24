@@ -136,6 +136,9 @@ fn native_story_checkpoints_reject_invalid_state() {
     for change in [
         (|s: &mut Owned| s.signature.clear()) as fn(&mut Owned),
         |s| s.event = 11,
+        |s| s.phase = 30,
+        |s| s.phase = 1,
+        |s| s.edition = tenchu_assets::tenchu2::Edition::Europe,
         |s| s.playback.frame = i16::MAX,
         |s| {
             s.playback.actors.pop();

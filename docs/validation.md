@@ -12,6 +12,22 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
+The optional European Toda execution fixture loads both retail E113 events and
+checks unchanged JP playback against the existing source update, EU head/body/fire
+assets and audio, 25 Hz source steps through natural completion, monotonic
+interpolation across held/source ticks, draw-skip replay,
+checkpoint/rewind capture and reused/full restores, audio seeking, missing-disc
+fallback, transactional restore failure, skipping to the source campaign link
+and unchanged 30 Hz gameplay afterward. Run the ignored
+`european_execution_preserves_authored_scene_and_restores` with `TENCHU2_DISC`,
+`TENCHU2_EU_DISC`, an isolated `TENCHU_T2_CONFIG` and `--test-threads=1`. The companion
+`european_execution_renders_source_head_fire_and_throw` uses a GPU and
+`TENCHU_EXECUTION_REVIEW` for matched JP/EU source shots under Original and Modern
+High, checking that rendering preserves state. These are isolated optional-scene
+fixtures and actual disc assets, not an ordinary-play recording or a claim of
+native EU campaign support. Source provenance is in
+[T2 reuse](tenchu2-reuse.md#optional-european-toda-execution).
+
 The native T2 reinforcement renderer regression (#130) keeps one renderer alive
 while Seeded Mix callers add groups of 1 and 32, repeats a call, and restores
 checkpoints from before and after recruitment. Original, Modern High and Modern

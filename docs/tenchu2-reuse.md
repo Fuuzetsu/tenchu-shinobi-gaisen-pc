@@ -355,3 +355,63 @@ fixtures and instruction comparisons establish this weather fix; they do not
 constitute a new ordinary-play input/draw-skip recording, complete-game validation
 or pixel-for-pixel PS1 rendering parity. Native play remains JP-only; EU still
 uses the scenery sandbox.
+
+## Optional European Toda execution
+
+The default-off **Uncensored execution scenes** option reuses the remembered-disc
+connection and existing scalar story player for EU `E113` only. This is the
+Kagami/Toda execution in JP campaign sequence 201. JP `SLPS-03040` contains 11
+actor tracks and 3,000 frames; EU `SLES-02452` contains 14 tracks and 2,000 frames.
+The EU event has the authored `TODA2` body, `T_HEAD` detached head, two `FIRE`
+tracks, blood commands, cameras and English XA audio. The Japanese event lacks
+those head/body tracks; its dialogue schedule cannot safely be combined with the
+EU motion by scaling frame numbers. The port therefore loads the complete EU
+scene at 25 source updates per second, retaining its 80-second duration and
+81-second audio extent. JP remains at 30 Hz, with its 100-second event and
+101-second audio extent. No authored key, command or camera frame is retimed.
+
+Offsets below are into each disc's `module/EVENT.BIN`; addresses are its original
+load base. Both NPC facial-patch offset pairs contain `(448, 256)`.
+
+| Source | JP | EU |
+| --- | --- | --- |
+| Module base | `800d0610` | `800ce598` |
+| Model-name pointer table | `699c`, 294 entries | `6064`, 293 entries |
+| NPC facial-patch offsets | `6920` | `6000` |
+| XA pathname | `094c`, `EVENT_J.XA` | `0944`, `EVENT_E.XA` |
+| Results-fade table | `68e4` | `5fc4` |
+
+EU omits catalog entry JP 267, `SAKI`. Its IDs at and after that entry are
+normalized to the shared JP renderer IDs: `T_HEAD` 273→274, `FIRE` 285→286 and
+`ISARIBI` 287→288. Character IDs are unchanged. The CAB remains authoritative over
+same-named global files. The scene embeds map 8 and uses the EU Event variant:
+its `map_e.osd` is byte-identical to JP, but `mapOBJe.arc` differs. Math/spline
+basis, models, textures, sprites, map and soundtrack all come from EU. The five
+shared particle-rule tables are byte-identical: JP `GAME.EXE` addresses
+`80083770` (192 bytes), `80083830` (48), `80012a18` (20), `80012a08` (14) and
+`8008e928` (6) match EU executable file offsets `70040`, `70100`, `1218`, `1208`
+and `7b0a8` respectively.
+Only those verified tables reuse the JP loader.
+
+EU source slot 3 reveals the head at frame 526 and ends its track at 1151. The
+separate fire tracks span frames 900–1000 and 987–1150; the first blood command is at
+410. JP uses a single fire track and has no corresponding detached-head track.
+The optional event returns through the existing JP sequence-201 link to gameplay
+sequence 203. It does not import the EU campaign table or change gameplay's 30 Hz
+clock. Saved stories retain edition and fractional tick phase; full restores
+resolve the same disc and audio, while in-memory reuse retains loaded assets.
+
+Provenance SHA-256: JP `E113.EVT`
+`f2e9015a6468c7d3b4c0b1b7319a63d7e6621c4825bfb40fb50865b3c7c5a6c8`;
+EU `E113.EVT`
+`483dc1308e5c7f831e102f65315a9f48d0a90f5416566f46387e4c50c9f2bdcd`;
+EU `T_HEAD.MDL`
+`f30873484c65fc6d859608cdc55ca48e7797ed165820cfa80dd9cb1eababc633`.
+The three sibling reference repositories contain no T2 execution implementation;
+the existing T1 Kataoka restoration was reviewed and its option reused unchanged
+for T1. No source code or copyrighted assets were copied from those repositories.
+Private source inventories, checks and matched Original/Modern High captures
+remain outside Git in `~/.local/share/tenchu-discord-audit/fixes-20261124/147`.
+These checks validate the optional scene, not a native EU campaign or new retail
+ordinary-play parity. Original and Modern High/Ultra presets remain independent
+of the execution option; the native T2 demo catalog remains pending.

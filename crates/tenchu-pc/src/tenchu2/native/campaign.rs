@@ -85,6 +85,7 @@ pub struct Playback<S> {
     pub(super) keep_all_active: bool,
     circle_action: tenchu_core::input::CircleAction,
     bleeding: tenchu_core::game::bleeding::Settings,
+    execution_scene: bool,
     pub(super) gaisen: Option<super::gaisen::Source>,
     pub(super) gaisen_water_depth: i16,
     pub(super) randomizer: super::randomizer::Runtime,
@@ -92,6 +93,16 @@ pub struct Playback<S> {
 
 impl<S: ReadAt> Playback<S> {
     pub fn configure(&mut self, settings: &crate::settings::Settings) -> Result<()> {
+        let execution_changed = self.execution_scene != settings.dismemberment.execution_scene;
+        self.execution_scene = settings.dismemberment.execution_scene;
+        if execution_changed
+            && matches!(&self.content, Content::Story { story, .. }
+                if story.event == 113 && story.state.frame <= 0 && story.state.ending.is_none()
+                    && (story.resources.edition == tenchu_assets::tenchu2::Edition::Europe)
+                        != self.execution_scene)
+        {
+            self.load_current()?;
+        }
         self.death.configure(settings);
         self.keep_all_active = self
             .randomizer
@@ -298,6 +309,7 @@ impl<S: ReadAt> Playback<S> {
             keep_all_active: false,
             circle_action: Default::default(),
             bleeding: Default::default(),
+            execution_scene: false,
             gaisen: None,
             gaisen_water_depth: tenchu_assets::tenchu2::collision::Gaisen::DEFAULT_WATER_DEPTH,
             randomizer: Default::default(),
@@ -399,23 +411,19 @@ impl<S: ReadAt> Playback<S> {
                     Content::Gameplay(Box::new(session))
                 }
                 Kind::Event => {
-                    let mut story = Story::load(
+                    let mut story = Story::load_optional_execution(
                         &self.disc,
                         self.run.sequence,
                         descriptor.resource,
                         self.run.random.seed,
+                        self.execution_scene,
                     )?;
                     story.state.random = self.run.random;
                     if let Some(weather) = &mut story.state.effects.particles.weather {
                         [weather.thunder_time, weather.thunder_delay] = self.run.weather_thunder;
                     }
                     story.step(true)?;
-                    let audio = story
-                        .resources
-                        .audio
-                        .as_ref()
-                        .map(|track| Clip::load(&self.disc, track).map(Arc::new))
-                        .transpose()?;
+                    let audio = story.audio(&self.disc)?;
                     Content::Story {
                         story: Box::new(story),
                         audio,

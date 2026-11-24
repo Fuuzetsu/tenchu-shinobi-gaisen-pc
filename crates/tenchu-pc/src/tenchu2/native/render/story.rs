@@ -5,6 +5,8 @@ use std::path::Path;
 use tenchu_assets::{ReadAt, Result, disc::Disc};
 use tenchu_core::math::Matrix;
 
+#[cfg(test)]
+mod execution_tests;
 mod models;
 mod overlay;
 #[cfg(test)]
