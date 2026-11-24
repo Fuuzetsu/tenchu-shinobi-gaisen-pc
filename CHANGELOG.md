@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- The updated optional T2 HD artwork reconstructs the aiming reticle from the
+  disc, preserving its outlined four-blade shape and colors.
 - Optional unarmed punches and kicks no longer sever limbs in T1 or native T2.
   Remember the lethal strike through death animations and saved-state restores,
   preserving blade kills and scripted executions.

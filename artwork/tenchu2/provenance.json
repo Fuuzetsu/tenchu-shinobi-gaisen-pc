@@ -2,7 +2,7 @@
   "format": "tenchu-artwork-provenance",
   "version": 1,
   "description": "Tenchu 2 Europe/Japan materials plus optional Japanese UI. Generated paintings and authored type/shapes use private retail layout references. Original title/calligraphy and HUD glyphs are reconstructed from the user disc at runtime, never shipped.",
-  "manifest_sha256": "c04c36079d024eb0810fc28eb07aa364d7f5c65f45f2c2bf0cbcd35d86d8e7a5",
+  "manifest_sha256": "261b52070d4142e2a066018c74e4fabe3d3360c5b5c4c6ac81b52c704c5d6c51",
   "generator": "OpenAI image generation tool",
   "atlases": {
     "actors-00": {
@@ -93271,14 +93271,11 @@
       ]
     },
     "27e41312f6158cbcd732c78e4f7666dd": {
-      "origin": "authored vector shapes",
-      "source_size": [
-        24,
-        24
-      ],
+      "origin": "disc-backed reticle reconstruction",
       "sources": [
         "aim"
-      ]
+      ],
+      "runtime_original": "original four-blade outline, colors and blend classes; no source pixels shipped"
     },
     "ef424341be3cf69d10836001d441a1eb": {
       "origin": "authored vector shapes",
@@ -97935,7 +97932,6 @@
     "interface/b5310450119c725114ab369ac03356d4.png": "10abc7d1ad0df3d703cc34d1dfc958e4d0df0c0b275d306b273fafec8ebf00e8",
     "interface/66bcc2e69259db4f4966f481af23d6a1.png": "c48a6b390eca1000cadf1e9ead221a632cb481e65d8f05e04304568b3cb82680",
     "interface/3d4afa70e8e6bade09572bcc21541ca0.png": "26012a65e0fe8d227113cf5c23e3b3ebc61ad438741b092199fa4e6ebc6bca81",
-    "interface/27e41312f6158cbcd732c78e4f7666dd.png": "bb8d58369a966b3ba4ae3c3707af418fe5d6f18eac31c710a78809e539f1253d",
     "interface/ef424341be3cf69d10836001d441a1eb.png": "1d0a54970e4a6a581cc8ed96a7da884944c959f0c7d12f4cf79accb79153a4c7",
     "interface/60a039d573e6e3ca113ed2cfb0f4b5a6.png": "33c8a509dc88ddb5c17233a8bf2afee636e03d9c7bd0f2f27e1b9a148a9c9431",
     "interface/49826f6b886d4164257f060f45a67c99.png": "a439680fa2313052cfb43a86a1fcf8e368d1c056458dc10926e195699f5971ee"
