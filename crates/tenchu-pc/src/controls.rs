@@ -383,6 +383,20 @@ impl Controls {
                 .any(|&key| self.bindings.key(key) & bindings::BANDAGE != 0)
     }
 
+    pub fn take_style_switch(&mut self) -> bool {
+        let mut pressed = false;
+        for pending in [
+            &mut self.pending_keys,
+            &mut self.pad.pending,
+            &mut self.pad.direct_pending,
+            &mut self.touch.pending,
+        ] {
+            pressed |= *pending & bindings::NEXT_STYLE != 0;
+            *pending &= !bindings::NEXT_STYLE;
+        }
+        pressed
+    }
+
     pub fn bandage_label(&self) -> String {
         let row = &self.bindings.0[&bindings::Target::Bandage];
         if self.pad.active.is_some()

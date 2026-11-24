@@ -1066,6 +1066,15 @@ impl Menu {
                                 Ok(())
                             }
                         }
+                        Item::CombatStyle(slot) => {
+                            settings::styles::change(
+                                state.settings,
+                                slot,
+                                &self.panel.moveset_models,
+                                delta,
+                            );
+                            Ok(())
+                        }
                         Item::ReloadModels => self.reload_models(state.settings, action),
                         Item::ReloadAssets => {
                             self.panel.artwork_status.clear();

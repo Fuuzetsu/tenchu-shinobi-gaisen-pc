@@ -16,6 +16,7 @@ mod rewind;
 mod savestate;
 mod settings_reset;
 mod studio;
+mod styles;
 mod tenchu2;
 #[cfg(test)]
 mod tests;

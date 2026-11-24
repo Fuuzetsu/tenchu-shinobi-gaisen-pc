@@ -286,8 +286,8 @@ impl Runtime {
             }
             Water | WaterReflective | WaterRipples | WaterReflections | WaterFlow | WaterFoam
             | WaterSpray | WaterDetail => None,
-            PlayerModel | ModelMoveset | MovesetModel | WeaponModel | VoiceModel
-            | ModelPlayerMovement | ModelNoIdleTaunts => None,
+            PlayerModel | ModelMoveset | MovesetModel | CombatStyle(_) | WeaponModel
+            | VoiceModel | ModelPlayerMovement | ModelNoIdleTaunts => None,
             Bleeding | BleedChance | BleedSeconds | BleedDamage | BandageLoadout | Bandages
             | UseBandage | MedicineBleeding => None,
             ReloadModels | ReloadAssets | SmoothModels | ModelDetail | CharacterRefinement

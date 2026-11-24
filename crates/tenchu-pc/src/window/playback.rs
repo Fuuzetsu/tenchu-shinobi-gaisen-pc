@@ -148,6 +148,16 @@ impl Application {
     }
 
     pub(super) fn advance_simulation(&mut self, elapsed: Duration) {
+        if self.is_suspended()
+            || !self.simulating()
+            || !self.focused
+            || self.menu.open
+            || self.debug.camera.is_some()
+            || self.reverse.active
+            || self.reverse.preview
+        {
+            self.controls.take_style_switch();
+        }
         if self.report_save.active() {
             self.debug.frame_step = false;
             return;

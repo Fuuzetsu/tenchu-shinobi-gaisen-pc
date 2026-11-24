@@ -121,6 +121,7 @@ impl Editor {
             } else {
             ui.weak("Actions shown for original layout 1. Other original layouts still apply. Assigning an input moves it from its previous action.");
             ui.weak("F1 > Movement > Shift / Circle action follows the moveset by default: T1 crouches; T2 guards/dashes, with R1 for crouch. In the T1 scheme, optional R1 guard mode holds guard with a fresh direction press to dash; hold crouch to roll.");
+            ui.weak("Next combat style is unbound by default. Choose at least two Combat style slots in F1 > Player model; switching is allowed only in a free standing or moving stance.");
             ui.weak("Menu buttons stay at their physical positions. F1 → General → Menu buttons selects the confirm/back convention.");
             }
             ui.horizontal(|ui| {

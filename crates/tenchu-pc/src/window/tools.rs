@@ -745,6 +745,12 @@ impl Application {
                     self.settings.model_moveset = true;
                 }
             }
+            Item::CombatStyle(slot) => settings::styles::change(
+                &mut self.settings,
+                slot,
+                &self.menu.moveset_models,
+                direction,
+            ),
             Item::ReloadModels => {
                 if let Some(view) = &mut self.view {
                     view.load_bodies(

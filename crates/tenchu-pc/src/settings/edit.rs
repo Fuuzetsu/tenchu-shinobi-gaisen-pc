@@ -5,6 +5,7 @@ pub enum Preference {
     Touch(crate::touch::Settings),
     PlayerModel(String),
     MovesetModel(String),
+    CombatStyle(usize, Option<String>),
     WeaponModel(String),
     VoiceModel(String),
 }
@@ -19,6 +20,7 @@ impl Preference {
                 settings.moveset_model = id;
                 settings.model_moveset = true;
             }
+            Self::CombatStyle(slot, id) => settings.combat_styles[slot] = id,
             Self::WeaponModel(id) => settings.weapon_model = id,
             Self::VoiceModel(id) => settings.voice_model = id,
         }
@@ -29,6 +31,7 @@ impl Preference {
             Self::CheckForUpdates(_) | Self::Touch(_) => None,
             Self::PlayerModel(_)
             | Self::MovesetModel(_)
+            | Self::CombatStyle(..)
             | Self::WeaponModel(_)
             | Self::VoiceModel(_) => Some(Item::PlayerModel),
         }
@@ -500,6 +503,10 @@ impl Item {
     }
 
     pub fn reset_setting(self, settings: &mut Settings) -> bool {
+        if let Self::CombatStyle(slot) = self {
+            settings.combat_styles[slot] = None;
+            return true;
+        }
         let selection = match self {
             Self::PlayerModel => Some(&mut settings.player_model),
             Self::MovesetModel => Some(&mut settings.moveset_model),

@@ -113,6 +113,10 @@ impl Application {
 
     pub(super) fn player_input(&mut self) -> u16 {
         use tenchu_core::input::{DOWN, LEFT, RIGHT, UP};
+        if self.controls.take_style_switch() {
+            let notice = self.switch_combat_style().unwrap_or_else(|error| error);
+            self.state_notice(notice);
+        }
         if let Some(state) = &mut self
             .campaign
             .game

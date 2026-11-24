@@ -1,6 +1,56 @@
 use super::*;
 
 #[test]
+fn combat_style_binding_is_opt_in_and_consumes_only_fresh_edges() {
+    use bindings::{NEXT_STYLE, Target};
+    let mut controls = Controls::default();
+    let mut legacy = serde_json::to_value(&controls.bindings).unwrap();
+    legacy.as_object_mut().unwrap().remove("next_style");
+    controls.bindings = Bindings::decode(&serde_json::to_vec(&legacy).unwrap()).unwrap();
+    assert_eq!(controls.bindings.0[&Target::NextStyle], Default::default());
+    controls
+        .bindings
+        .bind_key(Target::NextStyle, 0, KeyCode::KeyV)
+        .unwrap();
+    controls
+        .bindings
+        .bind_controller(Target::NextStyle, 0, PadInput::Button(Button::RightThumb));
+    let saved = serde_json::to_vec(&controls.bindings).unwrap();
+    controls.bindings = Bindings::decode(&saved).unwrap();
+    controls.key(KeyCode::KeyV, true);
+    controls.key(KeyCode::KeyW, true);
+    assert!(controls.take_style_switch());
+    for _ in 0..5 {
+        controls.key(KeyCode::KeyV, true);
+        assert!(!controls.take_style_switch());
+        assert_eq!(controls.buttons(), input::UP);
+    }
+    controls.key(KeyCode::KeyV, false);
+    controls.key(KeyCode::KeyV, true);
+    controls.key(KeyCode::KeyV, false);
+    assert!(controls.take_style_switch());
+    controls.pad.sample(0, NEXT_STYLE, true);
+    controls.pad.direct_pending = NEXT_STYLE;
+    assert!(controls.take_style_switch());
+    assert!(!controls.take_style_switch());
+    controls.pad.sample(0, NEXT_STYLE, true);
+    assert!(!controls.take_style_switch());
+    controls.pad.sample(0, 0, true);
+    controls.pad.sample(0, NEXT_STYLE, true);
+    controls.clear();
+    assert!(!controls.take_style_switch());
+    assert_eq!(controls.relative_buttons(), 0);
+    controls.touch(crate::touch::Sample {
+        buttons: NEXT_STYLE,
+        ..Default::default()
+    });
+    controls.touch(Default::default());
+    assert!(controls.take_style_switch());
+    assert!(!controls.take_style_switch());
+    assert_eq!(controls.buttons(), 0);
+}
+
+#[test]
 fn touch_taps_survive_between_ticks_and_focus_changes_release_all_fingers() {
     let mut controls = Controls::default();
     controls.key(KeyCode::KeyW, true);

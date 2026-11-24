@@ -10,6 +10,7 @@ mod death;
 mod rewind;
 mod savestate;
 mod sheathing;
+mod styles;
 mod tracking;
 mod walking;
 

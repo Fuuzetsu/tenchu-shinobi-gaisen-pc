@@ -1553,3 +1553,25 @@ artwork. Disc/GPU fixtures capture the three conventions with source and HD menu
 T1 additionally covers all four languages and character/mission/options pages.
 These are isolated menu tests, not an ordinary-play recording or a port of a
 regional frontend's complete layout.
+
+## Optional combat style cycle
+
+The host-only **Next combat style** binding cycles three defaulted JSON slots;
+it does not add a PS1 pad bit, change source command tables or select a different
+simulation runtime. Gaisen reuses `Library::apply_player` and the existing
+`Game::set_player_moveset`/imported-moveset path. Native T2 reuses `models::Override`
+and its existing compatibility filter and equipment conversion. Shortcuts require
+a grounded, living, free standing/moving stance before applying those paths;
+committed actions are never cancelled and rejected presses are not queued.
+
+Controlled fixtures exercise both Gaisen heroes and all three native T2 heroes,
+with original/T1/T2 styles, drawn and stowed equipment, independent body/weapon/
+voice selections and optional unarmed attacks. They check campaign identity,
+health, effective world position, NPC state and RNG preservation across repeated
+switches, removal of old attack contacts, and unchanged state when attacking or
+otherwise busy. Native saved-state and cached-rewind continuations remain exact.
+Binding tests cover migration, keyboard/controller/touch edges and focus clearing;
+settings checks cover duplicate aliases, missing sources, presets and save/rewind
+restore. No ordinary-play or arbitrary imported-moveset parity claim is made.
+Modern High/Ultra and the visual demo catalog retain their existing gameplay;
+the shortcut is discoverable in the Player model and Controls pages.

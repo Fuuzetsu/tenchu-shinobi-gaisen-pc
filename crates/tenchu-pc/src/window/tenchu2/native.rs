@@ -35,6 +35,40 @@ impl Native {
 }
 
 impl Application {
+    fn native_switch_combat_style(&mut self) -> Result<String> {
+        let native = self.native_tenchu2.as_mut().unwrap();
+        if native.rewind.active || native.rewind.preview || native.playback.randomized().is_some() {
+            return Err(
+                "Combat style switching is unavailable in rewind preview and randomized runs."
+                    .into(),
+            );
+        }
+        let Content::Gameplay(session) = &mut native.playback.content else {
+            return Err("Combat style switching requires an active mission.".into());
+        };
+        let view = self
+            .view
+            .as_mut()
+            .ok_or("Wait for the game window before switching combat styles.")?;
+        if view.model_library.is_none() {
+            view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
+        }
+        if native.donor.is_none() {
+            native.donor = Some(crate::tenchu2::native::models::donor(&self.assets)?);
+        }
+        let message = session.switch_combat_style(
+            &mut self.settings,
+            native.donor.as_mut().unwrap(),
+            view.model_library.as_ref().unwrap(),
+            &view.bodies,
+        )?;
+        native.menu.actor_assets_changed = true;
+        if let Err(error) = self.settings_store.write(&self.settings) {
+            return Ok(format!("{message} · could not save preference: {error}"));
+        }
+        Ok(message)
+    }
+
     fn native_toggle_randomizer(&mut self) -> Result<()> {
         let native = self.native_tenchu2.as_mut().unwrap();
         native
@@ -304,6 +338,20 @@ impl Application {
             self.advance_native_rewind(elapsed);
         }
         self.sync_audio_pause();
+        if self.controls.take_style_switch()
+            && !self.is_suspended()
+            && self.focused
+            && self.native_tenchu2.as_ref().is_some_and(|native| {
+                !native.menu.panel.open
+                    && !native.menu.modal_open()
+                    && native.menu.tools.debug.camera.is_none()
+            })
+        {
+            let notice = self
+                .native_switch_combat_style()
+                .unwrap_or_else(|error| error);
+            self.native_tenchu2.as_mut().unwrap().menu.notice(notice);
+        }
         let native = self.native_tenchu2.as_mut().unwrap();
         if !native.rewind.preview {
             native
@@ -440,6 +488,12 @@ impl Application {
         let randomized = native.playback.randomized().is_some();
         let wants_models = !randomized
             && ((native.menu.panel.open && native.menu.panel.page.uses_models())
+                || self
+                    .settings
+                    .combat_styles
+                    .iter()
+                    .flatten()
+                    .any(|id| !id.is_empty())
                 || !native
                     .playback
                     .content

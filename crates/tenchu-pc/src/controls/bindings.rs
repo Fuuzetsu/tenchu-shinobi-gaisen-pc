@@ -8,6 +8,7 @@ use winit::keyboard::KeyCode;
 pub const WALK: u16 = 0x0200;
 pub const SHEATHE: u16 = 0x0400;
 pub const BANDAGE: u32 = 1 << 16;
+pub const NEXT_STYLE: u32 = 1 << 17;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -29,10 +30,11 @@ pub enum Target {
     Walk,
     Sheathe,
     Bandage,
+    NextStyle,
 }
 
 impl Target {
-    pub const ALL: [Self; 17] = [
+    pub const ALL: [Self; 18] = [
         Self::Up,
         Self::Down,
         Self::Left,
@@ -50,6 +52,7 @@ impl Target {
         Self::Walk,
         Self::Sheathe,
         Self::Bandage,
+        Self::NextStyle,
     ];
 
     pub fn description(self) -> (&'static str, u32) {
@@ -74,6 +77,7 @@ impl Target {
             Self::Walk => ("Walk modifier (optional)", u32::from(WALK)),
             Self::Sheathe => ("Draw / sheathe (optional)", u32::from(SHEATHE)),
             Self::Bandage => ("Use bandage (optional)", BANDAGE),
+            Self::NextStyle => ("Next combat style (optional)", NEXT_STYLE),
         }
     }
 
@@ -117,6 +121,7 @@ impl Target {
                     controller: [None; 2],
                 };
             }
+            Self::NextStyle => return Binding::default(),
         };
         Binding {
             keys,
@@ -213,7 +218,12 @@ impl Binding {
 pub fn menu_buttons(pressed: impl Fn(Button) -> bool, sticks: [i8; 4]) -> u16 {
     Target::ALL
         .into_iter()
-        .filter(|target| !matches!(target, Target::Walk | Target::Sheathe | Target::Bandage))
+        .filter(|target| {
+            !matches!(
+                target,
+                Target::Walk | Target::Sheathe | Target::Bandage | Target::NextStyle
+            )
+        })
         .fold(0, |held, target| {
             held | if target.defaults().active(&pressed, sticks) {
                 target.description().1 as u16

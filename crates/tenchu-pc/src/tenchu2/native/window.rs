@@ -267,6 +267,35 @@ struct Application {
 }
 
 impl Application {
+    fn switch_combat_style(&mut self) -> Result<String> {
+        if self.rewind.active || self.rewind.preview || self.session.randomized().is_some() {
+            return Err(
+                "Combat style switching is unavailable in rewind preview and randomized runs."
+                    .into(),
+            );
+        }
+        let Content::Gameplay(session) = &mut self.session.content else {
+            return Err("Combat style switching requires an active mission.".into());
+        };
+        if self.gallery.is_none() {
+            self.gallery = Some(super::models::Gallery::remembered(
+                &self.settings.model_directory,
+            )?);
+        }
+        let gallery = self.gallery.as_mut().unwrap();
+        let message = session.switch_combat_style(
+            &mut self.settings,
+            &mut gallery.game,
+            &gallery.library,
+            &gallery.bodies,
+        )?;
+        self.menu.actor_assets_changed = true;
+        if let Err(error) = self.store.write(&self.settings) {
+            return Ok(format!("{message} · could not save preference: {error}"));
+        }
+        Ok(message)
+    }
+
     fn toggle_randomizer(&mut self) -> Result<()> {
         let saved = crate::storage::UserFile::LastDisc.path()?;
         let gaisen = crate::startup::remembered_path(&saved).filter(|p| p.exists());
@@ -407,6 +436,16 @@ impl Application {
         if !self.rewind.preview {
             self.configure_gameplay()?;
         }
+        if self.controls.take_style_switch()
+            && !paused
+            && self.focused
+            && !self.menu.panel.open
+            && !self.menu.modal_open()
+            && self.menu.tools.debug.camera.is_none()
+        {
+            let notice = self.switch_combat_style().unwrap_or_else(|error| error);
+            self.menu.notice(notice);
+        }
         let input = PlaybackInput {
             buttons: if self.rewind.preview {
                 0
@@ -518,6 +557,12 @@ impl Application {
         let randomized = self.session.randomized().is_some();
         let wants_models = !randomized
             && ((self.menu.panel.open && self.menu.panel.page.uses_models())
+                || self
+                    .settings
+                    .combat_styles
+                    .iter()
+                    .flatten()
+                    .any(|id| !id.is_empty())
                 || !self
                     .session
                     .content

@@ -531,6 +531,25 @@ and body overrides. Kill poses, timing, damage and actual weapon state stay the
 same. Original and Modern High/Ultra presets leave this preference off; the
 `unarmed-kill-rikimaru` and `unarmed-kill-ayame` demos show the enabled option.
 
+**Combat style slots 1–3** select a small cycle of complete movesets, including
+**Campaign original**; **Unused** removes a slot. Choose at least two different
+available styles, then bind **Next combat style** under **F1 → General → Controls**.
+The action is unbound by default. Each fresh press selects the next available
+style and displays its name. Duplicate sources and missing or incompatible
+imports are skipped. The same controls work in Gaisen and native T2; they keep
+the campaign hero and gameplay rules, body, independent equipment and voice,
+and draw/sheath and unarmed preferences. Equipment or voice set to **Follow
+moveset** follows the selected style as usual. The existing moveset options apply
+to every slot. This switches whole movesets; it does not combine their combos.
+
+Switch while standing or moving on the ground. Attacks, crouching, guard dodges,
+injury, jumping, items and scenes must finish first; an unsafe press is discarded
+and must be pressed again. Input recording, rewind preview, demos, benchmarks and
+randomized runs do not allow the shortcut. Selected slots and the active moveset
+are saved with preferences and savestates/rewind. Graphics and gameplay presets
+leave the slots selected; reset an individual slot or all settings to clear them.
+Active moveset overrides keep their existing input-recording and TRIAL restrictions.
+
 **Override moveset** adopts an actor's registered animations, attacks and weapon
 profile independently of appearance. Search **Moveset source** for Onikage, for
 example, and keep **Player body → Original** to use his kicks as Ayame or Rikimaru.

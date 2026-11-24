@@ -162,6 +162,7 @@ pub enum Item {
     PlayerModel,
     ModelMoveset,
     MovesetModel,
+    CombatStyle(usize),
     WeaponModel,
     VoiceModel,
     ModelPlayerMovement,
@@ -1514,6 +1515,33 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Moveset source",
                 s.moveset_model.clone(),
                 "Choose an available actor's moves while keeping your current body. T1 and supported T2 heroes/guards/bosses provide locomotion and melee combos. Paired kills, items and unmapped actions stay with the mission's protagonist. T2 scripted/projectile attacks and custom-body moves are not imported.",
+            ),
+            (
+                Item::CombatStyle(0),
+                "Combat style slot 1",
+                s.combat_styles[0]
+                    .as_deref()
+                    .unwrap_or(super::styles::UNUSED)
+                    .into(),
+                super::styles::HELP,
+            ),
+            (
+                Item::CombatStyle(1),
+                "Combat style slot 2",
+                s.combat_styles[1]
+                    .as_deref()
+                    .unwrap_or(super::styles::UNUSED)
+                    .into(),
+                super::styles::HELP,
+            ),
+            (
+                Item::CombatStyle(2),
+                "Combat style slot 3",
+                s.combat_styles[2]
+                    .as_deref()
+                    .unwrap_or(super::styles::UNUSED)
+                    .into(),
+                super::styles::HELP,
             ),
             (
                 Item::WeaponModel,

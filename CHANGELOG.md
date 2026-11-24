@@ -13,6 +13,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   menu artwork follow the choice. Keep the existing Cross/Circle and Circle/Cross
   preferences, keyboard actions and gameplay bindings.
 
+- Add three selectable **Player model → Combat style slots** and a rebindable
+  **Next combat style** action for Gaisen and native T2. The shortcut is unbound
+  by default and switches complete compatible movesets only from a free grounded
+  stance, preserving body, independent equipment/voice and unarmed preferences.
+
 - Add **Movement → Back + attack special**, off by default, to trigger Gaisen's
   original Up–Down–Square attack with held Back plus attack. Uses the active
   moveset's authored special, including supported imports; unavailable moves and

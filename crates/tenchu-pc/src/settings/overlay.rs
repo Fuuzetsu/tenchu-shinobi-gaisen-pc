@@ -458,9 +458,11 @@ fn widget(
     let item = row.item;
     if matches!(
         item,
-        Item::MovesetModel | Item::WeaponModel | Item::VoiceModel
+        Item::MovesetModel | Item::CombatStyle(_) | Item::WeaponModel | Item::VoiceModel
     ) {
+        let styles = super::styles::choices(&menu.moveset_models);
         let (choices, search, fallback) = match item {
+            Item::CombatStyle(_) => (&styles, &mut menu.moveset_search, "Unavailable style"),
             Item::WeaponModel => (
                 &menu.weapon_models,
                 &mut menu.weapon_search,
@@ -496,6 +498,10 @@ fn widget(
                         && ui.selectable_label(id == &row.value, name).clicked()
                     {
                         edits.push(match item {
+                            Item::CombatStyle(slot) => Edit::Preference(Preference::CombatStyle(
+                                slot,
+                                (id != super::styles::UNUSED).then(|| id.clone()),
+                            )),
                             Item::WeaponModel => {
                                 Edit::Preference(Preference::WeaponModel(id.clone()))
                             }

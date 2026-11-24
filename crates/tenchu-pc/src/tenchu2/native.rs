@@ -87,6 +87,8 @@ mod spawning;
 #[cfg(not(target_arch = "wasm32"))]
 mod state;
 mod story;
+#[cfg(not(target_arch = "wasm32"))]
+mod styles;
 #[cfg(test)]
 mod tests;
 #[cfg(not(target_arch = "wasm32"))]

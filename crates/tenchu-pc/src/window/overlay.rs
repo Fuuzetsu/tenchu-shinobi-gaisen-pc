@@ -528,6 +528,12 @@ impl super::Application {
                 || !self.settings.player_model.is_empty()
                 || !self.settings.weapon_model.is_empty()
                 || !self.settings.voice_model.is_empty()
+                || self
+                    .settings
+                    .combat_styles
+                    .iter()
+                    .flatten()
+                    .any(|id| !id.is_empty())
                 || self.settings.graphics.models.rikimaru_sheath
                 || self.randomizer.open)
             && let Err(error) =

@@ -31,6 +31,7 @@ mod navigation;
 pub use navigation::Navigation;
 mod walking;
 pub use walking::Walking;
+pub(crate) mod styles;
 pub(crate) mod unarmed;
 
 use serde::{Deserialize, Serialize};
@@ -92,6 +93,7 @@ pub struct Settings {
     pub player_model: String,
     pub model_moveset: bool,
     pub moveset_model: String,
+    pub combat_styles: [Option<String>; 3],
     pub weapon_model: String,
     pub voice_model: String,
     pub alternate_death_chance: u16,
@@ -155,6 +157,7 @@ impl Default for Settings {
             player_model: String::new(),
             model_moveset: false,
             moveset_model: String::new(),
+            combat_styles: Default::default(),
             weapon_model: String::new(),
             voice_model: String::new(),
             alternate_death_chance: 0,
@@ -189,6 +192,7 @@ impl Settings {
         self.player_model.clone_from(&saved.player_model);
         self.model_moveset = saved.model_moveset;
         self.moveset_model.clone_from(&saved.moveset_model);
+        self.combat_styles.clone_from(&saved.combat_styles);
         self.weapon_model.clone_from(&saved.weapon_model);
         self.voice_model.clone_from(&saved.voice_model);
         self.model_moveset_options = saved.model_moveset_options;
