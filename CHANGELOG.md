@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.36.0 — 2026-11-24
+
 - Opening, training and ending movies now use the built-in decoder when FFmpeg
   is missing on Windows or Linux. No installation or download is needed for
   playback; explicit FFmpeg paths remain supported and report configuration errors.
