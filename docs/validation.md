@@ -865,6 +865,21 @@ is not synthesized for another language. Native T2 JP has no translated caption
 assets and remains Japanese. Campaign saves are unchanged; mid-mission states
 include the caption tracks and use format 41.
 
+## Optional unarmed lethal hits
+
+The optional unarmed regression kills a guard with Onikage's limb contacts for
+both T1 heroes and with all three unarmed styles for all three native T2 heroes.
+Arm severing is forced to 100 percent. The death is saved immediately after the
+hit and resumed through the corpse animation; both limbs must stay attached.
+T1 also draws the blades after the lethal kick and compares RNG against the same
+fight with dismemberment disabled. The existing blade, dive, rear stealth and
+execution fixtures retain their separate severing checks.
+
+These are isolated optional-mode fixtures, not ordinary-play parity evidence.
+Native captures can be requested with `TENCHU_MODEL_REVIEW`; they use an isolated
+flat floor, default graphics with fog/artwork disabled and a fixed corpse view.
+The additional lethal-hit state uses mid-mission format 42.
+
 ## Persistent mid-mission states
 
 The savestate regression compares every serialized simulation field before/after

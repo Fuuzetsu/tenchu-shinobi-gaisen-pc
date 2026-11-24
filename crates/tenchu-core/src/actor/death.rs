@@ -144,6 +144,7 @@ impl Actor {
         let mut sever = None;
         if self.id == world.player
             && dismemberment.player
+            && !self.unarmed_death
             && self.motion.count == 5
             && matches!(self.motion.action, MOT_DEAD | MOT_DEAD_ALT)
         {
@@ -247,6 +248,7 @@ impl Actor {
                     if self.motion.count == 5 && world.combat.death_sound == Some(self.id) {
                         world.voice(self, ctx, self.id, 0x38);
                         if dismemberment.enabled
+                            && !self.unarmed_death
                             && !(self.id == world.player && dismemberment.player)
                         {
                             let action = if self.id == world.player {

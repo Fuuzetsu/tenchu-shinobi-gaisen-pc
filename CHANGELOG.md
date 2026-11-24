@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Optional unarmed punches and kicks no longer sever limbs in T1 or native T2.
+  Remember the lethal strike through death animations and saved-state restores,
+  preserving blade kills and scripted executions.
+- Mid-mission savestates use format 42. Load older states with the game build
+  that created them; campaign progress files remain compatible.
+
 ## 0.35.14 — 2026-11-15
 
 - Add **Movement → Unarmed style → Wang Xiaohai (Tenchu 2)**: his five-strike

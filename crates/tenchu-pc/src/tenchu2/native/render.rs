@@ -49,6 +49,8 @@ pub(super) mod state;
 mod story;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub(super) use tests::capture_unarmed_death;
 mod weapons;
 mod wounds;
 pub(super) use story::Drawing as StoryDrawing;
