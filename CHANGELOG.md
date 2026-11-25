@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.37.0 — 2026-11-25
+
 - Add one optional imported music theme to the T2 scenery sandbox in F6, on
   desktop and Android. Retain WAV, Ogg Vorbis, MP3 or FLAC bytes, loop the whole
   file and keep the selected disc theme as fallback. Saved sessions retain their
