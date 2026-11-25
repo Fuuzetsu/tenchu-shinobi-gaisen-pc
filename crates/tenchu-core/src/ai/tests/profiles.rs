@@ -4,6 +4,8 @@ use crate::{
     game::Game,
 };
 
+mod shuriken;
+
 fn guard(game: &Game) -> usize {
     *game
         .roster

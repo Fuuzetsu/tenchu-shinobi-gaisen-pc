@@ -70,6 +70,7 @@ impl Idle {
 pub struct Settings {
     pub enabled: bool,
     pub combat: Combat,
+    pub watchman_shuriken: bool,
     pub idle: Idle,
     pub quick_turns: bool,
     pub progression: bool,
@@ -81,12 +82,21 @@ impl Default for Settings {
         Self {
             enabled: false,
             combat: Combat::Mixed,
+            watchman_shuriken: false,
             idle: Idle::Original,
             quick_turns: true,
             progression: false,
             seed: 1,
         }
     }
+}
+
+pub const SHURIKEN_BUDGET: u8 = 3;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Shuriken {
+    pub remaining: u8,
+    pub pending: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -220,6 +230,40 @@ impl Controller<'_, '_> {
         }
     }
 
+    pub(super) fn watchman_shuriken(&mut self, range: i32) -> bool {
+        // THINK.C ItemUse gates, with the optional profile's existing range and attack clock.
+        if self.actor.status != ActorState::Engage
+            || self.actor.motion.count != 0
+            || self.distance() < range
+            || self.degree().abs() >= 100
+            || self.clock <= self.attack_clock()
+        {
+            return false;
+        }
+        let mission = &self.ctx.mission;
+        if ![MOT_SYURI, MOT_SYURI_RECOVER].into_iter().all(|action| {
+            crate::motion::Motion::clip_index(
+                action,
+                &mission.characters[self.actor.definition].motions,
+                &mission.common_motions,
+                &mission.clips,
+            )
+            .is_some_and(|clip| mission.clips[clip].duration > 1)
+        }) {
+            return false;
+        }
+        let stock = self.actor.profile_shuriken.get_or_insert(Shuriken {
+            remaining: SHURIKEN_BUDGET,
+            pending: false,
+        });
+        if stock.remaining == 0 || !self.motion(MOT_SYURI) {
+            return false;
+        }
+        self.actor.profile_shuriken.as_mut().unwrap().pending = true;
+        self.delay_attack();
+        true
+    }
+
     pub(super) fn profile_combat(&mut self, profile: Combat) -> Result<u16> {
         if !matches!(
             self.actor.status,
@@ -228,6 +272,12 @@ impl Controller<'_, '_> {
             return Ok(0);
         }
         let range = [2000, 3000, 4000, 18000][self.class()];
+        if profile == Combat::Watchman
+            && self.state.profiles.watchman_shuriken
+            && self.watchman_shuriken(range)
+        {
+            return Ok(0);
+        }
         let profile = if profile == Combat::Watchman {
             if self.actor.health < self.actor.max_health / 3
                 || self.player.status == ActorState::Attack

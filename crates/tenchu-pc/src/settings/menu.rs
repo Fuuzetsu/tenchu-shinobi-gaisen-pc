@@ -258,6 +258,7 @@ pub enum Item {
     AttackAssist,
     BehaviorProfiles,
     BehaviorCombat,
+    BehaviorShuriken,
     BehaviorIdle,
     BehaviorQuickTurns,
     BehaviorProgression,
@@ -507,7 +508,13 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BehaviorCombat,
                 "Combat profile",
                 s.behavior_profiles.combat.name().into(),
-                "Coward retreats to seek one bounded reinforcement group per alert. Reckless rushes and attacks; Cautious retreats and waits for openings; Flanker sidesteps; Watchman adapts to distance, health and attacks. Seeded mix chooses per actor. These profiles use no items.",
+                "Coward retreats to seek one bounded reinforcement group per alert. Reckless rushes and attacks; Cautious retreats and waits for openings; Flanker sidesteps; Watchman adapts to distance, health and attacks. Seeded mix chooses per actor. Watchman shuriken is a separate option.",
+            ),
+            (
+                Item::BehaviorShuriken,
+                "Watchman shuriken",
+                on(s.behavior_profiles.watchman_shuriken),
+                "Gaisen only: eligible Watchman guards receive three separate shuriken, once per actor. Requires profiles; also applies to Watchmen in Seeded mix. Uses source aim, throw motions and projectiles outside melee reach, with the existing attack cooldown. Settings changes do not refill stock; a committed throw finishes if disabled. Saves and rewind restore the historical budget. Off by default.",
             ),
             (
                 Item::BehaviorIdle,

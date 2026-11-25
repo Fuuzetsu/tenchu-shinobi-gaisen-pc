@@ -921,6 +921,7 @@ impl Application {
             | Item::BehaviorCombat
             | Item::BehaviorIdle
             | Item::BehaviorQuickTurns
+            | Item::BehaviorShuriken
             | Item::BehaviorProgression
             | Item::BehaviorSeed
             | Item::ActorCombat

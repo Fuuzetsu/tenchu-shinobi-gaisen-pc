@@ -232,6 +232,49 @@ fn native_profiles_preserve_default_ai_and_run_native_combat() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; the Gaisen-only stock option cannot change native Watchman decisions or RNG"]
+fn native_profiles_ignore_gaisen_shuriken_option() {
+    let (mut s, _) = fixture();
+    let mut control = s.world.clone();
+    let mut assets = postcard::from_bytes(&postcard::to_allocvec(&s.assets).unwrap()).unwrap();
+    let settings = profiles(Combat::Watchman);
+    control.configure_profiles(settings, &assets);
+    s.world.configure_profiles(
+        Settings {
+            watchman_shuriken: true,
+            ..settings
+        },
+        &s.assets,
+    );
+    for _ in 0..180 {
+        s.world
+            .step(
+                [0; 2],
+                &mut s.assets,
+                &mut bleeding_tests::Recorded::default(),
+            )
+            .unwrap();
+        control
+            .step(
+                [0; 2],
+                &mut assets,
+                &mut bleeding_tests::Recorded::default(),
+            )
+            .unwrap();
+        s.world.ai.profiles.watchman_shuriken = false;
+        assert_eq!(
+            postcard::to_allocvec(&s.world).unwrap(),
+            postcard::to_allocvec(&control).unwrap()
+        );
+        s.world.ai.profiles.watchman_shuriken = true;
+    }
+    assert_eq!(
+        postcard::to_allocvec(&s.assets).unwrap(),
+        postcard::to_allocvec(&assets).unwrap()
+    );
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; native idle policies, protected roles, independent assignment RNG and campaign thresholds"]
 fn native_profiles_respect_roles_routes_and_progression() {
     let (mut s, guard) = fixture();

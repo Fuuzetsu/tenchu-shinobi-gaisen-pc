@@ -184,6 +184,9 @@ impl Runtime {
             BehaviorQuickTurns => Some(
                 "This changes T1's rapid turnaround command at a patrol loop boundary. Native T2 follows each authored waypoint turn at the actor's normal turn rate and has no corresponding command.",
             ),
+            BehaviorShuriken => Some(
+                "This optional finite shuriken loadout is for Gaisen Watchman guards. Native T2 retains its original item behavior.",
+            ),
             StaySheathed => Some(
                 "Native T2 already preserves the current weapon state after injury and knockdown. This option changes T1's automatic draw after recovery; it is not needed here.",
             ),

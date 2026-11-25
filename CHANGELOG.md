@@ -9,6 +9,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   **Stage complete**, **Retry stage** and **Quick launcher (F6)** instead of
   campaign completion and mission selection. The standalone preview offers
   **Close preview**. These single-stage runs still do not advance a campaign.
+- Add optional **Enemy behavior → Watchman shuriken** for Gaisen. Eligible
+  Watchmen receive three shots once per actor, using original aim, throw and
+  projectile behavior without taking NPC inventory. Off by default; changing
+  profiles or settings does not refill stock. Saves and rewind retain it.
+- Savestates and `.treplay` files use format 49 for the optional Watchman budget.
+  Older files require their original build; campaign progress is unchanged.
+
 - Level Studio's T1 scenery browser lists the eleven source areas by name and
   prevents selecting nonexistent areas. Added scenery remains decorative.
 - Show English T1 title and options labels when English and High-definition text

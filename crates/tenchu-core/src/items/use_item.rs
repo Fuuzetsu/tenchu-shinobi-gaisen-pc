@@ -4,7 +4,15 @@ use crate::camera::{Environment, Mode};
 use crate::math::Position;
 
 pub(super) fn consume(owner: &mut Actor, kind: Kind) {
-    let count = &mut owner.inventory[kind.index()];
+    let count = if kind == Kind::Shuriken
+        && owner.motion.action == crate::ids::MOT_SYURI_RECOVER
+        && let Some(stock) = owner.profile_shuriken.as_mut().filter(|s| s.pending)
+    {
+        stock.pending = false;
+        &mut stock.remaining
+    } else {
+        &mut owner.inventory[kind.index()]
+    };
     if *count != 0 && *count != 255 {
         *count -= 1;
     }

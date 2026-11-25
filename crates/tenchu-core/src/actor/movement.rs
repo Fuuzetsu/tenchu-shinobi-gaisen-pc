@@ -67,6 +67,12 @@ impl Actor {
             }
             None
         };
+        if (!matches!(self.motion.action, MOT_SYURI | MOT_SYURI_RECOVER)
+            || self.status != ActorState::AimShuriken)
+            && let Some(stock) = &mut self.profile_shuriken
+        {
+            stock.pending = false;
+        }
         self.walking_motion(ctx, world);
         let next = if let Some(next) = self.sheath_input(world) {
             Some(next)

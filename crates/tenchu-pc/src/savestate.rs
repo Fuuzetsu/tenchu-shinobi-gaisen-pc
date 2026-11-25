@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use tenchu_assets::Result;
 
 const MAGIC: &[u8; 8] = b"TENCHUST";
-const FORMAT: u32 = 48;
+const FORMAT: u32 = 49;
 const LIMIT: usize = 512 * 1024 * 1024;
 pub(crate) const FILE_LIMIT: usize = 128 * 1024 * 1024;
 
@@ -164,6 +164,13 @@ pub(crate) fn validate_game(game: &tenchu_core::game::Game) -> Result<()> {
                 .is_some_and(|c| c >= game.mission.clips.len())
         {
             return Err("Invalid actor reference in savestate".into());
+        }
+        if actor.profile_shuriken.is_some_and(|stock| {
+            id == game.player_id
+                || stock.remaining > tenchu_core::ai::profiles::SHURIKEN_BUDGET
+                || stock.pending && stock.remaining == 0
+        }) {
+            return Err("Invalid Watchman shuriken stock in savestate".into());
         }
         if let Some(part) = &actor.severed
             && (!matches!(part.index, 2 | 4 | 6)

@@ -1584,7 +1584,22 @@ Choose one global combat profile or **Seeded mix**:
 - **Cautious:** retreats while the player attacks and waits for periodic openings.
 - **Flanker:** alternates lateral dashes and attacks.
 - **Watchman:** retreats defensively when hurt or threatened, closes a large gap,
-  and otherwise flanks. None of these profiles use inventory items.
+  and otherwise flanks.
+
+**Watchman shuriken**, off by default and available in Gaisen only, gives each
+eligible Watchman three separate shuriken. This includes Watchmen selected by
+Seeded mix or an individual override. They throw only from the source ready
+stance, outside their melee reach, with the original aim tolerance, throw
+animations and projectile rules. The existing shared or independent attack
+cooldown applies. The option leaves original NPC inventory untouched. Other
+profiles request no items; grenades, smoke and mines are not included.
+
+Each actor receives that budget at most once. Changing the option, profile or
+assignment seed does not refill it. A committed throw finishes after disabling
+the option; interrupting its windup before release spends nothing. Saves and
+rewind restore the budget at the saved tick, including a pending throw. New
+missions and newly spawned guards start with their own budget. Native T2 keeps
+its original item behavior.
 
 They retain authored animations, hitboxes, damage, collision, perception and
 recovery. The separate Independent enemy attacks option still controls whether

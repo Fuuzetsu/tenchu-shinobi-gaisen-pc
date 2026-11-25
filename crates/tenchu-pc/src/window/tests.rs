@@ -774,6 +774,7 @@ fn combat_settings_apply_and_reset() {
         Item::BackSpecial,
         Item::AttackAssist,
         Item::BehaviorProfiles,
+        Item::BehaviorShuriken,
         Item::QuickShurikenDodge,
         Item::StrictCorpseSight,
         Item::GuardControls,
@@ -793,6 +794,7 @@ fn combat_settings_apply_and_reset() {
             Item::FullEnemyMeleeDamage => app.campaign.game.combat.full_enemy_melee_damage,
             Item::BackSpecial => app.campaign.game.combat.back_special,
             Item::BehaviorProfiles => app.campaign.game.intelligence.profiles.enabled,
+            Item::BehaviorShuriken => app.campaign.game.intelligence.profiles.watchman_shuriken,
             Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
             Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
             Item::GuardControls => app.campaign.game.intelligence.guard_controls,
@@ -812,6 +814,7 @@ fn combat_settings_apply_and_reset() {
             Item::FullEnemyMeleeDamage => settings.full_enemy_melee_damage,
             Item::BackSpecial => settings.back_special,
             Item::BehaviorProfiles => settings.behavior_profiles.enabled,
+            Item::BehaviorShuriken => settings.behavior_profiles.watchman_shuriken,
             Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
             Item::StrictCorpseSight => settings.strict_corpse_sight,
             Item::GuardControls => settings.guard_controls,
@@ -823,6 +826,12 @@ fn combat_settings_apply_and_reset() {
             _ => settings.multi_target_attacks,
         };
         let mut app = application(Options::default());
+        if item == Item::BehaviorShuriken {
+            app.set_behavior_profiles(tenchu_core::ai::profiles::Settings {
+                enabled: true,
+                ..Default::default()
+            });
+        }
         let directory = std::env::temp_dir().join(format!(
             "tenchu-combat-options-recording-{}-{index}",
             std::process::id()
@@ -863,7 +872,10 @@ fn combat_settings_apply_and_reset() {
         let recordings: Vec<_> = std::fs::read_dir(&directory).unwrap().collect();
         assert_eq!(recordings.len(), 1);
         std::fs::remove_dir_all(directory).unwrap();
-        if matches!(item, Item::FullEnemyMeleeDamage | Item::BackSpecial) {
+        if matches!(
+            item,
+            Item::FullEnemyMeleeDamage | Item::BackSpecial | Item::BehaviorShuriken
+        ) {
             let state = app.capture_state().unwrap();
             let rewind = app.capture_rewind().unwrap();
             for bytes in [Some(state.as_slice()), None] {

@@ -77,6 +77,9 @@ impl Application {
                 }
             }
             Item::BehaviorQuickTurns => settings.quick_turns = reset || !settings.quick_turns,
+            Item::BehaviorShuriken => {
+                settings.watchman_shuriken = !reset && !settings.watchman_shuriken
+            }
             Item::BehaviorProgression => settings.progression = !reset && !settings.progression,
             Item::BehaviorSeed => {
                 settings.seed = if reset {

@@ -150,6 +150,8 @@ pub struct Actor {
     pub encounters: crate::ai::escalation::Encounters,
     pub active_item: i16,
     pub inventory: [u8; crate::items::KINDS],
+    #[serde(default)]
+    pub profile_shuriken: Option<crate::ai::profiles::Shuriken>,
     pub aiming: bool,
     pub attack: usize,
     pub patrol: Option<patrol::Patrol>,
@@ -268,6 +270,7 @@ impl Actor {
             encounters: Default::default(),
             active_item: 0,
             inventory: [0; crate::items::KINDS],
+            profile_shuriken: None,
             aiming: false,
             attack: 0,
             patrol: None,
@@ -623,6 +626,11 @@ impl Actor {
             return false;
         }
         self.status = ActorState::from_motion(action);
+        if !matches!(action, MOT_SYURI | MOT_SYURI_RECOVER)
+            && let Some(stock) = &mut self.profile_shuriken
+        {
+            stock.pending = false;
+        }
         if movement {
             self.motion_velocity(ctx);
         }
