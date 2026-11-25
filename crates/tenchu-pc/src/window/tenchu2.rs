@@ -1,5 +1,6 @@
 use super::*;
 use crate::tenchu2::menu::Event;
+mod theme;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native;
@@ -25,6 +26,18 @@ impl Application {
 
     pub(super) fn apply_tenchu2(&mut self, event: Event) -> Result<()> {
         match event {
+            Event::ImportTheme => self.import_sandbox_theme_file()?,
+            Event::RemoveTheme => self
+                .tenchu2
+                .set_theme(Default::default(), self.tenchu2.music)?,
+            Event::ThemeEnabled(enabled) => {
+                let mut theme = self.tenchu2.theme.clone();
+                theme.enabled = enabled;
+                self.tenchu2.set_theme(theme, self.tenchu2.music)?;
+            }
+            Event::ThemeFallback(music) => {
+                self.tenchu2.set_theme(self.tenchu2.theme.clone(), music)?
+            }
             Event::Quick => {
                 self.campaign.screen = Screen::Launcher;
                 self.campaign.quick_launcher = true;
@@ -197,6 +210,7 @@ impl Application {
                     )?;
                     sandbox.source_models = self.tenchu2.source_models;
                     sandbox.music.selected = self.tenchu2.music;
+                    sandbox.music.custom = self.tenchu2.theme.selected();
                     let previous = self.campaign.options;
                     self.campaign.options.character = self.tenchu2.character;
                     if let Err(error) = self.campaign.start_sandbox(sandbox, &self.assets) {

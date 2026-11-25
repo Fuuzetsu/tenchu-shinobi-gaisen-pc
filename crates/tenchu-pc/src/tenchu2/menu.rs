@@ -3,6 +3,7 @@ pub use super::discs::{connect, disc_path, known_discs, remember};
 use tenchu_assets::tenchu2::{Edition, layout::Layout};
 
 mod launcher;
+mod theme;
 
 pub struct Menu {
     pub open: bool,
@@ -15,6 +16,8 @@ pub struct Menu {
     pub guard: Option<i16>,
     pub source_models: bool,
     pub music: Option<usize>,
+    pub theme: crate::audio::theme::Theme,
+    pub theme_notice: String,
     pub music_tracks: usize,
     pub maps: Vec<usize>,
     pub layouts: Vec<Layout>,
@@ -42,6 +45,8 @@ impl Default for Menu {
             guard: Some(0x10),
             source_models: true,
             music: None,
+            theme: Default::default(),
+            theme_notice: String::new(),
             music_tracks: 0,
             maps: Vec::new(),
             layouts: Vec::new(),
@@ -64,6 +69,10 @@ pub enum Event {
     Browse,
     Connect,
     Play,
+    ImportTheme,
+    RemoveTheme,
+    ThemeEnabled(bool),
+    ThemeFallback(Option<usize>),
     MissionSelection,
     Select(Option<Edition>),
     Options(crate::session::Options),

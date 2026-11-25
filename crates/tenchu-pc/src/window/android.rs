@@ -18,6 +18,7 @@ impl Application {
                     self.tenchu2_action(crate::tenchu2::menu::Event::Connect);
                     Ok(())
                 }
+                "sandbox-theme" => self.import_sandbox_theme_path(&path),
                 "recording" => {
                     let bytes = crate::savestate::read(&path)?;
                     if self.native_tenchu2.is_some() {
@@ -71,6 +72,7 @@ impl Application {
             if let Some(native) = &mut self.native_tenchu2 {
                 native.menu.notice(error.clone());
             }
+            self.tenchu2.notice = error.clone();
             self.menu.notice = error.clone();
             self.randomizer.notice = error.clone();
             self.trial.notice = error;

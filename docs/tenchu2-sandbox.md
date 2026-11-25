@@ -65,6 +65,30 @@ restarts its themes separately. Music decodes in the background and uses the
 normal music volume and pause settings. No audio files are bundled. Character voices and combat effects still use
 Gaisen's resources; environmental ambience uses the selected Tenchu 2 map bank.
 
+F6 also offers **Import / replace…** for one audio file you own: WAV, Ogg Vorbis,
+MP3 or FLAC, up to 32 MiB compressed and 64 MiB decoded stereo PCM. The game
+retains the file's bytes with your sandbox preferences, so moving or deleting
+the original file does not break playback. **Use custom theme** repeats the
+whole file, using the normal music volume and pause settings. **Disc fallback**
+chooses a retail theme or stage ambience for when custom music is disabled or
+removed. Import errors leave the previous choice intact; invalid stored audio
+reports a notice and uses the saved disc fallback when it can be recovered.
+
+Changes apply on **Explore area**. The current stage and its retries keep their
+loaded theme, including after loading a savestate or rewind recording whose
+theme has since been replaced or removed. F6 identifies that retained session
+choice when it differs from the next-start preferences. Loading a save does not
+overwrite your stored theme. **Remove** discards the stored custom file; it does
+not remove copies embedded in existing saves or recordings. Loops use the decoded
+file from start to finish; embedded loop markers are not used.
+
+This option is available in the desktop and Android scenery sandbox only.
+Native T2 campaign music, ordinary Gaisen music, effects and stage ambience keep
+their existing behavior. Browser T2 map import is not yet available. Graphics
+presets leave this personal soundtrack preference unchanged; no music file is
+bundled with presets or demos. `TENCHU_SANDBOX_MUSIC` can override the native
+`sandbox-music.json` preferences path for a separate installation or testing.
+
 List all maps and source layouts, choose another starting point, or add guards:
 
 ```sh

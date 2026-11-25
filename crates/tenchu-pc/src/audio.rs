@@ -1,7 +1,11 @@
 #[cfg_attr(target_arch = "wasm32", path = "web/audio_loader.rs")]
 pub(crate) mod loader;
 pub(crate) mod output;
+mod state;
+pub(crate) mod theme;
 use output::Command;
+pub use state::State;
+use state::{SandboxState, Source};
 
 use crate::{
     campaign::{Campaign, Screen},
@@ -34,18 +38,11 @@ pub struct Audio {
     trace: bool,
     fast_forward: bool,
     volume: u16,
-    mission_track: Option<Track>,
-    current_track: Option<Track>,
-    ready_track: Option<Track>,
+    mission_track: Option<Source>,
+    current_track: Option<Source>,
+    ready_track: Option<Source>,
     playhead: f64,
     playhead_updated: Instant,
-}
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-pub struct State {
-    current: Option<Track>,
-    mission: Option<Track>,
-    playhead: f64,
 }
 
 impl Audio {
@@ -100,6 +97,10 @@ impl Audio {
             current: self.current_track.clone(),
             mission: self.mission_track.clone(),
             playhead: self.music_position(),
+            sandbox: self.sandbox_music.as_ref().map(|music| SandboxState {
+                fallback: music.track(),
+                asset: music.custom.clone(),
+            }),
         }
     }
 
@@ -122,14 +123,21 @@ impl Audio {
         self.screen = Some(discriminant(&campaign.screen));
         self.fast_forward = false;
         self.volume(self.volume);
+        if let Some(music) = &mut self.sandbox_music {
+            music.custom = state
+                .as_ref()
+                .and_then(|s| s.sandbox.as_ref())
+                .and_then(|t| t.asset.clone());
+            if let Some(theme) = state.as_ref().and_then(|s| s.sandbox.as_ref()) {
+                music.selected = theme
+                    .fallback
+                    .as_ref()
+                    .and_then(|t| music.tracks.iter().position(|track| track == t));
+            }
+        }
         self.mission_track = state.as_ref().and_then(|s| s.mission.clone());
         let playhead = state.as_ref().map_or(0.0, |s| s.playhead);
-        self.track(state.and_then(|s| s.current));
-        self.playhead = if playhead.is_finite() {
-            playhead.max(0.0)
-        } else {
-            0.0
-        };
+        self.play(state.and_then(|s| s.current), playhead);
         self.start_ambience();
     }
 
@@ -242,17 +250,55 @@ impl Audio {
     }
 
     fn track(&mut self, track: Option<Track>) {
-        self.playhead = 0.0;
+        self.play(track.map(Source::Disc), 0.0);
+    }
+
+    fn play(&mut self, source: Option<Source>, position: f64) {
+        self.playhead = if position.is_finite() {
+            position.max(0.0)
+        } else {
+            0.0
+        };
         self.playhead_updated = Instant::now();
         self.ready_track = None;
-        self.current_track = track.clone();
+        self.current_track = source.clone();
+        if matches!(source, Some(Source::Custom(_))) {
+            self.loader.request(None);
+        }
         if self.fast_forward {
             return;
         }
         if self.trace {
-            eprintln!("Audio request: {track:?}");
+            eprintln!("Audio request: {source:?}");
         }
         self.output.send(output::Command::Music(None, false));
+        let track = match source {
+            Some(Source::Custom(id)) => {
+                let clip = self
+                    .sandbox_music
+                    .as_ref()
+                    .and_then(|m| m.custom.as_ref())
+                    .filter(|asset| asset.id() == id)
+                    .ok_or_else(|| "Custom theme is unavailable".to_owned())
+                    .and_then(|asset| asset.clip());
+                match clip {
+                    Ok(clip) => {
+                        self.ready_track = self.current_track.clone();
+                        self.output.send(Command::Music(Some(clip), true));
+                        self.output.send(Command::SeekMusic(self.playhead));
+                    }
+                    Err(error) => {
+                        eprintln!("Custom theme: {error}; using disc selection");
+                        let fallback = self.sandbox_music.as_ref().and_then(|music| music.track());
+                        self.mission_track = fallback.clone().map(Source::Disc);
+                        self.track(fallback);
+                    }
+                }
+                return;
+            }
+            Some(Source::Disc(track)) => Some(track),
+            None => None,
+        };
         #[cfg(not(target_arch = "wasm32"))]
         {
             let disc = self
@@ -326,7 +372,7 @@ impl Audio {
             }
             let track = cue.and_then(|cue| self.catalog.event(cue)).cloned();
             if track.as_ref().is_some_and(|track| track.repeat) {
-                self.mission_track = track.clone();
+                self.mission_track = track.clone().map(Source::Disc);
             }
             self.track(track);
         }
@@ -343,7 +389,7 @@ impl Audio {
         self.screen = Some(discriminant(screen));
         if matches!(screen, Screen::DeathHold { .. }) {
             if self.current_track != self.mission_track {
-                self.track(self.mission_track.clone());
+                self.play(self.mission_track.clone(), 0.0);
             }
             return;
         }
@@ -351,8 +397,12 @@ impl Audio {
         if matches!(screen, Screen::Playing)
             && let Some(music) = &self.sandbox_music
         {
-            self.mission_track = music.track();
-            self.track(self.mission_track.clone());
+            self.mission_track = music
+                .custom
+                .as_ref()
+                .map(|a| Source::Custom(a.id().into()))
+                .or_else(|| music.track().map(Source::Disc));
+            self.play(self.mission_track.clone(), 0.0);
             self.start_ambience();
             return;
         }
@@ -415,8 +465,13 @@ impl Audio {
             self.loader.request(None);
             self.output.send(output::Command::Music(None, false));
         } else {
-            let music = self.current_track.clone().filter(|track| track.repeat);
-            self.track(music);
+            let music = self.current_track.clone().filter(Source::repeat);
+            let position = if matches!(music, Some(Source::Custom(_))) {
+                self.playhead
+            } else {
+                0.0
+            };
+            self.play(music, position);
             self.start_ambience();
         }
         self.volume(self.volume);
@@ -425,6 +480,9 @@ impl Audio {
     pub fn poll(&mut self) {
         self.update_playhead();
         if let Some(result) = self.loader.poll() {
+            if matches!(self.current_track, Some(Source::Custom(_))) {
+                return;
+            }
             self.ready_track = self.current_track.clone();
             match result {
                 Ok((clip, repeat)) => {
@@ -444,7 +502,7 @@ impl Audio {
     }
 
     pub fn track_ready(&self, track: &Track) -> bool {
-        self.ready_track.as_ref() == Some(track)
+        self.ready_track.as_ref() == Some(&Source::Disc(track.clone()))
     }
 }
 

@@ -2,6 +2,7 @@ use super::*;
 use tenchu_core::{actor::State, ids::MOT_DEAD, math::Position};
 
 mod cultist;
+mod theme;
 
 #[test]
 #[ignore = "requires TENCHU_DISC; ordinary deaths retain music and boss failure cutscenes restore the last mission track"]
@@ -33,7 +34,7 @@ fn death_observation_preserves_audio_until_confirmation() {
             audio.tick(&game, None, Default::default(), []).unwrap();
         }
         let music = audio.current_track.clone().unwrap();
-        assert!(music.repeat);
+        assert!(music.repeat());
         let player = game.roster.get_mut(game.player_id);
         player.health = 0;
         player.status = State::Dead;
@@ -97,7 +98,10 @@ fn death_observation_preserves_audio_until_confirmation() {
             commands.try_recv().unwrap(),
             Command::Music(None, false)
         ));
-        assert_eq!(audio.current_track, audio.catalog.music(11).cloned());
+        assert_eq!(
+            audio.current_track,
+            audio.catalog.music(11).cloned().map(Source::Disc)
+        );
         let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
         campaign.game = game;
         audio.reload(&assets, &campaign).unwrap();
@@ -183,7 +187,9 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
         campaign.sandbox.as_mut().unwrap().music.selected = Some(selected);
         audio.reload(&assets, &campaign).unwrap();
         audio.screen(&campaign.screen);
-        let track = audio.current_track.clone().unwrap();
+        let Some(Source::Disc(track)) = audio.current_track.clone() else {
+            panic!("Expected disc theme")
+        };
         let expected = Clip::load(&disc, &track).unwrap();
         let clip = wait(&mut audio);
         assert_eq!(clip.frames, expected.frames);
@@ -222,7 +228,10 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
                 .unwrap();
             audio.screen(&campaign.screen);
         }
-        assert_eq!(audio.current_track.as_ref(), Some(&track));
+        assert_eq!(
+            audio.current_track.as_ref(),
+            Some(&Source::Disc(track.clone()))
+        );
         audio.pause(true, false);
         let state = audio.capture_state();
         assert_eq!(state.playhead, audio.capture_state().playhead);
@@ -235,13 +244,19 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
         audio.pause(false, false);
         audio.fast_forward(true);
         audio.fast_forward(false);
-        assert_eq!(audio.current_track.as_ref(), Some(&track));
+        assert_eq!(
+            audio.current_track.as_ref(),
+            Some(&Source::Disc(track.clone()))
+        );
         wait(&mut audio);
         campaign.action(Action::Replay, &assets).unwrap();
         audio.reload(&assets, &campaign).unwrap();
         audio.screen(&campaign.screen);
         wait(&mut audio);
-        assert_eq!(audio.current_track.as_ref(), Some(&track));
+        assert_eq!(
+            audio.current_track.as_ref(),
+            Some(&Source::Disc(track.clone()))
+        );
     }
     campaign.sandbox.as_mut().unwrap().music.selected = None;
     audio.reload(&assets, &campaign).unwrap();
@@ -279,6 +294,9 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
     audio.reload(&assets, &campaign).unwrap();
     audio.screen(&campaign.screen);
     assert!(audio.sandbox_music.is_none());
-    assert_eq!(audio.current_track, audio.catalog.music(15).cloned());
+    assert_eq!(
+        audio.current_track,
+        audio.catalog.music(15).cloned().map(Source::Disc)
+    );
     wait(&mut audio);
 }

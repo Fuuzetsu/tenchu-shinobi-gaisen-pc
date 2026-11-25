@@ -61,7 +61,8 @@ impl Application {
                 .reverse
                 .audio
                 .clone()
-                .or_else(|| self.audio.as_ref().map(crate::audio::Audio::capture_state)),
+                .or_else(|| self.audio.as_ref().map(crate::audio::Audio::capture_state))
+                .or_else(|| crate::audio::State::silent_sandbox(&self.campaign)),
         })
     }
 
@@ -106,7 +107,10 @@ impl Application {
             if let Some(visuals) = visuals {
                 visuals.capture(&mut recorder)?;
             }
-            recorder.value(&audio)?;
+            recorder.value(&audio.is_some())?;
+            if let Some(audio) = audio {
+                audio.capture(&mut recorder)?;
+            }
             recorder.finish()
         })();
         self.rewind.recorder = recorder;
@@ -123,7 +127,13 @@ impl Application {
 
     fn restore_snapshot(&mut self, mut state: State<Game>, rewind: bool) -> Result<()> {
         self.state_tools_available()?;
+        if let Some(audio) = &mut state.audio {
+            audio.reuse_theme(&self.campaign);
+        }
         state.validate()?;
+        if let Some(audio) = &state.audio {
+            audio.validate_session(&self.campaign)?;
+        }
         if state.game.mission.world_vram.is_some()
             && (self.campaign.sandbox.is_none()
                 || state.game.mission.stage.directory != self.campaign.game.mission.stage.directory)
@@ -214,6 +224,11 @@ impl Application {
         self.campaign.randomized = state.randomized;
         if self.campaign.game.mission.world_vram.is_none() {
             self.campaign.sandbox = None;
+        }
+        if let Some(audio) = &state.audio {
+            audio.restore_session(&mut self.campaign);
+        } else if let Some(sandbox) = &mut self.campaign.sandbox {
+            sandbox.music.custom = None;
         }
         self.campaign.frontend = state.frontend;
         self.campaign.quick_launcher = state.quick_launcher;
@@ -369,6 +384,9 @@ impl State<Game> {
             || self.options.layout > 3
         {
             return Err("Invalid mission or player in savestate".into());
+        }
+        if let Some(audio) = &self.audio {
+            audio.validate(self.game.mission.world_vram.is_some())?;
         }
         crate::savestate::validate_game(&self.game)
     }

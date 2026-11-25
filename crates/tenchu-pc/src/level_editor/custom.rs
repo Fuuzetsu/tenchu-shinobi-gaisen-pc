@@ -104,7 +104,6 @@ impl Payload {
 }
 
 impl Asset {
-    #[cfg(any(test, not(target_os = "android")))]
     pub fn import(name: String, kind: Kind, bytes: Vec<u8>) -> Result<Self> {
         let asset = Self {
             name,
@@ -113,6 +112,12 @@ impl Asset {
         };
         asset.validate()?;
         Ok(asset)
+    }
+
+    pub(crate) fn reuse_payload(&mut self, previous: &Self) {
+        if self.kind == previous.kind && self.data == previous.data {
+            self.data = previous.data.clone();
+        }
     }
 
     pub fn id(&self) -> &str {

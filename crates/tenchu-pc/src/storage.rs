@@ -48,6 +48,7 @@ pub enum UserFile {
     Tenchu2Randomizer,
     Trials,
     Studio,
+    SandboxMusic,
     Tatsumaru,
     WangXiaohai,
     #[cfg(not(target_arch = "wasm32"))]
@@ -71,6 +72,7 @@ impl UserFile {
             Self::Randomizer => "randomizer.json",
             Self::Trials => "trials.json",
             Self::Studio => "level-studio.json",
+            Self::SandboxMusic => "sandbox-music.json",
             Self::Tatsumaru => "tatsumaru.t2moves",
             Self::WangXiaohai => "wang-xiaohai.t2moves",
         }
@@ -133,6 +135,12 @@ impl UserFile {
             Self::Studio => (
                 "level-studio.json",
                 "TENCHU_STUDIO",
+                "XDG_DATA_HOME",
+                ".local/share",
+            ),
+            Self::SandboxMusic => (
+                "sandbox-music.json",
+                "TENCHU_SANDBOX_MUSIC",
                 "XDG_DATA_HOME",
                 ".local/share",
             ),

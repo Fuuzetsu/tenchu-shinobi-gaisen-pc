@@ -12,6 +12,9 @@ impl Menu {
                 .map(|(edition, path)| (edition, path.to_string_lossy().into_owned()))
                 .collect();
         }
+        if !self.initialized {
+            self.load_theme();
+        }
         self.initialized = true;
     }
 
@@ -19,14 +22,15 @@ impl Menu {
         if !self.initialized {
             self.refresh_discs();
         }
+        let sandbox = self.selected.is_some() && !self.native();
         let rows: &[usize] = if self.native() {
             &[7, 4, 5, 3, 11, 1, 12, 8]
         } else if self.imported() {
             &[7, 13, 4, 5, 2, 3, 14, 1, 8]
         } else if self.selected == Some(Edition::Japan) {
-            &[7, 4, 5, 2, 3, 6, 9, 10, 11, 1, 8]
+            &[7, 4, 5, 2, 3, 6, 15, 16, 17, 9, 10, 11, 1, 8]
         } else if self.selected.is_some() {
-            &[7, 4, 5, 2, 3, 6, 9, 10, 1, 8]
+            &[7, 4, 5, 2, 3, 6, 15, 16, 17, 9, 10, 1, 8]
         } else if cfg!(target_arch = "wasm32") {
             &[4, 5, 2, 3, 6, 1, 0]
         } else {
@@ -109,10 +113,25 @@ impl Menu {
                             self.sequence = cycle(&layouts, &self.sequence, delta);
                         }
                     }
-                    6 if self.selected.is_some() => {
+                    6 if sandbox => {
                         let choices: Vec<_> =
                             (0..self.music_tracks).map(Some).chain([None]).collect();
-                        self.music = cycle(&choices, &self.music, delta);
+                        return (
+                            true,
+                            Some(Event::ThemeFallback(cycle(&choices, &self.music, delta))),
+                        );
+                    }
+                    15 if sandbox && self.theme.asset.is_some() => {
+                        return (true, Some(Event::ThemeEnabled(!self.theme.enabled)));
+                    }
+                    16 if sandbox && matches!(action, Action::Confirm | Action::Start) => {
+                        return (true, Some(Event::ImportTheme));
+                    }
+                    17 if sandbox
+                        && self.theme.asset.is_some()
+                        && matches!(action, Action::Confirm | Action::Start) =>
+                    {
+                        return (true, Some(Event::RemoveTheme));
                     }
                     9 => {
                         self.guard = cycle(
@@ -247,12 +266,15 @@ impl Menu {
                     });
                     if self.selected.is_some() && !self.native() {
                         ui.horizontal(|ui| {
-                            ui.label(selected(6, "Music"));
-                            egui::ComboBox::from_id_salt("quick-music").selected_text(self.music.and_then(|i| THEMES.get(i)).map_or("Stage ambience (retail)", |&(_, name)| name)).show_ui(ui, |ui| {
-                                for (i, &(_, name)) in THEMES.iter().take(self.music_tracks).enumerate() { ui.selectable_value(&mut self.music, Some(i), name); }
-                                ui.selectable_value(&mut self.music, None, "Stage ambience (retail)");
+                            ui.label(selected(6, if self.theme.enabled { "Disc fallback" } else { "Music" }));
+                            let mut music = self.music;
+                            egui::ComboBox::from_id_salt("quick-music").selected_text(music.and_then(|i| THEMES.get(i)).map_or("Stage ambience (retail)", |&(_, name)| name)).show_ui(ui, |ui| {
+                                for (i, &(_, name)) in THEMES.iter().take(self.music_tracks).enumerate() { ui.selectable_value(&mut music, Some(i), name); }
+                                ui.selectable_value(&mut music, None, "Stage ambience (retail)");
                             });
+                            if music != self.music { event = Some(Event::ThemeFallback(music)); }
                         });
+                        if let Some(action) = self.show_theme(ui, campaign) { event = Some(action); }
                         ui.horizontal_wrapped(|ui| {
                             ui.label(selected(9, "Guards"));
                             for (kind, name) in [(None, "None"), (Some(0x10), "Sword"), (Some(0x12), "Spear"), (Some(0x11), "Archer")] {

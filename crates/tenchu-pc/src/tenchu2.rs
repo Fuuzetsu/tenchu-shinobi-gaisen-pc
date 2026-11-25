@@ -42,6 +42,7 @@ pub struct Music {
     pub disc: std::path::PathBuf,
     pub tracks: Vec<Track>,
     pub selected: Option<usize>,
+    pub custom: Option<Arc<crate::level_editor::custom::Asset>>,
     pub ambience: tenchu_assets::tenchu2::music::Ambience,
 }
 
@@ -103,6 +104,7 @@ impl Sandbox {
                 disc: path.to_owned(),
                 tracks: tenchu_assets::tenchu2::music::tracks(disc)?,
                 selected: None,
+                custom: None,
                 ambience: tenchu_assets::tenchu2::music::ambience(disc, map)?,
             },
         })

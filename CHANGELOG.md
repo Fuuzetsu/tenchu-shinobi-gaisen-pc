@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add one optional imported music theme to the T2 scenery sandbox in F6, on
+  desktop and Android. Retain WAV, Ogg Vorbis, MP3 or FLAC bytes, loop the whole
+  file and keep the selected disc theme as fallback. Saved sessions retain their
+  own theme without changing the next-launch choice; native T2 music is unchanged.
 - Clarify completion controls for T1 stages played with native T2 rules: show
   **Stage complete**, **Retry stage** and **Quick launcher (F6)** instead of
   campaign completion and mission selection. The standalone preview offers
@@ -13,14 +17,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   Watchmen receive three shots once per actor, using original aim, throw and
   projectile behavior without taking NPC inventory. Off by default; changing
   profiles or settings does not refill stock. Saves and rewind retain it.
-- Savestates and `.treplay` files use format 49 for the optional Watchman budget.
-  Older files require their original build; campaign progress is unchanged.
-
 - Level Studio's T1 scenery browser lists the eleven source areas by name and
   prevents selecting nonexistent areas. Added scenery remains decorative.
 - Show English T1 title and options labels when English and High-definition text
   are selected, including choices, controller layouts and records. Original
   retains its disc lettering; baked background and movie lettering are unchanged.
+- Mid-mission savestates and exported `.treplay` rewind recordings use format 50
+  to retain optional Watchman stock and sandbox audio. Load older states and
+  recordings with the build that created them; campaign progress remains compatible.
 
 ## 0.36.0 — 2026-11-24
 
