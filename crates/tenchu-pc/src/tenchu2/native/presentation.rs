@@ -1,5 +1,5 @@
 use super::{
-    campaign::{Action, Content, Update},
+    campaign::{Action, Content, Playback, Update},
     render::{Drawing, StoryDrawing},
 };
 use crate::{
@@ -12,6 +12,8 @@ use tenchu_assets::Result;
 use tenchu_core::tenchu2::campaign::Run;
 
 mod artwork;
+#[cfg(test)]
+mod controls_tests;
 mod equipment;
 mod film;
 mod results;
@@ -57,6 +59,18 @@ impl Update {
         for sound in &self.original_sounds {
             output.send(Command::Effect(sound.clone()));
         }
+    }
+}
+
+impl<S> Playback<S> {
+    pub fn controls(
+        &self,
+        ctx: &egui::Context,
+        menu_buttons: crate::settings::MenuButtons,
+        switch_games: bool,
+    ) -> Option<Action> {
+        self.content
+            .controls(ctx, menu_buttons, switch_games, self.gaisen.is_some())
     }
 }
 
@@ -168,11 +182,12 @@ impl Content {
         }
     }
 
-    pub fn controls(
+    fn controls(
         &self,
         ctx: &egui::Context,
         menu_buttons: crate::settings::MenuButtons,
         switch_games: bool,
+        single_stage: bool,
     ) -> Option<Action> {
         let mut action = None;
         let (confirm, back) = menu_buttons.names();
@@ -218,29 +233,38 @@ impl Content {
                     });
                 });
         } else if matches!(self, Self::Failed | Self::Complete) {
-            egui::Window::new(if matches!(self, Self::Failed) {
-                "Mission failed"
+            let title = match (single_stage, matches!(self, Self::Failed)) {
+                (true, true) => "Stage failed",
+                (true, false) => "Stage complete",
+                (false, true) => "Mission failed",
+                (false, false) => "Campaign complete",
+            };
+            let retry = if single_stage {
+                "Retry stage"
             } else {
-                "Campaign complete"
-            })
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-            .collapsible(false)
-            .resizable(false)
-            .show(ctx, |ui| {
-                if ui
-                    .button(format!("Retry mission · Enter / {confirm}"))
-                    .clicked()
-                {
-                    action = Some(Action::Retry);
-                }
-                if ui.button("Mission selection").clicked() {
-                    action = Some(Action::SelectMission);
-                }
-                if ui.button(format!("Back · {back}")).clicked() {
-                    action = Some(Action::Quit);
-                }
-                ui.label("Esc: leave preview");
-            });
+                "Retry mission"
+            };
+            let selection = match (single_stage, switch_games) {
+                (true, true) => "Quick launcher (F6)",
+                (true, false) => "Close preview",
+                (false, _) => "Mission selection",
+            };
+            egui::Window::new(title)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    if ui.button(format!("{retry} · Enter / {confirm}")).clicked() {
+                        action = Some(Action::Retry);
+                    }
+                    if ui.button(selection).clicked() {
+                        action = Some(Action::SelectMission);
+                    }
+                    if ui.button(format!("Back · {back}")).clicked() {
+                        action = Some(Action::Quit);
+                    }
+                    ui.label("Esc: leave preview");
+                });
         }
         action
     }

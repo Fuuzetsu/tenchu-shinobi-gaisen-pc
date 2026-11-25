@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Clarify completion controls for T1 stages played with native T2 rules: show
+  **Stage complete**, **Retry stage** and **Quick launcher (F6)** instead of
+  campaign completion and mission selection. The standalone preview offers
+  **Close preview**. These single-stage runs still do not advance a campaign.
+
 ## 0.36.0 — 2026-11-24
 
 - Opening, training and ending movies now use the built-in decoder when FFmpeg

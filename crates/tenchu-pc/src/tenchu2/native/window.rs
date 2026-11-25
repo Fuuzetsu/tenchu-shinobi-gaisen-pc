@@ -148,7 +148,6 @@ impl View {
                 self.drawing.paint(&session.content, ctx);
                 if !menu.panel.open && !menu.modal_open() {
                     session.action = session
-                        .content
                         .controls(ctx, state.settings.menu_buttons(), false)
                         .or(session.action);
                     session.content.inspect(

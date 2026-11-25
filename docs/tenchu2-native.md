@@ -34,11 +34,17 @@ This mode is experimental: T1 has no authored underwater floors or scenery.
 Added collision supports native swimming, diving and breath, but submerged views
 remain sparse. **Water depth** defaults to 4,000 game units; 0 disables it.
 
+Each imported T1 run covers the selected stage. Continuing past its results
+shows **Stage complete**; **Retry stage** restarts it, and **Quick launcher (F6)**
+returns to stage selection. It does not automatically advance a T1 campaign.
+
 The standalone equivalent is:
 
 ```sh
 ./dev.sh target/debug/tenchu-pc play-t2-jp /path/to/tenchu2-japan.cue --gaisen /path/to/gaisen.cue --stage 0 --hero 0 --layout 1 --water-depth 4000
 ```
+
+Its completion screen offers **Close preview** instead of the quick launcher.
 
 Choose **Original JP mission selection…** in F6 for the original mission screen,
 with all 29 missions available across Rikimaru, Ayame and Tatsumaru. Left/right

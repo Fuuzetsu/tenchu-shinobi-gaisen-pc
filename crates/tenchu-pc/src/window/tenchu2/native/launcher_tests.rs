@@ -181,6 +181,34 @@ fn f6_launches_gaisen_stages_with_native_t2_rules() {
                 }
             }
             assert!(matches!(playback.content, Content::Results(_)));
+            playback.action = Some(NativeAction::Continue);
+            for _ in 0..40 {
+                assert!(!playback.step(0).unwrap().quit);
+                if matches!(playback.content, Content::Complete) {
+                    break;
+                }
+            }
+            assert!(matches!(playback.content, Content::Complete));
+            let terminal = egui::Context::default();
+            let mut output = egui::FullOutput::default();
+            for _ in 0..3 {
+                output = terminal.run(
+                    egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(960.0, 720.0),
+                        )),
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        playback.controls(ctx, app.settings.menu_buttons(), true);
+                    },
+                );
+            }
+            assert!(text_rect(&output, "Stage complete").is_some());
+            assert!(text_rect(&output, "Quick launcher (F6)").is_some());
+            assert!(text_rect(&output, "Campaign complete").is_none());
+            assert!(text_rect(&output, "Mission selection").is_none());
             playback.action = Some(NativeAction::Retry);
             for _ in 0..40 {
                 playback.step(0).unwrap();
@@ -212,10 +240,13 @@ fn f6_launches_gaisen_stages_with_native_t2_rules() {
         for _ in 0..30 {
             app.step_native_tenchu2().unwrap();
         }
+        app.native_tenchu2.as_mut().unwrap().playback.action = Some(NativeAction::SelectMission);
+        assert!(app.step_native_tenchu2().unwrap());
         app.leave_native_tenchu2().unwrap();
         assert!(app.native_tenchu2.is_none());
         assert!(app.tenchu2.imported());
         assert!(matches!(app.campaign.screen, Screen::Launcher));
+        assert!(app.campaign.quick_launcher);
         assert_eq!(app.campaign.saved.as_ref().unwrap().encode(), gaisen_save);
         assert_eq!(std::fs::read(&save_path).ok(), native_save);
     }

@@ -657,7 +657,6 @@ impl Application {
             if !native.menu.panel.open && !native.menu.modal_open() {
                 native.playback.action = native
                     .playback
-                    .content
                     .controls(ctx, self.settings.menu_buttons(), true)
                     .or(native.playback.action);
                 native.playback.content.inspect(

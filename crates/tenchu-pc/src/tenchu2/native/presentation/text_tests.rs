@@ -115,7 +115,7 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
                         ..Default::default()
                     },
                     |ctx| {
-                        content.controls(ctx, convention, true);
+                        content.controls(ctx, convention, true, false);
                     },
                 );
                 renderer.update_overlay_textures(
@@ -142,7 +142,7 @@ fn native_menu_convention_updates_legends_and_restores_original_artwork() {
                         },
                         |ctx| {
                             drawing.paint(&content, ctx);
-                            content.controls(ctx, convention, true);
+                            content.controls(ctx, convention, true, false);
                         },
                     );
                     let jobs = ctx.tessellate(frame.shapes, frame.pixels_per_point);
