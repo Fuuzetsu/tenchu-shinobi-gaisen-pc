@@ -211,7 +211,26 @@ impl Editor {
                     ui.horizontal_wrapped(|ui| {
                         ui.selectable_value(&mut self.scenery_game, AssetGame::Tenchu, "Tenchu 1");
                         ui.selectable_value(&mut self.scenery_game, AssetGame::Tenchu2, "Tenchu 2");
-                        ui.add(egui::DragValue::new(&mut self.scenery_stage).range(0..=if self.scenery_game == AssetGame::Tenchu { 18 } else { 23 }).prefix("Source area "));
+                        if self.scenery_game == AssetGame::Tenchu {
+                            match assets.stages() {
+                                Ok(stages) => {
+                                    if let Some(selected) = stages.iter().find(|s| s.id == self.scenery_stage).or_else(|| stages.first()) {
+                                        self.scenery_stage = selected.id;
+                                        ui.label("Source area");
+                                        egui::ComboBox::from_id_salt("studio-scenery-area")
+                                            .selected_text(format!("{} · {}", selected.id, selected.name))
+                                            .show_ui(ui, |ui| {
+                                                for stage in stages {
+                                                    ui.selectable_value(&mut self.scenery_stage, stage.id, format!("{} · {}", stage.id, stage.name));
+                                                }
+                                            });
+                                    }
+                                }
+                                Err(error) => self.notice = error,
+                            }
+                        } else {
+                            ui.add(egui::DragValue::new(&mut self.scenery_stage).range(0..=23).prefix("Source area "));
+                        }
                         if ui.button("Load area").clicked() && let Err(error) = self.scenery_library.load(assets, self.scenery_game, self.scenery_stage) { self.notice = error; }
                     });
                     ui.small("Decorative objects · click a preview to place at the cursor");

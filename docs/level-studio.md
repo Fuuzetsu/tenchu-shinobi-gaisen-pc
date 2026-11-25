@@ -163,6 +163,7 @@ identity. A T2 body does not switch the mission to native T2 gameplay.
 Appearance tabs separate T1 and the connected T2 disc editions. The selected
 model appears beside its controls; hovering a scene character shows its model.
 **Scenery → Browse models** groups textured previews by game and source area.
+The T1 source-area list uses the eleven disc stages and displays their names.
 Click a model to place it at the cursor. Placed and original campaign props have
 preview tooltips, and selected scenery has a larger preview. Galleries prepare
 only visible models and reuse the F1 model picker's framing and source textures.

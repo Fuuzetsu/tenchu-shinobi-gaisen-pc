@@ -6,6 +6,63 @@ fn project() -> Project {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; checks source-area names and switching back from a T2-only area"]
+fn scenery_gallery_uses_disc_areas_and_recovers_from_t2_selection() {
+    let path = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let stages = assets.stages().unwrap();
+    let mut editor = Editor::new(Default::default());
+    editor.gallery = Some(previews::Target::Scenery);
+    let ctx = egui::Context::default();
+    let show = |editor: &mut Editor| {
+        let mut output = Default::default();
+        for _ in 0..2 {
+            output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1280.0, 720.0),
+                    )),
+                    ..Default::default()
+                },
+                |ctx| editor.asset_gallery(ctx, &assets),
+            );
+        }
+        output
+    };
+    for stage in &stages {
+        editor.scenery_stage = stage.id;
+        let output = show(&mut editor);
+        assert_eq!(editor.scenery_stage, stage.id);
+        let label = format!("{} · {}", stage.id, stage.name);
+        assert!(
+            output.shapes.iter().any(|shape| matches!(
+                &shape.shape,
+                egui::Shape::Text(text) if text.galley.job.text == label
+            )),
+            "missing source area {label}"
+        );
+    }
+    editor.scenery_game = AssetGame::Tenchu2;
+    editor.scenery_stage = 23;
+    show(&mut editor);
+    assert_eq!(editor.scenery_stage, 23);
+    editor.scenery_game = AssetGame::Tenchu;
+    show(&mut editor);
+    assert_eq!(editor.scenery_stage, stages[0].id);
+    editor
+        .scenery_library
+        .load(&assets, AssetGame::Tenchu, editor.scenery_stage)
+        .unwrap();
+    let last = stages.last().unwrap().id;
+    editor
+        .scenery_library
+        .load(&assets, AssetGame::Tenchu, last)
+        .unwrap();
+    assert!(editor.notice.is_empty(), "{}", editor.notice);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; all original challenges and themes must survive Studio authoring storage"]
 fn studio_preserves_all_retail_challenges_and_theme_rules() {
     let path = std::env::var_os("TENCHU_DISC").unwrap();
