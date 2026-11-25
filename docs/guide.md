@@ -149,8 +149,10 @@ subtitles, quick launcher/pause panels and separate original-menu
 labels with a portable outline font at the window's resolution. HUD numbers use
 compact spacing and keep their final digit aligned as values change; native T2
 equipment and results use the same spacing. English,
-Japanese, French and Italian are supported; the original options screens keep
-their Japanese wording. It is off in Original and enabled in the modern quality tiers. It does not change text timing,
+Japanese, French and Italian are supported. With English selected, T1's title
+actions and options pages use English labels, including choices, controller
+layouts and records. Other languages retain the options' Japanese wording.
+It is off in Original and enabled in the modern quality tiers. It does not change text timing,
 navigation or gameplay. It includes all ten mission titles and the five ranks.
 Briefings retain the disc's brush calligraphy, with cached high-resolution stroke
 filtering for clearer edges instead of changing the wording or font style.
@@ -904,9 +906,12 @@ AI difficulty; otherwise the saved choice is used, or Normal for a new campaign.
 The original **Options → Language** and quick launcher's **Language** row select
 English, French, Italian or Japanese dialogue, scene/camera presentation and,
 by default, subtitles. All four remain
-available immediately. Character/map/results artwork follows that choice;
-the original release's options artwork is Japanese, with clear English
-descriptions and controls below it. The choice is saved with campaign progress;
+available immediately. Character/map/results artwork follows that choice.
+The original release's options artwork is Japanese. **High-definition text**
+replaces the separate T1 title/options labels with English when English is
+selected; the English descriptions below the screens remain available with it
+off. Baked background lettering, briefing calligraphy and movie lettering are
+unchanged. The choice is saved with campaign progress;
 `--language english|french|italian|japanese` overrides the saved preference at launch.
 Japanese subtitles use a bundled
 [replacement font](../crates/tenchu-assets/data/japanese-font/README.md); no BIOS is

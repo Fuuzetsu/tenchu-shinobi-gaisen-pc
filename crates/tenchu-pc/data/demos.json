@@ -922,6 +922,34 @@
     "sharp_text": true
   },
   {
+    "id": "english-title",
+    "title": "English title labels",
+    "description": "English title actions with High-definition text. The original title artwork and navigation remain; Original retains its disc lettering.",
+    "seconds": 6,
+    "mission": 1,
+    "character": 0,
+    "preset": 11,
+    "feature": "artwork",
+    "shot": "wide",
+    "artwork": false,
+    "sharp_text": true,
+    "frontend": {"page": "title", "language": "en"}
+  },
+  {
+    "id": "english-options",
+    "title": "English options labels",
+    "description": "English options with High-definition text, including choices, controller layouts and records. No artwork pack is needed; movie and baked background lettering stay unchanged.",
+    "seconds": 6,
+    "mission": 1,
+    "character": 0,
+    "preset": 11,
+    "feature": "artwork",
+    "shot": "wide",
+    "artwork": false,
+    "sharp_text": true,
+    "frontend": {"page": "options", "language": "en"}
+  },
+  {
     "id": "briefing-lettering-before",
     "title": "Briefing lettering · previous",
     "description": "Original brush lettering over Mission 5 artwork. High-definition text is off; the HD pack uses its previous resampling.",

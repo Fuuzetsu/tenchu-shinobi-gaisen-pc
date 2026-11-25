@@ -1,5 +1,19 @@
 # Stealth Assassins and Tenchu 2
 
+T1's optional English title/options text uses the existing portable HD font.
+The overlapping option labels, choices, controller actions and record headings
+were checked against Gaisen's `DEMO/MENU/MENU_E.ARC` and USA Rev 1's equivalent
+using the existing disc, AFS and frontend image readers. Gaisen's English archive
+is present on disc even though its options load `MENU_J.ARC`; its “Vibration”
+label takes precedence over SA's “Feedback.” Gaisen-only choices and title actions
+retain the port's established English descriptions. `tenchu-decomp`'s `menu.exe/options.h`
+and `OPTIONS.C` identify the original strips and action order; no source code or
+artwork was imported. This translates separate labels only when English and
+High-definition text are selected. The controller panel's small button legend
+is covered with its adjacent unlettered border and redrawn with the chosen
+confirm/back buttons. Original sprites, other languages, remaining baked
+backgrounds, briefings and movie lettering keep their existing presentation.
+
 The optional dismemberment setting follows **Stealth Assassins USA Rev 1**.
 Enable it in F1 → Persistent effects. It is off by default and is a gameplay setting: visual
 presets and Retro mode do not change it. It changes RNG consumption when enabled;

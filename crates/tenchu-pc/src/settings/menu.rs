@@ -1737,7 +1737,7 @@ pub fn rows(page: Page, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::SharpText,
                 "High-definition text",
                 on(s.sharp_text),
-                "Sharp HUD with compact numbers, subtitles, menu labels and clearer disc-derived briefing calligraphy.",
+                "Sharp HUD with compact numbers, subtitles, menu labels and clearer disc-derived briefing calligraphy. English game language also translates T1 title/options labels.",
             ),
             (
                 Item::AssetPack,

@@ -573,7 +573,12 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
     let state = crate::session::tests::state(&campaign.game);
     let mut captures = [Capture::new([320, 240]), Capture::new([640, 240])];
     let directory = std::env::var_os("TENCHU_FRONTEND_CAPTURE");
-    let mut large = directory.as_ref().map(|_| Capture::new([960, 720]));
+    let size = if std::env::var_os("TENCHU_FRONTEND_SMALL").is_some() {
+        [640, 480]
+    } else {
+        [960, 720]
+    };
+    let mut large = directory.as_ref().map(|_| Capture::new(size));
     for language in [
         Language::English,
         Language::Japanese,
@@ -584,7 +589,7 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
         if crate::visuals::pack::configured_root().is_some() {
             frontend.reload_artwork().unwrap();
         }
-        for (page, mission) in [
+        for (page, variant) in [
             Page::Title,
             Page::Character,
             Page::Missions,
@@ -603,14 +608,26 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
         ]
         .into_iter()
         .flat_map(|page| {
-            (1..=if page == Page::Missions { 10 } else { 1 }).map(move |mission| (page, mission))
+            (1..=match page {
+                Page::Missions => 10,
+                Page::Controls => 4,
+                _ => 1,
+            })
+                .map(move |variant| (page, variant))
         }) {
             frontend.title.activate();
             frontend.set_page(page);
-            frontend.mission = mission;
-            frontend.cursor = frontend.tables.cursor_targets[mission - 1].map(f32::from);
+            frontend.mission = if page == Page::Missions { variant } else { 1 };
+            frontend.cursor = frontend.tables.cursor_targets[frontend.mission - 1].map(f32::from);
+            frontend.choice = if page == Page::Controls {
+                variant - 1
+            } else {
+                0
+            };
             let name = if page == Page::Missions {
-                format!("{page:?}-{mission:02}")
+                format!("{page:?}-{variant:02}")
+            } else if page == Page::Controls && variant > 1 {
+                format!("{page:?}-{variant}")
             } else {
                 format!("{page:?}")
             };

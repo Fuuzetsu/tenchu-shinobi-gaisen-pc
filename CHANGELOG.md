@@ -11,6 +11,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   **Close preview**. These single-stage runs still do not advance a campaign.
 - Level Studio's T1 scenery browser lists the eleven source areas by name and
   prevents selecting nonexistent areas. Added scenery remains decorative.
+- Show English T1 title and options labels when English and High-definition text
+  are selected, including choices, controller layouts and records. Original
+  retains its disc lettering; baked background and movie lettering are unchanged.
 
 ## 0.36.0 — 2026-11-24
 

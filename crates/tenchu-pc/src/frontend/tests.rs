@@ -1,5 +1,7 @@
 use super::*;
 
+mod english_options;
+
 #[test]
 #[ignore = "requires TENCHU_DISC and the HD pack; profiles steady shop frame preparation"]
 fn shop_frame_preparation_profile() {
@@ -438,6 +440,10 @@ fn showcase_pages_restart_identically_without_advancing_gameplay() {
         showcase::Menu::Title,
         showcase::Menu::Character,
         showcase::Menu::Missions,
+        showcase::Menu::Options,
+        showcase::Menu::Controls,
+        showcase::Menu::Volume,
+        showcase::Menu::Language,
         showcase::Menu::Shop,
         showcase::Menu::Briefing,
     ] {

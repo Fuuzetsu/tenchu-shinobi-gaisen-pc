@@ -27,6 +27,18 @@ const ORIGINAL_OPTIONS: [&str; 10] = [
     "自動記録",
     "言語選択",
 ];
+const ENGLISH_OPTIONS: [&str; 10] = [
+    "Record",
+    "Difficulty",
+    "Stereo / Mono",
+    "Volume",
+    "Music Test",
+    "Controller",
+    "Vibration",
+    "Memory Card",
+    "Auto Save",
+    "Language",
+];
 
 impl Frontend {
     pub fn show(
@@ -688,7 +700,16 @@ impl Frontend {
                 if self.canvas.sharp_text {
                     self.canvas.label(
                         Sprite::new(&images[14], 0.0, y).row(row, 4),
-                        ["任務開始", "忍術指南", "虎の巻", "各種設定"][i],
+                        if self.language == Language::English {
+                            [
+                                "Begin mission",
+                                "Ninja training",
+                                "Mission editor",
+                                "Options",
+                            ][i]
+                        } else {
+                            ["任務開始", "忍術指南", "虎の巻", "各種設定"][i]
+                        },
                         if i == selected {
                             Color32::from_rgb(255, 216, 145)
                         } else {
@@ -789,6 +810,12 @@ impl Frontend {
 
     fn paint_options(&mut self, campaign: &Campaign) {
         let images = &self.option_images;
+        let english = self.language == Language::English;
+        let options = if english {
+            &ENGLISH_OPTIONS
+        } else {
+            &ORIGINAL_OPTIONS
+        };
         self.canvas.sprite(Sprite::new(
             &images[0],
             0.0,
@@ -799,7 +826,7 @@ impl Frontend {
         }
         if self.page == Page::Options {
             let slide = (250 - self.ticks as i32 * 20).max(0) as f32;
-            for (i, label) in ORIGINAL_OPTIONS.iter().enumerate() {
+            for (i, label) in options.iter().enumerate() {
                 let x = if i < 5 { -82.0 - slide } else { 82.0 + slide };
                 let y = (i % 5) as f32 * 34.0 - 68.0;
                 self.canvas.sprite(
@@ -845,14 +872,15 @@ impl Frontend {
             }
             self.canvas.label(
                 Sprite::new(&images[1], 0.0, -96.0).row(0, 6),
-                "各種設定",
+                if english { "Options" } else { "各種設定" },
                 Color32::WHITE,
             );
             menu_prompt(
                 &mut self.canvas,
                 Sprite::new(&images[3], 0.0, 96.0),
                 self.menu_buttons,
-                "終了",
+                english,
+                true,
             );
             return;
         }
@@ -881,7 +909,7 @@ impl Frontend {
                 -96.0,
             )
             .row(row, count),
-            ORIGINAL_OPTIONS[option],
+            options[option],
             Color32::WHITE,
         );
         if !self.canvas.sharp_text || self.page != Page::Controls {
@@ -894,7 +922,8 @@ impl Frontend {
                 &mut self.canvas,
                 Sprite::new(&images[4], 0.0, y),
                 self.menu_buttons,
-                "キャンセル",
+                english,
+                false,
             );
         }
         match self.page {
@@ -917,7 +946,18 @@ impl Frontend {
                     } else {
                         i as f32 * 28.0 - 28.0
                     };
-                    let label = if self.page == Page::Card {
+                    let label = if english {
+                        if self.page == Page::Card {
+                            ["Load", "Save"][i]
+                        } else {
+                            match option {
+                                1 => ["Easy", "Normal", "Hard"][i],
+                                2 => ["Stereo", "Mono"][i],
+                                9 => ["Japanese", "English", "French", "Italian"][i],
+                                _ => ["On", "Off"][i],
+                            }
+                        }
+                    } else if self.page == Page::Card {
                         ["読込", "保存"][i]
                     } else {
                         match option {
@@ -963,7 +1003,13 @@ impl Frontend {
                             .row(i, 2)
                             .light(if i == self.selection { 128 } else { 32 })
                             .blend(Blend::Subtract),
-                        if i == 0 {
+                        if english {
+                            if self.page == Page::Volume {
+                                ["Music", "Effects"][i]
+                            } else {
+                                ["Play music", "Play effects"][i]
+                            }
+                        } else if i == 0 {
                             "音楽"
                         } else if self.page == Page::Volume {
                             "効果音"
@@ -1006,12 +1052,31 @@ impl Frontend {
                 }
             }
             Page::Controls => {
-                self.canvas.sprite(Sprite::new(&images[10], 0.0, 0.0));
+                let panel = &images[10];
+                if english && self.canvas.sharp_text {
+                    self.canvas.background_without(panel, [84, 183, 128, 12]);
+                    self.canvas.sprite(
+                        Sprite::new(panel, 2.0, 89.0)
+                            .region([216, 183, 16, 12])
+                            .scale(8.0, 1.0),
+                    );
+                    self.canvas.text_label(
+                        Sprite::new(panel, 2.0, 89.0).region([84, 183, 128, 12]),
+                        labels::menu_buttons(Language::English, self.menu_buttons),
+                        Color32::LIGHT_GRAY,
+                    );
+                } else {
+                    self.canvas.sprite(Sprite::new(panel, 0.0, 0.0));
+                }
                 self.canvas.label(
                     Sprite::new(&images[12], 0.0, -62.0)
                         .row(self.choice, 4)
                         .blend(Blend::Subtract),
-                    ["通常", "その壱", "その弐", "その参"][self.choice],
+                    if english {
+                        ["Default", "Alt1", "Alt2", "Alt3"][self.choice]
+                    } else {
+                        ["通常", "その壱", "その弐", "その参"][self.choice]
+                    },
                     Color32::from_rgb(40, 27, 22),
                 );
                 for i in 0..8 {
@@ -1020,8 +1085,18 @@ impl Frontend {
                         Sprite::new(&images[11], f32::from(x), f32::from(y))
                             .row(self.tables.control_actions[self.choice][i], 6)
                             .blend(Blend::Subtract),
-                        ["忍具選択", "視点変更", "忍具使用", "隠れる", "跳ぶ", "斬る"]
-                            [self.tables.control_actions[self.choice][i]],
+                        (if english {
+                            [
+                                "Item Select",
+                                "Camera",
+                                "Use Item",
+                                "Stealth",
+                                "Jump",
+                                "Strike",
+                            ]
+                        } else {
+                            ["忍具選択", "視点変更", "忍具使用", "隠れる", "跳ぶ", "斬る"]
+                        })[self.tables.control_actions[self.choice][i]],
                         Color32::from_rgb(40, 27, 22),
                     );
                 }
@@ -1033,6 +1108,7 @@ impl Frontend {
 
     fn paint_records(&mut self, campaign: &Campaign) {
         let images = &self.option_images;
+        let english = self.language == Language::English;
         for i in 0..2 {
             self.canvas.sprite(
                 Sprite::new(&images[23 + i], 40.0 + i as f32 * 80.0, -96.0).blend(
@@ -1056,19 +1132,28 @@ impl Frontend {
                 Sprite::new(&images[26], -132.0, y)
                     .row(if mission == 0 { 10 } else { mission - 1 }, 11)
                     .blend(Blend::Add),
-                [
-                    "訓練",
-                    "一乃巻",
-                    "二乃巻",
-                    "三乃巻",
-                    "四乃巻",
-                    "五乃巻",
-                    "六乃巻",
-                    "七乃巻",
-                    "八乃巻",
-                    "九乃巻",
-                    "十乃巻",
-                ][mission],
+                if english {
+                    if mission == 0 {
+                        "Training".into()
+                    } else {
+                        format!("Level {mission}")
+                    }
+                } else {
+                    [
+                        "訓練",
+                        "一乃巻",
+                        "二乃巻",
+                        "三乃巻",
+                        "四乃巻",
+                        "五乃巻",
+                        "六乃巻",
+                        "七乃巻",
+                        "八乃巻",
+                        "九乃巻",
+                        "十乃巻",
+                    ][mission]
+                        .into()
+                },
                 Color32::from_rgb(220, 144, 204),
             );
             for (i, record) in records.iter().enumerate() {
@@ -1077,9 +1162,22 @@ impl Frontend {
                         Sprite::new(&images[28], i as f32 * 67.0 - 77.0, y + 1.0).blend(Blend::Add),
                     );
                     let grade = record.score(stage).grade as usize;
+                    let mut label =
+                        Sprite::new(&images[25], i as f32 * 67.0 - 77.0, y).row(4 - grade, 5);
+                    if english && self.canvas.sharp_text {
+                        let height = images[25].size[1] / 5;
+                        label = label.region([0, (4 - grade) * height, 60, height]);
+                    }
                     self.canvas.label(
-                        Sprite::new(&images[25], i as f32 * 67.0 - 77.0, y).row(4 - grade, 5),
-                        labels::rank(Language::Japanese, grade),
+                        label,
+                        labels::rank(
+                            if english {
+                                Language::English
+                            } else {
+                                Language::Japanese
+                            },
+                            grade,
+                        ),
                         labels::rank_color(grade),
                     );
                 }
@@ -1132,13 +1230,24 @@ impl Frontend {
         }
         if row > 0 {
             if self.canvas.sharp_text {
-                for (x, width, label) in [
-                    (-77.0, 60, "配置一"),
-                    (-10.0, 60, "配置二"),
-                    (57.0, 60, "配置三"),
-                    (116.0, 12, "点"),
-                    (142.0, 16, "時"),
-                ] {
+                let columns = if english {
+                    [
+                        (-77.0, 60, "Layout A"),
+                        (-10.0, 60, "Layout B"),
+                        (57.0, 60, "Layout C"),
+                        (111.0, 24, "Score"),
+                        (142.0, 24, "Time"),
+                    ]
+                } else {
+                    [
+                        (-77.0, 60, "配置一"),
+                        (-10.0, 60, "配置二"),
+                        (57.0, 60, "配置三"),
+                        (116.0, 12, "点"),
+                        (142.0, 16, "時"),
+                    ]
+                };
+                for (x, width, label) in columns {
                     self.canvas.label(
                         Sprite::new(&images[27], x, -77.0).region([0, 0, width, 12]),
                         label,
@@ -1211,10 +1320,21 @@ fn menu_prompt(
     canvas: &mut Canvas,
     sprite: Sprite<'_>,
     menu_buttons: crate::settings::MenuButtons,
-    back: &str,
+    english: bool,
+    exit: bool,
 ) {
     let (confirm, cancel) = menu_buttons.symbols();
-    let text = format!("{confirm} 決定　{cancel} {back}");
+    let text = if english && canvas.sharp_text {
+        let (select, back) = if exit {
+            ("Select", "Exit")
+        } else {
+            ("Okay", "Cancel")
+        };
+        format!("{confirm} {select}   {cancel} {back}")
+    } else {
+        let back = if exit { "終了" } else { "キャンセル" };
+        format!("{confirm} 決定　{cancel} {back}")
+    };
     if menu_buttons == crate::settings::MenuButtons::CircleCross {
         canvas.label(sprite, text, Color32::LIGHT_GRAY);
     } else {
