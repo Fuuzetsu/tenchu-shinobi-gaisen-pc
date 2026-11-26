@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.37.1 — 2026-11-26
+
 - Add a live controller backend selector under **F1 → General → Controls**:
   gilrs remains the default; desktop builds can switch to SDL automatic without
   restarting. Windows also offers XInput-only and WGI-only diagnostic modes.
