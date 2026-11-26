@@ -16,6 +16,11 @@ audio decoder crates used on all platforms. Keep it available beside game bundle
 Permissively licensed components retain their notices without a duplicate source
 download; the archive excludes the Rust compiler and permissive Cargo dependencies.
 
+The vendored gilrs 0.11.2 carries its MIT/Apache-2.0 licenses and the targeted
+upstream vibration-worker shutdown fix. See [vendor/gilrs/PORT-PATCH.md](vendor/gilrs/PORT-PATCH.md)
+for the source checksum, exact upstream commit and local changes. SDL's zlib
+notice is included with the native dependency notices.
+
 The outline and Japanese bitmap fonts are modified, renamed/subsetted OFL fonts;
 their provenance and upstream notices are in their respective data directories.
 The egui default fonts are covered by the Rust dependency notices. Image recipe

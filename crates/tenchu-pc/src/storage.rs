@@ -43,6 +43,7 @@ pub enum UserFile {
     Settings,
     Presets,
     Controls,
+    ControllerBackend,
     Randomizer,
     #[cfg(not(target_arch = "wasm32"))]
     Tenchu2Randomizer,
@@ -69,6 +70,7 @@ impl UserFile {
             Self::Settings => "settings.json",
             Self::Presets => "presets.json",
             Self::Controls => "controls.json",
+            Self::ControllerBackend => "controller-backend.json",
             Self::Randomizer => "randomizer.json",
             Self::Trials => "trials.json",
             Self::Studio => "level-studio.json",
@@ -105,6 +107,12 @@ impl UserFile {
             Self::Presets => (
                 "presets.json",
                 "TENCHU_PRESETS",
+                "XDG_CONFIG_HOME",
+                ".config",
+            ),
+            Self::ControllerBackend => (
+                "controller-backend.json",
+                "TENCHU_CONTROLLER_BACKEND",
                 "XDG_CONFIG_HOME",
                 ".config",
             ),

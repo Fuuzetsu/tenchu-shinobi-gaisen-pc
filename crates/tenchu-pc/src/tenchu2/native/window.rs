@@ -812,7 +812,7 @@ impl Application {
                 self.presets.open = false;
             }
         }
-        if save_diagnostics {
+        if save_diagnostics || self.controls.take_report_request() {
             if let Err(error) = self.save_diagnostics(paused) {
                 self.menu.panel.notice = error;
             }
@@ -983,6 +983,18 @@ impl ApplicationHandler for Application {
         };
         if self.menu.benchmarks.event(&view.window, &event) {
             return;
+        }
+        if self.focused
+            && let WindowEvent::KeyboardInput {
+                event,
+                is_synthetic: false,
+                ..
+            } = &event
+            && !event.repeat
+            && let PhysicalKey::Code(code) = event.physical_key
+        {
+            self.controls
+                .observe_test_key(code, event.state == ElementState::Pressed);
         }
         let consumed = view.state.on_window_event(&view.window, &event).consumed;
         self.menu.tools.event(

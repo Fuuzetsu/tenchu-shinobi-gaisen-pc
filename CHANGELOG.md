@@ -5,6 +5,21 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add a live controller backend selector under **F1 → General → Controls**:
+  gilrs remains the default; desktop builds can switch to SDL automatic without
+  restarting. Windows also offers XInput-only and WGI-only diagnostic modes.
+  Include the upstream gilrs vibration-worker shutdown fix for safe switching.
+  Keep existing bindings, simultaneous keyboard input and vibration; package SDL
+  with the desktop downloads. No Steamworks setup is required.
+- Add manual controller selection and require deliberate input for automatic
+  selection, preventing small stick drift from claiming the active device.
+- Add a controller input test, stuck-input release/reconnect controls and test
+  notes. Diagnostic reports retain eight backend attempts, device mappings,
+  button/axis activity, focus/polling history, initialization errors and backend
+  warnings. A disc-free **check-controllers** command checks initialization and
+  switching. These tools help diagnose Windows/Steam reports; the reported
+  hardware combinations have not yet been verified.
+
 ## 0.37.0 — 2026-11-25
 
 - Add one optional imported music theme to the T2 scenery sandbox in F6, on

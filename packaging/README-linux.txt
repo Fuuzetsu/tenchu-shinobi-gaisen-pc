@@ -43,3 +43,11 @@ is installed, use the explicit play command above.
 build-info.json and --version identify this download. Keep licenses/ with the
 program. The matching dependency-source archive is provided on the release page
 for rebuilding/redistribution; it is not needed to play.
+
+Controller troubleshooting: F1 > General > Controls > Controller connection and
+input test switches between gilrs (default) and SDL without restarting. Windows
+also offers XInput-only / WGI-only modes. Use a Steam Gamepad layout with extra
+buttons mapped to keyboard keys; keep the standard gamepad outputs enabled.
+Select the intended device, test/release each button, add connection/Steam notes,
+then Save diagnostic report after comparing modes. See docs/controllers.md in
+the source repository for the complete comparison checklist.

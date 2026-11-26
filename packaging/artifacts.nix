@@ -86,7 +86,7 @@ let
   '';
   win = pkgs.runCommand "tenchu-windows-x86_64" { } ''
     mkdir -p "$out/licenses"
-    cp ${windows}/bin/tenchu-pc.exe "$out/"
+    cp ${windows}/bin/tenchu-pc.exe ${windows}/bin/SDL3.dll "$out/"
     cp -R ${windows}/share/doc/tenchu-shinobi-gaisen-pc/. "$out/licenses/"
   '';
   sources = pkgs.runCommand "tenchu-dependency-sources" { } ''

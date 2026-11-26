@@ -37,6 +37,7 @@
             ./Cargo.toml
             ./Cargo.lock
             ./crates
+            ./vendor
             ./artwork/release.json
             ./artwork/tenchu2/release.json
             ./COPYING.md
@@ -51,6 +52,7 @@
           cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
           source = source pkgs.lib;
         };
+      sdl = pkgs: import ./packaging/sdl.nix { inherit pkgs; };
       native =
         pkgs:
         pkgs.rustPlatform.buildRustPackage {
@@ -63,25 +65,32 @@
             pkgs.buildPackages.pkg-config
           ]
           ++ pkgs.lib.optionals (!pkgs.stdenv.hostPlatform.isWindows) [ pkgs.makeWrapper ];
-          buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+          buildInputs = [
+            (sdl pkgs)
+          ]
+          ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
             pkgs.alsa-lib
             pkgs.udev
           ];
-          postInstall = ''
-            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc"
-            cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-shinobi-gaisen-pc/"
-            cp COPYING.md LICENSE "$out/share/doc/tenchu-shinobi-gaisen-pc/"
-            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec"
-            cp crates/tenchu-assets/data/mdec/{LICENSE-MIT,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec/"
-            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
-            cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
-              "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
-            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat"
-            cp crates/tenchu-pc/data/image-compat/{LICENSE,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat/"
-            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font"
-            cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} \
-              "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font/"
-          '';
+          postInstall =
+            pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isWindows ''
+              cp ${(sdl pkgs).out}/bin/SDL3.dll "$out/bin/"
+            ''
+            + ''
+              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc"
+              cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-shinobi-gaisen-pc/"
+              cp COPYING.md LICENSE "$out/share/doc/tenchu-shinobi-gaisen-pc/"
+              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec"
+              cp crates/tenchu-assets/data/mdec/{LICENSE-MIT,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec/"
+              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
+              cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
+                "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
+              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat"
+              cp crates/tenchu-pc/data/image-compat/{LICENSE,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat/"
+              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font"
+              cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} \
+                "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font/"
+            '';
           postFixup = pkgs.lib.optionalString (!pkgs.stdenv.hostPlatform.isWindows) ''
             wrapProgram "$out/bin/tenchu-pc" \
               --set-default TENCHU_FFMPEG "${pkgs.ffmpeg}/bin/ffmpeg" \
@@ -201,7 +210,10 @@
                 geckodriver
               ]
               ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.zenity ];
-            buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+            buildInputs = [
+              (sdl pkgs)
+            ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
               pkgs.alsa-lib
               pkgs.udev
             ];
@@ -227,10 +239,13 @@
               packages = [
                 pkgs.cargo
                 pkgs.clippy
+                pkgs.pkg-config
                 cross.stdenv.cc
                 cross.stdenv.cc.bintools
                 pkgs.wineWow64Packages.stable
               ];
+              buildInputs = [ (sdl cross) ];
+              PKG_CONFIG_ALLOW_CROSS = "1";
               CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS = "-L native=${cross.windows.pthreads}/lib";
               RUSTC = "${cross.buildPackages.rustc}/bin/rustc";
               RUSTDOC = "${cross.buildPackages.rustc}/bin/rustdoc";

@@ -12,9 +12,11 @@ The report includes:
   compiler; OS/browser, GPU, driver, renderer, resolution and presentation mode.
 - Current settings and controller/keyboard bindings, effective renderer settings,
   gameplay/debug overrides, model selection and loaded artwork counts/errors.
-- Connected controller names, active device, vendor/product IDs, mapping,
-  wired/battery status, driver-reported vibration support and the last
-  effect-start error. These are capabilities reported by the input backend,
+- Controller backend and up to eight attempts from this process, selected/active
+  device, vendor/product IDs, mapping GUID/string, wired/battery status, live
+  normalized buttons/sticks/triggers, observed presses/releases and axis ranges,
+  focus/poll counts and gaps, initialization errors, bounded backend warnings,
+  test notes, driver-reported vibration support and the last effect-start error. These are capabilities reported by the input backend,
   not confirmation that the physical motors work.
 - Mission, character, difficulty, layout, randomizer seed/configuration if active,
   RNG, actors, AI/alert/radar, inventory, active items, camera and mission counters.
@@ -40,6 +42,14 @@ disc assets, textures, raw process memory, campaign save, username/hostname quer
 or environment dump. Model directory values and known personal path roots in
 errors are redacted. Review custom names and error text before sharing. Saving
 does not upload anything, modify settings, or change the simulation.
+
+For controller problems, use [the controller comparison checklist](controllers.md).
+The Controls input-test panel can save the same report. Each backend attempt
+retains up to 96 input/selection/focus events, plus cumulative activity; keyboard
+entries contain only bound action masks, not text. Steam/mapping environment
+flags record presence only; they do not prove the overlay or Steam Input is active.
+No controller serial number, device path, Steam account ID or full environment
+is queried. Input test notes are included verbatim: avoid personal information.
 
 See [gameplay validation](validation.md) for the current emulator comparisons and
 the separate audit of optional enemy simulation settings.

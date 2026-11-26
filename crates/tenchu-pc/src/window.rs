@@ -908,6 +908,18 @@ impl ApplicationHandler for Application {
             }
             return;
         }
+        if self.focused
+            && let WindowEvent::KeyboardInput {
+                event,
+                is_synthetic: false,
+                ..
+            } = &event
+            && !event.repeat
+            && let PhysicalKey::Code(code) = event.physical_key
+        {
+            self.controls
+                .observe_test_key(code, event.state == ElementState::Pressed);
+        }
         if self.menu.open
             && self.controls.capturing()
             && let WindowEvent::KeyboardInput {

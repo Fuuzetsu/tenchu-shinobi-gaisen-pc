@@ -1,9 +1,12 @@
 use crate::campaign::Action;
-use gilrs::{Button, EventType, Gilrs};
+use backend::{Change, Kind};
+use gilrs::{Button, Gilrs};
 use std::{collections::HashSet, mem, path::PathBuf};
 use tenchu_core::input;
 use winit::keyboard::KeyCode;
+mod backend;
 mod bindings;
+mod diagnostic;
 pub use bindings::{SHEATHE, WALK};
 mod editor;
 mod rumble;
@@ -211,6 +214,17 @@ pub struct Controls {
     keys: HashSet<KeyCode>,
     pending_keys: u32,
     gilrs: Option<Gilrs>,
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+    sdl: Option<backend::sdl::Backend>,
+    backend: Kind,
+    backend_error: Option<String>,
+    selected_device: Option<usize>,
+    controller_history: diagnostic::History,
+    report_requested: bool,
+    test_keys: HashSet<KeyCode>,
+    test_keyboard_active: bool,
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+    sdl_rumble: Option<rumble::SdlRumble>,
     pad: Pad,
     rumble: Option<gilrs::ff::Effect>,
     native_rumble: Option<(Option<usize>, [u16; 2])>,
@@ -218,52 +232,12 @@ pub struct Controls {
 }
 
 impl Controls {
-    pub fn diagnostic_settings(&self) -> serde_json::Value {
-        let controllers: Vec<_> = self
-            .gilrs
-            .iter()
-            .flat_map(|g| g.gamepads())
-            .map(|(_, pad)| pad.name().to_owned())
-            .collect();
-        let details: Vec<_> = self
-            .gilrs
-            .iter()
-            .flat_map(|g| g.gamepads())
-            .map(|(id, pad)| {
-                serde_json::json!({
-                    "name": pad.name(),
-                    "active": self.pad.active == Some(usize::from(id)),
-                    "vendor_id": pad.vendor_id(),
-                    "product_id": pad.product_id(),
-                    "mapping": format!("{:?}", pad.mapping_source()),
-                    "power": format!("{:?}", pad.power_info()),
-                    "vibration_supported": pad.is_ff_supported(),
-                })
-            })
-            .collect();
-        serde_json::json!({
-            "bindings": self.bindings, "controllers": controllers,
-            "controller_details": details, "controller_backend_available": self.gilrs.is_some(),
-            "vibration_error": self.vibration_error,
-        })
-    }
-
     pub fn held(&self, key: KeyCode) -> bool {
         self.keys.contains(&key)
     }
 
     pub fn new() -> Self {
-        let gilrs = match Gilrs::new() {
-            Ok(gilrs) => Some(gilrs),
-            Err(error) => {
-                eprintln!("Controller input unavailable: {error}");
-                None
-            }
-        };
-        let mut controls = Self {
-            gilrs,
-            ..Self::default()
-        };
+        let mut controls = Self::default();
         let load = || {
             let path = crate::storage::UserFile::Controls.path()?;
             let bindings = match crate::storage::read(&path) {
@@ -285,19 +259,28 @@ impl Controls {
                 controls.bindings_path = crate::storage::UserFile::Controls.path().ok();
             }
         }
+        let kind = crate::storage::UserFile::ControllerBackend
+            .path()
+            .ok()
+            .and_then(|path| crate::storage::read(&path).ok())
+            .and_then(|bytes| serde_json::from_slice::<Kind>(&bytes).ok())
+            .filter(|kind| Kind::choices().contains(kind))
+            .unwrap_or_default();
+        let kind = std::env::var("TENCHU_CONTROLLER_DRIVER")
+            .ok()
+            .and_then(|name| Kind::parse(&name))
+            .unwrap_or(kind);
+        controls.start_backend(kind);
         controls
     }
 
     fn save_bindings(&mut self) {
         self.clear();
-        if let Some(gilrs) = &self.gilrs
-            && let Some((_, gamepad)) = gilrs
-                .gamepads()
-                .find(|(id, _)| Some(usize::from(*id)) == self.pad.active)
-        {
+        if let Some(reading) = self.current_reading() {
             self.pad.raw = self
                 .bindings
-                .controller(|button| gamepad.is_pressed(button), self.pad.stick);
+                .controller(|b| reading.pressed(b), self.pad.stick);
+            self.pad.direct = self.bindings.controller(|b| reading.pressed(b), [0; 4]);
             self.pad.suppress();
         }
         let save = || {
@@ -328,6 +311,10 @@ impl Controls {
     }
 
     pub fn key(&mut self, code: KeyCode, pressed: bool) -> bool {
+        if self.keys.contains(&code) != pressed {
+            self.controller_history
+                .keyboard(self.bindings.key(code), pressed);
+        }
         if pressed {
             let changed = self.keys.insert(code);
             if changed {
@@ -362,6 +349,7 @@ impl Controls {
     }
 
     pub fn clear(&mut self) {
+        self.test_keys.clear();
         self.touch.suppress();
         self.stop_rumble();
         self.keys.clear();
@@ -505,43 +493,40 @@ impl Controls {
             self.pad.suppress();
             self.stop_rumble();
         }
-        let Some(gilrs) = &mut self.gilrs else {
-            return update;
-        };
+        self.controller_history.poll(focused);
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+        self.update_sdl_rumble();
         let mut captured = None;
-        while let Some(event) = gilrs.next_event() {
-            let id = usize::from(event.id);
-            if event.event == EventType::Disconnected {
+        while let Some(event) = self.next_controller_event() {
+            self.controller_history.event(&event);
+            let id = event.id;
+            if matches!(event.change, Change::Connected | Change::Disconnected) {
+                self.controller_history.devices(self.devices());
+            }
+            if matches!(event.change, Change::Disconnected) {
                 if self.pad.disconnect(id) {
                     update.disconnected = true;
-                    self.rumble = None;
-                    self.native_rumble = None;
+                    self.stop_rumble();
                 }
                 continue;
             }
-            if !matches!(
-                event.event,
-                EventType::ButtonPressed(..)
-                    | EventType::ButtonReleased(..)
-                    | EventType::ButtonChanged(..)
-                    | EventType::AxisChanged(..)
-            ) {
+            if self.selected_device.is_some_and(|selected| selected != id)
+                || self.pad.active.is_some_and(|active| active != id)
+            {
                 continue;
             }
-            if self.pad.active.is_some_and(|active| active != id) {
-                continue;
+            let reading = event.reading;
+            // Ignore idle drift when choosing between physical/virtual devices.
+            if self.pad.active.is_none() {
+                let deliberate = matches!(event.change, Change::Button(b, true) if b != Button::Unknown)
+                    || reading.axes.iter().any(|v| v.abs() >= 0.55);
+                if !focused || !deliberate {
+                    continue;
+                }
+                self.pad.active = Some(id);
             }
-            let gamepad = gilrs.gamepad(event.id);
-            let before = self.pad.active;
             let previous_stick = self.pad.stick;
-            self.pad.axes = std::array::from_fn(|i| {
-                let value = gamepad.value(StickAxis::ALL[i].axis());
-                if value.is_finite() {
-                    value.clamp(-1.0, 1.0)
-                } else {
-                    0.0
-                }
-            });
+            self.pad.axes = reading.axes;
             for (blocked, axes) in self
                 .pad
                 .axes_blocked
@@ -550,59 +535,45 @@ impl Controls {
             {
                 *blocked &= axes.iter().any(|v| v.abs() > 0.05);
             }
-            if focused && self.pad.axes.iter().any(|v| v.abs() > 0.05) {
-                self.pad.active = Some(id);
-            }
             if focused
                 && !self.editor.open
-                && matches!(event.event, EventType::ButtonPressed(Button::RightThumb, _))
+                && matches!(event.change, Change::Button(Button::RightThumb, true))
             {
                 self.pad.recenter = true;
-                self.pad.active = Some(id);
             }
             let previous_direct = self.pad.direct & !self.pad.direct_blocked;
-            self.pad.direct = self
-                .bindings
-                .controller(|button| gamepad.is_pressed(button), [0; 4]);
+            self.pad.direct = self.bindings.controller(|b| reading.pressed(b), [0; 4]);
             self.pad.direct_blocked &= self.pad.direct;
             self.pad.direct_pending |=
                 (self.pad.direct & !self.pad.direct_blocked) & !previous_direct;
             self.pad.stick =
                 std::array::from_fn(|i| direction(self.pad.axes[i], previous_stick[i]));
             if focused && self.editor.open && captured.is_none() {
-                captured = match event.event {
-                    EventType::ButtonPressed(button, _) if button != Button::Unknown => {
+                captured = match event.change {
+                    Change::Button(button, true) if button != Button::Unknown => {
                         Some(PadInput::Button(button))
                     }
-                    EventType::AxisChanged(axis, _, _) => {
-                        StickAxis::ALL.iter().enumerate().find_map(|(i, &stick)| {
-                            (stick.axis() == axis
-                                && self.pad.stick[i] != 0
-                                && self.pad.stick[i] != previous_stick[i])
-                                .then_some(PadInput::Stick {
-                                    axis: stick,
-                                    positive: self.pad.stick[i] > 0,
-                                })
+                    Change::Axis(i)
+                        if self.pad.stick[i] != 0 && self.pad.stick[i] != previous_stick[i] =>
+                    {
+                        Some(PadInput::Stick {
+                            axis: StickAxis::ALL[i],
+                            positive: self.pad.stick[i] > 0,
                         })
                     }
                     _ => None,
                 };
-                if captured.is_some() {
-                    self.pad.active = Some(id);
-                }
             }
             let buttons = self
                 .bindings
-                .controller(|button| gamepad.is_pressed(button), self.pad.stick);
+                .controller(|b| reading.pressed(b), self.pad.stick);
             update.pressed |= self.pad.sample(id, buttons, focused) as u16;
-            let menu_buttons =
-                bindings::menu_buttons(|button| gamepad.is_pressed(button), self.pad.stick);
+            let menu_buttons = bindings::menu_buttons(|b| reading.pressed(b), self.pad.stick);
             update.menu_pressed |= self.pad.sample_menu(id, menu_buttons, focused);
-            if before != self.pad.active {
-                println!("Controller: {}", gamepad.name());
-            }
         }
-        gilrs.inc();
+        if let Some(gilrs) = &mut self.gilrs {
+            gilrs.inc();
+        }
         if let Some(input) = captured {
             self.editor_button(input);
         }
@@ -617,3 +588,40 @@ impl Controls {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn check_controllers(selected: Option<&str>) -> Result<(), String> {
+    let selection = selected
+        .map(|name| {
+            Kind::parse(name)
+                .ok_or("Choose an available controller backend: gilrs, sdl, sdl-xinput, sdl-wgi")
+        })
+        .transpose()?;
+    let mut controls = Controls::default();
+    let mut failures = Vec::new();
+    // Exercise teardown/reinitialization too, without a window or a disc.
+    for _ in 0..2 {
+        for &kind in Kind::choices()
+            .iter()
+            .filter(|&&kind| selection.is_none_or(|selected| selected == kind))
+        {
+            controls.start_backend(kind);
+            for _ in 0..5 {
+                controls.poll(false);
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            if let Some(error) = &controls.backend_error {
+                failures.push(format!("{}: {error}", kind.label()));
+            }
+        }
+    }
+    let settings = crate::settings::Settings::default();
+    let report = crate::diagnostics::report(&settings, &crate::debug::Debug::default(), &controls);
+    let bytes = crate::diagnostics::finish(report, &settings, None)?;
+    println!("{}", String::from_utf8(bytes).map_err(|e| e.to_string())?);
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(failures.join("; "))
+    }
+}

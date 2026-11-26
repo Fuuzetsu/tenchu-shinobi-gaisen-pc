@@ -183,6 +183,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe check-controllers
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   publish:
     name: Publish complete downloads

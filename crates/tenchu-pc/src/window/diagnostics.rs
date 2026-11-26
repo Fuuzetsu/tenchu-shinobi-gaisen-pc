@@ -122,6 +122,11 @@ impl Application {
     }
 
     pub(super) fn poll_diagnostics(&mut self) {
+        if self.controls.take_report_request()
+            && let Err(error) = self.save_diagnostics()
+        {
+            self.menu.notice = error;
+        }
         let Some(result) = self.report_save.poll() else {
             return;
         };

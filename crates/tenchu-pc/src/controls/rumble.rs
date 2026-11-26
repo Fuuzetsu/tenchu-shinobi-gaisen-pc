@@ -3,9 +3,107 @@ use crate::settings::Vibration;
 use gilrs::ff::{BaseEffect, BaseEffectType, EffectBuilder, Envelope, Repeat, Replay, Ticks};
 use tenchu_core::{effects::Rumble, game::Game};
 
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+pub(super) struct SdlRumble {
+    id: usize,
+    started: web_time::Instant,
+    last_sent: Option<u64>,
+    motors: [u16; 2],
+    envelope: Option<[u64; 2]>,
+}
+
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+impl SdlRumble {
+    fn constant(id: usize, motors: [u16; 2]) -> Self {
+        Self {
+            id,
+            started: web_time::Instant::now(),
+            last_sent: None,
+            motors,
+            envelope: None,
+        }
+    }
+
+    fn envelope(id: usize, request: &Rumble, gain: f32) -> Self {
+        // Match the existing gilrs adapter's 50 ms quantization.
+        let duration = |n: u16| u64::from((u32::from(n) * 1000).div_ceil(120).div_ceil(50) * 50);
+        Self {
+            envelope: Some([duration(request.attack), duration(request.release)]),
+            ..Self::constant(
+                id,
+                [
+                    (f32::from(u16::MAX) * gain) as u16,
+                    (f32::from(request.power) * 257.0 * gain) as u16,
+                ],
+            )
+        }
+    }
+
+    fn sample(&self, milliseconds: u64) -> Option<[u16; 2]> {
+        let Some([attack, release]) = self.envelope else {
+            return Some(self.motors);
+        };
+        let total = attack + release + 50;
+        if milliseconds >= total {
+            return None;
+        }
+        let time = milliseconds / 50 * 50;
+        let gain = if time < attack {
+            time as f32 / attack as f32
+        } else if time + release > total {
+            (total - time) as f32 / release as f32
+        } else {
+            1.0
+        };
+        Some([
+            if time < attack { self.motors[0] } else { 0 },
+            (f32::from(self.motors[1]) * gain) as u16,
+        ])
+    }
+}
+
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+impl Controls {
+    pub(super) fn update_sdl_rumble(&mut self) {
+        let Some(effect) = &mut self.sdl_rumble else {
+            return;
+        };
+        let elapsed = effect.started.elapsed().as_millis() as u64;
+        let Some(motors) = effect.sample(elapsed) else {
+            self.stop_rumble();
+            return;
+        };
+        if effect
+            .last_sent
+            .is_some_and(|last| elapsed / 50 == last / 50)
+        {
+            return;
+        }
+        effect.last_sent = Some(elapsed);
+        if let Some(sdl) = &mut self.sdl {
+            // A short lease prevents a stalled host from leaving the motors running.
+            match sdl.rumble(effect.id, motors[0], motors[1], 150) {
+                Ok(()) => self.vibration_error = None,
+                Err(error) => {
+                    self.vibration_error = Some(error);
+                    self.sdl_rumble = None;
+                    self.native_rumble = None;
+                }
+            }
+        }
+    }
+}
+
 impl Controls {
     pub fn stop_rumble(&mut self) {
         self.native_rumble = None;
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+        if let Some(effect) = self.sdl_rumble.take()
+            && let Some(sdl) = &mut self.sdl
+            && let Err(error) = sdl.rumble(effect.id, 0, 0, 0)
+        {
+            self.vibration_error = Some(error);
+        }
         if let Some(effect) = self.rumble.take() {
             let _ = effect.stop();
         }
@@ -30,6 +128,14 @@ impl Controls {
         if gain == 0.0 {
             return;
         }
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+        if self.sdl.is_some() {
+            if let Some(id) = self.pad.active {
+                self.sdl_rumble = Some(SdlRumble::envelope(id, request, gain));
+                self.update_sdl_rumble();
+            }
+            return;
+        }
         self.play_feedback(effect(request, gain));
     }
 
@@ -50,6 +156,21 @@ impl Controls {
             return;
         }
         let selection = (self.pad.active, motors);
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+        if self.sdl.is_some() {
+            if self.native_rumble == Some(selection) && self.sdl_rumble.is_some() {
+                return;
+            }
+            self.stop_rumble();
+            if let Some(id) = self.pad.active {
+                self.sdl_rumble = Some(SdlRumble::constant(id, motors));
+                self.update_sdl_rumble();
+                if self.sdl_rumble.is_some() {
+                    self.native_rumble = Some(selection);
+                }
+            }
+            return;
+        }
         if self.native_rumble == Some(selection) && self.rumble.is_some() {
             return;
         }
@@ -173,6 +294,39 @@ fn effect(request: &Rumble, gain: f32) -> EffectBuilder {
 mod tests {
     use super::*;
     use tenchu_core::{effects::RumbleAction, tenchu2::feedback::Feedback};
+
+    #[cfg(not(target_os = "android"))]
+    #[test]
+    fn sdl_envelope_releases_both_motors_and_preserves_constant_t2_levels() {
+        let request = Rumble {
+            actor: 0,
+            action: RumbleAction::Damage,
+            power: 255,
+            attack: 12,
+            release: 12,
+        };
+        let effect = SdlRumble::envelope(0, &request, 0.5);
+        assert_eq!(effect.sample(0), Some([32767, 0]));
+        assert_eq!(effect.sample(50), Some([32767, 16383]));
+        assert_eq!(effect.sample(100), Some([0, 32767]));
+        assert_eq!(effect.sample(200), Some([0, 16383]));
+        assert_eq!(effect.sample(250), None);
+        let effect = SdlRumble::envelope(
+            0,
+            &Rumble {
+                attack: 0,
+                release: 0,
+                ..request
+            },
+            1.0,
+        );
+        assert_eq!(effect.sample(0), Some([0, 65535]));
+        assert_eq!(effect.sample(50), None);
+        assert_eq!(
+            SdlRumble::constant(0, [65535, 257]).sample(10000),
+            Some([65535, 257])
+        );
+    }
 
     #[test]
     fn native_motor_gains_mute_independently_and_clamp_to_driver_range() {

@@ -91,7 +91,7 @@ impl Controls {
             return;
         }
         let capture = self.editor.capture;
-        let changed = self.editor.show(ctx, &mut self.bindings, tenchu2);
+        let changed = self.draw_bindings(ctx, tenchu2);
         if changed {
             self.save_bindings();
         }
@@ -101,8 +101,8 @@ impl Controls {
     }
 }
 
-impl Editor {
-    fn show(&mut self, ctx: &egui::Context, bindings: &mut Bindings, tenchu2: bool) -> bool {
+impl Controls {
+    fn draw_bindings(&mut self, ctx: &egui::Context, tenchu2: bool) -> bool {
         let mut changed = false;
         egui::Modal::new(egui::Id::new("control-bindings")).show(ctx, |ui| {
             ui.set_width(580.0_f32.min(ctx.screen_rect().width() - 48.0));
@@ -111,9 +111,11 @@ impl Editor {
             ui.horizontal(|ui| {
                 ui.heading("Controls");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("Done").clicked() { self.open = false; self.capture = None; }
+                    if ui.button("Done").clicked() { self.editor.open = false; self.editor.capture = None; }
                 });
             });
+            self.controller_ui(ui);
+            ui.separator();
             ui.label("Click a binding, then press a key, button or stick direction. Changes save automatically. × clears a binding; Escape cancels capture.");
             if tenchu2 {
                 ui.weak("Bindings are shared with Gaisen. Original T2 controls use Circle to guard/dash and R1 to crouch. F1 > Movement > Shift / Circle action can change this. Assigning an input moves it from its previous action.");
@@ -126,8 +128,8 @@ impl Editor {
             }
             ui.horizontal(|ui| {
                 for (device, label) in [(Device::Keyboard, "Keyboard"), (Device::Controller, "Controller")] {
-                    if ui.selectable_value(&mut self.device, device, label).clicked() {
-                        self.capture = None;
+                    if ui.selectable_value(&mut self.editor.device, device, label).clicked() {
+                        self.editor.capture = None;
                     }
                 }
             });
@@ -138,27 +140,27 @@ impl Editor {
                     for target in Target::ALL {
                         ui.label(target.description().0);
                         for slot in 0..2 {
-                            let capture = Capture { target, slot, device: self.device };
-                            let row = bindings.0.get_mut(&target).unwrap();
-                            let label = if self.capture == Some(capture) {
+                            let capture = Capture { target, slot, device: self.editor.device };
+                            let row = self.bindings.0.get_mut(&target).unwrap();
+                            let label = if self.editor.capture == Some(capture) {
                                 "Press input…".into()
                             } else {
-                                match self.device {
+                                match self.editor.device {
                                     Device::Keyboard => row.keys[slot].map(|key| format!("{key:?}").trim_start_matches("Key").to_owned()),
                                     Device::Controller => row.controller[slot].map(PadInput::label),
                                 }.unwrap_or_else(|| "Unbound".into())
                             };
                             ui.horizontal(|ui| {
-                                if ui.add_sized([146.0, 23.0], egui::Button::new(label).selected(self.capture == Some(capture))).clicked() {
-                                    self.capture = Some(capture);
-                                    self.notice = "Release any held inputs, then press the new input.".into();
+                                if ui.add_sized([146.0, 23.0], egui::Button::new(label).selected(self.editor.capture == Some(capture))).clicked() {
+                                    self.editor.capture = Some(capture);
+                                    self.editor.notice = "Release any held inputs, then press the new input.".into();
                                 }
                                 if ui.small_button("×").on_hover_text("Clear binding").clicked() {
-                                    match self.device {
+                                    match self.editor.device {
                                         Device::Keyboard => row.keys[slot] = None,
                                         Device::Controller => row.controller[slot] = None,
                                     }
-                                    self.capture = None;
+                                    self.editor.capture = None;
                                     changed = true;
                                 }
                             });
@@ -168,19 +170,19 @@ impl Editor {
                 });
             });
             ui.separator();
-            if ui.button(match self.device { Device::Keyboard => "Reset keyboard to defaults", Device::Controller => "Reset controller to defaults" }).clicked() {
+            if ui.button(match self.editor.device { Device::Keyboard => "Reset keyboard to defaults", Device::Controller => "Reset controller to defaults" }).clicked() {
                 for (target, default) in Bindings::default().0 {
-                    let row = bindings.0.get_mut(&target).unwrap();
-                    match self.device {
+                    let row = self.bindings.0.get_mut(&target).unwrap();
+                    match self.editor.device {
                         Device::Keyboard => row.keys = default.keys,
                         Device::Controller => row.controller = default.controller,
                     }
                 }
-                self.capture = None;
+                self.editor.capture = None;
                 changed = true;
             }
             ui.weak("Escape / Enter / F1–F12 keep their menu and tool shortcuts. Backspace keeps cutscene fast-forward. Keyboard bindings use physical key positions.");
-            if !self.notice.is_empty() { ui.label(&self.notice); }
+            if !self.editor.notice.is_empty() { ui.label(&self.editor.notice); }
             });
         });
         changed

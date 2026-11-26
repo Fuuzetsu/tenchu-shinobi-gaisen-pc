@@ -38,3 +38,12 @@ build-info.json and --version identify this download. Keep licenses/ with the
 program. The dependency-source download covers shared libraries in the Linux
 bundle; it is not needed for this Windows download. This executable is not
 code-signed; obtain it from the project's release page and check SHA256SUMS.
+
+Controller troubleshooting: F1 > General > Controls > Controller connection and
+input test switches between gilrs (default) and SDL without restarting. Windows
+also offers XInput-only / WGI-only modes. Use a Steam Gamepad layout with extra
+buttons mapped to keyboard keys; keep the standard gamepad outputs enabled.
+Select the intended device, test/release each button, add connection/Steam notes,
+then Save diagnostic report after comparing modes. See docs/controllers.md in
+the source repository for the complete comparison checklist.
+Keep the bundled SDL3.dll beside tenchu-pc.exe. No separate SDL install is needed.

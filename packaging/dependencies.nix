@@ -40,6 +40,7 @@ let
       libsndfile
       lame
       libmpg123
+      libusb1
     ];
   sourceLibraries = copyleftLibraries pkgs;
   sourcePackages =
@@ -92,7 +93,10 @@ let
         pkgsCross.mingwW64.windows.mingw_w64
       ]
     );
-  components = libraries ++ [ pkgs.rustc-unwrapped ];
+  components = libraries ++ [
+    (import ./sdl.nix { inherit pkgs; })
+    pkgs.rustc-unwrapped
+  ];
   sourceNames = map (p: p.name) sourceLibraries;
   sourceKey = p: builtins.unsafeDiscardStringContext (toString p.src);
   sourceGroups = lib.groupBy sourceKey sourcePackages;

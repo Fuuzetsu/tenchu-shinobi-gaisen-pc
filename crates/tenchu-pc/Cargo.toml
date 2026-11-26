@@ -24,6 +24,7 @@ lz4_flex.workspace = true
 flate2 = "1"
 sha2.workspace = true
 web-time = "1.1"
+log = "0.4"
 semver = "1"
 base64 = "0.23.1"
 symphonia = { version = "0.6.1", default-features = false, features = ["wav", "pcm", "ogg", "vorbis", "mp3", "flac"] }
@@ -59,6 +60,7 @@ web-sys = { version = "=0.3.98", features = [
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]
 egui-winit = { workspace = true, features = ["clipboard"] }
 rfd = "0.17.2"
+sdl3 = { version = "=0.22.1", features = ["use-pkg-config"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 egui-winit.workspace = true

@@ -2452,3 +2452,12 @@ practice, so it cannot replace a record. Visual settings do not affect eligibili
 Browser deployments made before this port need `prepare-web` run again to include
 TRIAL.EXE. Remaining assets and Japanese audio load in the background; the editor
 reports when they are not ready yet. No loading is required once a trial starts.
+
+### Controller troubleshooting
+
+**F1 → General → Controls → Controller connection and input test** switches
+between gilrs (the default) and SDL on desktop. Windows additionally offers
+XInput-only and WGI-only comparisons. Select a device explicitly if several are
+listed, test its buttons/sticks, and save one report after comparing backends.
+Existing bindings work with either backend and keyboard shortcuts remain active.
+See [controller setup and the reporting checklist](controllers.md).
