@@ -216,10 +216,11 @@ impl Backend {
                 .into_iter()
                 .filter(|id| !self.pads.contains_key(&(id.raw() as usize)))
             {
-                devices.push(Device { id: id.raw() as usize,
+                devices.push(Device {
+                    id: id.raw() as usize,
                     name: joystick_name(id),
                     reading: Reading::default(),
-                    details: json!({"recognized_gamepad": self.gamepads.is_gamepad(id), "opened": false}),
+                    details: unopened_details(id, self.gamepads.is_gamepad(id)),
                 });
             }
         }
@@ -308,6 +309,21 @@ fn apply_axis(reading: &mut Reading, axis: Axis, value: i16) -> Change {
     Change::Axis(index)
 }
 
+fn unopened_details(id: JoystickId, recognized: bool) -> serde_json::Value {
+    // These identity queries do not open a device or return serials/device paths.
+    unsafe {
+        use sdl3::sys::joystick::*;
+        let guid = SDL_GetJoystickGUIDForID(id.into());
+        json!({
+            "recognized_gamepad": recognized, "opened": false,
+            "vendor_id": SDL_GetJoystickVendorForID(id.into()),
+            "product_id": SDL_GetJoystickProductForID(id.into()),
+            "mapping_guid": guid.data.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+            "joystick_type": SDL_GetJoystickTypeForID(id.into()).0,
+        })
+    }
+}
+
 fn joystick_name(id: JoystickId) -> String {
     // SDL owns the name; copy it before the next pump can remove the device.
     unsafe {
@@ -341,6 +357,30 @@ mod tests {
         );
         let sdl = controls.sdl.as_ref().unwrap();
         let joystick_system = sdl.joysticks.clone();
+        let unmapped = joystick_system
+            .attach_virtual_joystick(
+                VirtualJoystickDescription::new()
+                    .name("Unmapped test joystick")
+                    .num_hats(1),
+            )
+            .unwrap();
+        controls.poll(true);
+        let device = controls
+            .devices()
+            .into_iter()
+            .find(|d| d.id == unmapped.id().raw() as usize)
+            .unwrap();
+        assert_eq!(device.details["recognized_gamepad"], false);
+        assert_eq!(device.details["opened"], false);
+        assert_eq!(device.details["mapping_guid"].as_str().unwrap().len(), 32);
+        assert_ne!(
+            device.details["mapping_guid"],
+            "00000000000000000000000000000000"
+        );
+        assert!(
+            device.details["vendor_id"].is_number() && device.details["product_id"].is_number()
+        );
+        drop(unmapped);
         let desc = || {
             VirtualJoystickDescription::new()
                 .name("Tenchu adapter test")

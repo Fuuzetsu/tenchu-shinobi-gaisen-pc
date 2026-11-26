@@ -332,6 +332,9 @@ impl Controls {
             ui.weak("Steam: use a Gamepad layout, with extra buttons mapped to keyboard keys. Keep gamepad outputs enabled. SDL automatic respects Steam device exclusions.");
             if devices.is_empty() { ui.label("No controllers detected by this backend."); }
             for device in &devices {
+                if device.details["opened"] == false {
+                    ui.weak("Joystick detected but not opened as a gamepad. Its identity and mapping status are included in the report.");
+                }
                 let held = device.reading.names().join(", ");
                 ui.label(format!("#{} {}{}", device.id, device.name, if self.pad.active == Some(device.id) { " (active)" } else { "" }));
                 ui.monospace(format!("Buttons: {}\nSticks: {:+.2?}  Triggers L/R: {:.2?}",

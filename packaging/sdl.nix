@@ -29,11 +29,12 @@
       old.cmakeFlags
       ++ [
         "-DSDL_AUDIO=OFF"
-        "-DSDL_VIDEO=OFF"
+        (pkgs.lib.cmakeBool "SDL_VIDEO" pkgs.stdenv.hostPlatform.isWindows)
         "-DSDL_GPU=OFF"
         "-DSDL_RENDER=OFF"
         "-DSDL_CAMERA=OFF"
       ]
-      # SDL defaults DirectX to the video setting, but DirectInput needs it too.
+      # SDL gates its DirectInput checks on audio/video being compiled in.
+      # Keep Windows video code available without initializing that subsystem.
       ++ pkgs.lib.optional pkgs.stdenv.hostPlatform.isWindows "-DSDL_DIRECTX=ON";
   })
