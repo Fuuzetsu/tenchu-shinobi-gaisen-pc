@@ -24,8 +24,8 @@ Alternatively, build and explore a map from the command line:
 
 ```sh
 ./dev.sh cargo build --release -p tenchu-pc
-./dev.sh target/release/tenchu-pc play '/path/Gaisen.cue' --quick --tenchu2 '/path/Tenchu 2 Europe.zip' --tenchu2 '/path/Tenchu 2 Japan.zip'
-./dev.sh target/release/tenchu-pc play-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' --mode sandbox --map 0 --character ayame
+./dev.sh target/release/tenchu-native play '/path/Gaisen.cue' --quick --tenchu2 '/path/Tenchu 2 Europe.zip' --tenchu2 '/path/Tenchu 2 Japan.zip'
+./dev.sh target/release/tenchu-native play-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' --mode sandbox --map 0 --character ayame
 ```
 
 Repeat `--tenchu2` for each edition. The paths are remembered, so subsequent
@@ -92,9 +92,9 @@ bundled with presets or demos. `TENCHU_SANDBOX_MUSIC` can override the native
 List all maps and source layouts, choose another starting point, or add guards:
 
 ```sh
-./dev.sh target/release/tenchu-pc inspect-t2 '/path/Tenchu 2.cue'
-./dev.sh target/release/tenchu-pc play-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' --sequence 4 --guards spear
-./dev.sh target/release/tenchu-pc render-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' preview.png --map 6
+./dev.sh target/release/tenchu-native inspect-t2 '/path/Tenchu 2.cue'
+./dev.sh target/release/tenchu-native play-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' --sequence 4 --guards spear
+./dev.sh target/release/tenchu-native render-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' preview.png --map 6
 ```
 
 Map IDs are resource IDs, not mission numbers. IDs 0–23 exist, but 7 is an empty

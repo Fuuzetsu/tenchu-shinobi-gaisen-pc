@@ -1,4 +1,4 @@
-package org.tenchu.port;
+package org.tenchu.nativeport;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -50,7 +50,7 @@ public final class LauncherActivity extends Activity {
     content.setPadding(pad, pad, pad, pad);
     scroll.addView(content);
     setContentView(scroll);
-    label("Tenchu: Shinobi Gaisen", 26);
+    label("Tenchu Native", 26);
     label(
         "Native Android port · bring your own Shinobi Gaisen disc (SLPS-019.01). No game assets are"
             + " included.",

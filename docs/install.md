@@ -2,7 +2,7 @@
 
 ## First run
 
-1. Open the [latest versioned release](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/latest)
+1. Open the [latest versioned release](https://github.com/Fuuzetsu/tenchu-native/releases/latest)
    and expand **Assets**. Download **one** game archive:
 
    | Your computer | Download |
@@ -15,8 +15,9 @@
    are not playable builds. Browser setup is [separate](guide.md#browser-build).
 
 2. Extract the **whole** game archive into a folder you can write to.
-   On Windows, run `tenchu-pc.exe` from that folder, not from inside the ZIP.
-   On Linux, run `./tenchu-pc`; keep its accompanying files and directories.
+   On Windows, run `tenchu-native.exe` from that folder, not from inside the ZIP.
+   On Linux, run `./tenchu-native`; keep its accompanying files and directories.
+   Releases through v0.37.1 use `tenchu-pc.exe` / `./tenchu-pc` instead.
 
 3. Choose the `.cue` from your own **Tenchu: Shinobi Gaisen (SLPS-019.01)** disc
    dump. Keep every `.bin` it references at the path named inside the CUE.
@@ -43,7 +44,7 @@ artwork** to display it. Graphics presets, including Original and Modern High /
 Ultra, keep your existing artwork preference.
 
 Downloaded packs live in your user data directory under
-`tenchu-shinobi-gaisen-pc/artwork` and survive game upgrades. They take priority
+`tenchu-native/artwork` and survive game upgrades. They take priority
 over packs bundled beside the executable. `TENCHU_ASSET_PACK` and
 `TENCHU2_ASSET_PACK` still take priority over downloads, including an empty value
 to disable the corresponding pack. `TENCHU_ARTWORK_DOWNLOADS` can move the download
@@ -55,13 +56,13 @@ archives for desktop/Android use.
 For offline/manual installation:
 
 1. Download **`tenchu-hd.tar.zst`** from
-   [artwork-v4](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v4).
+   [artwork-v4](https://github.com/Fuuzetsu/tenchu-native/releases/tag/artwork-v4).
    Keep this filename. **Do not extract it** for a normal installation.
 2. Put it next to the executable or Linux launcher, then start the game:
 
    ```text
    Tenchu/
-     tenchu-pc.exe       (Windows) or tenchu-pc (Linux)
+     tenchu-native.exe       (Windows) or tenchu-native (Linux)
      tenchu-hd.tar.zst
      ...other files from the game archive...
    ```
@@ -113,6 +114,33 @@ installed alongside the Gaisen pack and reused across game updates too.
 4. Check **F1 → Visual assets** again. Keep the old installation until the new one
    works; you can then delete the old game folder without deleting your profile.
 
-Use [HEAD](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/head)
+Use [HEAD](https://github.com/Fuuzetsu/tenchu-native/releases/tag/head)
 only if you want the latest successful development build. Versioned releases are
 the normal download. [Changes between versions](../CHANGELOG.md).
+
+## Tenchu Native rename
+
+The project was previously called **Tenchu: Shinobi Gaisen PC**. GitHub redirects
+old repository and release links to `Fuuzetsu/tenchu-native`. Existing releases
+and their files remain unchanged. Builds through v0.37.1 use `tenchu-pc`; newer
+builds use `tenchu-native` and include `tenchu-pc` as a compatibility launcher
+(`.exe` on Windows). Archive names such as `tenchu-windows-x86_64.zip` stay the same.
+
+Fresh desktop installs use `tenchu-native` under the usual configuration, data
+and cache roots. If the corresponding new directory does not exist, the game
+continues reading and writing the existing `tenchu-shinobi-gaisen-pc` directory.
+The whole directory is selected together, so additional campaigns, their catalog,
+quicksaves, controller bindings, downloaded artwork and settings stay together.
+No files are automatically moved or overwritten by the rename. Explicit
+`TENCHU_*` path overrides still take priority.
+
+If you want to move existing data, close the game and rename each old application
+directory to `tenchu-native`. Move the whole directory, including `.campaigns`
+folders. If both names exist, the new directory wins; the game does not merge
+profiles or use an older save to conceal a damaged newer one.
+
+Android uses the new package `org.tenchu.nativeport`. It installs separately
+from the old `org.tenchu.port` app and needs its discs/artwork imported again;
+it cannot read the old app's private saves. Browser builds use a new
+`tenchu-native/` storage namespace. Export a save from the old browser build and
+import it into the new one if you want to carry it across.

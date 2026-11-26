@@ -13,7 +13,7 @@ pub(super) fn open() -> Result<Output> {
     let (stream, commands) = receiver
         .recv_timeout(Duration::from_secs(2))
         .map_err(|e| format!("initialization failed: {e}"))??;
-    println!("Audio output: Tenchu: Shinobi Gaisen (PulseAudio)");
+    println!("Audio output: Tenchu Native (PulseAudio)");
     Ok(Output {
         _stream: Stream::Pulse { _stream: stream },
         commands,
@@ -21,10 +21,9 @@ pub(super) fn open() -> Result<Output> {
 }
 
 fn connect() -> Result<(pulseaudio::PlaybackStream, mpsc::Sender<Command>)> {
-    let client =
-        pulseaudio::Client::from_env(c"Tenchu: Shinobi Gaisen").map_err(|e| e.to_string())?;
+    let client = pulseaudio::Client::from_env(c"Tenchu Native").map_err(|e| e.to_string())?;
     let mut props = protocol::Props::new();
-    props.set(protocol::Prop::ApplicationName, c"Tenchu: Shinobi Gaisen");
+    props.set(protocol::Prop::ApplicationName, c"Tenchu Native");
     props.set(protocol::Prop::ApplicationId, c"tenchu-shinobi-gaisen-pc");
     props.set(protocol::Prop::ApplicationIconName, c"applications-games");
     props.set(protocol::Prop::MediaName, c"Game audio");

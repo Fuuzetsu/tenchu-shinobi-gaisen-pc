@@ -1,9 +1,9 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.tenchu.port" android:versionCode="1" android:versionName="0.15.6-dev">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.tenchu.nativeport" android:versionCode="1" android:versionName="0.15.6-dev">
     <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="35" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <application android:label="Tenchu: Shinobi Gaisen" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:extractNativeLibs="true">
+    <application android:label="Tenchu Native" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:extractNativeLibs="true">
         <activity android:name=".LauncherActivity" android:exported="true" android:screenOrientation="sensorLandscape" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|density">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity>

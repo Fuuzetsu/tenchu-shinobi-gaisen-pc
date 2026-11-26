@@ -1,9 +1,12 @@
-Tenchu: Shinobi Gaisen PC — browser build
+Tenchu Native — browser build
 
 This is a static website, including the WASM module and JavaScript bindings.
 It needs assets prepared from your own Shinobi Gaisen disc. Use a matching
 native build to create the data directory inside this extracted archive:
-  tenchu-pc prepare-web '/path/to/game.cue' ./data
+  tenchu-native prepare-web '/path/to/game.cue' ./data
+
+Tenchu Native uses a new browser storage namespace. To keep an old browser save,
+export it from the previous build, then use Import save in this build.
 
 For HD artwork, download tenchu-hd.tar.zst from the artwork-v3 release and place
 it beside the native executable before preparing assets. TENCHU_ASSET_PACK can

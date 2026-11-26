@@ -1,5 +1,5 @@
 {
-  description = "Tenchu: Shinobi Gaisen portable Rust PC port";
+  description = "Tenchu Native: portable Rust ports of Tenchu 1 and Tenchu 2";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/9ff9f00c0c1a903d1d938a0dd31b8eacf8d00adc";
 
   outputs =
@@ -56,7 +56,7 @@
       native =
         pkgs:
         pkgs.rustPlatform.buildRustPackage {
-          pname = "tenchu-shinobi-gaisen-pc";
+          pname = "tenchu-native";
           inherit version;
           TENCHU_BUILD_REVISION = revision;
           src = source pkgs.lib;
@@ -77,33 +77,35 @@
               cp ${(sdl pkgs).out}/bin/SDL3.dll "$out/bin/"
             ''
             + ''
-              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc"
-              cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-shinobi-gaisen-pc/"
-              cp COPYING.md LICENSE "$out/share/doc/tenchu-shinobi-gaisen-pc/"
-              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec"
-              cp crates/tenchu-assets/data/mdec/{LICENSE-MIT,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec/"
-              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
+              mkdir -p "$out/share/doc/tenchu-native"
+              cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-native/"
+              cp COPYING.md LICENSE "$out/share/doc/tenchu-native/"
+              mkdir -p "$out/share/doc/tenchu-native/mdec"
+              cp crates/tenchu-assets/data/mdec/{LICENSE-MIT,README.md} "$out/share/doc/tenchu-native/mdec/"
+              mkdir -p "$out/share/doc/tenchu-native/japanese-font"
               cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
-                "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
-              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat"
-              cp crates/tenchu-pc/data/image-compat/{LICENSE,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat/"
-              mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font"
+                "$out/share/doc/tenchu-native/japanese-font/"
+              mkdir -p "$out/share/doc/tenchu-native/image-compat"
+              cp crates/tenchu-pc/data/image-compat/{LICENSE,README.md} "$out/share/doc/tenchu-native/image-compat/"
+              mkdir -p "$out/share/doc/tenchu-native/hd-font"
               cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} \
-                "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font/"
+                "$out/share/doc/tenchu-native/hd-font/"
             '';
           postFixup = pkgs.lib.optionalString (!pkgs.stdenv.hostPlatform.isWindows) ''
-            wrapProgram "$out/bin/tenchu-pc" \
-              --set-default TENCHU_FFMPEG "${pkgs.ffmpeg}/bin/ffmpeg" \
-              ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''--prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib" --prefix PATH : "${pkgs.zenity}/bin"''}
+            for program in tenchu-native tenchu-pc; do
+              wrapProgram "$out/bin/$program" \
+                --set-default TENCHU_FFMPEG "${pkgs.ffmpeg}/bin/ffmpeg" \
+                ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''--prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib" --prefix PATH : "${pkgs.zenity}/bin"''}
+            done
           '';
-          meta.mainProgram = "tenchu-pc";
+          meta.mainProgram = "tenchu-native";
           meta.license = pkgs.lib.licenses.mit;
         };
       web =
         pkgs:
         assert pkgs.wasm-bindgen-cli.version == "0.2.121";
         pkgs.rustPlatform.buildRustPackage {
-          pname = "tenchu-shinobi-gaisen-web";
+          pname = "tenchu-native-web";
           inherit version;
           src = source pkgs.lib;
           cargoLock.lockFile = ./Cargo.lock;
@@ -169,8 +171,8 @@
       apps = eachSystem (pkgs: {
         default = {
           type = "app";
-          meta.description = "Tenchu: Shinobi Gaisen PC port";
-          program = "${native pkgs}/bin/tenchu-pc";
+          meta.description = "Tenchu Native";
+          program = "${native pkgs}/bin/tenchu-native";
         };
       });
       devShells = eachSystem (

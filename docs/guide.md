@@ -115,7 +115,7 @@ interface retain their resolution; depth/material boundaries use conservative
 fallbacks. WebGL2 and unsupported surfaces keep compatible paths. These are
 renderer implementation choices, so the old Rendering trials menu is gone.
 Original still disables the optional modern effects, and gameplay is unchanged.
-See [measured comparisons](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/blob/7b6c42cbe732af0f8b1e321fd92627e95fb21c81/docs/performance.md#november-5-perceptual-rendering-trials).
+See [measured comparisons](https://github.com/Fuuzetsu/tenchu-native/blob/7b6c42cbe732af0f8b1e321fd92627e95fb21c81/docs/performance.md#november-5-perceptual-rendering-trials).
 
 **Model refinement → Vegetation volume** now includes Botanical and Botanical
 dense. These add folded leaf sprays and round bamboo stalks using existing
@@ -636,7 +636,7 @@ press it again to restore it. Gameplay profiles in F1 remain independent.
 The built-in `remake-*` demos cover this batch in short, separate clips. For example:
 
 ```sh
-./dev.sh target/release/tenchu-pc demo '/path/to/game.cue' --clips remake-snow-tracks,remake-area-lamps,remake-petal-fall --mute
+./dev.sh target/release/tenchu-native demo '/path/to/game.cue' --clips remake-snow-tracks,remake-area-lamps,remake-petal-fall --mute
 ```
 
 Use `demo --list` for all clip IDs. Modern High/Ultra are demanding settings;
@@ -678,18 +678,18 @@ Linux installation, pass the CUE path explicitly.
 
 Native play verifies `MAIN.EXE`, `MENU.EXE`, `ENDING.EXE` and the entire
 `DATA.VOL` against the original SLPS-019.01 SHA-256 hashes before starting.
-`tenchu-pc verify DISC` runs the same check without opening a game window.
+`tenchu-native verify DISC` runs the same check without opening a game window.
 Browser asset preparation verifies the source disc once; the browser then
 checks downloaded page hashes while streaming. These checks cover base game
 logic/artwork, not a bit-for-bit checksum of the audio/movie tracks or optional
 replacement packs. Custom artwork belongs in packs rather than patched discs.
 
-On x86-64 Linux, `nix build .#windows` builds `result/bin/tenchu-pc.exe` with the
+On x86-64 Linux, `nix build .#windows` builds `result/bin/tenchu-native.exe` with the
 same pinned Rust compiler. Copy the executable to Windows and run it from
 PowerShell:
 
 ```powershell
-.\tenchu-pc.exe play 'C:\Games\Tenchu\game.cue'
+.\tenchu-native.exe play 'C:\Games\Tenchu\game.cue'
 ```
 
 Keep the CUE and its referenced BIN files together. Opening/ending movies use
@@ -702,7 +702,7 @@ still reports an error; correct it, remove that environment variable, or set
 Video export and browser asset preparation still require FFmpeg. FFmpeg links Windows
 builds from its [download page](https://ffmpeg.org/download.html). `--quick`
 opens the development launcher directly. Saves/settings use the existing
-`TENCHU_SAVE`/`TENCHU_SETTINGS` overrides or `%APPDATA%\tenchu-shinobi-gaisen-pc`.
+`TENCHU_SAVE`/`TENCHU_SETTINGS` overrides or `%APPDATA%\tenchu-native`.
 
 The Linux Windows-test shell includes Wine and the cross-linker:
 
@@ -736,11 +736,11 @@ available for 14 days for diagnostics. See [releasing](releases.md).
 | `dependency-sources` | Optional dependency sources, patches and pinned build recipes |
 
 Extract Linux archives with `tar -xzf`, keep the whole directory together and
-run `./tenchu-pc play /path/to/game.cue`. Nix is **not required** to run these
+run `./tenchu-native play /path/to/game.cue`. Nix is **not required** to run these
 bundles. They use the installed GPU drivers. FFmpeg is optional for disc-movie
 playback, and remains an external dependency for video export and browser asset
 preparation on Linux and Windows. Browser downloads need a `data/` directory
-prepared from your own disc with `tenchu-pc prepare-web`; see the included
+prepared from your own disc with `tenchu-native prepare-web`; see the included
 `README.txt`. Archives include build provenance and never include disc assets.
 
 The workflow runs the native package's unit tests on both Linux architectures,
@@ -821,7 +821,7 @@ nix run github:nix-community/flake-firefox-nightly#firefox-nightly-bin -- \
 ```
 
 The complete host is also built by `nix build .#web`; it contains no game data.
-`tenchu-pc prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
+`tenchu-native prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
 
 A downloaded HD pack is included automatically by `./build-web.sh`. Set
 `TENCHU_ASSET_PACK` to override it (an empty value disables it). Existing
@@ -1413,8 +1413,8 @@ Replacement geometry needs its own explicit rules; original-body masks are not
 silently applied to custom meshes. Metadata is included in browser exports.
 
 Preferences save separately from progress in
-`$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
-`~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`
+`$XDG_CONFIG_HOME/tenchu-native/settings.json` (normally
+`~/.config/tenchu-native/settings.json` on Linux). `TENCHU_SETTINGS`
 overrides the file. Disabling pause on defocus keeps simulation/audio running
 but still releases controls; input from another application never controls the game.
 Tab/Shift+Tab, Page Down/Page Up or controller R1/L1 changes settings pages.
@@ -1754,13 +1754,13 @@ strike; those inputs do not substitute a sword attack while sheathed. Drawing
 restores your selected armed moveset. Both T2 imports are stored separately.
 
 Select the desired T2 unarmed style before exporting. To export Wang from the
-command line, use `tenchu-pc import-t2-moves TENCHU2.cue wang-xiaohai.t2moves wang-xiaohai`.
+command line, use `tenchu-native import-t2-moves TENCHU2.cue wang-xiaohai.t2moves wang-xiaohai`.
 Native T2 can select either T2 style directly from its running Japanese disc and
 export the selected style through the Movement page.
 
 Use **Export imported moves…** to transfer a small `.t2moves` file to your own
 Android/browser installation, then use the same Import button there. The desktop
-command `tenchu-pc import-t2-moves TENCHU2.cue tatsumaru.t2moves` also exports it.
+command `tenchu-native import-t2-moves TENCHU2.cue tatsumaru.t2moves` also exports it.
 This file contains disc animation data and is not part of the port's downloads.
 The supported Japanese and European discs have been verified. The imported animations,
 strike limbs, damage and hit/combo frames run through Gaisen's combat system;
@@ -1873,10 +1873,10 @@ time-based waterfall effects return to the saved point. Loading itself does not 
 mission completion or manual saving can do so.
 
 Desktop files are `states/slot-1.tstate` through `slot-5.tstate` below the game
-data directory: `$XDG_DATA_HOME/tenchu-shinobi-gaisen-pc` (normally
-`~/.local/share/tenchu-shinobi-gaisen-pc`) on Linux,
-`%APPDATA%/tenchu-shinobi-gaisen-pc` on Windows, and
-`~/Library/Application Support/tenchu-shinobi-gaisen-pc` on macOS.
+data directory: `$XDG_DATA_HOME/tenchu-native` (normally
+`~/.local/share/tenchu-native`) on Linux,
+`%APPDATA%/tenchu-native` on Windows, and
+`~/Library/Application Support/tenchu-native` on macOS.
 `TENCHU_STATES` overrides the directory. The format is portable between platforms
 running the **same game version**; incompatible or damaged files are rejected.
 States contain runtime data from your disc and should stay outside source/assets
@@ -2187,8 +2187,8 @@ opponents, the instructor's closing sequence, saved ranking and retry with
 the fixed hook and five shuriken. These routes finish with 70 and 90 HP.
 
 Progress saves between attempts to
-`$XDG_DATA_HOME/tenchu-shinobi-gaisen-pc/progress.sav`, or
-`~/.local/share/tenchu-shinobi-gaisen-pc/progress.sav` on Linux. macOS uses
+`$XDG_DATA_HOME/tenchu-native/progress.sav`, or
+`~/.local/share/tenchu-native/progress.sav` on Linux. macOS uses
 `~/Library/Application Support`; Windows uses `%APPDATA%`. Set `TENCHU_SAVE` to
 choose a different file. Saves retain both characters' stock/records, mission,
 layout, language and difficulty. They are checked and replaced atomically;
@@ -2230,8 +2230,8 @@ contain controller inputs and launch metadata only; they need your own Shinobi
 Gaisen disc. Start with either training route above or a Mission 1 route below:
 
 ```sh
-tenchu-pc replay '/path/to/game.cue' crates/tenchu-pc/tests/data/training-ayame.inputs > training.csv
-tenchu-pc replay '/path/to/game.cue' crates/tenchu-pc/tests/data/mission1-ayame.inputs > mission1.csv
+tenchu-native replay '/path/to/game.cue' crates/tenchu-pc/tests/data/training-ayame.inputs > training.csv
+tenchu-native replay '/path/to/game.cue' crates/tenchu-pc/tests/data/mission1-ayame.inputs > mission1.csv
 ```
 
 Training uses seed 1 and the fixed hook/five-shuriken loadout. Files beginning

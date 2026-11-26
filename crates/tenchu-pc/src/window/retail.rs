@@ -264,7 +264,7 @@ impl ApplicationHandler for Recorder {
         let result = (|| {
             let mut view = View::new(events, &self.assets, &self.campaign.game, &self.settings)?;
             view.window
-                .set_title("Tenchu — offline verified campaign recording");
+                .set_title("Tenchu Native — offline verified campaign recording");
             view.resize(crate::video::SIZE[0], crate::video::SIZE[1])?;
             let mut chapters = vec![(
                 0,

@@ -1,5 +1,6 @@
 [package]
 name = "tenchu-pc"
+default-run = "tenchu-native"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true

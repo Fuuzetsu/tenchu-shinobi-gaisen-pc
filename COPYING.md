@@ -8,7 +8,7 @@ is provided as is, without warranty; see LICENSE for the full terms.
 
 Third-party components retain their respective licenses. Binary downloads carry
 their notices in `licenses/`; the Nix package installs them under
-`share/doc/tenchu-shinobi-gaisen-pc/`. The separate dependency-sources download
+`share/doc/tenchu-native/`. The separate dependency-sources download
 contains matching source, patches and build recipes for the copyleft shared
 libraries in the portable Linux download, plus the unmodified MPL-2.0 Symphonia
 audio decoder crates used on all platforms. Keep it available beside game bundles.

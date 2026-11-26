@@ -41,7 +41,7 @@ returns to stage selection. It does not automatically advance a T1 campaign.
 The standalone equivalent is:
 
 ```sh
-./dev.sh target/debug/tenchu-pc play-t2-jp /path/to/tenchu2-japan.cue --gaisen /path/to/gaisen.cue --stage 0 --hero 0 --layout 1 --water-depth 4000
+./dev.sh target/debug/tenchu-native play-t2-jp /path/to/tenchu2-japan.cue --gaisen /path/to/gaisen.cue --stage 0 --hero 0 --layout 1 --water-depth 4000
 ```
 
 Its completion screen offers **Close preview** instead of the quick launcher.
@@ -65,7 +65,7 @@ narrated prologue. Start/Circle, Enter or the on-screen button skips it.
 The same route is available from the command line:
 
 ```sh
-./dev.sh target/debug/tenchu-pc play-t2 /path/to/gaisen.cue /path/to/tenchu2-japan.cue --sequence 9
+./dev.sh target/debug/tenchu-native play-t2 /path/to/gaisen.cue /path/to/tenchu2-japan.cue --sequence 9
 ```
 
 Saved controller/keyboard bindings and Android touch controls apply. F1 opens
@@ -650,7 +650,7 @@ and completion controls.
 For development, the standalone preview is also available:
 
 ```sh
-./dev.sh cargo run -p tenchu-pc --bin tenchu-pc -- play-t2-jp /path/to/tenchu2-japan.cue --sequence 9
+./dev.sh cargo run -p tenchu-pc --bin tenchu-native -- play-t2-jp /path/to/tenchu2-japan.cue --sequence 9
 ```
 
 Add `--menu` to open the original JP mission screen in this standalone preview.
@@ -686,7 +686,7 @@ separate weapons retain their ordinary appearance.
 For a repeatable capture:
 
 ```sh
-./dev.sh target/debug/tenchu-pc render-t2-jp /path/to/tenchu2-japan.cue /tmp/jp.png --sequence 9 --ticks 60
+./dev.sh target/debug/tenchu-native render-t2-jp /path/to/tenchu2-japan.cue /tmp/jp.png --sequence 9 --ticks 60
 ```
 
 `--seed` sets the initial RNG state. Capture-only `--buttons HEX` holds a raw

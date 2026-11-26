@@ -11,4 +11,4 @@ export __EGL_VENDOR_LIBRARY_DIRS="${__EGL_VENDOR_LIBRARY_DIRS:-/etc/glvnd/egl_ve
 # Keep the bundled libc out of the environment inherited by external FFmpeg.
 exec "$bundle/lib/@loader@" \
     --library-path "$bundle/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}:@hostLibraries@" \
-    "$bundle/libexec/tenchu-pc" "$@"
+    "$bundle/libexec/tenchu-native" "$@"

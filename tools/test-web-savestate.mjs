@@ -28,7 +28,7 @@ async function open() {
       ...(process.platform === "linux" ? ["--ozone-platform=x11", "--use-angle=vulkan", "--enable-features=Vulkan,VulkanFromANGLE", "--disable-vulkan-surface"] : [])],
   });
   await browser.addInitScript(() => {
-    const key = "tenchu-pc/settings.json";
+    const key = "tenchu-native/settings.json";
     if (!localStorage.getItem(key)) {
       const settings = { sharp_text: true, pause_on_defocus: false, rewind_seconds: 5, graphics: { interpolation: true } };
       localStorage.setItem(key, JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));

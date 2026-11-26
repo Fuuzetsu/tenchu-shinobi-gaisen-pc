@@ -7,11 +7,17 @@ and Android file pickers. APKs are published alongside the desktop downloads; th
 ## Download and install
 
 Download **`tenchu-android-arm64.apk`** from the game's
-[Releases](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases), open it
+[Releases](https://github.com/Fuuzetsu/tenchu-native/releases), open it
 on your phone and allow installation from that source when Android asks. Update
 by installing the newer APK over the old one; keep the app installed to retain
 its imported disc, artwork and saves. The HEAD download follows `master`.
 The launcher then imports your disc as described below.
+
+The Tenchu Native rename changes the package to `org.tenchu.nativeport`. The
+first renamed build installs separately from the old `org.tenchu.port` app;
+its private discs, artwork and saves are not transferred automatically. Import
+your discs/artwork into Tenchu Native again. Subsequent Tenchu Native updates
+retain their data when installed over the existing app.
 
 ## Build and install from source
 
@@ -52,7 +58,7 @@ Cross-target linting uses `nix develop .#android --command cargo clippy
    Download and install** for either game. Version, size, progress and cancellation
    are shown; files are verified before activation. For an offline import, choose
    **Import HD artwork (.tar.zst)…** in the launcher and select the existing
-   [HD pack](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v4).
+   [HD pack](https://github.com/Fuuzetsu/tenchu-native/releases/tag/artwork-v4).
    It is validated and unpacked during import. Allow room for both the archive and
    its extracted contents. **Use local pack** in Settings switches from a downloaded
    pack back to the launcher import.

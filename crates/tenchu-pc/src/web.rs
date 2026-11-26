@@ -304,7 +304,7 @@ pub fn read_saved(path: &Path) -> std::io::Result<Vec<u8>> {
         .local_storage()
         .map_err(|e| std::io::Error::other(js_error(e)))?
         .ok_or_else(|| std::io::Error::other("Browser storage unavailable"))?;
-    let key = format!("tenchu-pc/{}", path.display());
+    let key = format!("tenchu-native/{}", path.display());
     let text = storage
         .get_item(&key)
         .map_err(|e| std::io::Error::other(js_error(e)))?
@@ -320,7 +320,7 @@ pub fn write_saved(path: &Path, bytes: &[u8]) -> Result<()> {
         .ok_or("Browser storage unavailable")?;
     storage
         .set_item(
-            &format!("tenchu-pc/{}", path.display()),
+            &format!("tenchu-native/{}", path.display()),
             &serde_json::to_string(bytes).map_err(|e| e.to_string())?,
         )
         .map_err(js_error)

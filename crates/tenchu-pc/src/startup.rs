@@ -87,7 +87,7 @@ pub(crate) fn remembered_path(saved: &Path) -> Option<PathBuf> {
 
 #[cfg(not(target_os = "android"))]
 fn choose() -> Result<Option<(PathBuf, Assets)>> {
-    eprintln!("{DISC_HELP}\n\nCommand line: tenchu-pc play '/path/to/game.cue'");
+    eprintln!("{DISC_HELP}\n\nCommand line: tenchu-native play '/path/to/game.cue'");
     if cfg!(target_os = "linux")
         && std::env::var_os("DISPLAY").is_none()
         && std::env::var_os("WAYLAND_DISPLAY").is_none()
@@ -95,10 +95,10 @@ fn choose() -> Result<Option<(PathBuf, Assets)>> {
         return Err("A graphical desktop is needed for the disc picker and game".into());
     }
     MessageDialog::new()
-        .set_title("Tenchu — game disc required")
+        .set_title("Tenchu Native — game disc required")
         .set_description(DISC_HELP)
         .show();
-    let mut title = "Tenchu — select your Shinobi Gaisen disc or archive";
+    let mut title = "Tenchu Native — select your Shinobi Gaisen disc or archive";
     loop {
         let Some(path) = FileDialog::new()
             .set_title(title)
@@ -121,7 +121,7 @@ fn choose() -> Result<Option<(PathBuf, Assets)>> {
 #[cfg(not(target_os = "android"))]
 pub fn show_error(error: &str) {
     MessageDialog::new()
-        .set_title("Tenchu — unable to start")
+        .set_title("Tenchu Native — unable to start")
         .set_level(MessageLevel::Error)
         .set_description(error)
         .show();

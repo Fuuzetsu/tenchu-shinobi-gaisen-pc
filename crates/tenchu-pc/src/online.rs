@@ -6,4 +6,4 @@ mod http;
 pub mod ui;
 pub mod updates;
 
-const REPOSITORY: &str = "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc";
+const REPOSITORY: &str = "https://github.com/Fuuzetsu/tenchu-native";

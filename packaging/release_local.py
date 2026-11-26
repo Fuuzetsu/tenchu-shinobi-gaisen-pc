@@ -272,7 +272,7 @@ def execute_release(root, version, prepare_only, progress):
     progress.update("push", f"Publishing {tag} at {revision}.", revision=revision)
     check_tag(tag, revision)
     if not run("git", "tag", "--list", tag, capture=True):
-        run("git", "tag", "-a", tag, "-m", f"Tenchu PC {version}")
+        run("git", "tag", "-a", tag, "-m", f"Tenchu Native {version}")
     run("git", "push", "--atomic", "origin", "HEAD:refs/heads/master", f"refs/tags/{tag}")
     progress.update("builds", "Waiting for the tagged and HEAD workflows; progress is reported only when it changes.")
     wait_for_builds((tag, "master"), revision, progress)

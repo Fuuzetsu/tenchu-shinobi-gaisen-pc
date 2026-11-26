@@ -19,7 +19,7 @@ const errors = [];
 page.on("pageerror", error => errors.push(error.message));
 page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
 const stored = name => page.evaluate(name => {
-  const bytes = localStorage.getItem(`tenchu-pc/${name}`);
+  const bytes = localStorage.getItem(`tenchu-native/${name}`);
   return bytes == null ? null : JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(bytes))));
 }, name);
 const state = () => page.evaluate(() => JSON.parse(window.port.snapshot()));
@@ -42,7 +42,7 @@ const boot = async () => {
 try {
   await page.goto(`${base}/?renderer=webgl2`);
   await boot();
-  const normalSave = await page.evaluate(() => localStorage.getItem("tenchu-pc/progress.sav"));
+  const normalSave = await page.evaluate(() => localStorage.getItem("tenchu-native/progress.sav"));
   await key("F7");
   await click(185, 318);
   const wild = (await stored("randomizer.json")).setup;
@@ -85,7 +85,7 @@ try {
   await page.screenshot({ path: `${output}/shared-run.png` });
   await click(351, 188);
   assert.equal((await state()).screen, "frontend");
-  assert.equal(await page.evaluate(() => localStorage.getItem("tenchu-pc/progress.sav")), normalSave);
+  assert.equal(await page.evaluate(() => localStorage.getItem("tenchu-native/progress.sav")), normalSave);
 
   await page.reload();
   await boot();

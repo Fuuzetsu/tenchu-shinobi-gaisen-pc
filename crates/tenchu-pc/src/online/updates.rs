@@ -3,8 +3,7 @@ use serde::Deserialize;
 use std::sync::{Arc, LazyLock, Mutex};
 use tenchu_assets::Result;
 
-const URL: &str =
-    "https://api.github.com/repos/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases?per_page=30";
+const URL: &str = "https://api.github.com/repos/Fuuzetsu/tenchu-native/releases?per_page=30";
 const RESPONSE_LIMIT: usize = 2 * 1024 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

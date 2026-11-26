@@ -10,7 +10,7 @@ const errors = [];
 await mkdir(output, {recursive:true});
 const browser = await chromium.launch({headless:process.env.TENCHU_HEADLESS==='1',executablePath:process.env.BROWSER_EXECUTABLE,args:['--no-sandbox','--mute-audio','--enable-unsafe-webgpu','--ignore-gpu-blocklist','--ozone-platform=x11','--use-angle=vulkan','--enable-features=Vulkan,VulkanFromANGLE','--disable-vulkan-surface']});
 const context = await browser.newContext({viewport:{width:1280,height:800},acceptDownloads:true});
-await context.addInitScript(artwork => localStorage.setItem('tenchu-pc/settings.json',JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify({pause_on_defocus:false,graphics:{asset_pack:artwork,lighting:{enabled:artwork}}}))))),process.env.TENCHU_HD_ARTWORK==='1');
+await context.addInitScript(artwork => localStorage.setItem('tenchu-native/settings.json',JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify({pause_on_defocus:false,graphics:{asset_pack:artwork,lighting:{enabled:artwork}}}))))),process.env.TENCHU_HD_ARTWORK==='1');
 await context.addInitScript(installAudioProbe);
 const page = await context.newPage();
 page.on('pageerror',e=>{errors.push(e.stack);console.error(e.stack);});
@@ -49,7 +49,7 @@ try {
  await click(32,38);await click(338,108);await shot('new-map');
  await click(754,194);await click(211,302);
  await click(385,18);await shot('saved');
- const saved = await page.evaluate(()=>JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem('tenchu-pc/trials.json'))))));
+ const saved = await page.evaluate(()=>JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem('tenchu-native/trials.json'))))));
  assert.equal(saved.missions.length,1,'Save creates local library entry');
  assert.equal(new TextDecoder('shift-jis').decode(new Uint8Array(saved.missions[0].slice(8,19))),'New mission');
  assert(saved.missions[0].slice(236,2284).filter((v,i)=>i%2===0&&v===1).length>0,'Mouse painting must change terrain');

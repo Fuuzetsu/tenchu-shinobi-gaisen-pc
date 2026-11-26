@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Rename the project to **Tenchu Native** at `Fuuzetsu/tenchu-native`. New builds
+  launch as `tenchu-native`; keep `tenchu-pc` compatibility executables and the
+  existing download archive names. Update desktop, browser and Android branding.
+- Use `tenchu-native` desktop data/configuration/cache directories for new
+  installs, with fallback to existing `tenchu-shinobi-gaisen-pc` directories.
+  Preserve campaigns, saves, settings, artwork and explicit `TENCHU_*` overrides.
+- Android now installs as `org.tenchu.nativeport`, separately from the old app;
+  import discs/artwork again. Browser storage uses `tenchu-native/`; old browser
+  saves can be transferred with Export save / Import save.
+
 ## 0.37.1 — 2026-11-26
 
 - Add a live controller backend selector under **F1 → General → Controls**:

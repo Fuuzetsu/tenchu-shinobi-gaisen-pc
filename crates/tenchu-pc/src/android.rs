@@ -203,7 +203,7 @@ pub fn poll_file() -> Option<Result<FileResponse>> {
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_tenchu_port_LauncherActivity_discFiles<'local>(
+pub extern "system" fn Java_org_tenchu_nativeport_LauncherActivity_discFiles<'local>(
     mut env: jni::EnvUnowned<'local>,
     _class: jni::objects::JClass<'local>,
     path: jni::objects::JString<'local>,
@@ -243,7 +243,7 @@ pub extern "system" fn Java_org_tenchu_port_LauncherActivity_discFiles<'local>(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_tenchu_port_LauncherActivity_prepareDisc<'local>(
+pub extern "system" fn Java_org_tenchu_nativeport_LauncherActivity_prepareDisc<'local>(
     mut env: jni::EnvUnowned<'local>,
     _class: jni::objects::JClass<'local>,
     root: jni::objects::JString<'local>,
@@ -296,7 +296,7 @@ pub extern "system" fn Java_org_tenchu_port_LauncherActivity_prepareDisc<'local>
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_tenchu_port_LauncherActivity_prepareArtwork<'local>(
+pub extern "system" fn Java_org_tenchu_nativeport_LauncherActivity_prepareArtwork<'local>(
     mut env: jni::EnvUnowned<'local>,
     _class: jni::objects::JClass<'local>,
     root: jni::objects::JString<'local>,
@@ -410,7 +410,7 @@ pub fn platform_output(ctx: &egui::Context, output: &mut egui::PlatformOutput) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_tenchu_port_GameActivity_submitText<'local>(
+pub extern "system" fn Java_org_tenchu_nativeport_GameActivity_submitText<'local>(
     mut env: jni::EnvUnowned<'local>,
     _class: jni::objects::JClass<'local>,
     accepted: jni::sys::jboolean,
@@ -430,7 +430,7 @@ pub fn take_back() -> bool {
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_tenchu_port_GameActivity_back(
+pub extern "system" fn Java_org_tenchu_nativeport_GameActivity_back(
     _env: jni::EnvUnowned<'_>,
     _class: jni::objects::JClass<'_>,
 ) {

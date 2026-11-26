@@ -92,8 +92,10 @@ jobs:
           mkdir unpacked
           tar -xzf dist/*.tar.gz -C unpacked
           bundle=$(realpath unpacked/tenchu-linux-*)
-          sudo "$bwrap" --ro-bind / / --tmpfs /nix --dev-bind /dev /dev --proc /proc \
-            --unsetenv LD_LIBRARY_PATH -- "$bundle/tenchu-pc" --help
+          for program in tenchu-native tenchu-pc; do
+            sudo "$bwrap" --ro-bind / / --tmpfs /nix --dev-bind /dev /dev --proc /proc \
+              --unsetenv LD_LIBRARY_PATH -- "$bundle/$program" --help
+          done
           cc packaging/check-libraries.c -o unpacked/check-libraries -ldl
           sudo "$bwrap" --ro-bind / / --tmpfs /nix --dev-bind /dev /dev --proc /proc \
             --unsetenv LD_LIBRARY_PATH -- "$bundle"/lib/ld-linux-*.so.* \
@@ -179,11 +181,13 @@ jobs:
         shell: pwsh
         run: |
           Expand-Archive dist/tenchu-windows-x86_64.zip -DestinationPath unpacked
-          & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe --help
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe --version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe check-controllers
+          foreach ($program in 'tenchu-native.exe', 'tenchu-pc.exe') {
+            & "./unpacked/tenchu-windows-x86_64/$program" --help
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & "./unpacked/tenchu-windows-x86_64/$program" --version
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          & ./unpacked/tenchu-windows-x86_64/tenchu-native.exe check-controllers
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   publish:

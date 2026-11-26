@@ -12,7 +12,7 @@ const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXEC
 const context = await browser.newContext({ viewport: { width:1280,height:760 } });
 await context.addInitScript(() => {
   const settings={ pause_on_defocus:false, sharp_text:true, graphics:{ weather:{mode:'Snow',snow:100,amount:100} } };
-  localStorage.setItem('tenchu-pc/settings.json',JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+  localStorage.setItem('tenchu-native/settings.json',JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
   window.gpuErrors=[];
   if(typeof GPUAdapter !== 'undefined') { const request=GPUAdapter.prototype.requestDevice; GPUAdapter.prototype.requestDevice=async function(...args) { const device=await request.apply(this,args); device.addEventListener('uncapturederror',e=>window.gpuErrors.push(e.error.message)); return device; }; }
 });
@@ -21,7 +21,7 @@ const page=await context.newPage(),errors=[];
 page.on('pageerror',e=>errors.push(String(e)));
 page.on('console',m=>{if(m.type()==='error'||/GL_INVALID_|WebGL: INVALID_/.test(m.text()))errors.push(m.text());});
 const state=()=>page.evaluate(()=>JSON.parse(window.port.snapshot()));
-const settings=()=>page.evaluate(()=>JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem('tenchu-pc/settings.json'))))));
+const settings=()=>page.evaluate(()=>JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem('tenchu-native/settings.json'))))));
 const key=async name=>{await page.keyboard.press(name);await page.waitForTimeout(200);};
 let category=0,row=0;
 const tab=async target=>{while(category!==target){await key('Tab');category=(category+1)%19;}row=0;};

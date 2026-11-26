@@ -21,7 +21,7 @@ rm -rf -- "$work/classes" "$work/dex" "$work/apk"
 mkdir -p "$work/classes" "$work/dex" "$work/apk/lib/$abi" "$work/apk/assets/licenses"
 cargo rustc --locked --release -p tenchu-pc --lib --crate-type cdylib
 cp "target/$CARGO_BUILD_TARGET/release/libtenchu_pc.so" "$work/apk/lib/$abi/"
-javac -Xlint:-options -source 8 -target 8 -classpath "$android_jar" -d "$work/classes" android/java/org/tenchu/port/*.java
+javac -Xlint:-options -source 8 -target 8 -classpath "$android_jar" -d "$work/classes" android/java/org/tenchu/nativeport/*.java
 mapfile -t classes < <(rg --files "$work/classes" -g '*.class')
 "$sdk_tools/d8" --min-api 28 --lib "$android_jar" --output "$work/dex" "${classes[@]}"
 cp "$work/dex/classes.dex" "$work/apk/"

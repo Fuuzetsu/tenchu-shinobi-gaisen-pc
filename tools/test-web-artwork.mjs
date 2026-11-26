@@ -24,7 +24,7 @@ const browser = process.env.TENCHU_CDP
 const context = await browser.newContext({ viewport: { width: 1280, height: 760 } });
 await context.addInitScript(() => {
   const settings = { sharp_text: true, pause_on_defocus: false, graphics: { asset_pack: true } };
-  localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+  localStorage.setItem("tenchu-native/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
   window.artworkGpuErrors = [];
   if (typeof GPUAdapter !== "undefined") {
     const request = GPUAdapter.prototype.requestDevice;

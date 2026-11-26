@@ -22,7 +22,7 @@ await context.addInitScript(() => {
     model_moveset_options: { player_movement: true, no_idle_taunts: true },
     graphics: { asset_pack: true, interpolation: true, smooth_models: true, models: { heroes: true } },
   };
-  localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+  localStorage.setItem("tenchu-native/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
   window.effectsGpuErrors = [];
   if (typeof GPUAdapter !== "undefined") {
     const request = GPUAdapter.prototype.requestDevice;
@@ -39,7 +39,7 @@ page.on("console", message => {
   if (message.type() === "error" || /GL_INVALID_|WebGL: INVALID_/.test(message.text())) errors.push(message.text());
 });
 const state = () => page.evaluate(() => JSON.parse(window.port.snapshot()));
-const settings = () => page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-pc/settings.json"))))));
+const settings = () => page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-native/settings.json"))))));
 const key = async name => { await page.keyboard.press(name); await page.waitForTimeout(120); };
 const shot = async name => {
   const png = await page.screenshot({ path: `${output}/${name}.png` });

@@ -71,9 +71,10 @@ def release_notes(root, ref):
 
     body += (
         "\n\nSupply your own Shinobi Gaisen SLPS-019.01 CUE and BIN files; original disc assets are not included. "
-        "FFmpeg is needed separately for desktop movies/video export; Android decodes disc movies directly. "
+        "Opening/ending movies have a built-in decoder; video export and browser preparation need FFmpeg. "
         "The browser archive needs assets prepared with the matching native build.\n\n"
         "Download the archive for your platform and extract it completely. "
+        "Launch `tenchu-native` (`tenchu-native.exe` on Windows); `tenchu-pc` remains available for existing shortcuts. "
         "On Android 9+ ARM64, install `tenchu-android-arm64.apk`, then use Import disc folder and optionally Import HD artwork in the launcher. "
         "SHA256SUMS verifies the downloads. Dependency sources are an optional separate download.\n"
         f"\nOptional HD artwork: download `tenchu-hd.tar.zst` from the separate {label(artwork[0])} release "

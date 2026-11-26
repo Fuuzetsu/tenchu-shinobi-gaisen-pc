@@ -29,7 +29,22 @@ pub fn cache_directory() -> Result<PathBuf> {
         })
     }
     .ok_or("Cannot find the cache directory; use an unpacked disc/artwork folder")?;
-    Ok(root.join("tenchu-shinobi-gaisen-pc"))
+    application_directory(&root)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn application_directory(root: &Path) -> Result<PathBuf> {
+    let current = root.join("tenchu-native");
+    let legacy = root.join("tenchu-shinobi-gaisen-pc");
+    for path in [&current, &legacy] {
+        if path
+            .try_exists()
+            .map_err(|error| format!("{}: {error}", path.display()))?
+        {
+            return Ok(path.to_owned());
+        }
+    }
+    Ok(current)
 }
 
 pub struct Storage {
@@ -210,7 +225,7 @@ impl UserFile {
                 fallback
             })
         };
-        Ok(root.join("tenchu-shinobi-gaisen-pc").join(name))
+        Ok(application_directory(&root)?.join(name))
     }
 }
 
@@ -315,6 +330,52 @@ pub(crate) fn replace_file(source: &Path, destination: &Path) -> std::io::Result
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn renamed_app_keeps_legacy_campaigns_together_and_prefers_new_data() {
+        let root = Storage::temporary().path.with_extension("rename");
+        let current = root.join("tenchu-native");
+        let legacy = root.join("tenchu-shinobi-gaisen-pc");
+        assert_eq!(application_directory(&root).unwrap(), current);
+
+        let base = legacy.join("progress.sav");
+        let mut save = Save::default();
+        save.progress.stock[0][1] = 42;
+        Storage::at(base.clone()).write(&save).unwrap();
+        let mut catalog = crate::campaign_saves::Catalog::load(base.clone()).unwrap();
+        let id = catalog.create("Existing campaign", Some(0)).unwrap();
+        catalog.select(id).unwrap();
+        fs::remove_file(&base).unwrap();
+        atomic_write(&legacy.join("settings.json"), b"existing settings").unwrap();
+
+        let directory = application_directory(&root).unwrap();
+        let selected =
+            crate::campaign_saves::Catalog::active_path(directory.join("progress.sav")).unwrap();
+        let storage = Storage::at(selected);
+        assert_eq!(storage.load().unwrap(), Some(save.clone()));
+        assert_eq!(
+            read(&directory.join("settings.json")).unwrap(),
+            b"existing settings"
+        );
+        save.progress.stock[0][1] = 43;
+        storage.write(&save).unwrap();
+        assert_eq!(
+            Storage::at(catalog.path(id).unwrap()).load().unwrap(),
+            Some(save.clone())
+        );
+        assert!(!current.exists());
+
+        Storage::at(current.join("progress.sav"))
+            .write(&Save::default())
+            .unwrap();
+        let directory = application_directory(&root).unwrap();
+        assert_eq!(
+            Storage::at(directory.join("progress.sav")).load().unwrap(),
+            Some(Save::default())
+        );
+        assert_eq!(storage.load().unwrap(), Some(save));
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn replaces_a_complete_save_and_reports_corruption() {

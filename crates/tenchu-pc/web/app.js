@@ -2,10 +2,10 @@ import init, { play, validate_save, validate_campaign_index } from "./pkg/tenchu
 let initialized;
 document.getElementById("game").addEventListener("contextmenu", event => event.preventDefault());
 const renderer = document.getElementById("renderer");
-const preferred = new URL(location.href).searchParams.get("renderer") ?? localStorage.getItem("tenchu-pc/renderer");
+const preferred = new URL(location.href).searchParams.get("renderer") ?? localStorage.getItem("tenchu-native/renderer");
 if (["auto", "webgl2", "webgpu"].includes(preferred)) renderer.value = preferred;
 renderer.onchange = () => {
-  localStorage.setItem("tenchu-pc/renderer", renderer.value);
+  localStorage.setItem("tenchu-native/renderer", renderer.value);
   const url = new URL(location.href);
   if (url.searchParams.has("renderer")) {
     url.searchParams.set("renderer", renderer.value);
@@ -40,7 +40,7 @@ document.getElementById("fullscreen").onclick = () => {
 document.addEventListener("fullscreenchange", () => {
   if (document.body.dataset.ready === "true") document.getElementById("game").focus();
 });
-const campaignPrefix = "tenchu-pc/progress.sav.campaigns/";
+const campaignPrefix = "tenchu-native/progress.sav.campaigns/";
 function saveBytes(text) {
   if (text == null) return new Uint8Array();
   const bytes = JSON.parse(text);
@@ -60,7 +60,7 @@ document.getElementById("export").onclick = async () => {
         campaigns[name] = localStorage.getItem(`${campaignPrefix}${name}`);
       }
     }
-    const data = { version: 2, progress: localStorage.getItem("tenchu-pc/progress.sav"), settings: localStorage.getItem("tenchu-pc/settings.json"), campaigns };
+    const data = { version: 2, progress: localStorage.getItem("tenchu-native/progress.sav"), settings: localStorage.getItem("tenchu-native/settings.json"), campaigns };
     const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url; link.download = "tenchu-save.json"; link.click();
@@ -80,7 +80,7 @@ document.getElementById("save-file").onchange = async event => {
     validate_save(saveBytes(data.progress), saveBytes(data.settings));
     const changes = new Map();
     for (const [key, name] of [["progress", "progress.sav"], ["settings", "settings.json"]]) {
-      if (data[key] != null || data.version === 2) changes.set(`tenchu-pc/${name}`, data[key] ?? null);
+      if (data[key] != null || data.version === 2) changes.set(`tenchu-native/${name}`, data[key] ?? null);
     }
     if (data.version === 2) {
       const campaigns = data.campaigns;

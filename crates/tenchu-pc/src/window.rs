@@ -256,7 +256,7 @@ impl Application {
             }
             if let Some(demo) = &self.demo {
                 view.window.set_title(&format!(
-                    "Tenchu — showcase | {} | {:.1} / {}s | tick {}",
+                    "Tenchu Native — showcase | {} | {:.1} / {}s | tick {}",
                     demo.clip().id,
                     demo.time(),
                     demo.clip().seconds,

@@ -9,7 +9,7 @@ printf '\nBuilt from %s.\n' "$GITHUB_SHA" >> release-notes.md
 
 if [[ $GITHUB_REF == refs/tags/v* ]]; then
     tag=${GITHUB_REF#refs/tags/}
-    title="Tenchu: Shinobi Gaisen PC $tag"
+    title="Tenchu Native $tag"
     prerelease=false
     [[ $tag != *-* ]] || prerelease=true
     latest=$([[ $prerelease == true ]] && echo false || echo legacy)

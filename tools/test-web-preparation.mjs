@@ -20,7 +20,7 @@ await context.addInitScript(artwork => {
   const settings = { sharp_text: true, pause_on_defocus: false, graphics: {
     asset_pack: artwork, shop_lighting: true, sky: { enabled: true, time: 720, speed: 0 },
   } };
-  localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+  localStorage.setItem("tenchu-native/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
 }, process.env.TENCHU_WEB_ARTWORK === "1");
 const page = await context.newPage();
 const errors = [];
@@ -30,7 +30,7 @@ page.on("console", message => {
 });
 const key = async name => { await page.keyboard.press(name); await page.waitForTimeout(900); };
 const state = () => page.evaluate(() => JSON.parse(window.port.snapshot()));
-const settings = () => page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-pc/settings.json"))))));
+const settings = () => page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-native/settings.json"))))));
 const shot = name => page.screenshot({ path: `${output}/${name}.png` });
 try {
   await page.goto(`${base}/?renderer=${backend}`);

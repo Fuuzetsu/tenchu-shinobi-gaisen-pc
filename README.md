@@ -1,8 +1,11 @@
-# Tenchu: Shinobi Gaisen PC
+# Tenchu Native
 
-A portable Rust port of **Tenchu: Shinobi Gaisen (SLPS-019.01)**: all ten missions,
-training, original menus, endings and the mission editor. Faithful game logic at its original rate,
-with optional modern graphics and smooth rendering. No PlayStation BIOS needed.
+A portable Rust engine for **Tenchu: Shinobi Gaisen** and **Tenchu 2**, with
+faithful game logic at its original rate, optional modern graphics and smooth
+rendering. Shinobi Gaisen includes all ten missions, training, original menus,
+endings and the mission editor. Japanese Tenchu 2 has its own native gameplay
+and campaign; see [supported features and remaining limits](docs/tenchu2-native.md).
+No PlayStation BIOS needed.
 
 **Bring your own Shinobi Gaisen disc:** select its **`.cue`** and keep all referenced
 **`.bin` files** beside it. Original game data is not included; other Tenchu 1 discs
@@ -12,9 +15,9 @@ Startup checks the game/menu executables and base artwork with SHA-256.
 
 ## Download and play
 
-Open [Releases](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases).
+Open [Releases](https://github.com/Fuuzetsu/tenchu-native/releases).
 Choose a versioned release for normal play, or
-[HEAD (development)](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/head)
+[HEAD (development)](https://github.com/Fuuzetsu/tenchu-native/releases/tag/head)
 for the latest successful `master` build. Download your platform's archive under
 **Assets** and extract it completely.
 The [workflow](.github/workflows/build.yml) publishes version tags and refreshes
@@ -23,17 +26,22 @@ HEAD on `master`; release downloads do not have the Actions artifact expiry.
 
 [Step-by-step installation, HD artwork and updates](docs/install.md).
 
+Formerly **Tenchu: Shinobi Gaisen PC**. New builds use `tenchu-native`;
+`tenchu-pc` remains available for existing shortcuts and scripts. Older releases
+(through v0.37.1) contain only `tenchu-pc`. Desktop saves/settings are found
+automatically in their previous directories. [Upgrade details](docs/install.md#tenchu-native-rename).
+
 | Platform | Download | Run |
 | --- | --- | --- |
-| Windows x64 | `tenchu-windows-x86_64.zip` | Double-click `tenchu-pc.exe` and choose your CUE. |
-| Linux Intel/AMD | `tenchu-linux-x86_64.tar.gz` | Run `./tenchu-pc`; keep the whole extracted directory together. |
+| Windows x64 | `tenchu-windows-x86_64.zip` | Double-click `tenchu-native.exe` and choose your CUE. |
+| Linux Intel/AMD | `tenchu-linux-x86_64.tar.gz` | Run `./tenchu-native`; keep the whole extracted directory together. |
 | Linux ARM64 | `tenchu-linux-aarch64.tar.gz` | Same as Linux above. |
 | Android ARM64 (9+) | `tenchu-android-arm64.apk` | Install the APK, then import your disc folder and optional HD pack. [Android guide](docs/android.md). |
 | Browser | `tenchu-wasm32.tar.gz` | Prepare your disc assets and serve the folder; see below. |
 | Apple Silicon Mac | Build from source below | A real Mac runtime test is still needed. |
 
-Or launch directly: `tenchu-pc play "/path/to/game.cue"` (Windows:
-`.\tenchu-pc.exe play "C:\Games\Tenchu\game.cue"`). Linux downloads include their
+Or launch directly: `tenchu-native play "/path/to/game.cue"` (Windows:
+`.\tenchu-native.exe play "C:\Games\Tenchu\game.cue"`). Linux downloads include their
 shared libraries; Nix is not needed to run them. Use your OS's GPU drivers.
 The last verified disc is remembered. Next time, launch without a path to reuse
 it; an explicit path always wins, and missing/invalid discs reopen the picker.
@@ -62,7 +70,7 @@ trials and a [custom mission editor](docs/guide.md#mission-editor).
 
 ```sh
 nix build
-./result/bin/tenchu-pc play '/path/to/game.cue'
+./result/bin/tenchu-native play '/path/to/game.cue'
 ```
 
 For development: `./dev.sh cargo run --release -- play '/path/to/game.cue'`.
@@ -74,7 +82,7 @@ Linux can cross-build Windows with `nix build .#windows`.
 Extract the browser download into `web/`, then use a native build to prepare assets:
 
 ```sh
-tenchu-pc prepare-web '/path/to/game.cue' web/data
+tenchu-native prepare-web '/path/to/game.cue' web/data
 python3 web/serve-web.py web
 ```
 
@@ -84,7 +92,7 @@ From source, `./build-web.sh '/path/to/game.cue'` builds and prepares the site.
 [Browser details](docs/guide.md#browser-build).
 
 For HD artwork, download **`tenchu-hd.tar.zst`** from the
-[artwork-v3 release](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3)
+[artwork-v3 release](https://github.com/Fuuzetsu/tenchu-native/releases/tag/artwork-v3)
 and place it beside the executable/launcher (or in the source checkout). It is
 found and cached automatically. **F1 → Visual assets → Replacement artwork**
 enables it; Modern presets enable it too. `TENCHU_ASSET_PACK` also accepts a

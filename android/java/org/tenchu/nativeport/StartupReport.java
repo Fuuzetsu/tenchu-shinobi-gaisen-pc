@@ -1,4 +1,4 @@
-package org.tenchu.port;
+package org.tenchu.nativeport;
 
 import android.app.Activity;
 import android.app.ActivityManager;

@@ -4,7 +4,11 @@ The workflow builds Linux x86-64, Linux ARM64, Windows x86-64, WASM and Android
 ARM64. Releases contain four platform archives, `tenchu-android-arm64.apk`, a
 dependency-source archive and `SHA256SUMS`.
 Every archive has `build-info.json` (under `assets/` in the APK) identifying its version, commit and Nixpkgs
-revision; native `tenchu-pc --version` also identifies its build.
+revision; native `tenchu-native --version` also identifies its build.
+
+The canonical repository is `Fuuzetsu/tenchu-native`. Keep the former
+`Fuuzetsu/tenchu-shinobi-gaisen-pc` name unused so GitHub's redirects survive.
+Do not rename files on published releases or retag them for a branding change.
 
 ## Development downloads
 
@@ -50,8 +54,10 @@ The public certificate hash in `android/signing-certificate.sha256` is verified
 before upload; checksums and embedded build identity are verified with other targets.
 
 Back up the signing key securely: losing it prevents in-place APK updates.
-The initial release preserves the certificate used by the private Android preview,
-so its imported disc, artwork and saves survive installing the release over it.
+The signing certificate remains the same. The Tenchu Native rename changes
+the package from `org.tenchu.port` to `org.tenchu.nativeport`, so it installs
+as a separate app with separate private data. Subsequent updates within the
+new package preserve its imported discs, artwork and saves.
 Do not commit a keystore or password. Maintainer copies are outside tracked source
 under `private/android/`; CI decodes the key only into its temporary directory and
 removes that copy after signing. Rotate the password by updating both secrets;
@@ -181,8 +187,7 @@ the two documented OFL font binaries, no HD PNG/OBJ inputs, no suspect resource
 paths and no matches for the checked credential patterns. Git's integrity check
 passed with no unreachable objects; the old asset blobs were pruned.
 
-Continue development and publish from the usual
-`~/programming/tenchu-shinobi-gaisen-pc` directory on `master`. The temporary
+Continue development and publish from a current checkout of `master`. The temporary
 `private/public-repository` checkout was removed; there is only one repository
 to maintain. The editable HD pack and its release tarball remain outside Git.
 Rebuild release artifacts from the rewritten history because commit IDs changed.
@@ -197,7 +202,7 @@ Do not merge or push any older, unfiltered history back into this repository.
 - **v0.1.0 and artwork-v1 are published.** Both initial hosted game workflows
   completed successfully; Linux x86-64/ARM64, Windows, WASM, source downloads
   and checksums are public. `master` is the hosted default branch in
-  `Fuuzetsu/tenchu-shinobi-gaisen-pc`. The v0.2.0 release reuses `artwork-v1` and
+  `Fuuzetsu/tenchu-native`. The v0.2.0 release reuses `artwork-v1` and
   adds input remapping, vibration controls, remembered discs and smaller sources.
 - **Keep private:** disc images, extracted browser `data/`, BIOS, RAM/trace
   captures and recordings/reference screenshots.

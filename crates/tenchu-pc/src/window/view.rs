@@ -288,7 +288,7 @@ impl View {
 
     fn window_attributes() -> winit::window::WindowAttributes {
         let attributes = Window::default_attributes()
-            .with_title("Tenchu — gameplay preview")
+            .with_title("Tenchu Native — gameplay preview")
             .with_inner_size(LogicalSize::new(1280, 720));
         #[cfg(target_arch = "wasm32")]
         {
@@ -1306,10 +1306,10 @@ impl View {
         }
         self.effect_vertices = self.renderer.update_effects(&mut self.effects, geometry);
         if self.studio_time.is_some() {
-            self.window.set_title("Tenchu — Level Studio");
+            self.window.set_title("Tenchu Native — Level Studio");
         } else {
             self.window.set_title(&format!(
-                "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
+                "Tenchu Native — gameplay preview | tick {} | HP {} | motion {:04x}",
                 game.tick,
                 game.player().health,
                 game.player().motion.action

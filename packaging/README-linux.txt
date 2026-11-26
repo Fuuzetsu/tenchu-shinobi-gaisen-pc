@@ -1,7 +1,9 @@
-Tenchu: Shinobi Gaisen PC — Linux
+Tenchu Native — Linux
 
-Extract the whole archive and run ./tenchu-pc to choose your game CUE, or:
-  ./tenchu-pc play '/path/to/game.cue'
+Extract the whole archive and run ./tenchu-native to choose your game CUE, or:
+  ./tenchu-native play '/path/to/game.cue'
+
+The former tenchu-pc launcher is included for existing shortcuts and scripts.
 
 The last verified disc is remembered. Run without a path to reuse it next time;
 if it is missing or invalid, the picker opens again. An explicit path takes priority.
@@ -9,8 +11,8 @@ F1 > General > Controls remaps keyboard/controller inputs and saves the bindings
 F1 > Vibration adjusts global and per-action controller strength (0-200%).
 
 This archive includes the program's shared libraries and dynamic loader. Nix
-is not required. Keep lib/, libexec/ and share/ beside the tenchu-pc launcher;
-do not launch libexec/tenchu-pc directly. Use the archive matching your CPU:
+is not required. Keep lib/, libexec/ and share/ beside the tenchu-native launcher;
+do not launch libexec/tenchu-native directly. Use the archive matching your CPU:
 x86_64 for ordinary Intel/AMD PCs, aarch64 for 64-bit ARM Linux.
 
 An installed Vulkan or OpenGL GPU driver, a graphical desktop and working
@@ -31,6 +33,9 @@ controls it. TENCHU_ASSET_PACK also accepts an archive or unpacked directory;
 an empty value disables pack loading.
 Mixed textures are reconstructed from your disc in Rust; Python is not needed.
 Saves/settings use the normal XDG directories, or TENCHU_SAVE/TENCHU_SETTINGS.
+New installs use tenchu-native under those roots. Existing
+tenchu-shinobi-gaisen-pc directories are used if the new directories are absent;
+their saves, campaign folders, settings and artwork stay together.
 No disc image or extracted game assets are included.
 
 F1 > General > Benchmarks runs fixed performance scenes and can select an

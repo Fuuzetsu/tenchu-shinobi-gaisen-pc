@@ -359,12 +359,7 @@ impl Chapters {
             starts.push((total, clip.title.clone()));
             total += u64::from(clip.seconds) * FPS;
         }
-        Self::timeline(
-            "Tenchu: Shinobi Gaisen — Native PC Showcase",
-            &starts,
-            total,
-        )
-        .unwrap()
+        Self::timeline("Tenchu Native — Showcase", &starts, total).unwrap()
     }
 
     pub fn timeline(title: &str, starts: &[(u64, String)], frames: u64) -> Result<Self> {

@@ -10,7 +10,7 @@ components = json.loads(manifest.read_text())
 lib = destination / "lib"
 lib.mkdir(parents=True)
 (destination / "libexec").mkdir()
-program = destination / "libexec/tenchu-pc"
+program = destination / "libexec/tenchu-native"
 shutil.copyfile(binary, program)
 program.chmod(0o755)
 

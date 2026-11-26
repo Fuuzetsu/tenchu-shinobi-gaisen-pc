@@ -30,7 +30,7 @@ browser reports use the same structure. A report can be opened in a text editor
 or inspected **without a disc** on any native platform:
 
 ```sh
-tenchu-pc inspect-report tenchu-report-0.3.2-m3-tick1234.json
+tenchu-native inspect-report tenchu-report-0.3.2-m3-tick1234.json
 ```
 
 The command validates the format and prints a short summary; the JSON retains

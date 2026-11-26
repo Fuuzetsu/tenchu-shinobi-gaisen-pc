@@ -1,8 +1,10 @@
-Tenchu: Shinobi Gaisen PC — Windows x64
+Tenchu Native — Windows x64
 
-Extract the archive and double-click tenchu-pc.exe to choose your game CUE,
+Extract the archive and double-click tenchu-native.exe to choose your game CUE,
 or run from PowerShell:
-  .\tenchu-pc.exe play 'C:\Games\Tenchu\game.cue'
+  .\tenchu-native.exe play 'C:\Games\Tenchu\game.cue'
+
+The former tenchu-pc.exe is included for existing shortcuts and scripts.
 
 The last verified disc is remembered. Double-click to reuse it next time; if it
 is missing or invalid, the picker opens again. An explicit path takes priority.
@@ -27,8 +29,10 @@ the executable/launcher. It is found and cached automatically. F1 > Visual asset
 controls it. TENCHU_ASSET_PACK also accepts an archive or unpacked directory;
 an empty value disables pack loading.
 Mixed textures are reconstructed from your disc in Rust; Python is not needed.
-Saves/settings use %APPDATA%\tenchu-shinobi-gaisen-pc, unless TENCHU_SAVE or
+Saves/settings use %APPDATA%\tenchu-native, unless TENCHU_SAVE or
 TENCHU_SETTINGS overrides the paths. No original disc assets or FFmpeg are bundled.
+If that directory is absent, the existing %APPDATA%\tenchu-shinobi-gaisen-pc
+directory is used for both reading and writing, including all campaign folders.
 
 F1 > General > Benchmarks runs fixed performance scenes and can select an
 Auto-optimised preset for your FPS target. Presets / save as offers Low, Medium,
@@ -46,4 +50,4 @@ buttons mapped to keyboard keys; keep the standard gamepad outputs enabled.
 Select the intended device, test/release each button, add connection/Steam notes,
 then Save diagnostic report after comparing modes. See docs/controllers.md in
 the source repository for the complete comparison checklist.
-Keep the bundled SDL3.dll beside tenchu-pc.exe. No separate SDL install is needed.
+Keep the bundled SDL3.dll beside tenchu-native.exe. No separate SDL install is needed.

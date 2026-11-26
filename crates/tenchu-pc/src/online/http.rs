@@ -4,7 +4,7 @@ use tenchu_assets::Result;
 pub fn get(url: &str, timeout: Duration) -> Result<ureq::Body> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .https_only(true)
-        .user_agent(concat!("tenchu-pc/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("tenchu-native/", env!("CARGO_PKG_VERSION")))
         .max_redirects(5)
         .timeout_global(Some(timeout))
         .timeout_connect(Some(Duration::from_secs(15)))

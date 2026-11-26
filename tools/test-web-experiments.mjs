@@ -21,7 +21,7 @@ await context.addInitScript(() => {
     lighting: { enabled: true, count: 4, shadow_count: 2, resolution: 256 },
     weather: { mode: "Snow", amount: 100, snow: 100, quality: 0 },
   } };
-  localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+  localStorage.setItem("tenchu-native/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
   window.effectsGpuErrors = [];
   if (typeof GPUAdapter !== "undefined") {
     const request = GPUAdapter.prototype.requestDevice;
@@ -38,7 +38,7 @@ page.on("console", message => {
   if (message.type() === "error" || /GL_INVALID_|WebGL: INVALID_/.test(message.text())) errors.push(message.text());
 });
 const state = () => page.evaluate(() => JSON.parse(window.port.snapshot()));
-const settings = () => page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-pc/settings.json"))))));
+const settings = () => page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-native/settings.json"))))));
 const key = async name => { await page.keyboard.press(name); await page.waitForTimeout(150); };
 let category = 0, row = 0;
 const tab = async target => {

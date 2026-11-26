@@ -45,7 +45,7 @@ def main():
     parser.add_argument("tape", type=Path)
     parser.add_argument("audio", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--binary", type=Path, default=Path("target/release/tenchu-pc"))
+    parser.add_argument("--binary", type=Path, default=Path("target/release/tenchu-native"))
     parser.add_argument("--asset-pack", type=Path, required=True)
     parser.add_argument("--jobs", type=int, choices=range(1, 5), default=1,
                         help="Independent chapter renders; each needs its own GPU memory")

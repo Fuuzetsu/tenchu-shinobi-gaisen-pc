@@ -8,7 +8,7 @@ fn run() -> Result<()> {
     }
     if args[0] == "--version" {
         println!(
-            "tenchu-pc {} ({})",
+            "tenchu-native {} ({})",
             env!("CARGO_PKG_VERSION"),
             option_env!("TENCHU_BUILD_REVISION").unwrap_or("local build")
         );
@@ -75,7 +75,7 @@ fn run() -> Result<()> {
     }
     if args[0] == "--help" {
         println!(
-            "tenchu-pc play [DISC] [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT | --scenario]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json [--scenario]\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc inspect-report REPORT.json\ntenchu-pc check-controllers [gilrs|sdl|sdl-xinput|sdl-wgi]\ntenchu-pc import-t2-moves TENCHU2.cue OUTPUT.t2moves [tatsumaru|wang-xiaohai]\ntenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map ID | --sequence ID] [--guards sword|spear|archer]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\ntenchu-pc verify DISC\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nStart without arguments to reuse the last verified disc, or choose one if it is unavailable. You can also drag its CUE onto the executable.\nDISC: original Shinobi Gaisen SLPS-019.01 .cue with its referenced .bin files. CUE/BIN folders and ZIP, TAR, TAR.GZ, TAR.XZ, TAR.ZST archives are accepted and unpacked once into a local cache. Raw .bin/.iso are also accepted. Native play verifies the executable and base artwork hashes.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay/record-retail captures."
+            "tenchu-native play [DISC] [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-native benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-native demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-native demo --list\ntenchu-native replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-native check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT | --scenario]\ntenchu-native prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json [--scenario]\ntenchu-native record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-native inspect-report REPORT.json\ntenchu-native check-controllers [gilrs|sdl|sdl-xinput|sdl-wgi]\ntenchu-native import-t2-moves TENCHU2.cue OUTPUT.t2moves [tatsumaru|wang-xiaohai]\ntenchu-native inspect-t2 TENCHU2.cue\ntenchu-native play-t2 GAISEN.cue TENCHU2.cue [--map ID | --sequence ID] [--guards sword|spear|archer]\ntenchu-native render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\ntenchu-native verify DISC\ntenchu-native inspect DISC [ASSET]\ntenchu-native audit DISC\ntenchu-native render DISC OUTPUT.png [OPTIONS]\ntenchu-native export-assets DISC DIRECTORY [OPTIONS]\ntenchu-native export-interface DISC DIRECTORY\ntenchu-native preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-native preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-native preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-native prepare-web DISC DIRECTORY [--artwork]\n\nStart without arguments to reuse the last verified disc, or choose one if it is unavailable. You can also drag its CUE onto the executable.\nDISC: original Shinobi Gaisen SLPS-019.01 .cue with its referenced .bin files. CUE/BIN folders and ZIP, TAR, TAR.GZ, TAR.XZ, TAR.ZST archives are accepted and unpacked once into a local cache. Raw .bin/.iso are also accepted. Native play verifies the executable and base artwork hashes.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay/record-retail captures."
         );
         return Ok(());
     }
@@ -107,7 +107,7 @@ fn run() -> Result<()> {
     if args[0] == "benchmark" {
         if args.len() < 2 || args[1] == "--help" {
             println!(
-                "tenchu-pc benchmark DISC [--preset NAME | --auto 30|60|120] [--size WIDTHxHEIGHT] [--seconds 2..120] [--output REPORT.json] [--offscreen]\nUses native T2 scenes for a Japanese T2 disc, or T1 scenes for Gaisen. Runs fixed scenes through the live renderer, excludes loading and 60 warm-up frames per scene, reports CPU/GPU distributions, and exits. The default uses your current graphics. --auto measures Ultra at --seconds (default 8), screens any needed adjustments for 2 seconds per scene, then validates selected changes at full duration. Keep the window focused; Esc cancels. No preferences or saves are written. --offscreen excludes window presentation and waits for each GPU frame; use it for profiling on a virtual display, not as a prediction of interactive FPS."
+                "tenchu-native benchmark DISC [--preset NAME | --auto 30|60|120] [--size WIDTHxHEIGHT] [--seconds 2..120] [--output REPORT.json] [--offscreen]\nUses native T2 scenes for a Japanese T2 disc, or T1 scenes for Gaisen. Runs fixed scenes through the live renderer, excludes loading and 60 warm-up frames per scene, reports CPU/GPU distributions, and exits. The default uses your current graphics. --auto measures Ultra at --seconds (default 8), screens any needed adjustments for 2 seconds per scene, then validates selected changes at full duration. Keep the window focused; Esc cancels. No preferences or saves are written. --offscreen excludes window presentation and waits for each GPU frame; use it for profiling on a virtual display, not as a prediction of interactive FPS."
             );
             return Ok(());
         }
@@ -231,7 +231,7 @@ fn run() -> Result<()> {
         }
         if args.len() < 2 || args[1] == "--help" {
             println!(
-                "tenchu-pc demo DISC [--clips moon,shadows,motion] [--loop | --exit] [--clean] [--mute] [--duration SECONDS] [--catalog FILE | --studio] [--video OUTPUT.mp4] [--sound]\n--video exports 3840x2160 at exactly 60 fps with chapters, then exits. Add --sound for synchronized stereo game audio; otherwise the export is silent.\nUse demo --list to list clips. Space pauses; arrows change clip; Home restarts; Tab opens the clip picker; H toggles captions; V toggles transport; F1 inspects temporary settings; F9 captures a PNG; Esc exits."
+                "tenchu-native demo DISC [--clips moon,shadows,motion] [--loop | --exit] [--clean] [--mute] [--duration SECONDS] [--catalog FILE | --studio] [--video OUTPUT.mp4] [--sound]\n--video exports 3840x2160 at exactly 60 fps with chapters, then exits. Add --sound for synchronized stereo game audio; otherwise the export is silent.\nUse demo --list to list clips. Space pauses; arrows change clip; Home restarts; Tab opens the clip picker; H toggles captions; V toggles transport; F1 inspects temporary settings; F9 captures a PNG; Esc exits."
             );
             return Ok(());
         }
@@ -336,7 +336,7 @@ fn run() -> Result<()> {
     }
     if args[0] == "play" && args.get(1).is_some_and(|s| s == "--help") {
         println!(
-            "tenchu-pc play [DISC] [--quick] [--tenchu2 DISC]... [--record DIRECTORY]\nDISC can be a CUE, disc folder, ZIP or compressed TAR. Repeat --tenchu2 to connect both Europe and Japan; their paths are remembered. F6 selects Gaisen missions or either imported edition's areas.\nWithout the Gaisen DISC, reuses the last verified disc if available; otherwise opens a file picker. Keep the referenced BIN files with the CUE. Requires Shinobi Gaisen SLPS-019.01; executables and base artwork are checked with SHA-256. F1: settings and benchmarks."
+            "tenchu-native play [DISC] [--quick] [--tenchu2 DISC]... [--record DIRECTORY]\nDISC can be a CUE, disc folder, ZIP or compressed TAR. Repeat --tenchu2 to connect both Europe and Japan; their paths are remembered. F6 selects Gaisen missions or either imported edition's areas.\nWithout the Gaisen DISC, reuses the last verified disc if available; otherwise opens a file picker. Keep the referenced BIN files with the CUE. Requires Shinobi Gaisen SLPS-019.01; executables and base artwork are checked with SHA-256. F1: settings and benchmarks."
         );
         return Ok(());
     }
@@ -454,7 +454,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
     if args[0] != "inspect" || !(2..=3).contains(&args.len()) {
-        return Err("Usage: tenchu-pc inspect DISC [ASSET] | audit DISC".into());
+        return Err("Usage: tenchu-native inspect DISC [ASSET] | audit DISC".into());
     }
     let game = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
     println!(

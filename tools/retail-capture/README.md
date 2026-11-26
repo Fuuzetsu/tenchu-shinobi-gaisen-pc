@@ -139,7 +139,7 @@ Create a compact replay only after the complete RAM comparison passes:
 ./dev.sh cargo run --release -p tenchu-pc -- \
   prepare-retail DISC UPDATES/updates.ram.gz ARCHIVE/final-campaign.json REPLAY.json \
   > validation.json
-TENCHU_ASSET_PACK=PACK ./dev.sh target/release/tenchu-pc \
+TENCHU_ASSET_PACK=PACK ./dev.sh target/release/tenchu-native \
   record-retail DISC REPLAY.json SILENT.mp4 [START_FRAME [END_FRAME]]
 ```
 
@@ -157,7 +157,7 @@ scenario comparison passes:
 ./dev.sh cargo run --release -p tenchu-pc -- \
   prepare-retail DISC NEW_OUTPUT/updates.ram.gz NEW_OUTPUT.json SCENARIO.json --scenario \
   > scenario-validation.json
-TENCHU_SETTINGS=original-settings.json ./dev.sh target/release/tenchu-pc \
+TENCHU_SETTINGS=original-settings.json ./dev.sh target/release/tenchu-native \
   record-retail DISC SCENARIO.json COMPARISON.mp4 START_FRAME END_FRAME
 ```
 

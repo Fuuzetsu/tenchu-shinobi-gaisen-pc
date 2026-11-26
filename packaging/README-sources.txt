@@ -1,4 +1,4 @@
-Tenchu PC — dependency sources
+Tenchu Native — dependency sources
 
 This archive supplies matching sources for the copyleft shared libraries included
 in the portable Linux download and the MPL-2.0 Symphonia audio decoders used on

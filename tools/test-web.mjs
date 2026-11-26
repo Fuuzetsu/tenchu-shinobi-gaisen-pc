@@ -101,7 +101,7 @@ try {
   await key("F1");
   const enhanced = await shot("surface-parallax", true);
   assert.deepEqual(enhanced.hud, original.hud, "Post-processing must preserve the life medallion");
-  assert.equal(await page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-pc/settings.json"))))).graphics.surface_detail), 2);
+  assert.equal(await page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-native/settings.json"))))).graphics.surface_detail), 2);
   await key("F1");
   for (let i = 0; i < 8; i++) await key("ArrowDown");
   await key("ArrowLeft"); await key("F1");
@@ -142,7 +142,7 @@ try {
   assert.equal(mission.screen, "playing");
   assert.equal(mission.fault, "");
   await shot("mission-5-ayame", true);
-  assert(await page.evaluate(() => localStorage.getItem("tenchu-pc/progress.sav") != null));
+  assert(await page.evaluate(() => localStorage.getItem("tenchu-native/progress.sav") != null));
   await page.reload();
   await page.click("#play");
   await page.waitForFunction(() => document.body.dataset.ready === "true", null, { timeout: 60000 });

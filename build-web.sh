@@ -10,9 +10,9 @@ web_disc=$(realpath -- "$1")
 web_output=$(realpath -m -- "${2:-private/web}")
 ./dev.sh cargo build --locked --release -p tenchu-pc
 if [[ ! -e "$web_output/data/manifest.json" ]]; then
-    ./dev.sh target/release/tenchu-pc prepare-web "$web_disc" "$web_output/data"
+    ./dev.sh target/release/tenchu-native prepare-web "$web_disc" "$web_output/data"
 else
-    ./dev.sh target/release/tenchu-pc prepare-web "$web_disc" "$web_output/data" --artwork
+    ./dev.sh target/release/tenchu-native prepare-web "$web_disc" "$web_output/data" --artwork
 fi
 ./dev.sh cargo rustc --locked --release --target wasm32-unknown-unknown -p tenchu-pc --lib --crate-type cdylib
 ./dev.sh wasm-bindgen --target web --out-dir "$web_output/pkg" target/wasm32-unknown-unknown/release/tenchu_pc.wasm

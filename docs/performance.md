@@ -571,7 +571,7 @@ verified separately. Evidence is in ignored `private/t2-performance-20261113`.
 ## Historical measurements
 
 The October 27–November 7 optimisation journal is preserved in
-[the archived measurements at 7b6c42c](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/blob/7b6c42cbe732af0f8b1e321fd92627e95fb21c81/docs/performance.md#interactive-wayland-follow-up-2026-10-29).
+[the archived measurements at 7b6c42c](https://github.com/Fuuzetsu/tenchu-native/blob/7b6c42cbe732af0f8b1e321fd92627e95fb21c81/docs/performance.md#interactive-wayland-follow-up-2026-10-29).
 Those experiments compare particular builds, machines and scenes; their proposed
 next steps and pending-work lists are not the current development plan.
 The [per-control cost guide](graphics-performance.md) retains the useful comparison

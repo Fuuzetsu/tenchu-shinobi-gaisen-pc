@@ -277,7 +277,7 @@ copy a complete settings JSON, edit just that field, then run:
 ```sh
 TENCHU_SETTINGS=/path/to/variant-settings.json \
 TENCHU_ASSET_PACK=/path/to/artwork-pack \
-./dev.sh target/release/tenchu-pc benchmark '/path/to/game.cue' \
+./dev.sh target/release/tenchu-native benchmark '/path/to/game.cue' \
   --size 3840x2160 --seconds 3 --offscreen --output variant.json
 ```
 

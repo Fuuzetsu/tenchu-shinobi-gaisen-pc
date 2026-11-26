@@ -1,7 +1,7 @@
 # Tenchu 2 replacement artwork
 
 Download `tenchu2-hd.tar.zst` from
-[tenchu2-artwork-v4](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v4).
+[tenchu2-artwork-v4](https://github.com/Fuuzetsu/tenchu-native/releases/tag/tenchu2-artwork-v4).
 Use game v0.33.0 or newer for the HD interface (v0.20.1 or newer for mission artwork). Put the archive beside the executable or Linux
 launcher, or import it with **Import Tenchu 2 HD artwork** in the Android launcher.
 Enable **F1 → Visual assets → Replacement artwork**. Desktop and Android can

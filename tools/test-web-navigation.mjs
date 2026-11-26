@@ -20,7 +20,7 @@ try {
     await context.addInitScript(() => {
       const settings = { pause_on_defocus: false, sharp_text: true, navigation: { camera_relative: true },
         graphics: { interpolation: true, fog: false } };
-      localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+      localStorage.setItem("tenchu-native/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
       const pad = { id: "Navigation test controller", index: 0, mapping: "standard", connected: false,
         axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({pressed:false,touched:false,value:0})),
         get timestamp() { return performance.now(); } };

@@ -59,7 +59,7 @@ let
         ];
       }
       ''
-        python3 ${./bundle-linux.py} ${native}/bin/.tenchu-pc-wrapped "$out" ${dependencies.manifest} \
+        python3 ${./bundle-linux.py} ${native}/bin/.tenchu-native-wrapped "$out" ${dependencies.manifest} \
           ${lib.escapeShellArgs (
             map (p: "${lib.getLib p}") (
               runtimeLibraries
@@ -72,12 +72,15 @@ let
         mkdir -p "$out/share/X11" "$out/licenses"
         cp -RL ${pkgs.xkeyboard_config}/share/X11/xkb "$out/share/X11/"
         cp -RL ${pkgs.alsa-lib}/share/alsa "$out/share/"
-        cp -R ${native}/share/doc/tenchu-shinobi-gaisen-pc/. "$out/licenses/"
-        substitute ${./tenchu-linux.sh} "$out/tenchu-pc" \
+        cp -R ${native}/share/doc/tenchu-native/. "$out/licenses/"
+        substitute ${./tenchu-linux.sh} "$out/tenchu-native" \
           --replace-fail '@loader@' '${builtins.baseNameOf pkgs.stdenv.cc.bintools.dynamicLinker}' \
           --replace-fail '@hostLibraries@' '/run/opengl-driver/lib:/usr/lib/${hostTriplet}:/lib/${hostTriplet}:/usr/lib64:/lib64:/usr/lib:/lib'
-        chmod +x "$out/tenchu-pc"
-        "$out/tenchu-pc" --help > /dev/null
+        chmod +x "$out/tenchu-native"
+        ln -s tenchu-native "$out/tenchu-pc"
+        ln -s tenchu-native "$out/libexec/tenchu-pc"
+        "$out/tenchu-native" --help > /dev/null
+        "$out/tenchu-pc" --version > /dev/null
       '';
   browser = pkgs.runCommand "tenchu-wasm32" { } ''
     mkdir -p "$out"
@@ -86,8 +89,9 @@ let
   '';
   win = pkgs.runCommand "tenchu-windows-x86_64" { } ''
     mkdir -p "$out/licenses"
-    cp ${windows}/bin/tenchu-pc.exe ${windows}/bin/SDL3.dll "$out/"
-    cp -R ${windows}/share/doc/tenchu-shinobi-gaisen-pc/. "$out/licenses/"
+    cp ${windows}/bin/tenchu-native.exe ${windows}/bin/SDL3.dll "$out/"
+    cp "$out/tenchu-native.exe" "$out/tenchu-pc.exe"
+    cp -R ${windows}/share/doc/tenchu-native/. "$out/licenses/"
   '';
   sources = pkgs.runCommand "tenchu-dependency-sources" { } ''
     mkdir -p "$out"

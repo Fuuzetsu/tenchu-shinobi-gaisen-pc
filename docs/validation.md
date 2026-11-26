@@ -803,7 +803,7 @@ also pass 300 updates on every mission/layout combination, including training.
 The option remains separate from original gameplay, whose seven reference tapes
 still match.
 
-The later [reinforcement report (#42)](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/issues/42)
+The later [reinforcement report (#42)](https://github.com/Fuuzetsu/tenchu-native/issues/42)
 has a confirmed all-active failure mode. In the [reported video from 4:34](https://www.youtube.com/watch?v=iPSbiNP1Ga4&t=274s),
 successive callers accumulate near a wall. Retail's `think_alarm_reaction_`
 returns both a caller and its new guard to the approach/search state. Reaching

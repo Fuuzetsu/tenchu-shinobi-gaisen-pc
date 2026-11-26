@@ -48,6 +48,7 @@ fn discover(executable: Option<&Path>, directory: Option<&Path>, tenchu2: bool) 
             [
                 root.join("assets").join(folder),
                 root.join(archive),
+                root.join("share/tenchu-native").join(folder),
                 root.join("share/tenchu-shinobi-gaisen-pc").join(folder),
             ]
         })
@@ -67,6 +68,22 @@ mod tests {
         fs::create_dir_all(cwd.join("assets/hd")).unwrap();
         fs::write(cwd.join("assets/hd/pack.json"), "{}").unwrap();
         for (executable, pack) in [
+            (
+                "native-windows/tenchu-native.exe",
+                "native-windows/assets/hd",
+            ),
+            (
+                "native-linux/libexec/tenchu-native",
+                "native-linux/share/tenchu-native/hd",
+            ),
+            (
+                "native-nix/bin/.tenchu-native-wrapped",
+                "native-nix/share/tenchu-native/hd",
+            ),
+            (
+                "native-source/target/release/tenchu-native",
+                "native-source/assets/hd",
+            ),
             ("windows/tenchu-pc.exe", "windows/assets/hd"),
             (
                 "linux/libexec/tenchu-pc",

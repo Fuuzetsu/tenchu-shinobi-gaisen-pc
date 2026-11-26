@@ -71,14 +71,14 @@ outside Steam may leave a Steam Controller using its desktop layout.
 If the game cannot be opened, run this from a terminal in the extracted folder:
 
 ```powershell
-.\tenchu-pc.exe check-controllers > controllers.json
+.\tenchu-native.exe check-controllers > controllers.json
 ```
 
-Linux: `./tenchu-pc check-controllers > controllers.json`.
+Linux: `./tenchu-native check-controllers > controllers.json`.
 Append `gilrs`, `sdl`, `sdl-xinput` or `sdl-wgi` to check one available
 backend in isolation if another crashes or hangs. To launch directly with SDL,
 set `$env:TENCHU_CONTROLLER_DRIVER = 'sdl'` in PowerShell before launching the
-executable (Linux: `TENCHU_CONTROLLER_DRIVER=sdl ./tenchu-pc`). This launch
+executable (Linux: `TENCHU_CONTROLLER_DRIVER=sdl ./tenchu-native`). This launch
 override takes precedence over the saved choice until removed.
 
 This disc-free check initializes, polls and closes each available backend twice,

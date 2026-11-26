@@ -86,7 +86,7 @@ try {
   await run(`const probe = document.createElement("script"); probe.textContent = ${JSON.stringify(`(${installFrameProbe.toString()})();`)}; document.head.append(probe);`);
   await run(`const probe = document.createElement("script"); probe.textContent = ${JSON.stringify(`(${installAudioProbe.toString()})();`)}; document.head.append(probe);`);
   if (process.env.TENCHU_WEB_INTERPOLATION === "1") {
-    await run('localStorage.setItem("tenchu-pc/settings.json", JSON.stringify([...new TextEncoder().encode(JSON.stringify({graphics:{interpolation:true}}))]));');
+    await run('localStorage.setItem("tenchu-native/settings.json", JSON.stringify([...new TextEncoder().encode(JSON.stringify({graphics:{interpolation:true}}))]));');
   }
   await click("#quick");
   await wait("document.body.dataset.ready === 'true'");

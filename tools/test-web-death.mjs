@@ -19,7 +19,7 @@ await context.addInitScript(installAudioProbe);
 await context.addInitScript(() => {
   const settings = { sharp_text: true, pause_on_defocus: false, pause_in_menu: false,
     wait_after_death: true, graphics: { blood: { enabled: true } } };
-  localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+  localStorage.setItem("tenchu-native/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
 });
 const page = await context.newPage(), errors = [];
 page.on("pageerror", error => errors.push(String(error)));
