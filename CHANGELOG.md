@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.37.2 — 2026-11-27
+
 - Filter SDL controller stick drift and jitter before all input consumers,
   including freecam in T1 and native T2. Preserve gilrs as the default with its
   existing filters; retain raw SDL readings in diagnostic reports.
