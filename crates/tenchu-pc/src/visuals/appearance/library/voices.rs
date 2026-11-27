@@ -60,6 +60,11 @@ impl Library {
                                         .map_err(Clone::clone)?,
                                 )? as u8,
                             );
+                            // Jump, fatal-fall and item-use vocals live outside
+                            // the character program. Keep their original IDs.
+                            let target = Arc::get_mut(&mut voice.bank).unwrap();
+                            target.programs.resize_with(4, || None);
+                            target.import_program(&bank, 4)?;
                         }
                         let voice = Arc::new(voice);
                         programs.insert(program, voice.clone());

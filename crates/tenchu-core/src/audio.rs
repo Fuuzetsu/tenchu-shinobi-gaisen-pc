@@ -208,7 +208,7 @@ impl Game {
             let Some(actor) = self.roster.actors.get(id).and_then(Option::as_ref) else {
                 continue;
             };
-            let voice = (id == self.player_id && sound & 0xf0 == 0)
+            let voice = (id == self.player_id)
                 .then(|| {
                     let key = if sound <= 5 {
                         crate::game::moveset::SELECTED_WEAPON_VOICE
@@ -221,7 +221,8 @@ impl Game {
                             .and_then(|kind| self.mission.moveset_voices.get(&kind))
                     })
                 })
-                .flatten();
+                .flatten()
+                .filter(|voice| sound & 0xf0 == 0 || voice.gaisen_player_cue(sound));
             if sound & 0xf0 == 0 {
                 if sound > 5 && (self.cinematic.frame || actor.attribute & ATTR_SUSPEND != 0) {
                     continue;
@@ -276,7 +277,20 @@ impl Game {
             let position =
                 (!matches!(sound, 0x0b | 0x0e | 0x27 | 0x39 | 0x41 | 0x43)).then_some(position);
             if let Some(sound) = listener.sound(&self.math, position, sound)? {
-                sounds.push(sound.into());
+                let voice = self
+                    .mission
+                    .moveset_voices
+                    .get(&crate::game::moveset::SELECTED_VOICE)
+                    .or_else(|| {
+                        self.moveset
+                            .kind
+                            .and_then(|kind| self.mission.moveset_voices.get(&kind))
+                    })
+                    .filter(|voice| voice.gaisen_player_cue(sound.id));
+                sounds.push(Sourced {
+                    sound,
+                    bank: voice.map(|v| v.bank.clone()),
+                });
             }
         }
         for &position in &self.effects.burning_sounds {

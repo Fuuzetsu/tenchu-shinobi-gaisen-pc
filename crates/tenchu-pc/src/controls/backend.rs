@@ -140,6 +140,7 @@ pub(super) struct Event {
     pub id: usize,
     pub change: Change,
     pub reading: Reading,
+    pub raw_reading: Option<Reading>,
     pub description: String,
 }
 
@@ -280,6 +281,7 @@ impl Controls {
                 id: usize::from(event.id),
                 change,
                 reading,
+                raw_reading: None,
                 description: format!("{:?}", event.event),
             });
         }

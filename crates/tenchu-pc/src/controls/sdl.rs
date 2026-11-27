@@ -8,6 +8,9 @@ use sdl3::{
 use serde_json::json;
 use std::collections::BTreeMap;
 
+#[path = "sdl/filter.rs"]
+mod filter;
+
 struct Hints(Vec<&'static std::ffi::CStr>);
 
 impl Hints {
@@ -29,7 +32,7 @@ impl Drop for Hints {
 }
 
 pub(in crate::controls) struct Backend {
-    pads: BTreeMap<usize, (Gamepad, Reading)>,
+    pads: BTreeMap<usize, (Gamepad, filter::State)>,
     events: sdl3::EventPump,
     gamepads: sdl3::GamepadSubsystem,
     joysticks: sdl3::JoystickSubsystem,
@@ -105,7 +108,7 @@ impl Backend {
         }
         match self.gamepads.open(id) {
             Ok(pad) => {
-                let mut reading = Reading::default();
+                let mut state = filter::State::default();
                 for axis in [
                     Axis::LeftX,
                     Axis::LeftY,
@@ -114,12 +117,12 @@ impl Backend {
                     Axis::TriggerLeft,
                     Axis::TriggerRight,
                 ] {
-                    apply_axis(&mut reading, axis, pad.axis(axis));
+                    state.axis(axis, pad.axis(axis));
                 }
                 for (sdl, button) in BUTTON_MAP {
-                    reading.set_button(button, pad.button(sdl));
+                    state.button(button, pad.button(sdl));
                 }
-                self.pads.insert(id.raw() as usize, (pad, reading));
+                self.pads.insert(id.raw() as usize, (pad, state));
             }
             Err(error) => {
                 if self.errors.len() == 32 {
@@ -144,6 +147,7 @@ impl Backend {
                         id: which.raw() as usize,
                         change: Change::Disconnected,
                         reading: Reading::default(),
+                        raw_reading: None,
                         description,
                     });
                 }
@@ -155,7 +159,7 @@ impl Backend {
                 SdlEvent::GamepadButtonDown { which, button, .. }
                 | SdlEvent::GamepadButtonUp { which, button, .. } => {
                     let pressed = matches!(event, SdlEvent::GamepadButtonDown { .. });
-                    let Some((_, reading)) = self.pads.get_mut(&(which.raw() as usize)) else {
+                    let Some((_, state)) = self.pads.get_mut(&(which.raw() as usize)) else {
                         continue;
                     };
                     let button = BUTTON_MAP
@@ -163,29 +167,30 @@ impl Backend {
                         .find(|(sdl, _)| *sdl == button)
                         .map(|(_, b)| *b)
                         .unwrap_or(Button::Unknown);
-                    reading.set_button(button, pressed);
+                    state.button(button, pressed);
                     (which, Change::Button(button, pressed))
                 }
                 SdlEvent::GamepadAxisMotion {
                     which, axis, value, ..
                 } => {
-                    let Some((_, reading)) = self.pads.get_mut(&(which.raw() as usize)) else {
+                    let Some((_, state)) = self.pads.get_mut(&(which.raw() as usize)) else {
                         continue;
                     };
-                    (which, apply_axis(reading, axis, value))
+                    (which, state.axis(axis, value))
                 }
                 _ => continue,
             };
             // Apply each queued transition, not the final SDL state, to preserve short taps.
-            let reading = self
+            let (reading, raw_reading) = self
                 .pads
                 .get(&(which.raw() as usize))
-                .map(|(_, r)| *r)
+                .map(|(_, state)| (state.reading, Some(state.raw)))
                 .unwrap_or_default();
             return Some(Event {
                 id: which.raw() as usize,
                 change,
                 reading,
+                raw_reading,
                 description,
             });
         }
@@ -193,20 +198,21 @@ impl Backend {
     }
 
     pub fn devices(&self) -> Vec<Device> {
-        let mut devices: Vec<_> = self.pads.iter().map(|(&id, (pad, reading))| {
+        let mut devices: Vec<_> = self.pads.iter().map(|(&id, (pad, state))| {
             // The open gamepad owns this pointer for the duration of both calls.
             let rumble = unsafe {
                 let props = sdl3::sys::gamepad::SDL_GetGamepadProperties(pad.raw());
                 sdl3::sys::properties::SDL_GetBooleanProperty(props,
                     sdl3::sys::gamepad::SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false)
             };
-            Device { id, name: pad.name().unwrap_or_else(|| "Unnamed controller".into()), reading: *reading,
+            Device { id, name: pad.name().unwrap_or_else(|| "Unnamed controller".into()), reading: state.reading,
                 details: json!({
                     "recognized_gamepad": true, "vendor_id": pad.vendor_id(), "product_id": pad.product_id(),
                     "mapping_guid": self.gamepads.guid_for_id(JoystickId::new(id as u32)).to_string(),
                     "mapping": pad.mapping(), "type": format!("{:?}", pad.r#type()), "real_type": format!("{:?}", pad.real_type()),
                     "connection": pad.connection_state().map(|state| match state { sdl3::joystick::ConnectionState::Wired => "wired", sdl3::joystick::ConnectionState::Wireless => "wireless", _ => "unknown" }).unwrap_or("unknown"), "power": format!("{:?}", pad.power_info()),
                     "vibration_supported": rumble,
+                    "raw_reading": state.raw,
                 })
             }
         }).collect();
@@ -278,36 +284,6 @@ const BUTTON_MAP: [(SdlButton, Button); 15] = [
     (SdlButton::DPadLeft, Button::DPadLeft),
     (SdlButton::DPadRight, Button::DPadRight),
 ];
-
-fn apply_axis(reading: &mut Reading, axis: Axis, value: i16) -> Change {
-    let index = match axis {
-        Axis::LeftX => 0,
-        Axis::LeftY => 1,
-        Axis::RightX => 2,
-        Axis::RightY => 3,
-        Axis::TriggerLeft | Axis::TriggerRight => {
-            let i = usize::from(axis == Axis::TriggerRight);
-            let button = [Button::LeftTrigger2, Button::RightTrigger2][i];
-            reading.triggers[i] = f32::from(value.max(0)) / 32767.0;
-            let was_pressed = reading.pressed(button);
-            let pressed = reading.triggers[i] >= if was_pressed { 0.65 } else { 0.75 };
-            reading.set_button(button, pressed);
-            return if pressed != was_pressed {
-                Change::Button(button, pressed)
-            } else {
-                Change::Other
-            };
-        }
-    };
-    let normalized = f32::from(value) / if value < 0 { 32768.0 } else { 32767.0 };
-    // The host convention inherited from gilrs is positive Y = up.
-    reading.axes[index] = if index % 2 == 1 {
-        -normalized
-    } else {
-        normalized
-    };
-    Change::Axis(index)
-}
 
 fn unopened_details(id: JoystickId, recognized: bool) -> serde_json::Value {
     // These identity queries do not open a device or return serials/device paths.
@@ -429,6 +405,7 @@ mod tests {
         controls.select_device(Some(connection.id().raw() as usize));
         joystick.set_virtual_axis(Axis::LeftX as u32, 0).unwrap();
         controls.poll(true);
+        resting_sticks_do_not_move_gameplay_or_freecam(&mut controls, &joystick);
         // Both changes reach SDL before the host drains its queue.
         joystick
             .set_virtual_button(SdlButton::South as u32, true)
@@ -531,18 +508,63 @@ mod tests {
         );
     }
 
-    #[test]
-    fn trigger_hysteresis_and_axis_extremes_match_existing_binding_conventions() {
-        let mut reading = Reading::default();
-        apply_axis(&mut reading, Axis::TriggerLeft, 25000);
-        assert!(reading.pressed(Button::LeftTrigger2));
-        apply_axis(&mut reading, Axis::TriggerLeft, 23000);
-        assert!(reading.pressed(Button::LeftTrigger2));
-        apply_axis(&mut reading, Axis::TriggerLeft, 20000);
-        assert!(!reading.pressed(Button::LeftTrigger2));
-        for axis in [Axis::LeftY, Axis::RightY] {
-            apply_axis(&mut reading, axis, i16::MIN);
+    fn resting_sticks_do_not_move_gameplay_or_freecam(
+        controls: &mut Controls,
+        joystick: &sdl3::joystick::Joystick,
+    ) {
+        let axes = [Axis::LeftX, Axis::LeftY, Axis::RightX, Axis::RightY];
+        // Raw DualSense values from the 0.37.1 camera report, before Y inversion.
+        for (axis, value) in axes.into_iter().zip([-386, -129, 128, 642]) {
+            joystick.set_virtual_axis(axis as u32, value).unwrap();
         }
-        assert_eq!(reading.axes, [0.0, 1.0, 0.0, 1.0]);
+        controls.poll(true);
+        assert_eq!(controls.sticks(), [glam::Vec2::ZERO; 2]);
+        assert_eq!(controls.buttons(), 0);
+        assert_eq!(controls.walking_buttons(18), (0, 0.0));
+        let device = controls
+            .devices()
+            .into_iter()
+            .find(|d| Some(d.id) == controls.pad.active)
+            .unwrap();
+        assert_eq!(device.reading.axes, [0.0; 4]);
+        assert!(device.details["raw_reading"]["axes"][0].as_f64().unwrap() < -0.01);
+        let mut camera = crate::debug::camera::Camera {
+            position: glam::Vec3::new(-58615.688, -3656.6265, 57341.094),
+            yaw: 7.171491,
+            pitch: -0.30346087,
+            fov: 43.60282,
+        };
+        let initial = camera;
+        for _ in 0..600 {
+            camera.advance(controls, 1.0 / 60.0, 12_000.0);
+        }
+        assert_eq!(camera.position, initial.position);
+        assert_eq!(camera.yaw, initial.yaw);
+        assert_eq!(camera.pitch, initial.pitch);
+        joystick
+            .set_virtual_axis(Axis::LeftY as u32, i16::MIN)
+            .unwrap();
+        joystick
+            .set_virtual_axis(Axis::RightX as u32, i16::MAX)
+            .unwrap();
+        controls.poll(true);
+        camera.advance(controls, 1.0 / 60.0, 12_000.0);
+        assert!(camera.position.distance(initial.position) > 100.0);
+        assert!(camera.yaw > initial.yaw);
+        controls.clear();
+        let stopped = camera;
+        camera.advance(controls, 1.0 / 60.0, 12_000.0);
+        assert_eq!(camera.position, stopped.position);
+        assert_eq!(camera.yaw, stopped.yaw);
+        for axis in axes {
+            joystick.set_virtual_axis(axis as u32, 0).unwrap();
+        }
+        controls.poll(true);
+        controls.buttons();
+        controls.key(KeyCode::KeyE, true);
+        camera.advance(controls, 1.0 / 60.0, 12_000.0);
+        assert!(camera.position.y < stopped.position.y);
+        controls.key(KeyCode::KeyE, false);
+        controls.buttons();
     }
 }

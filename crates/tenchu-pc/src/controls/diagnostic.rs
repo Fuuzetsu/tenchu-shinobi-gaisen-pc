@@ -134,7 +134,11 @@ impl History {
             }
             activity.reading = event.reading;
         }
-        self.push(json!({"ms": now, "device": event.id, "event": event.description, "reading": event.reading}));
+        let mut entry = json!({"ms": now, "device": event.id, "event": event.description, "reading": event.reading});
+        if let Some(raw) = event.raw_reading {
+            entry["raw_reading"] = json!(raw);
+        }
+        self.push(entry);
     }
 
     pub fn note(&mut self, note: String) {
@@ -372,6 +376,7 @@ mod tests {
             id: 7,
             change: Change::Other,
             reading: Reading::default(),
+            raw_reading: None,
             description: "test input".into(),
         };
         event.reading.set_button(Button::DPadLeft, true);

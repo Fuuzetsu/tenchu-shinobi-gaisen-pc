@@ -19,9 +19,18 @@ are local to the current backend attempt and are not saved across launches.
 **Retry connection** reinitializes the selected backend.
 **Release stuck input** suppresses current controller holds until they release.
 
-The live readings show normalized inputs before gameplay/overlay suppression.
+Both backends filter stick noise before gameplay, menus and freecam receive it.
+gilrs retains its existing device deadzones and filters. SDL uses gilrs' fallback
+10% radial deadzone, rescales the remaining travel and suppresses changes smaller
+than 1%, while always passing center and full travel. Triggers retain their
+digital press/release thresholds. Movement and orbit-camera deadzone settings
+still apply on top, as they already did with gilrs.
+
+The live readings show filtered inputs before gameplay/overlay suppression.
 They continue while Controls pauses gameplay. Positive stick Y means up; trigger
 readings run from 0 to 1. Existing bindings retain their physical positions.
+SDL diagnostic reports also retain raw readings alongside filtered device and
+event readings, so drift can be inspected without feeding it into the game.
 L2/R2 item cycling follows the original game's order; do not infer a swapped
 trigger from item names alone. Check the L/R readings and bindings first.
 

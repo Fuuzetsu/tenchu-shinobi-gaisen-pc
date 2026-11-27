@@ -2,6 +2,14 @@ use super::*;
 use crate::{settings::styles, visuals::appearance::library::Library};
 use tenchu_core::{game::sheathing::Settings as Sheathing, ids::*, input};
 
+fn unarmed_state(game: &Game) -> serde_json::Value {
+    let mut state = serde_json::to_value(game.player().sheathing.as_ref().unwrap()).unwrap();
+    // The fallback draw/turn/sheath clips follow the selected hero; the unarmed
+    // style, imported attacks, held inputs and settings must survive the switch.
+    state.as_object_mut().unwrap().remove("motions");
+    state
+}
+
 #[test]
 #[ignore = "requires both discs; selected styles preserve campaign/body/equipment/unarmed state and reject committed actions"]
 fn gaisen_combat_style_cycle_preserves_identity_and_safe_transitions() {
@@ -64,7 +72,7 @@ fn gaisen_combat_style_cycle_preserves_identity_and_safe_transitions() {
                 let position = game.player().position;
                 let health = game.player().health;
                 let kind = game.player().kind;
-                let unarmed = postcard::to_allocvec(&game.player().sheathing).unwrap();
+                let unarmed = unarmed_state(game);
                 let npcs: Vec<_> = game
                     .roster
                     .actors
@@ -85,10 +93,7 @@ fn gaisen_combat_style_cycle_preserves_identity_and_safe_transitions() {
                     (kind, health, position)
                 );
                 assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN != 0, drawn);
-                assert_eq!(
-                    postcard::to_allocvec(&game.player().sheathing).unwrap(),
-                    unarmed
-                );
+                assert_eq!(unarmed_state(game), unarmed);
                 assert_eq!(
                     game.roster
                         .actors

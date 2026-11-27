@@ -12,6 +12,26 @@ sent to the native window is not an ordinary-play comparison. Direct state
 fixtures remain useful for isolated behavior and optional modes. Recorded retail
 skips are reference inputs, never inferred from the PC renderer's performance.
 
+The 0.37.1 controller regression uses an SDL virtual device with the reported
+DualSense resting offsets. It checks that gameplay, walking and ten seconds of
+freecam receive centered input, while diagnostics retain raw offsets. Existing
+short-tap, focus, selection, trigger and disconnect checks run through the same
+adapter. Radial deadzone, jitter, endpoint and release checks cover the filter
+separately. This is an input-adapter fixture, not physical PS4/PS5 validation or
+a retail ordinary-play replay; gilrs remains the unchanged default.
+
+The Player Model report has disc-backed cross-hero sheathing and voice fixtures:
+`cross_hero_sheathing_follows_the_selected_moveset` and
+`selected_hero_voice_includes_global_player_vocals`, both requiring `TENCHU_DISC`.
+They cover both T1 heroes, configuring sheathing before/after selection, live
+switches while stowed, retained movement/unarmed preferences, saved continuation,
+and explicit/follow-moveset English/Japanese voices. Fallback clips come from the
+existing NINJAB/NINJAC catalogs; global vocals are the selected hero's program 4
+cues `0x48`, `0x49` and `0x4c` (`sound.h` in `tenchu-decomp`). NPC/world sounds
+keep their original banks. `TENCHU_SHEATH_REVIEW` captures the sheathing pose
+with Original graphics, fog disabled and no artwork pack. These fixtures cover
+optional Gaisen model/moveset selection, not new ordinary-play parity.
+
 The optional European Toda execution fixture loads both retail E113 events and
 checks unchanged JP playback against the existing source update, EU head/body/fire
 assets and audio, 25 Hz source steps through natural completion, monotonic

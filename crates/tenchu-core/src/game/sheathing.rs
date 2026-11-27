@@ -197,8 +197,9 @@ impl Game {
         motions: Option<&Motions<Clip>>,
     ) -> Result<()> {
         settings.validate();
+        let mut refresh_pose = false;
         if settings.enabled {
-            if self.player().sheathing.is_none() {
+            if self.player().sheathing.is_none() || motions.is_some() {
                 let motions = motions.ok_or("Missing player sheathing motions")?;
                 if [
                     &motions.idle,
@@ -219,16 +220,26 @@ impl Game {
                     draw: self.import_clip(&motions.draw),
                     sheathe: self.import_clip(&motions.sheathe),
                 };
-                self.roster.get_mut(self.player_id).sheathing = Some(State {
-                    settings,
-                    weapon_program: None,
-                    motions,
-                    attacks: Vec::new(),
-                    loaded_style: UnarmedStyle::Onikage,
-                    attack_rest_yaw: None,
-                    held: false,
-                    requested: false,
-                });
+                let player = self.roster.get_mut(self.player_id);
+                if let Some(state) = &mut player.sheathing {
+                    let previous = state.clip(player.motion.action);
+                    state.motions = motions;
+                    state.settings = settings;
+                    refresh_pose = previous.is_some()
+                        && previous == player.motion.clip
+                        && previous != state.clip(player.motion.action);
+                } else {
+                    player.sheathing = Some(State {
+                        settings,
+                        weapon_program: None,
+                        motions,
+                        attacks: Vec::new(),
+                        loaded_style: UnarmedStyle::Onikage,
+                        attack_rest_yaw: None,
+                        held: false,
+                        requested: false,
+                    });
+                }
             } else {
                 self.roster
                     .get_mut(self.player_id)
@@ -281,6 +292,10 @@ impl Game {
                 player.play_pose(&mut ctx)?;
                 player.initialize_rendered(ctx.scene, ctx.math);
             }
+        } else if refresh_pose {
+            player.enter(&ctx, player.motion.action, true);
+            player.play_pose(&mut ctx)?;
+            player.initialize_rendered(ctx.scene, ctx.math);
         } else if matches!(player.motion.action, MOT_CHASE | MOT_CHASE_BACK) {
             player.motion_velocity(&ctx);
         }

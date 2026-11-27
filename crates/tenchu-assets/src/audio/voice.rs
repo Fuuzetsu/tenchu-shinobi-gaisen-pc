@@ -29,6 +29,13 @@ impl<T> From<T> for Sourced<T> {
 }
 
 impl VoiceSet {
+    /// T1 hero packs retain global player vocals at their original program 4 IDs.
+    pub fn gaisen_player_cue(&self, id: i16) -> bool {
+        self.dialect == Dialect::Gaisen
+            && matches!(id, 0x48 | 0x49 | 0x4c)
+            && self.bank.programs.get(4).is_some_and(Option::is_some)
+    }
+
     pub fn extract(source: &Bank, program: usize, dialect: Dialect) -> Result<Self> {
         let mut bank = Bank {
             volume: source.volume,

@@ -10,6 +10,7 @@ use crate::{
     },
 };
 
+mod heroes;
 mod idle;
 mod mixed;
 

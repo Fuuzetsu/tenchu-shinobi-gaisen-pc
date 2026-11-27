@@ -120,6 +120,17 @@ impl Library {
             } else {
                 game.set_player_moveset(None, &[], settings.model_moveset_options)?;
             }
+            if let Some(sheathing) = game.player().sheathing.as_ref().map(|s| s.settings) {
+                let kind = crate::sheathing::fallback_kind(game);
+                let body = self
+                    .get(&format!("disc:{kind}"))
+                    .ok_or("Missing ninja sheathing motions")?;
+                let motions = crate::sheathing::fallback_motions(
+                    body.character.as_ref().ok_or("Missing ninja character")?,
+                    &body.clips,
+                )?;
+                game.set_player_sheathing(sheathing, Some(&motions))?;
+            }
         }
         let mut changed_language = false;
         if let Some(body) = moveset.filter(|b| !b.is_tenchu2() && b.voice_set.is_some())

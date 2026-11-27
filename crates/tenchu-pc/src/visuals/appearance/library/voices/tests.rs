@@ -108,3 +108,98 @@ fn assert_source_voice(actual: &Bank, expected: &Bank) {
         postcard::to_allocvec(expected).unwrap()
     );
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; jump, fatal-fall and item vocals follow T1 voice selection without replacing world or NPC sounds"]
+fn selected_hero_voice_includes_global_player_vocals() {
+    let assets = crate::startup::open(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap();
+    let library = Library::load(&assets).unwrap();
+    for hero in 0..2 {
+        let mut game = crate::session::Options {
+            character: hero,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.events = Default::default();
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        let other = game
+            .roster
+            .order
+            .iter()
+            .copied()
+            .find(|&id| id != game.player_id)
+            .unwrap();
+        for explicit in [false, true] {
+            for language in [Language::English, Language::Japanese] {
+                game.mission.scripts.language = language;
+                let settings = Settings {
+                    model_moveset: !explicit,
+                    moveset_model: format!("disc:{}", 1 - hero),
+                    voice_model: if explicit {
+                        format!("disc:{}", 1 - hero)
+                    } else {
+                        String::new()
+                    },
+                    ..Default::default()
+                };
+                library.apply_player(&mut game, &settings).unwrap();
+                let expected = Bank::load(&assets, 0, 1 - hero, language).unwrap();
+                let mut npc = game.voice_event(other, 0x48);
+                npc.position = game.player().position;
+                game.intelligence.voices = vec![
+                    game.voice_event(game.player_id, 0x48),
+                    game.voice_event(game.player_id, 0x49),
+                    npc,
+                ];
+                let effects = [
+                    (game.player().position, 0x4c),
+                    (game.player().position, 0x47),
+                ];
+                let rng = game.random;
+                for host in [
+                    &game,
+                    &postcard::from_bytes::<tenchu_core::game::Game>(
+                        &postcard::to_allocvec(&game).unwrap(),
+                    )
+                    .unwrap(),
+                ] {
+                    let sounds = host.audio_with_burning(effects, None).unwrap();
+                    assert_eq!(sounds.len(), 5);
+                    for (index, id) in [(0, 0x48usize), (1, 0x49), (3, 0x4c)] {
+                        let bank = sounds[index]
+                            .bank
+                            .as_ref()
+                            .unwrap_or_else(|| panic!("selected hero {hero}, explicit={explicit}, {language:?}, cue {id:#x} must carry its source bank"));
+                        let tone = &bank.programs[id / 16].as_ref().unwrap().tones[id % 16];
+                        let expected_tone =
+                            &expected.programs[id / 16].as_ref().unwrap().tones[id % 16];
+                        assert_eq!(sounds[index].sound.id as usize, id);
+                        assert_eq!(
+                            bank.samples[tone.sample].frames,
+                            expected.samples[expected_tone.sample].frames
+                        );
+                    }
+                    assert!(sounds[2].bank.is_none(), "NPC sounds keep their source");
+                    assert!(
+                        sounds[4].bank.is_none(),
+                        "world sounds keep the mission bank"
+                    );
+                }
+                assert_eq!(game.random, rng);
+            }
+        }
+        library
+            .apply_player(&mut game, &Settings::default())
+            .unwrap();
+        game.intelligence.voices = vec![game.voice_event(game.player_id, 0x48)];
+        assert!(
+            game.audio_with_burning([(game.player().position, 0x4c)], None)
+                .unwrap()
+                .iter()
+                .all(|s| s.bank.is_none())
+        );
+    }
+}

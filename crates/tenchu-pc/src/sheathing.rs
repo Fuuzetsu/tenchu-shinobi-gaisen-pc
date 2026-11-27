@@ -157,29 +157,14 @@ pub fn configure(
         .then(|| imports::load(settings.unarmed_style))
         .transpose()?;
     let motions = if settings.enabled && game.player().sheathing.is_none() {
-        // NINJAB carries a sword; NINJAA's motions are for claws.
-        let kind = if game.player().kind == 0 { 0x21 } else { 0x22 };
+        let kind = fallback_kind(game);
         let characters = Executable::new(&assets.executable)?.characters()?;
         let character = characters
             .iter()
             .find(|c| c.kind == kind)
             .ok_or("Missing ninja character")?;
         let clips = tenchu_assets::motion::parse(&assets.asset(NINJA_MOTIONS)?)?;
-        let find = |action| {
-            character
-                .motions
-                .iter()
-                .find(|r| r.action == action)
-                .and_then(|r| clips.iter().find(|c| c.id == r.clip))
-                .cloned()
-                .ok_or_else(|| format!("Missing ninja sheathing motion {action:#x}"))
-        };
-        Some(Motions {
-            idle: find(MOT_NORMAL)?,
-            turn: find(MOT_NORMAL_TURN_L)?,
-            draw: find(MOT_STATE_DRAW)?,
-            sheathe: find(MOT_STATE_SHEATHE)?,
-        })
+        Some(fallback_motions(character, &clips)?)
     } else {
         None
     };
@@ -231,6 +216,37 @@ pub fn configure(
         game.set_player_t2_unarmed(&moves)?;
     }
     Ok(())
+}
+
+pub(crate) fn fallback_kind(game: &Game) -> i16 {
+    let hero = game
+        .moveset
+        .kind
+        .filter(|kind| (0..2).contains(kind))
+        .unwrap_or(game.player().kind);
+    // NINJAB carries a sword; NINJAA's motions are for claws.
+    if hero == 0 { 0x21 } else { 0x22 }
+}
+
+pub(crate) fn fallback_motions(
+    character: &tenchu_assets::executable::Character,
+    clips: &[tenchu_assets::motion::Clip],
+) -> Result<Motions<tenchu_assets::motion::Clip>> {
+    let find = |action| {
+        character
+            .motions
+            .iter()
+            .find(|r| r.action == action)
+            .and_then(|r| clips.iter().find(|c| c.id == r.clip))
+            .cloned()
+            .ok_or_else(|| format!("Missing ninja sheathing motion {action:#x}"))
+    };
+    Ok(Motions {
+        idle: find(MOT_NORMAL)?,
+        turn: find(MOT_NORMAL_TURN_L)?,
+        draw: find(MOT_STATE_DRAW)?,
+        sheathe: find(MOT_STATE_SHEATHE)?,
+    })
 }
 
 #[cfg(test)]

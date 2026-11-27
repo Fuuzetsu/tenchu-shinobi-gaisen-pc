@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Filter SDL controller stick drift and jitter before all input consumers,
+  including freecam in T1 and native T2. Preserve gilrs as the default with its
+  existing filters; retain raw SDL readings in diagnostic reports.
+- Follow the selected T1 hero moveset for optional sheathing, drawing and
+  sheathed turning animations, including changes made during a mission. Keep
+  the chosen player movement and unarmed style preferences.
+- Include T1 jump, fatal-fall and item-use vocals in the selected player voice,
+  including **Follow moveset** and localized voices.
+
 - Rename the project to **Tenchu Native** at `Fuuzetsu/tenchu-native`. New builds
   launch as `tenchu-native`; keep `tenchu-pc` compatibility executables and the
   existing download archive names. Update desktop, browser and Android branding.
