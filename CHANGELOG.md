@@ -8,6 +8,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Filter SDL controller stick drift and jitter before all input consumers,
   including freecam in T1 and native T2. Preserve gilrs as the default with its
   existing filters; retain raw SDL readings in diagnostic reports.
+  Reported native PS4/PS5 input failures under gilrs remain under investigation.
 - Follow the selected T1 hero moveset for optional sheathing, drawing and
   sheathed turning animations, including changes made during a mission. Keep
   the chosen player movement and unarmed style preferences.
